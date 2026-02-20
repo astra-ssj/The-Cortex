@@ -13,6 +13,8 @@ dependencies = [
     "structlog",
     "fastapi>=0.109",
     "uvicorn[standard]>=0.27",
+    "sqlalchemy[asyncio]>=2",
+    "asyncpg",
 ]
 
 [project.optional-dependencies]

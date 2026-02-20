@@ -1,0 +1,22 @@
+# Dependencies and build
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+frontend/dist/
+
+# Env and secrets
+.env
+.env.*
+*.pem
+secrets/
+
+# IDE and test
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
