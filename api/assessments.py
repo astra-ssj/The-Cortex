@@ -106,40 +106,23 @@ async def list_framework_controls(
     return PaginatedControls(items=items, total=total, page=page, page_size=page_size)
 
 
-# ---- Assessment run (SSE) ----
+# ---- Assessment run (SSE) — events match AssessmentEvent in compliance.ts ----
 
 
-def _sse_event(event: str, data: dict) -> str:
-    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+def _sse_event(event_kind: str, data: dict) -> str:
+    """SSE line: event = kind, data = full AssessmentEvent payload (JSON)."""
+    return f"event: {event_kind}\ndata: {json.dumps(data)}\n\n"
 
 
 async def _run_assessment_stream(organization_id: str, framework_ids: list[FrameworkId]):
-    """Async generator: yield SSE events for each control (context + demo result)."""
+    """Stream AssessmentEvent-shaped events from assessment_engine; emit as SSE (event=kind, data=payload)."""
     from db.session import async_session_factory
-    from services.context_builder import get_context_for_control
+    from services.assessment_engine import run_assessment_stream
 
     async with async_session_factory() as session:
-        for fid in framework_ids:
-            fw = get(fid)
-            if fw is None:
-                continue
-            yield _sse_event("framework_start", {"framework_id": fid.value, "name": fw.name})
-            for control in fw.controls:
-                ctx = await get_context_for_control(session, organization_id, control)
-                if ctx is None:
-                    yield _sse_event("error", {"control_id": control.id, "message": "Organization not found"})
-                    continue
-                yield _sse_event("context", {"framework_id": fid.value, "control_id": control.id, "context": ctx})
-                # Demo: no LLM call; emit placeholder result (real run would use CircuitBreaker-wrapped LLM).
-                yield _sse_event("result", {
-                    "framework_id": fid.value,
-                    "control_id": control.id,
-                    "control_name": control.name,
-                    "status": "assessed",
-                    "finding": f"Demo assessment for {control.name} (org={organization_id}). Context built.",
-                })
-            yield _sse_event("framework_done", {"framework_id": fid.value})
-    yield _sse_event("done", {})
+        async for event in run_assessment_stream(session, organization_id, framework_ids):
+            kind = event.get("kind", "error")
+            yield _sse_event(kind, event)
 
 
 @router.get("/assessments/run")

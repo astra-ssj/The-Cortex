@@ -91,3 +91,21 @@ class CompliancePosture(BaseModel):
     organisation_name: str = Field(..., serialization_alias="organisationName")
     frameworks: list[FrameworkPosture] = Field(default_factory=list, serialization_alias="frameworks")
     updated_at: str = Field(..., serialization_alias="updatedAt")
+
+
+# ---- ZTAIP system status (matches frontend ZTAIPStatus) ----
+
+
+class AuditFabricStatus(BaseModel):
+    model_config = ConfigDict(serialize_by_alias=True)
+    total_events: int = Field(..., serialization_alias="totalEvents")
+    last_event_at: Optional[str] = Field(None, serialization_alias="lastEventAt")
+
+
+class ZTAIPStatus(BaseModel):
+    model_config = ConfigDict(serialize_by_alias=True)
+    audit_fabric: AuditFabricStatus = Field(..., serialization_alias="auditFabric")
+    circuit_breakers_count: int = Field(..., serialization_alias="circuitBreakersCount")
+    human_review_queue_count: int = Field(..., serialization_alias="humanReviewQueueCount")
+    sovereignty_broker: str = Field(..., serialization_alias="sovereigntyBroker")  # active | degraded | unavailable
+    agent_certificates_count: int = Field(..., serialization_alias="agentCertificatesCount")
