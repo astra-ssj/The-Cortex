@@ -10,8 +10,6 @@ from fastapi.responses import StreamingResponse
 
 from compliance import FrameworkId, REGISTRY, get
 from compliance.models import Control, Framework
-from db.session import async_session_factory
-from services.context_builder import get_context_for_control
 
 from api.schemas import (
     ControlOut,
@@ -117,6 +115,9 @@ def _sse_event(event: str, data: dict) -> str:
 
 async def _run_assessment_stream(organization_id: str, framework_ids: list[FrameworkId]):
     """Async generator: yield SSE events for each control (context + demo result)."""
+    from db.session import async_session_factory
+    from services.context_builder import get_context_for_control
+
     async with async_session_factory() as session:
         for fid in framework_ids:
             fw = get(fid)
