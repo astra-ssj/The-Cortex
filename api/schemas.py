@@ -54,3 +54,38 @@ class PaginatedControls(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+# ---- Compliance posture (matches frontend src/types/compliance.ts) ----
+
+
+class ControlPosture(BaseModel):
+    """Per-control posture. JSON keys camelCase to match TypeScript CompliancePosture."""
+
+    controlId: str = Field(..., serialization_alias="controlId")
+    controlName: str = Field(..., serialization_alias="controlName")
+    status: str = Field(..., serialization_alias="status")  # compliant | partial | non_compliant | not_assessed
+    lastAssessedAt: str | None = Field(None, serialization_alias="lastAssessedAt")
+    findingSummary: str | None = Field(None, serialization_alias="findingSummary")
+
+    model_config = {"populate_by_name": True}
+
+
+class FrameworkPosture(BaseModel):
+    frameworkId: str = Field(..., serialization_alias="frameworkId")
+    frameworkName: str = Field(..., serialization_alias="frameworkName")
+    controlCount: int = Field(..., serialization_alias="controlCount")
+    controls: list[ControlPosture] = Field(default_factory=list, serialization_alias="controls")
+
+    model_config = {"populate_by_name": True}
+
+
+class CompliancePosture(BaseModel):
+    """Organisation compliance posture. Matches TypeScript CompliancePosture."""
+
+    organisationId: str = Field(..., serialization_alias="organisationId")
+    organisationName: str = Field(..., serialization_alias="organisationName")
+    frameworks: list[FrameworkPosture] = Field(default_factory=list, serialization_alias="frameworks")
+    updatedAt: str = Field(..., serialization_alias="updatedAt")
+
+    model_config = {"populate_by_name": True}
