@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FrameworkSummary(BaseModel):
@@ -62,30 +64,30 @@ class PaginatedControls(BaseModel):
 class ControlPosture(BaseModel):
     """Per-control posture. JSON keys camelCase to match TypeScript CompliancePosture."""
 
-    controlId: str = Field(..., serialization_alias="controlId")
-    controlName: str = Field(..., serialization_alias="controlName")
-    status: str = Field(..., serialization_alias="status")  # compliant | partial | non_compliant | not_assessed
-    lastAssessedAt: str | None = Field(None, serialization_alias="lastAssessedAt")
-    findingSummary: str | None = Field(None, serialization_alias="findingSummary")
+    model_config = ConfigDict(serialize_by_alias=True)
 
-    model_config = {"populate_by_name": True}
+    control_id: str = Field(..., serialization_alias="controlId")
+    control_name: str = Field(..., serialization_alias="controlName")
+    status: str = Field(..., serialization_alias="status")  # compliant | partial | non_compliant | not_assessed
+    last_assessed_at: Optional[str] = Field(None, serialization_alias="lastAssessedAt")
+    finding_summary: Optional[str] = Field(None, serialization_alias="findingSummary")
 
 
 class FrameworkPosture(BaseModel):
-    frameworkId: str = Field(..., serialization_alias="frameworkId")
-    frameworkName: str = Field(..., serialization_alias="frameworkName")
-    controlCount: int = Field(..., serialization_alias="controlCount")
-    controls: list[ControlPosture] = Field(default_factory=list, serialization_alias="controls")
+    model_config = ConfigDict(serialize_by_alias=True)
 
-    model_config = {"populate_by_name": True}
+    framework_id: str = Field(..., serialization_alias="frameworkId")
+    framework_name: str = Field(..., serialization_alias="frameworkName")
+    control_count: int = Field(..., serialization_alias="controlCount")
+    controls: list[ControlPosture] = Field(default_factory=list, serialization_alias="controls")
 
 
 class CompliancePosture(BaseModel):
     """Organisation compliance posture. Matches TypeScript CompliancePosture."""
 
-    organisationId: str = Field(..., serialization_alias="organisationId")
-    organisationName: str = Field(..., serialization_alias="organisationName")
-    frameworks: list[FrameworkPosture] = Field(default_factory=list, serialization_alias="frameworks")
-    updatedAt: str = Field(..., serialization_alias="updatedAt")
+    model_config = ConfigDict(serialize_by_alias=True)
 
-    model_config = {"populate_by_name": True}
+    organisation_id: str = Field(..., serialization_alias="organisationId")
+    organisation_name: str = Field(..., serialization_alias="organisationName")
+    frameworks: list[FrameworkPosture] = Field(default_factory=list, serialization_alias="frameworks")
+    updated_at: str = Field(..., serialization_alias="updatedAt")

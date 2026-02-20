@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.assessments import router as assessments_router
+from api.organisations import router as organisations_router
 
 logger = structlog.get_logger()
 
@@ -36,6 +37,7 @@ app.add_middleware(
 )
 
 app.include_router(assessments_router)
+app.include_router(organisations_router)
 
 
 @app.get("/health")
