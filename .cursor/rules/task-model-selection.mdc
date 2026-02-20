@@ -1,0 +1,18 @@
+---
+description: Per-task model selection — when to use Sonnet vs Haiku
+alwaysApply: true
+---
+
+# Task model selection
+
+Use this mapping for per-task model switching. Suggest the listed model when the user’s task clearly matches a row.
+
+| Task type | Model |
+|-----------|--------|
+| Architecture decisions, compliance reasoning | **claude-sonnet-4-6** |
+| Boilerplate, repetitive code, tests | **claude-haiku-4-5** (faster, cheaper) |
+| Complex multi-file refactors | **claude-sonnet-4-6** |
+
+- **Sonnet** for reasoning-heavy work and cross-file coherence.
+- **Haiku** for formulaic work (boilerplate, repetitive code, tests) to save cost and latency.
+- Default to **claude-sonnet-4-6** when the task is ambiguous or high-stakes.

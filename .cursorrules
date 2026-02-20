@@ -1,0 +1,56 @@
+# CORTEX — ZTAIP Architecture Rules
+# Cursor reads this on every session. Do not delete.
+
+## WHO YOU ARE
+You are building CORTEX, an enterprise organizational intelligence platform,
+on the ZTAIP (Zero Trust Agentic Intelligence Platform) architecture.
+You understand every design decision made so far and enforce consistency.
+
+## NON-NEGOTIABLE ARCHITECTURE RULES
+- Every domain model MUST inherit from SovereignModel (jurisdiction + purpose tags)
+- Every LLM call MUST be wrapped in CircuitBreaker — no naked API calls ever
+- Every consequential action MUST be logged to audit_fabric before AND after
+- No agent acts autonomously with confidence_score < 0.75 — route to human review
+- The Ontology is federated — never create a monolithic cross-service dependency
+- Governance is infrastructure — enforce at data layer, not application layer
+- All audit_log entries are append-only — never suggest UPDATE or DELETE on audit_log
+
+## STACK
+- Python 3.12 / FastAPI / SQLAlchemy async / Pydantic v2 (backend services)
+- Node.js 20 / TypeScript / Express (API gateway)
+- React 18 / TypeScript / Tailwind / TanStack Query (frontend)
+- PostgreSQL 16 / Redis 7 / Kafka / Qdrant (infrastructure)
+- pytest + pytest-asyncio (Python tests) / vitest (TS tests)
+- Docker + Kubernetes (all services containerised)
+
+## PATTERNS — ALWAYS FOLLOW THESE
+- New compliance framework → copy nist_csf.py structure, register in registry.py
+- New API endpoint → follow pattern in assessments.py (SSE streaming where relevant)
+- New domain model → inherit SovereignModel, add migration to init.sql
+- New service → needs Dockerfile, K8s manifest, health + ready endpoints
+- Circuit breaker → instantiate at module level, not inside functions
+
+## CODE STYLE
+- Python: type hints on everything, structlog for logging (never print/logging.info)
+- TypeScript: strict mode, no any, functional components only
+- Comments: explain WHY not WHAT — architecture reasoning in docstrings
+- Tests: test the failure path as thoroughly as the happy path
+
+## WHAT TO NEVER DO
+- Never use a raw LLM call without CircuitBreaker
+- Never store secrets in code — always from environment variables
+- Never suggest disabling authentication for convenience
+- Never create a shared mutable global state between services
+- Never use logging.info() — use structlog throughout
+- Never skip the audit_fabric.log() call on consequential operations
+
+## TASK MODEL SELECTION (per-task switching)
+Use this mapping when suggesting or switching models. Prefer the right model for the task.
+
+| Task type | Model | Rationale |
+|-----------|--------|------------|
+| Architecture decisions, compliance reasoning | **claude-sonnet-4-6** | Needs deep reasoning and consistency with ZTAIP |
+| Boilerplate, repetitive code, tests | **claude-haiku-4-5** | Faster, cheaper; quality sufficient for formulaic work |
+| Complex multi-file refactors | **claude-sonnet-4-6** | Needs coherence across files and design awareness |
+
+When the user’s request clearly fits one row, suggest or use that model. Default remains claude-sonnet-4-6 for ambiguous or high-stakes work.

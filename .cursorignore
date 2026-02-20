@@ -1,0 +1,25 @@
+# Never index these
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# Build artifacts — noise in context
+node_modules/
+__pycache__/
+dist/
+build/
+.next/
+*.egg-info/
+htmlcov/
+coverage/
+
+# Large generated files that confuse context
+*.lock
+pnpm-lock.yaml
+package-lock.json
+poetry.lock
+
+# Docker and K8s don't need to be in AI context
+infra/terraform/
