@@ -59,7 +59,7 @@ def _mock_posture(org_id: str, org_name: str) -> CompliancePosture:
         organisation_id=org_id,
         organisation_name=org_name,
         frameworks=frameworks,
-        updated_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        updated_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     )
 
 
