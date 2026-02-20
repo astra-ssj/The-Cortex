@@ -20,6 +20,7 @@ def test_list_frameworks() -> None:
     assert "nist_csf" in ids
     assert "gdpr" in ids
     assert "nis2" in ids
+    assert len(data) == 8  # NIST_CSF, GDPR, NIS2, SOC2, ISO27001, HIPAA, PCI_DSS, CCPA
     for fw in data:
         assert "id" in fw and "name" in fw and "version" in fw
         assert "control_count" in fw and isinstance(fw["control_count"], int)

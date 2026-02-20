@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException
 
 from compliance import FrameworkId, REGISTRY, get
 
-from api.schemas import CompliancePosture, ControlPosture, FrameworkPosture
+from api.schemas import CompliancePosture, ControlPosture, FrameworkPosture, OrgProfile
 
 logger = structlog.get_logger()
 
@@ -19,6 +19,9 @@ router = APIRouter(prefix="/api/v1", tags=["organisations"])
 DEMO_ORG = {
     "id": "demo-org-001",
     "name": "Acme EU Services Ltd",
+    "jurisdiction": "EU",
+    "industry": "Technology",
+    "region": "EU",
 }
 
 # Mock posture status per control for demo. In production, derive from assessment results.
@@ -42,9 +45,9 @@ def _mock_control_postures(framework_id: str) -> list[ControlPosture]:
 
 
 def _mock_posture(org_id: str, org_name: str) -> CompliancePosture:
-    """Build mock CompliancePosture for demo-org-001 from registered frameworks (GDPR, NIS2)."""
+    """Build mock CompliancePosture for demo-org-001 from all registered frameworks."""
     frameworks: list[FrameworkPosture] = []
-    for fid in (FrameworkId.GDPR, FrameworkId.NIS2):
+    for fid in FrameworkId:
         fw = get(fid)
         if fw is None:
             continue
@@ -61,6 +64,20 @@ def _mock_posture(org_id: str, org_name: str) -> CompliancePosture:
         frameworks=frameworks,
         updated_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     )
+
+
+@router.get("/organisations/{org_id}", response_model=OrgProfile)
+async def get_organisation(org_id: str) -> OrgProfile:
+    """Return organisation profile. Mock for demo-org-001."""
+    if org_id == "demo-org-001":
+        return OrgProfile(
+            id=DEMO_ORG["id"],
+            name=DEMO_ORG["name"],
+            jurisdiction=DEMO_ORG["jurisdiction"],
+            industry=DEMO_ORG["industry"],
+            region=DEMO_ORG["region"],
+        )
+    raise HTTPException(status_code=404, detail=f"Organisation not found: {org_id}")
 
 
 @router.get("/organisations/{org_id}/posture", response_model=CompliancePosture)

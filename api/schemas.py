@@ -93,6 +93,18 @@ class CompliancePosture(BaseModel):
     updated_at: str = Field(..., serialization_alias="updatedAt")
 
 
+# ---- Organisation profile (GET /organisations/{id}) ----
+
+
+class OrgProfile(BaseModel):
+    model_config = ConfigDict(serialize_by_alias=True)
+    id: str = Field(..., serialization_alias="id")
+    name: str = Field(..., serialization_alias="name")
+    jurisdiction: str = Field("", serialization_alias="jurisdiction")
+    industry: Optional[str] = Field(None, serialization_alias="industry")
+    region: Optional[str] = Field(None, serialization_alias="region")
+
+
 # ---- ZTAIP system status (matches frontend ZTAIPStatus) ----
 
 

@@ -11,3 +11,8 @@ class FrameworkId(str, Enum):
     NIST_CSF = "nist_csf"
     GDPR = "gdpr"
     NIS2 = "nis2"
+    SOC2 = "soc2"
+    ISO27001 = "iso27001"
+    HIPAA = "hipaa"
+    PCI_DSS = "pci_dss"
+    CCPA = "ccpa"

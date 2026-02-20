@@ -28,8 +28,13 @@ def get(framework_id: FrameworkId) -> Framework | None:
 
 def register_all() -> None:
     """Register all built-in frameworks. Call once at startup or import."""
-    from compliance import gdpr, nist_csf, nis2
+    from compliance import ccpa, gdpr, hipaa, iso27001, nist_csf, nis2, pci_dss, soc2
 
     register(nist_csf.get_nist_csf(), FrameworkId.NIST_CSF)
     register(gdpr.get_gdpr(), FrameworkId.GDPR)
     register(nis2.get_nis2(), FrameworkId.NIS2)
+    register(soc2.get_soc2(), FrameworkId.SOC2)
+    register(iso27001.get_iso27001(), FrameworkId.ISO27001)
+    register(hipaa.get_hipaa(), FrameworkId.HIPAA)
+    register(pci_dss.get_pci_dss(), FrameworkId.PCI_DSS)
+    register(ccpa.get_ccpa(), FrameworkId.CCPA)
