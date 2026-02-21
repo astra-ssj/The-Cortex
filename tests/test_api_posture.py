@@ -16,7 +16,7 @@ def test_get_posture_demo_org_returns_200() -> None:
     assert r.status_code == 200
     data = r.json()
     assert data["organisationId"] == "demo-org-001"
-    assert data["organisationName"] == "Acme EU Services Ltd"
+    assert data["organisationName"] == "AstraLabs Group"
     assert "frameworks" in data
     assert "updatedAt" in data
 
@@ -39,8 +39,8 @@ def test_get_posture_demo_org_includes_all_frameworks() -> None:
     r = client.get("/api/v1/organisations/demo-org-001/posture")
     assert r.status_code == 200
     ids = {fw["frameworkId"] for fw in r.json()["frameworks"]}
-    assert "gdpr" in ids
-    assert "nis2" in ids
+    assert "gdpr-2016-679" in ids
+    assert "nis2-2022-2555" in ids
     assert len(ids) == 8
 
 
@@ -50,7 +50,7 @@ def test_get_organisation_demo_org() -> None:
     assert r.status_code == 200
     data = r.json()
     assert data["id"] == "demo-org-001"
-    assert data["name"] == "Acme EU Services Ltd"
+    assert data["name"] == "AstraLabs Group"
     assert "jurisdiction" in data
     assert data.get("industry") == "Technology"
 

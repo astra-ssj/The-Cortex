@@ -125,13 +125,17 @@ async def _run_assessment_stream(organization_id: str, framework_ids: list[Frame
             yield _sse_event(kind, event)
 
 
-@router.get("/assessments/run")
-async def run_assessment(
-    organization_id: str = Query(..., description="Organization id (e.g. demo-org-001)"),
-    framework_ids: str = Query("gdpr,nis2", description="Comma-separated framework ids"),
-) -> StreamingResponse:
-    """Stream assessment run via SSE. Uses Context Builder for each control; demo run emits placeholder results."""
-    ids = [s.strip() for s in framework_ids.split(",") if s.strip()]
+def _validate_organization_id(organization_id: str) -> None:
+    """Reject empty or invalid organization ids (input validation)."""
+    if not organization_id or not organization_id.strip():
+        raise HTTPException(status_code=400, detail="organization_id is required and cannot be empty")
+    if ".." in organization_id or "/" in organization_id or "\\" in organization_id:
+        raise HTTPException(status_code=400, detail="Invalid organization_id: path characters not allowed")
+
+
+def _parse_frameworks(frameworks_str: str) -> list[FrameworkId]:
+    """Parse comma-separated framework ids; raise HTTPException on unknown id."""
+    ids = [s.strip() for s in frameworks_str.split(",") if s.strip()]
     fids: list[FrameworkId] = []
     for i in ids:
         try:
@@ -139,9 +143,14 @@ async def run_assessment(
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Unknown framework: {i}")
     if not fids:
-        raise HTTPException(status_code=400, detail="At least one framework_id required")
+        raise HTTPException(status_code=400, detail="At least one framework required")
+    return fids
+
+
+def _stream_response(org_id: str, fids: list[FrameworkId]) -> StreamingResponse:
+    """Build SSE streaming response (shared by stream and run endpoints)."""
     return StreamingResponse(
-        _run_assessment_stream(organization_id, fids),
+        _run_assessment_stream(org_id, fids),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -150,3 +159,32 @@ async def run_assessment(
             "Connection": "keep-alive",
         },
     )
+
+
+@router.get("/assessments/stream", include_in_schema=True)
+@router.get("/assessments/stream/", include_in_schema=False)  # allow trailing slash
+async def stream_assessment(
+    org_id: str = Query(..., description="Organization id (e.g. demo-org-001)"),
+    frameworks: str = Query(
+        ...,
+        description="Comma-separated framework ids (e.g. iso27001-2022,gdpr-2016-679,...)",
+    ),
+) -> StreamingResponse:
+    """Stream assessment run via SSE. Params: org_id, frameworks (comma-separated)."""
+    _validate_organization_id(org_id)
+    fids = _parse_frameworks(frameworks)
+    return _stream_response(org_id, fids)
+
+
+@router.get("/assessments/run", include_in_schema=True)
+async def run_assessment(
+    organization_id: str = Query(..., description="Organization id (e.g. demo-org-001)"),
+    framework_ids: str = Query(
+        ...,
+        description="Comma-separated framework ids (e.g. iso27001-2022,gdpr-2016-679,...)",
+    ),
+) -> StreamingResponse:
+    """Stream assessment run via SSE (alias). Params: organization_id, framework_ids."""
+    _validate_organization_id(organization_id)
+    fids = _parse_frameworks(framework_ids)
+    return _stream_response(organization_id, fids)

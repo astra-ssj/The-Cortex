@@ -211,13 +211,15 @@ class AWSConnector:
                     pa = s3.get_public_access_block(Bucket=bid)
                     if not pa.get("PublicAccessBlockConfiguration", {}).get("BlockPublicAcls"):
                         purpose_tags.append("public_access_risk")
-                except Exception:
+                except Exception as e:
+                    logger.debug("aws_s3_public_access_block_skip", bucket=bid, error=str(e))
                     purpose_tags.append("public_access_risk")
                 try:
                     enc = s3.get_bucket_encryption(Bucket=bid)
                     if not enc.get("ServerSideEncryptionConfiguration", {}).get("Rules"):
                         purpose_tags.append("unencrypted")
-                except Exception:
+                except Exception as e:
+                    logger.debug("aws_s3_encryption_skip", bucket=bid, error=str(e))
                     purpose_tags.append("unencrypted")
                 aid = f"aws-s3-{self.account_id}-{bid}"[-80:]
                 assets.append(

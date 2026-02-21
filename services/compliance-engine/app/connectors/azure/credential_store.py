@@ -31,7 +31,8 @@ def _get_fernet_key() -> bytes | None:
             k = key.encode("utf-8")
         Fernet(k)  # validate
         return k
-    except Exception:
+    except Exception as e:
+        logger.debug("connector_fernet_key_invalid", error=str(e))
         return None
 
 
@@ -51,7 +52,8 @@ def _decrypt(raw: bytes) -> dict[str, Any]:
     if key is None:
         try:
             return cast(dict[str, Any], json.loads(base64.b64decode(raw).decode("utf-8")))
-        except Exception:
+        except Exception as e:
+            logger.debug("connector_decrypt_dev_fallback_error", error=str(e))
             return {}
     from cryptography.fernet import Fernet
     f = Fernet(key)

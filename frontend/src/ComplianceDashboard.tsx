@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { useRef, useEffect } from "react";
+import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
 import { useFrameworks } from "./hooks/useFrameworks";
 import {
   useAssessmentStream,
@@ -6,6 +8,59 @@ import {
   useZtaipStatus,
 } from "./store/complianceStore";
 import type { FrameworkSummary } from "./api/frameworks";
+import type { AssessmentEvent } from "./types/compliance";
+
+type DisplayType = "start" | "fw_start" | "fw_done" | "control" | "review" | "complete" | "error";
+
+function eventDisplay(e: AssessmentEvent): { type: DisplayType; message: string } {
+  switch (e.kind) {
+    case "run_start":
+      return { type: "start", message: `Run started (${(e as { frameworkIds?: string[] }).frameworkIds?.length ?? 0} frameworks)` };
+    case "framework_start":
+      return { type: "fw_start", message: `Framework: ${(e as { frameworkName: string }).frameworkName} (${(e as { frameworkId: string }).frameworkId})` };
+    case "framework_done":
+      return { type: "fw_done", message: `Done: ${(e as { frameworkId: string }).frameworkId}` };
+    case "control_context":
+      return { type: "control", message: `Context: ${(e as { controlId: string }).controlId}` };
+    case "control_result": {
+      const r = e as { controlId: string; controlName: string; status: string; finding?: string };
+      return { type: "control", message: `${r.controlName} — ${r.status}${r.finding ? `: ${r.finding.slice(0, 60)}…` : ""}` };
+    }
+    case "run_done":
+      return { type: "complete", message: "Assessment complete" };
+    case "error":
+      return { type: "error", message: (e as { message: string }).message };
+    default:
+      return { type: "error", message: `Unknown event: ${(e as { kind: string }).kind}` };
+  }
+}
+
+function streamEventColor(type: DisplayType): string {
+  switch (type) {
+    case "fw_start":
+    case "fw_done":
+      return "text-blue-600";
+    case "control":
+      return "text-green-700";
+    case "review":
+      return "text-amber-600";
+    case "error":
+      return "text-red-600";
+    case "complete":
+      return "font-bold text-green-700";
+    default:
+      return "text-slate-600";
+  }
+}
+
+function StreamEventLine({ event }: { event: AssessmentEvent }) {
+  const { type, message } = eventDisplay(event);
+  return (
+    <li className={`py-1 ${streamEventColor(type)}`}>
+      <span className="text-slate-500">[{type}]</span> {message}
+    </li>
+  );
+}
 
 function FrameworkCard({ fw }: { fw: FrameworkSummary }) {
   return (
@@ -34,13 +89,18 @@ function FrameworkCard({ fw }: { fw: FrameworkSummary }) {
   );
 }
 
-const DEMO_ORG_ID = "demo-org-001";
-
 export function ComplianceDashboard() {
   const { data: frameworks, isLoading, error } = useFrameworks();
-  const { data: posture } = useCompliancePosture(DEMO_ORG_ID);
+  const { data: posture } = useCompliancePosture(DEFAULT_ORG_ID);
   const { data: ztaip } = useZtaipStatus();
   const { events, isStreaming, startStream, stopStream } = useAssessmentStream();
+  const streamPanelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (events.length > 0 && streamPanelRef.current) {
+      streamPanelRef.current.scrollTop = streamPanelRef.current.scrollHeight;
+    }
+  }, [events.length]);
 
   if (isLoading) {
     return (
@@ -92,11 +152,16 @@ export function ComplianceDashboard() {
       </div>
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <h2 className="text-lg font-semibold text-slate-800">Run assessment</h2>
-        <p className="mt-1 text-sm text-slate-500">Stream assessment for {DEMO_ORG_ID} (GDPR + NIS2)</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Stream assessment for {DEFAULT_ORG_ID} — all 8 frameworks
+        </p>
         <div className="mt-3 flex gap-2">
           <button
             type="button"
-            onClick={() => startStream(DEMO_ORG_ID, ["gdpr", "nis2"])}
+            onClick={() => {
+              console.log("Stream button clicked");
+              startStream(DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS.split(","));
+            }}
             disabled={isStreaming}
             className="rounded bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
           >
@@ -112,15 +177,49 @@ export function ComplianceDashboard() {
             </button>
           )}
         </div>
-        {events.length > 0 && (
-          <ul className="mt-4 max-h-48 overflow-y-auto rounded border border-slate-100 bg-slate-50 p-2 text-xs">
-            {events.map((e, i) => (
-              <li key={i} className="py-1">
-                <span className="font-medium text-slate-600">{e.kind}</span>
-                {"frameworkId" in e && ` — ${(e as { frameworkId: string }).frameworkId}`}
-              </li>
-            ))}
-          </ul>
+        {(isStreaming || events.length > 0) && (
+          <div
+            ref={streamPanelRef}
+            style={{
+              marginTop: "24px",
+              padding: "16px",
+              background: "#05080f",
+              borderRadius: "8px",
+              border: "1px solid #1e2e48",
+              fontFamily: "monospace",
+              fontSize: "12px",
+              maxHeight: "400px",
+              overflowY: "auto",
+            }}
+          >
+            {isStreaming && events.length === 0 && (
+              <div style={{ color: "#94a3b8", padding: "2px 0" }}>Connecting…</div>
+            )}
+            {events.map((e, i) => {
+              const { type, message } = eventDisplay(e);
+              return (
+                <div
+                  key={i}
+                  style={{
+                    color:
+                      type === "complete"
+                        ? "#10b981"
+                        : type === "review"
+                          ? "#f59e0b"
+                          : type === "error"
+                            ? "#ef4444"
+                            : type === "fw_start"
+                              ? "#3b82f6"
+                              : "#94a3b8",
+                    padding: "2px 0",
+                    borderBottom: "1px solid #0c1220",
+                  }}
+                >
+                  [{type}] {message}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

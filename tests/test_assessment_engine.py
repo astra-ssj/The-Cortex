@@ -25,7 +25,7 @@ def test_run_assessment_stream_yields_run_start_and_run_done() -> None:
             async for evt in run_assessment_stream(
                 session,
                 "org-001",
-                [FrameworkId.GDPR],
+                [FrameworkId.GDPR_2016_679],
             ):
                 events.append(evt)
 
@@ -52,7 +52,7 @@ def test_run_assessment_stream_yields_framework_start_and_done() -> None:
             async for evt in run_assessment_stream(
                 session,
                 "org-001",
-                [FrameworkId.NIST_CSF],
+                [FrameworkId.NIST_CSF_2_0],
             ):
                 events.append(evt)
 
@@ -77,7 +77,7 @@ def test_run_assessment_stream_unknown_framework_skipped() -> None:
             async for evt in run_assessment_stream(
                 session,
                 "org-001",
-                [FrameworkId.GDPR],
+                [FrameworkId.GDPR_2016_679],
             ):
                 events.append(evt)
 
@@ -99,7 +99,7 @@ def test_run_assessment_stream_emits_control_result() -> None:
             async for evt in run_assessment_stream(
                 session,
                 "org-001",
-                [FrameworkId.GDPR],
+                [FrameworkId.GDPR_2016_679],
             ):
                 events.append(evt)
 

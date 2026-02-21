@@ -20,6 +20,12 @@ SOVEREIGNTY_BROKER_STATUS = "active"
 AGENT_CERTIFICATES_COUNT = 0
 
 
+@router.get("/system/ready", response_model=dict)
+async def get_system_ready() -> dict[str, str]:
+    """Readiness probe for Kubernetes / load balancers (same semantics as root /ready)."""
+    return {"status": "ready"}
+
+
 @router.get("/system/ztaip-status", response_model=ZTAIPStatus)
 async def get_ztaip_status() -> ZTAIPStatus:
     """Return ZTAIP status from audit fabric, circuit breakers, human review queue, sovereignty broker, agent certs."""

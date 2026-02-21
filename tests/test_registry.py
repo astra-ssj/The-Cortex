@@ -10,27 +10,27 @@ from compliance.registry import REGISTRY, get as registry_get, register
 
 
 def test_register_all_populates_registry() -> None:
-    """register_all() registers all built-in frameworks."""
+    """register_all() registers exactly 8 built-in frameworks."""
     register_all()
-    assert len(REGISTRY) >= 8
-    assert FrameworkId.NIST_CSF in REGISTRY
-    assert FrameworkId.GDPR in REGISTRY
-    assert FrameworkId.NIS2 in REGISTRY
+    assert len(REGISTRY) == 8
+    assert FrameworkId.NIST_CSF_2_0 in REGISTRY
+    assert FrameworkId.GDPR_2016_679 in REGISTRY
+    assert FrameworkId.NIS2_2022_2555 in REGISTRY
 
 
 def test_get_returns_framework() -> None:
     """get(FrameworkId) returns Framework or None."""
     register_all()
-    fw = registry_get(FrameworkId.GDPR)
+    fw = registry_get(FrameworkId.GDPR_2016_679)
     assert fw is not None
-    assert fw.id == "gdpr"
+    assert fw.id == "gdpr-2016-679"
     assert len(fw.controls) >= 1
 
 
 def test_register_idempotent() -> None:
     """Registering same framework id again overwrites (idempotent for same id)."""
     register_all()
-    fw = registry_get(FrameworkId.NIST_CSF)
+    fw = registry_get(FrameworkId.NIST_CSF_2_0)
     assert fw is not None
-    register(fw, FrameworkId.NIST_CSF)
-    assert registry_get(FrameworkId.NIST_CSF) is fw
+    register(fw, FrameworkId.NIST_CSF_2_0)
+    assert registry_get(FrameworkId.NIST_CSF_2_0) is fw
