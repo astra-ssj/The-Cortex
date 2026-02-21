@@ -195,6 +195,16 @@ def test_ingest_document_rejects_bad_type() -> None:
     assert r.status_code == 400
 
 
+def test_ingest_document_rejects_path_traversal_filename() -> None:
+    r"""POST rejects filename with path traversal (.. or / or \)."""
+    r = client.post(
+        "/api/v1/ingest/document",
+        files={"file": ("../../../etc/passwd.txt", io.BytesIO(b"x"), "text/plain")},
+    )
+    assert r.status_code == 400
+    assert "path traversal" in r.json()["detail"].lower() or "invalid filename" in r.json()["detail"].lower()
+
+
 def test_ingest_document_accepts_txt() -> None:
     """POST /api/v1/ingest/document accepts TXT and returns streaming response."""
     r = client.post(
