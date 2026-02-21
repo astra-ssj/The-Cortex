@@ -138,12 +138,15 @@ class AzureConnector:
             name = r.get("name", "unknown")
             resource_id = r.get("id", "")
             tags = r.get("tags") or {}
-            personal_data = "personal_data" in str(tags).lower() or "pii" in str(tags).lower() or "gdpr" in str(tags).lower()
+            has_personal_data = "personal_data" in str(tags).lower() or "pii" in str(tags).lower() or "gdpr" in str(tags).lower()
             asset_id = resource_id.replace("/", "_").replace(":", "_")[-80:] or f"az-{name}"
+            purpose_tags = ["azure", "connector"]
+            if has_personal_data:
+                purpose_tags.append("personal_data")
             assets.append(
                 SystemAsset(
                     jurisdiction="internal",
-                    purpose_tags=["azure", "connector"],
+                    purpose_tags=purpose_tags,
                     id=asset_id,
                     name=name,
                     system_type=system_type,
