@@ -6,6 +6,7 @@ import hashlib
 import json
 import tempfile
 from pathlib import Path
+from typing import Literal, cast
 
 import structlog
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -46,7 +47,8 @@ async def _run_ingest_stream(content: bytes, ext: str, document_type: str, docum
             tmp.write(content)
             tmp_path = Path(tmp.name)
         yield _sse("progress", {"stage": "processing", "message": "Extracting text and chunking"})
-        chunks = process_document(tmp_path, document_type)
+        doc_type: Literal["pdf", "docx", "txt"] = cast(Literal["pdf", "docx", "txt"], document_type)
+        chunks = process_document(tmp_path, doc_type)
         yield _sse("progress", {"stage": "chunks", "chunk_count": len(chunks)})
         if not chunks:
             yield _sse("progress", {"stage": "done", "message": "No text extracted"})

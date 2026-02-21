@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, cast
 
 import structlog
 
@@ -110,4 +110,4 @@ async def map_chunks_to_ontology(
             "requires_human_review": result.requires_human_review,
         },
     )
-    return result
+    return cast(OntologyMappingResult, result)
