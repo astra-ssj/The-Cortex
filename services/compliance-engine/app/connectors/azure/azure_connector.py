@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, cast
 
 import structlog
 
@@ -198,7 +198,7 @@ class AzureConnector:
             entity_id=CONNECTOR_ID,
             payload={"count": len(out)},
         )
-        return out
+        return cast(list[ControlFinding], out)
 
     async def pull_findings(self) -> list[Finding]:
         """Convert Defender for Cloud recommendations to CORTEX Findings; map to obligation_id; set severity."""

@@ -17,7 +17,7 @@ dependencies = [
     "asyncpg",
     "pypdf>=4",
     "python-docx>=1.0",
-    "python-multipart>=0.0.6",
+    "python-multipart>=0.0.22",
 ]
 
 [project.optional-dependencies]
