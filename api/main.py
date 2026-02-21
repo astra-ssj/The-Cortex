@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import structlog
 from fastapi import FastAPI
@@ -11,6 +13,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.assessments import router as assessments_router
 from api.organisations import router as organisations_router
 from api.system import router as system_router
+
+# Compliance-engine app (document ingestion at services/compliance-engine/app/).
+_compliance_engine = Path(__file__).resolve().parent.parent / "services" / "compliance-engine"
+if _compliance_engine.exists() and str(_compliance_engine) not in sys.path:
+    sys.path.insert(0, str(_compliance_engine))
+try:
+    from app.api.v1 import router as v1_router
+    _has_v1 = True
+except ImportError:
+    v1_router = None
+    _has_v1 = False
 
 logger = structlog.get_logger()
 
@@ -38,6 +51,8 @@ app.add_middleware(
 )
 
 app.include_router(assessments_router)
+if _has_v1:
+    app.include_router(v1_router)
 app.include_router(organisations_router)
 app.include_router(system_router)
 

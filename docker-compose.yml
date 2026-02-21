@@ -1,0 +1,35 @@
+# CORTEX — Postgres + one-time org structure seed.
+# Usage: docker-compose up -d postgres && docker-compose run --rm seed
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: cortex
+      POSTGRES_PASSWORD: cortex
+      POSTGRES_DB: cortex
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./migrations/002_cortex_ontology.sql:/docker-entrypoint-initdb.d/02_ontology.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cortex -d cortex"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  seed:
+    image: python:3.12-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: postgresql://cortex:cortex@postgres:5432/cortex
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "pip install -q psycopg2-binary && python scripts/seed_org_structure.py"
+
+volumes:
+  postgres_data:
