@@ -27,6 +27,15 @@ def get(framework_id: FrameworkId) -> Framework | None:
     return REGISTRY.get(framework_id)
 
 
+def exists(framework_id: str) -> bool:
+    """Return True if the given framework id (string value) is registered."""
+    try:
+        fid = FrameworkId(framework_id)
+        return get(fid) is not None
+    except ValueError:
+        return False
+
+
 def register_all() -> None:
     """Register exactly the 8 built-in frameworks. No SOC2, HIPAA, PCI DSS, CCPA."""
     from compliance import csa_ccm, cyber_essentials, eu_ai_act, eu_cybersecurity_act, gdpr, iso27001, nist_csf, nis2

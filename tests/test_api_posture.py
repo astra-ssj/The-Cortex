@@ -11,7 +11,7 @@ client = TestClient(app)
 
 
 def test_get_posture_demo_org_returns_200() -> None:
-    """GET /api/v1/organisations/demo-org-001/posture returns CompliancePosture (mock)."""
+    """GET /api/v1/organisations/demo-org-001/posture returns CompliancePosture (real scores)."""
     r = client.get("/api/v1/organisations/demo-org-001/posture")
     assert r.status_code == 200
     data = r.json()
@@ -19,23 +19,28 @@ def test_get_posture_demo_org_returns_200() -> None:
     assert data["organisationName"] == "AstraLabs Group"
     assert "frameworks" in data
     assert "updatedAt" in data
+    assert "overallScore" in data
+    assert "riskLevel" in data
 
 
 def test_get_posture_demo_org_shape_matches_typescript() -> None:
-    """Response shape matches CompliancePosture (camelCase, frameworks with controls)."""
+    """Response shape matches CompliancePosture (camelCase, frameworks with score/controls)."""
     r = client.get("/api/v1/organisations/demo-org-001/posture")
     assert r.status_code == 200
     data = r.json()
-    assert set(data.keys()) == {"organisationId", "organisationName", "frameworks", "updatedAt"}
+    assert set(data.keys()) >= {"organisationId", "organisationName", "frameworks", "updatedAt"}
     for fw in data["frameworks"]:
-        assert set(fw.keys()) == {"frameworkId", "frameworkName", "controlCount", "controls"}
+        assert set(fw.keys()) >= {"frameworkId", "frameworkName", "controlCount", "controls"}
+        assert "score" in fw
+        assert "trend" in fw
+        assert fw["score"] >= 0 and fw["score"] <= 100
         for c in fw["controls"]:
             assert set(c.keys()) >= {"controlId", "controlName", "status"}
             assert c["status"] in ("compliant", "partial", "non_compliant", "not_assessed")
 
 
 def test_get_posture_demo_org_includes_all_frameworks() -> None:
-    """Mock posture includes all registered frameworks (8)."""
+    """Posture includes all registered frameworks (8) with real scores."""
     r = client.get("/api/v1/organisations/demo-org-001/posture")
     assert r.status_code == 200
     ids = {fw["frameworkId"] for fw in r.json()["frameworks"]}

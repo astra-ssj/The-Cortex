@@ -16,6 +16,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/01_init.sql
       - ./migrations/002_cortex_ontology.sql:/docker-entrypoint-initdb.d/02_ontology.sql
+      - ./migrations/003_assessment_results.sql:/docker-entrypoint-initdb.d/03_assessment_results.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
       interval: 5s

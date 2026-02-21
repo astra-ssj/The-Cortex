@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -80,6 +80,14 @@ class FrameworkPosture(BaseModel):
     framework_name: str = Field(..., serialization_alias="frameworkName")
     control_count: int = Field(..., serialization_alias="controlCount")
     controls: list[ControlPosture] = Field(default_factory=list, serialization_alias="controls")
+    # Real posture fields (from PostureCalculator)
+    score: Optional[int] = Field(None, serialization_alias="score")
+    status: Optional[str] = Field(None, serialization_alias="status")
+    risk_level: Optional[str] = Field(None, serialization_alias="riskLevel")
+    gap_count: Optional[int] = Field(None, serialization_alias="gapCount")
+    trend: Optional[float] = Field(None, serialization_alias="trend")
+    jurisdiction: Optional[str] = Field(None, serialization_alias="jurisdiction")
+    last_assessed: Optional[str] = Field(None, serialization_alias="lastAssessed")
 
 
 class CompliancePosture(BaseModel):
@@ -91,6 +99,12 @@ class CompliancePosture(BaseModel):
     organisation_name: str = Field(..., serialization_alias="organisationName")
     frameworks: list[FrameworkPosture] = Field(default_factory=list, serialization_alias="frameworks")
     updated_at: str = Field(..., serialization_alias="updatedAt")
+    # Real posture top-level (from PostureCalculator aggregate)
+    overall_score: Optional[int] = Field(None, serialization_alias="overallScore")
+    audit_readiness: Optional[int] = Field(None, serialization_alias="auditReadiness")
+    risk_level: Optional[str] = Field(None, serialization_alias="riskLevel")
+    critical_gaps: Optional[list[dict[str, Any]]] = Field(None, serialization_alias="criticalGaps")
+    last_assessed: Optional[str] = Field(None, serialization_alias="lastAssessed")
 
 
 # ---- Organisation profile (GET /organisations/{id}) ----
