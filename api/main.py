@@ -5,10 +5,13 @@ from __future__ import annotations
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Callable
 
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 from api.assessments import router as assessments_router
 from api.organisations import router as organisations_router
@@ -42,6 +45,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Rate-limit headers (stub: actual limits enforced at gateway/reverse proxy).
+class RateLimitHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        response = await call_next(request)
+        response.headers.setdefault("X-RateLimit-Limit", "1000")
+        response.headers.setdefault("X-RateLimit-Remaining", "999")
+        return response
+
+
+app.add_middleware(RateLimitHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],

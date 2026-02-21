@@ -143,5 +143,10 @@ async def run_assessment(
     return StreamingResponse(
         _run_assessment_stream(organization_id, fids),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Content-Type-Options": "nosniff",
+            "Connection": "keep-alive",
+        },
     )

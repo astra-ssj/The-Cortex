@@ -99,12 +99,21 @@ async def _run_ingest_stream(content: bytes, ext: str, document_type: str, docum
         )
 
 
+def _reject_path_traversal(filename: str | None) -> None:
+    """Reject filenames that could indicate path traversal (security)."""
+    if not filename or filename.strip() == "":
+        raise HTTPException(status_code=400, detail="Missing or empty filename")
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename: path traversal not allowed")
+
+
 @router.post("/ingest/document")
 async def ingest_document(file: UploadFile = File(...)):
     """
     Accept multipart file upload. Validate file type (PDF, DOCX, TXT) and size (max 10MB).
     Run pipeline: process → map → create evidence. Stream progress via SSE.
     """
+    _reject_path_traversal(file.filename)
     ext = (file.filename or "").split(".")[-1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"Allowed types: {list(ALLOWED_EXTENSIONS)}")
@@ -116,5 +125,10 @@ async def ingest_document(file: UploadFile = File(...)):
     return StreamingResponse(
         _run_ingest_stream(content, ext, document_type, document_id),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Content-Type-Options": "nosniff",
+            "Connection": "keep-alive",
+        },
     )

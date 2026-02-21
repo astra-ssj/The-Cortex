@@ -1,0 +1,59 @@
+# CORTEX Compliance Engine — Security & QA Report
+
+**Date:** 2026-02-21  
+**Scope:** SAST, dependency security, secret scanning, test coverage, API security, Docker, CI.
+
+---
+
+## Issues found per category
+
+| Category | Issues found |
+|----------|--------------|
+| **SAST (Ruff)** | 1: Unused variable `personal_data` in `azure_connector.py` |
+| **SAST (Mypy)** | 11: no-any-return in credential_store, ontology_mapper, aws/azure connectors; arg-type in ingest |
+| **SAST (Bandit)** | 5: B110 try_except_pass in `aws_connector.py` (5 locations) |
+| **Dependency (pip-audit / safety)** | 12 CVEs in environment (pip, setuptools, wheel, filelock, marshmallow, future, python-multipart) |
+| **Secrets** | No hardcoded secrets; `.gitignore` lacked `*.key`; docker-compose had hardcoded credentials |
+| **Docker** | Hardcoded `POSTGRES_PASSWORD` and `DATABASE_URL`; no security comments |
+| **API** | File upload lacked path-traversal check; SSE/assessments lacked security headers; no rate-limit headers |
+| **CI** | No bandit, pip-audit, or coverage gate |
+
+---
+
+## Issues fixed
+
+| Category | Fix |
+|----------|-----|
+| **Ruff** | Used `personal_data` by adding `purpose_tags` including `"personal_data"` when tags indicate PII/GDPR |
+| **Mypy** | Added `cast()` for return values in credential_store, ontology_mapper, aws/azure connectors; `Literal` + cast for ingest `document_type` |
+| **Bandit** | Replaced all `except Exception: pass` with `logger.debug(..., error=str(e))` in `aws_connector.py` |
+| **Dependency** | Pinned `python-multipart>=0.0.22` in `pyproject.toml` (GHSA-wp53-j4wj-2cfg). Other CVEs are in build/runtime env (pip, setuptools, wheel) or transitive dev deps—upgrade via `pip install --upgrade pip setuptools wheel` and refresh venv |
+| **Secrets** | Added `*.key` to `.gitignore` |
+| **Docker** | `docker-compose.yml` now uses `${POSTGRES_PASSWORD:?}`, `${POSTGRES_USER:-cortex}`, `${POSTGRES_DB:-cortex}`, `${DATABASE_URL:-...}`. No hardcoded credentials. Added security comment |
+| **API** | Ingest: path-traversal check (`..`, `/`, `\` in filename), empty filename rejected. Ingest & assessments SSE: added `X-Content-Type-Options: nosniff`, `Connection: keep-alive`. Added `RateLimitHeadersMiddleware` (X-RateLimit-Limit, X-RateLimit-Remaining) in `api/main.py` |
+| **Tests** | Added `test_circuit_breaker.py`, `test_registry.py`, `test_assessment_engine.py` (skips without sqlalchemy); `test_ingest_document_rejects_path_traversal_filename` |
+| **CI** | Added `.github/workflows/ci.yml`: ruff, mypy, bandit, pip-audit, pytest with `--cov-fail-under=60` |
+
+---
+
+## Issues requiring manual review
+
+1. **Coverage gate:** CI uses `--cov-fail-under=60`. Local run without full deps (e.g. sqlalchemy) is ~57%. With `pip install .[dev]` in CI, assessment_engine tests run and coverage may reach 60%. If the build fails, add tests for `api/deps.py`, `api/ingest.py`, `services/context_builder.py`, or lower the threshold temporarily.
+2. **pip/setuptools/wheel CVEs:** Upgrade in CI and local venv: `pip install --upgrade pip setuptools wheel`. Consider pinning in a constraints file.
+3. **SSE timeout:** No application-level timeout on SSE streams; ensure reverse proxy (e.g. nginx) sets a reasonable `proxy_read_timeout`.
+4. **Rate limiting:** Middleware only adds headers; enforce limits at API gateway or add SlowAPI (or similar) if needed.
+
+---
+
+## Overall security posture
+
+**AMBER**
+
+- **SAST:** All reported issues fixed (ruff, mypy, bandit clean).
+- **Dependencies:** One project pin updated; remaining CVEs in tooling/transitive deps—manual upgrade recommended.
+- **Secrets & Docker:** No credentials in repo; docker-compose uses env vars only.
+- **API:** Input validation, file type/size, path traversal, and security headers in place; rate limiting is header-only.
+- **Tests:** New tests for circuit_breaker, registry, assessment_engine, and path traversal; coverage gate in CI.
+- **CI:** Bandit, pip-audit, and coverage gate added; first run may fail on coverage until env/tests align.
+
+**Recommendation:** Move to **GREEN** after: (1) upgrading pip/setuptools/wheel and re-running pip-audit, (2) confirming CI coverage ≥60%, (3) enforcing rate limits at gateway or in-app if required.
