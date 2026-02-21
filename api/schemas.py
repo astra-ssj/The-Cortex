@@ -121,3 +121,52 @@ class ZTAIPStatus(BaseModel):
     human_review_queue_count: int = Field(..., serialization_alias="humanReviewQueueCount")
     sovereignty_broker: str = Field(..., serialization_alias="sovereigntyBroker")  # active | degraded | unavailable
     agent_certificates_count: int = Field(..., serialization_alias="agentCertificatesCount")
+
+
+# ---- Human Review Queue (GDPR Art.22 / EU AI Act Art.14) ----
+
+
+class ReviewQueueItem(BaseModel):
+    """Flagged control with confidence < 0.75 for human oversight."""
+
+    model_config = ConfigDict(serialize_by_alias=True)
+
+    id: str
+    framework: str
+    control_id: str = Field(..., serialization_alias="controlId")
+    name: str
+    assessment: str  # PARTIAL | NON_COMPLIANT
+    confidence: float
+    severity: str  # CRITICAL | HIGH | MEDIUM
+    reference: str
+    date_flagged: str = Field(..., serialization_alias="dateFlagged")
+
+
+class ReviewedItem(BaseModel):
+    """Completed approval or override for audit trail."""
+
+    id: str
+    framework: str
+    control_id: str = Field(..., serialization_alias="controlId")
+    action: str  # approved | overridden
+    acted_by: str = Field(..., serialization_alias="actedBy")
+    acted_at: str = Field(..., serialization_alias="actedAt")
+    original_confidence: float = Field(..., serialization_alias="originalConfidence")
+    final_decision: str = Field(..., serialization_alias="finalDecision")
+    audit_ref: Optional[str] = Field(None, serialization_alias="auditRef")
+
+    model_config = ConfigDict(serialize_by_alias=True)
+
+
+class ReviewQueueResponse(BaseModel):
+    items: list[ReviewQueueItem]
+    reviewed: list[ReviewedItem]
+
+
+class ApproveRequest(BaseModel):
+    notes: str
+
+
+class OverrideRequest(BaseModel):
+    assessment: str  # COMPLIANT | PARTIAL | NON_COMPLIANT
+    justification: str

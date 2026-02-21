@@ -35,33 +35,6 @@ function eventDisplay(e: AssessmentEvent): { type: DisplayType; message: string 
   }
 }
 
-function streamEventColor(type: DisplayType): string {
-  switch (type) {
-    case "fw_start":
-    case "fw_done":
-      return "text-blue-600";
-    case "control":
-      return "text-green-700";
-    case "review":
-      return "text-amber-600";
-    case "error":
-      return "text-red-600";
-    case "complete":
-      return "font-bold text-green-700";
-    default:
-      return "text-slate-600";
-  }
-}
-
-function StreamEventLine({ event }: { event: AssessmentEvent }) {
-  const { type, message } = eventDisplay(event);
-  return (
-    <li className={`py-1 ${streamEventColor(type)}`}>
-      <span className="text-slate-500">[{type}]</span> {message}
-    </li>
-  );
-}
-
 function FrameworkCard({ fw }: { fw: FrameworkSummary }) {
   return (
     <Link

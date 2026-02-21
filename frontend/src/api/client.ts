@@ -3,12 +3,27 @@
  * Types match backend and frontend/src/types/compliance.ts.
  * VITE_API_URL: set to http://localhost:8000 for production build or when not using Vite dev proxy.
  */
+import { useState, useEffect, useCallback } from "react";
+
 const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
   (import.meta.env.DEV ? "" : "http://localhost:8000");
 
 async function fetchApi<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+async function postApi<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `HTTP ${res.status}`);
@@ -99,4 +114,87 @@ export function createAssessmentStream(
   es.onmessage = handler; // fallback if event type not set
   if (onError) es.onerror = onError;
   return es;
+}
+
+// ---- Human Review Queue (GDPR Art.22 / EU AI Act Art.14) ----
+
+export interface ReviewQueueItem {
+  id: string;
+  framework: string;
+  controlId: string;
+  name: string;
+  assessment: string;
+  confidence: number;
+  severity: string;
+  reference: string;
+  dateFlagged: string;
+}
+
+export interface ReviewedItem {
+  id: string;
+  framework: string;
+  controlId: string;
+  action: string;
+  actedBy: string;
+  actedAt: string;
+  originalConfidence: number;
+  finalDecision: string;
+  auditRef?: string;
+}
+
+export interface ReviewQueueResponse {
+  items: ReviewQueueItem[];
+  reviewed: ReviewedItem[];
+}
+
+export async function fetchReviewQueueApi(): Promise<ReviewQueueResponse> {
+  return fetchApi<ReviewQueueResponse>("/api/v1/assessments/review-queue");
+}
+
+export async function approveControl(id: string, notes: string): Promise<{ status: string; control_id: string; audit_ref: string }> {
+  return postApi(`/api/v1/assessments/controls/${encodeURIComponent(id)}/approve`, { notes });
+}
+
+export async function overrideControl(
+  id: string,
+  assessment: "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT",
+  justification: string
+): Promise<{ status: string; control_id: string; audit_ref: string }> {
+  return postApi(`/api/v1/assessments/controls/${encodeURIComponent(id)}/override`, {
+    assessment,
+    justification,
+  });
+}
+
+export function useReviewQueue(): {
+  items: ReviewQueueItem[] | null;
+  reviewed: ReviewedItem[] | null;
+  refetch: () => Promise<void>;
+  isLoading: boolean;
+  error: Error | null;
+} {
+  const [items, setItems] = useState<ReviewQueueItem[] | null>(null);
+  const [reviewed, setReviewed] = useState<ReviewedItem[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refetch = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await fetchReviewQueueApi();
+      setItems(data.items);
+      setReviewed(data.reviewed);
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  return { items, reviewed, refetch, isLoading, error };
 }
