@@ -3,9 +3,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master, compliance-api-505e1]
+    branches: [main, master, compliance-api-505e1, feature/project-tracker]
   pull_request:
-    branches: [main, master, compliance-api-505e1]
+    branches: [main, master, compliance-api-505e1, feature/project-tracker]
 
 jobs:
   lint-sast:
