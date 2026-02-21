@@ -13,6 +13,7 @@ frontend/dist/
 .env
 .env.*
 *.pem
+*.key
 secrets/
 
 # IDE and test
