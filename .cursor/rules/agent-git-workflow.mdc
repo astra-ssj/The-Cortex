@@ -1,0 +1,27 @@
+---
+description: Git workflow for feature work — branch from main, commit only changed files, PR, CI green
+alwaysApply: true
+---
+
+# Agent Git Workflow
+
+When doing feature work that will be committed:
+
+## 1. Start (run first)
+
+- `git checkout main && git pull origin main`
+- `git checkout -b feature/<branch-name>` (use a short, descriptive name, e.g. `feature/quality-gates`)
+
+## 2. Work
+
+- Make changes. Reference files with `@path` when relevant.
+- Do not run `git add .`. Stage only the files you changed.
+
+## 3. Finish (run last)
+
+- `git add <file1> <file2> ...` (specific paths only)
+- `git commit -m "type: short description"` (e.g. `docs: add agent workflow`)
+- `git push origin feature/<branch-name>`
+- Remind: open a PR; do not merge to main directly. CI must be green before merging.
+
+If the user provides a branch name (e.g. in a header like `BRANCH: feature/xyz`), use that for the feature branch.

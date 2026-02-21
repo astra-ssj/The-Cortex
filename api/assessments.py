@@ -44,12 +44,12 @@ def _control_to_out(c: Control) -> ControlOut:
 
 def _framework_to_summary(fw: Framework) -> FrameworkSummary:
     return FrameworkSummary(
-        id=fw.id,
-        name=fw.name,
-        version=fw.version,
-        jurisdiction=fw.jurisdiction,
-        purpose_tags=list(fw.purpose_tags),
-        control_count=len(fw.controls),
+        id=str(fw.id),
+        name=str(fw.name),
+        version=str(fw.version),
+        jurisdiction=str(fw.jurisdiction),
+        purpose_tags=[str(t) for t in (fw.purpose_tags or [])],
+        control_count=len(fw.controls) if fw.controls else 0,
     )
 
 
@@ -67,9 +67,21 @@ def _framework_to_detail(fw: Framework) -> FrameworkDetail:
 @router.get("/frameworks", response_model=list[FrameworkSummary])
 async def list_frameworks() -> list[FrameworkSummary]:
     """List all registered frameworks with summaries (no full controls)."""
-    summaries = [_framework_to_summary(fw) for fw in REGISTRY.values()]
-    logger.info("frameworks_list", count=len(summaries))
-    return summaries
+    try:
+        if not REGISTRY:
+            logger.warning("frameworks_list_empty_registry")
+            raise HTTPException(
+                status_code=503,
+                detail="Compliance registry not loaded; ensure the API started correctly.",
+            )
+        summaries = [_framework_to_summary(fw) for fw in REGISTRY.values()]
+        logger.info("frameworks_list", count=len(summaries))
+        return summaries
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("frameworks_list_error", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to list frameworks.") from e
 
 
 @router.get("/frameworks/{framework_id}", response_model=FrameworkDetail)

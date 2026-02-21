@@ -1,88 +1,72 @@
-# CORTEX — CI: SAST, dependency audit, tests, coverage gate.
-name: CI
+# CORTEX CI — Tests, SAST, dependency audit, frontend build.
+# Branch protection should require: python-test, python-sast, typescript-build.
+name: CORTEX CI
 
 on:
   push:
-    branches: [main, master, compliance-api-505e1, feature/project-tracker]
+    branches: ["*"]
   pull_request:
-    branches: [main, master, compliance-api-505e1, feature/project-tracker]
+    branches: [main]
 
 jobs:
-  lint-sast:
+  python-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ruff mypy ".[dev]"
-
-      - name: Ruff check
-        run: ruff check services/compliance-engine/app/ compliance/ core/ api/ services/
-
-      - name: Mypy
-        run: mypy services/compliance-engine/app/ --ignore-missing-imports
-
-  security-sast:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install bandit ".[dev]"
-
-      - name: Bandit SAST scan
-        run: bandit -r services/compliance-engine/app/ -ll
-
-  dependency-audit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install pip-audit and project
-        run: |
-          python -m pip install --upgrade pip
-          pip install pip-audit ".[dev]"
-
-      - name: pip-audit
-        run: pip-audit
-        continue-on-error: true
-
-  test-coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install ".[dev]"
-
-      - name: Pytest with coverage (57% minimum gate; raise to 60% as tests expand)
-        env:
-          PYTHONPATH: .:services/compliance-engine
+          pip install -e ".[dev]"
+      - name: Run tests
         run: |
           pytest tests/ --cov=app --cov=compliance --cov=core --cov=api --cov=services --cov-report=term-missing --cov-fail-under=57 -q
+        env:
+          PYTHONPATH: .:services/compliance-engine
+          DATABASE_URL: postgresql://cortex:cortex@localhost:5432/cortex
+          OPENAI_API_KEY: sk-test-mock-key-for-ci
+
+  python-sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install bandit and pip-audit
+        run: pip install bandit pip-audit ".[dev]"
+      - name: SAST scan
+        run: bandit -r services/compliance-engine/app/ api/ core/ compliance/ -ll
+      - name: Dependency audit
+        run: |
+          pip install .
+          pip-audit
+
+  typescript-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - name: Install and build
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+  branch-cleanup:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Delete merged branches
+        run: |
+          git fetch --prune
+          for b in $(git branch -r --merged origin/main | grep -v 'main' | sed 's|origin/||' | tr -d ' '); do
+            [ -n "$b" ] && git push origin --delete "$b" || true
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/compliancedashboard.tsx","./src/frameworkdetailpage.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/frameworks.ts","./src/hooks/useframeworks.ts"],"version":"5.6.3"}
+{"root":["./src/app.tsx","./src/compliancedashboard.tsx","./src/frameworkdetailpage.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/client.ts","./src/api/frameworks.ts","./src/hooks/useframeworks.ts","./src/store/compliancestore.ts","./src/types/compliance.ts"],"version":"5.6.3"}
