@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import asyncio
+import csv
+import io
 from datetime import datetime, timezone
 from typing import Any
 
@@ -174,7 +176,10 @@ class AWSConnector:
             for page in rds.get_paginator("describe_db_instances").paginate():
                 for db in page.get("DBInstances", []):
                     dbid = db.get("DBInstanceIdentifier", "")
-                    tags_resp = rds.list_tags_for_resource(ResourceName=db.get("DBInstanceArn", ""))
+                    arn = db.get("DBInstanceArn", "")
+                    if not arn:
+                        continue
+                    tags_resp = rds.list_tags_for_resource(ResourceName=arn)
                     tags = {t["Key"]: t["Value"] for t in tags_resp.get("TagList", [])}
                     personal_data = any(
                         k.lower() in ("personal_data", "pii", "gdpr") or "personal" in str(v).lower()
@@ -404,8 +409,6 @@ class AWSConnector:
             except Exception:
                 pass
             report = iam.get_credential_report()
-            import csv
-            import io
             content = report["Content"].decode("utf-8")
             reader = csv.DictReader(io.StringIO(content))
             for row in reader:
@@ -532,8 +535,6 @@ class AWSConnector:
             except Exception:
                 pass
             report = iam.get_credential_report()
-            import csv
-            import io
             content = report["Content"].decode("utf-8")
             reader = csv.DictReader(io.StringIO(content))
             cutoff = datetime.now(timezone.utc)

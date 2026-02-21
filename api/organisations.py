@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import structlog
 from fastapi import APIRouter, HTTPException
 
-from compliance import FrameworkId, REGISTRY, get
+from compliance import FrameworkId, get
 
 from api.schemas import CompliancePosture, ControlPosture, FrameworkPosture, OrgProfile
 

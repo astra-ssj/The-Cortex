@@ -10,7 +10,6 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from compliance import FrameworkId, get
-from compliance.models import Control
 
 from core.audit_fabric import audit_fabric
 from services.context_builder import get_context_for_control

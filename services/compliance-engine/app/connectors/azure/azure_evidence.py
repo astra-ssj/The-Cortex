@@ -8,7 +8,7 @@ from typing import List
 import structlog
 
 from core.audit_fabric import audit_fabric
-from ontology.models import ControlFinding, ControlRef, Evidence
+from ontology.models import ControlFinding, Evidence
 
 logger = structlog.get_logger()
 

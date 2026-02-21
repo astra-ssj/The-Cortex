@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Optional
 
 import structlog
 from fastapi import APIRouter, HTTPException
@@ -24,8 +25,8 @@ class AWSConnectBody(BaseModel):
     access_key_id: str = Field(..., description="IAM access key ID")
     secret_access_key: str = Field(..., description="IAM secret access key")
     region: str = Field("us-east-1", description="AWS region")
-    role_arn: str | None = Field(None, description="Optional role ARN for assume_role")
-    external_id: str | None = Field(None, description="Optional external ID for assume_role")
+    role_arn: Optional[str] = Field(None, description="Optional role ARN for assume_role")
+    external_id: Optional[str] = Field(None, description="Optional external ID for assume_role")
 
 
 def _sse(event: str, data: dict) -> str:
