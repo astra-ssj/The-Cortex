@@ -10,26 +10,26 @@ from compliance.models import Framework
 
 def test_registry_has_nist_csf() -> None:
     """Framework registry loads NIST CSF successfully."""
-    framework = get(FrameworkId.NIST_CSF)
+    framework = get(FrameworkId.NIST_CSF_2_0)
     assert framework is not None
-    assert framework.id == "nist_csf"
-    assert framework.name == "NIST Cybersecurity Framework"
+    assert framework.id == "nist-csf-2.0"
+    assert framework.name == "NIST CSF 2.0"
     assert len(framework.controls) >= 1
 
 
 def test_registry_has_gdpr() -> None:
     """Framework registry loads GDPR successfully."""
-    framework = get(FrameworkId.GDPR)
+    framework = get(FrameworkId.GDPR_2016_679)
     assert framework is not None
-    assert framework.id == "gdpr"
-    assert framework.name == "General Data Protection Regulation"
+    assert framework.id == "gdpr-2016-679"
+    assert framework.name == "GDPR 2016/679"
     assert framework.jurisdiction == "EU"
     assert "gdpr" in framework.purpose_tags
 
 
 def test_gdpr_all_controls_have_at_least_one_requirement() -> None:
     """Every GDPR control has at least one requirement (governance rule)."""
-    framework = get(FrameworkId.GDPR)
+    framework = get(FrameworkId.GDPR_2016_679)
     assert framework is not None
     assert framework.all_controls_have_requirement(), (
         "At least one control has no requirements"
@@ -38,7 +38,7 @@ def test_gdpr_all_controls_have_at_least_one_requirement() -> None:
 
 def test_gdpr_all_requirements_have_at_least_one_evidence_type() -> None:
     """Every GDPR requirement has at least one evidence_type (governance rule)."""
-    framework = get(FrameworkId.GDPR)
+    framework = get(FrameworkId.GDPR_2016_679)
     assert framework is not None
     assert framework.all_requirements_have_evidence_type(), (
         "At least one requirement has no evidence_type"
@@ -47,7 +47,7 @@ def test_gdpr_all_requirements_have_at_least_one_evidence_type() -> None:
 
 def test_gdpr_domains_and_article_refs() -> None:
     """GDPR covers required domains with real Article references."""
-    framework = get(FrameworkId.GDPR)
+    framework = get(FrameworkId.GDPR_2016_679)
     assert framework is not None
     domains = {c.domain for c in framework.controls}
     expected = {
@@ -81,17 +81,17 @@ def test_gdpr_domains_and_article_refs() -> None:
 
 def test_registry_has_nis2() -> None:
     """Framework registry loads NIS2 successfully."""
-    framework = get(FrameworkId.NIS2)
+    framework = get(FrameworkId.NIS2_2022_2555)
     assert framework is not None
-    assert framework.id == "nis2"
-    assert framework.name == "Directive (EU) 2022/2555 (NIS2)"
+    assert framework.id == "nis2-2022-2555"
+    assert framework.name == "NIS2 Directive"
     assert framework.jurisdiction == "EU"
     assert "nis2" in framework.purpose_tags
 
 
 def test_nis2_all_controls_have_at_least_one_requirement() -> None:
     """Every NIS2 control has at least one requirement (governance rule)."""
-    framework = get(FrameworkId.NIS2)
+    framework = get(FrameworkId.NIS2_2022_2555)
     assert framework is not None
     assert framework.all_controls_have_requirement(), (
         "At least one control has no requirements"
@@ -100,7 +100,7 @@ def test_nis2_all_controls_have_at_least_one_requirement() -> None:
 
 def test_nis2_all_requirements_have_at_least_one_evidence_type() -> None:
     """Every NIS2 requirement has at least one evidence_type (governance rule)."""
-    framework = get(FrameworkId.NIS2)
+    framework = get(FrameworkId.NIS2_2022_2555)
     assert framework is not None
     assert framework.all_requirements_have_evidence_type(), (
         "At least one requirement has no evidence_type"
@@ -109,7 +109,7 @@ def test_nis2_all_requirements_have_at_least_one_evidence_type() -> None:
 
 def test_nis2_domains_and_article_refs() -> None:
     """NIS2 covers required domains with real Article references."""
-    framework = get(FrameworkId.NIS2)
+    framework = get(FrameworkId.NIS2_2022_2555)
     assert framework is not None
     domains = {c.domain for c in framework.controls}
     expected = {
@@ -137,9 +137,9 @@ def test_nis2_domains_and_article_refs() -> None:
 
 def test_get_unknown_returns_none() -> None:
     """Known framework ids return a framework (no crash)."""
-    f = get(FrameworkId.GDPR)
+    f = get(FrameworkId.GDPR_2016_679)
     assert f is not None
-    f2 = get(FrameworkId.NIST_CSF)
+    f2 = get(FrameworkId.NIST_CSF_2_0)
     assert f2 is not None
-    f3 = get(FrameworkId.NIS2)
+    f3 = get(FrameworkId.NIS2_2022_2555)
     assert f3 is not None

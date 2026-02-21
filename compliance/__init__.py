@@ -1,5 +1,5 @@
 # compliance — CORTEX compliance framework engine (ZTAIP).
-# Use registry.get(FrameworkId.GDPR) after register_all().
+# Use registry.get(FrameworkId.GDPR_2016_679) after register_all().
 
 from __future__ import annotations
 

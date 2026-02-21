@@ -53,8 +53,14 @@ export function useAssessmentStream() {
     const es = createAssessmentStream(
       organizationId,
       frameworkIds,
-      (event) => setEvents((prev) => [...prev, event]),
-      () => setIsStreaming(false)
+      (event) => {
+        console.log("Event received:", event);
+        setEvents((prev) => [...prev, event]);
+      },
+      () => {
+        setIsStreaming(false);
+        es.close();
+      }
     );
     es.addEventListener("run_done", () => {
       setIsStreaming(false);

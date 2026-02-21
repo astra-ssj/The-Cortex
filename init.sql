@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
 INSERT INTO organizations (id, name, jurisdiction, purpose_tags, industry, region, description, metadata)
 VALUES (
     'demo-org-001',
-    'Acme EU Services Ltd',
+    'AstraLabs Group',
     'EU',
     '["compliance-demo", "gdpr", "nis2"]',
     'Technology',

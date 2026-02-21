@@ -1,9 +1,11 @@
 /**
  * Central API client. All endpoints the frontend calls.
  * Types match backend and frontend/src/types/compliance.ts.
+ * VITE_API_URL: set to http://localhost:8000 for production build or when not using Vite dev proxy.
  */
-
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) || "";
+const API_BASE =
+  (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
+  (import.meta.env.DEV ? "" : "http://localhost:8000");
 
 async function fetchApi<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);
@@ -58,21 +60,34 @@ export async function fetchZtaipStatus(): Promise<ZTAIPStatus> {
 
 import type { AssessmentEvent } from "../types/compliance";
 
+// SSE must hit the API directly; dev proxy can buffer and block streaming.
+const STREAM_BASE =
+  (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
+  (import.meta.env.DEV ? "http://localhost:8000" : API_BASE);
+
+/** Comma-separated list of all 8 framework IDs for assessment stream. */
+export const ALL_FRAMEWORK_IDS =
+  "iso27001-2022,gdpr-2016-679,nis2-2022-2555,nist-csf-2.0,csa-ccm-v4,cyber-essentials-v3.1,eu-ai-act-2024,eu-cybersecurity-act";
+
+/** Default org_id for assessment stream. */
+export const DEFAULT_ORG_ID = "demo-org-001";
+
 export function createAssessmentStream(
   organizationId: string,
   frameworkIds: string[],
   onEvent: (event: AssessmentEvent) => void,
   onError?: (err: Event) => void
 ): EventSource {
-  const params = new URLSearchParams({
-    organization_id: organizationId,
-    framework_ids: frameworkIds.join(","),
-  });
-  const url = `${API_BASE}/api/v1/assessments/run?${params}`;
-  const es = new EventSource(url);
+  const frameworks = frameworkIds.length ? frameworkIds.join(",") : ALL_FRAMEWORK_IDS;
+  // Use /assessments/run (organization_id, framework_ids) for compatibility with deployed API
+  const url = new URL(`${STREAM_BASE}/api/v1/assessments/run`);
+  url.searchParams.set("organization_id", organizationId);
+  url.searchParams.set("framework_ids", frameworks);
+  const es = new EventSource(url.toString());
   const handler = (e: MessageEvent) => {
     try {
       const data = JSON.parse(e.data) as AssessmentEvent;
+      console.log("Event received:", data);
       if (data && typeof data === "object" && "kind" in data) onEvent(data);
     } catch {
       // ignore parse errors

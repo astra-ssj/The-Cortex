@@ -17,10 +17,10 @@ def test_list_frameworks() -> None:
     data = r.json()
     assert isinstance(data, list)
     ids = {fw["id"] for fw in data}
-    assert "nist_csf" in ids
-    assert "gdpr" in ids
-    assert "nis2" in ids
-    assert len(data) == 8  # NIST_CSF, GDPR, NIS2, SOC2, ISO27001, HIPAA, PCI_DSS, CCPA
+    assert "nist-csf-2.0" in ids
+    assert "gdpr-2016-679" in ids
+    assert "nis2-2022-2555" in ids
+    assert len(data) == 8  # Exactly 8 frameworks (no SOC2, HIPAA, PCI_DSS, CCPA)
     for fw in data:
         assert "id" in fw and "name" in fw and "version" in fw
         assert "control_count" in fw and isinstance(fw["control_count"], int)
@@ -28,10 +28,10 @@ def test_list_frameworks() -> None:
 
 def test_get_framework() -> None:
     """GET /api/v1/frameworks/:id returns full framework with controls."""
-    r = client.get("/api/v1/frameworks/gdpr")
+    r = client.get("/api/v1/frameworks/gdpr-2016-679")
     assert r.status_code == 200
     data = r.json()
-    assert data["id"] == "gdpr"
+    assert data["id"] == "gdpr-2016-679"
     assert "controls" in data
     assert len(data["controls"]) >= 1
     # Check nested structure
@@ -48,7 +48,7 @@ def test_get_framework_unknown_404() -> None:
 
 def test_list_framework_controls_paginated() -> None:
     """GET /api/v1/frameworks/:id/controls returns paginated controls."""
-    r = client.get("/api/v1/frameworks/gdpr/controls?page=1&page_size=2")
+    r = client.get("/api/v1/frameworks/gdpr-2016-679/controls?page=1&page_size=2")
     assert r.status_code == 200
     data = r.json()
     assert "items" in data and "total" in data and "page" in data and "page_size" in data

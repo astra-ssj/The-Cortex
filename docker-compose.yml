@@ -1,6 +1,7 @@
-# CORTEX — Postgres + one-time org structure seed.
+# CORTEX — Postgres + API + one-time org structure seed.
 # Usage: set POSTGRES_PASSWORD and optionally DATABASE_URL in env or .env; then:
-#   docker-compose up -d postgres && docker-compose run --rm seed
+#   docker compose up -d
+# Then: curl http://localhost:8000/health && curl http://localhost:8000/api/v1/system/ready && curl http://localhost:8000/api/v1/frameworks
 # Security: no privileged containers; postgres has no published ports (internal only); healthcheck on postgres.
 
 services:
@@ -20,6 +21,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cortex}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   seed:
     image: python:3.12-slim

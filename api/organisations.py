@@ -15,10 +15,22 @@ logger = structlog.get_logger()
 
 router = APIRouter(prefix="/api/v1", tags=["organisations"])
 
+# Exactly the 8 frameworks for demo posture. No soc2, hipaa, pci-dss, ccpa.
+DEMO_POSTURE_FRAMEWORKS: list[FrameworkId] = [
+    FrameworkId.ISO27001_2022,
+    FrameworkId.GDPR_2016_679,
+    FrameworkId.NIS2_2022_2555,
+    FrameworkId.NIST_CSF_2_0,
+    FrameworkId.CSA_CCM_V4,
+    FrameworkId.CYBER_ESSENTIALS_V3_1,
+    FrameworkId.EU_AI_ACT_2024,
+    FrameworkId.EU_CYBERSECURITY_ACT,
+]
+
 # Mock org profile for demo-org-001 (seeded in init.sql). Replace with DB lookup when ready.
 DEMO_ORG = {
     "id": "demo-org-001",
-    "name": "Acme EU Services Ltd",
+    "name": "AstraLabs Group",
     "jurisdiction": "EU",
     "industry": "Technology",
     "region": "EU",
@@ -45,9 +57,9 @@ def _mock_control_postures(framework_id: str) -> list[ControlPosture]:
 
 
 def _mock_posture(org_id: str, org_name: str) -> CompliancePosture:
-    """Build mock CompliancePosture for demo-org-001 from all registered frameworks."""
+    """Build mock CompliancePosture for demo-org-001 from DEMO_POSTURE_FRAMEWORKS only."""
     frameworks: list[FrameworkPosture] = []
-    for fid in FrameworkId:
+    for fid in DEMO_POSTURE_FRAMEWORKS:
         fw = get(fid)
         if fw is None:
             continue
