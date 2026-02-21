@@ -1,0 +1,86 @@
+# CORTEX — CI: SAST, dependency audit, tests, coverage gate.
+name: CI
+
+on:
+  push:
+    branches: [main, master, compliance-api-505e1]
+  pull_request:
+    branches: [main, master, compliance-api-505e1]
+
+jobs:
+  lint-sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy ".[dev]"
+
+      - name: Ruff check
+        run: ruff check services/compliance-engine/app/ compliance/ core/ api/ services/ --fix
+
+      - name: Mypy
+        run: mypy services/compliance-engine/app/ --ignore-missing-imports
+
+  security-sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit ".[dev]"
+
+      - name: Bandit SAST scan
+        run: bandit -r services/compliance-engine/app/ -ll
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit and project
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit ".[dev]"
+
+      - name: pip-audit
+        run: pip-audit
+        continue-on-error: true
+
+  test-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Pytest with coverage (60% minimum gate)
+        run: |
+          pytest tests/ --cov=app --cov=compliance --cov=core --cov=api --cov=services --cov-report=term-missing --cov-fail-under=60 -q
