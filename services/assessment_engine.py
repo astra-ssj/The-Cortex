@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from compliance import FrameworkId, get
 
 from core.audit_fabric import audit_fabric
-from services.context_builder import get_context_for_control
+from services.context_builder import get_context_for_control, get_org_profile
+from services.posture_calculator import PostureCalculator
 
 logger = structlog.get_logger()
 
@@ -38,6 +39,16 @@ async def run_assessment_stream(
         "frameworkIds": [f.value for f in framework_ids],
         "startedAt": started_at,
     }
+
+    org = await get_org_profile(session, organization_id)
+    org_meta = org.metadata_ if org and getattr(org, "metadata_", None) else {}
+    org_context = {
+        "maturity_score": float(org_meta.get("maturity_score", 0.42)),
+        "industry": getattr(org, "industry", None) or "technology",
+        "employee_count": org_meta.get("employees", 500),
+        "existing_controls": [],
+    }
+    calculator = PostureCalculator()
 
     for fid in framework_ids:
         fw = get(fid)
@@ -73,6 +84,10 @@ async def run_assessment_stream(
                 "finding": f"Demo assessment for {control.name} (org={organization_id}). Context built.",
             }
 
+        posture = calculator.calculate_framework_posture(fid.value, org_context)
+        await calculator.save_assessment_result(
+            session, organization_id, fid.value, float(posture["score"]), posture["gap_count"]
+        )
         yield {"kind": "framework_done", "frameworkId": fid.value}
 
     finished_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
