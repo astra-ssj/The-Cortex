@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import json
 import os
-from typing import Any
+from typing import Any, cast
 
 import structlog
 
@@ -43,19 +43,19 @@ def _encrypt(payload: dict[str, Any]) -> bytes:
         return base64.b64encode(json.dumps(payload).encode("utf-8"))
     from cryptography.fernet import Fernet
     f = Fernet(key)
-    return f.encrypt(json.dumps(payload).encode("utf-8"))
+    return cast(bytes, f.encrypt(json.dumps(payload).encode("utf-8")))
 
 
 def _decrypt(raw: bytes) -> dict[str, Any]:
     key = _get_fernet_key()
     if key is None:
         try:
-            return json.loads(base64.b64decode(raw).decode("utf-8"))
+            return cast(dict[str, Any], json.loads(base64.b64decode(raw).decode("utf-8")))
         except Exception:
             return {}
     from cryptography.fernet import Fernet
     f = Fernet(key)
-    return json.loads(f.decrypt(raw).decode("utf-8"))
+    return cast(dict[str, Any], json.loads(f.decrypt(raw).decode("utf-8")))
 
 
 def store_credentials(connector_id: str, credentials: dict[str, Any]) -> None:
