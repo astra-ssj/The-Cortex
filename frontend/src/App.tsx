@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Link, Route, Routes, useLocation } from "react-router-dom";
 import { ComplianceDashboard } from "./ComplianceDashboard";
 import { FrameworkDetailPage } from "./FrameworkDetailPage";
+import { HumanReview } from "./HumanReview";
 import { ProjectTracker } from "./ProjectTracker";
 import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
 import { useAssessmentStream } from "./store/complianceStore";
@@ -9,7 +10,7 @@ import { useAssessmentStream } from "./store/complianceStore";
 const navItems = [
   { to: "/", label: "Dashboard" },
   { to: "/#frameworks", label: "Frameworks" },
-  { to: "/#evidence", label: "Evidence" },
+  { to: "/review-queue", label: "Review Queue" },
   { to: "/#audit-report", label: "Audit Report" },
   { to: "/roadmap", label: "Roadmap" },
 ];
@@ -88,6 +89,7 @@ function App() {
         <main className="mx-auto max-w-[1920px] px-6 py-6">
           <Routes>
             <Route path="/" element={<ComplianceDashboard />} />
+            <Route path="/review-queue" element={<HumanReview />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
           </Routes>

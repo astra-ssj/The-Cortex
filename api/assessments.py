@@ -1,12 +1,16 @@
 # api/assessments.py — Frameworks and assessments API. Follow this pattern for new endpoints.
-# SSE streaming for assessment runs.
+# SSE streaming for assessment runs. Human Review Queue (GDPR Art.22 / EU AI Act Art.14).
 
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
+from typing import Any
+
 import structlog
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from compliance import FrameworkId, REGISTRY, get
 from compliance.models import Control, Framework
@@ -18,6 +22,9 @@ from api.schemas import (
     FrameworkSummary,
     PaginatedControls,
     RequirementOut,
+    ReviewQueueItem,
+    ReviewQueueResponse,
+    ReviewedItem,
 )
 
 logger = structlog.get_logger()
@@ -188,3 +195,201 @@ async def run_assessment(
     _validate_organization_id(organization_id)
     fids = _parse_frameworks(framework_ids)
     return _stream_response(organization_id, fids)
+
+
+# ---- Human Review Queue (in-memory seed; approve/override logged to audit fabric) ----
+
+
+def _review_queue_seed() -> list[dict[str, Any]]:
+    """Eight realistic flagged items for human oversight (confidence < 0.75)."""
+    t = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return [
+        {
+            "id": "review-1",
+            "framework": "GDPR 2016/679",
+            "control_id": "GDPR-BN-02",
+            "name": "72-hour breach notification procedure",
+            "assessment": "NON_COMPLIANT",
+            "confidence": 0.58,
+            "severity": "CRITICAL",
+            "reference": "GDPR Art.33(1)",
+            "date_flagged": t,
+        },
+        {
+            "id": "review-2",
+            "framework": "NIS2 Directive",
+            "control_id": "NIS2-IR-01",
+            "name": "24-hour CSIRT early warning process",
+            "assessment": "NON_COMPLIANT",
+            "confidence": 0.61,
+            "severity": "CRITICAL",
+            "reference": "NIS2 Art.23(4)(a)",
+            "date_flagged": t,
+        },
+        {
+            "id": "review-3",
+            "framework": "EU AI Act 2024",
+            "control_id": "EUAI-HO-01",
+            "name": "Human oversight mechanism for AI decisions",
+            "assessment": "NON_COMPLIANT",
+            "confidence": 0.52,
+            "severity": "CRITICAL",
+            "reference": "EU AI Act Art.14",
+            "date_flagged": t,
+        },
+        {
+            "id": "review-4",
+            "framework": "ISO/IEC 27001:2022",
+            "control_id": "ISO-A.5.23",
+            "name": "Information security for cloud services",
+            "assessment": "PARTIAL",
+            "confidence": 0.68,
+            "severity": "HIGH",
+            "reference": "ISO 27001 A.5.23",
+            "date_flagged": t,
+        },
+        {
+            "id": "review-5",
+            "framework": "NIS2 Directive",
+            "control_id": "NIS2-RM-04",
+            "name": "Supply chain security assessment",
+            "assessment": "NON_COMPLIANT",
+            "confidence": 0.64,
+            "severity": "HIGH",
+            "reference": "NIS2 Art.21(2)(d)",
+            "date_flagged": t,
+        },
+        {
+            "id": "review-6",
+            "framework": "GDPR 2016/679",
+            "control_id": "GDPR-IT-01",
+            "name": "US transfer SCCs post-Schrems II review",
+            "assessment": "PARTIAL",
+            "confidence": 0.71,
+            "severity": "HIGH",
+            "reference": "GDPR Art.46",
+            "date_flagged": t,
+        },
+        {
+            "id": "review-7",
+            "framework": "ISO/IEC 27001:2022",
+            "control_id": "ISO-A.8.8",
+            "name": "Management of technical vulnerabilities",
+            "assessment": "PARTIAL",
+            "confidence": 0.69,
+            "severity": "MEDIUM",
+            "reference": "ISO 27001 A.8.8",
+            "date_flagged": t,
+        },
+        {
+            "id": "review-8",
+            "framework": "Cyber Essentials v3.1",
+            "control_id": "CE-PF-01",
+            "name": "Boundary firewalls and internet gateways",
+            "assessment": "PARTIAL",
+            "confidence": 0.73,
+            "severity": "MEDIUM",
+            "reference": "Cyber Essentials Section 3.1",
+            "date_flagged": t,
+        },
+    ]
+
+
+# Module-level in-memory store: pending items (mutable), reviewed list (append-only for session).
+_review_queue_pending: list[dict[str, Any]] = []
+_review_queue_reviewed: list[dict[str, Any]] = []
+_review_queue_initialized = False
+
+
+def _ensure_review_queue_seed() -> None:
+    global _review_queue_initialized
+    if not _review_queue_initialized:
+        _review_queue_pending.extend(_review_queue_seed())
+        _review_queue_initialized = True
+
+
+@router.get("/assessments/review-queue", response_model=ReviewQueueResponse)
+async def get_review_queue() -> ReviewQueueResponse:
+    """Return Human Review Queue: pending items (confidence < 0.75) and reviewed items."""
+    _ensure_review_queue_seed()
+    items = [ReviewQueueItem(**x) for x in _review_queue_pending]
+    reviewed = [ReviewedItem(**x) for x in _review_queue_reviewed]
+    return ReviewQueueResponse(items=items, reviewed=reviewed)
+
+
+class ApproveRequestBody(BaseModel):
+    notes: str
+
+
+class OverrideRequestBody(BaseModel):
+    assessment: str
+    justification: str
+
+
+@router.post("/assessments/controls/{control_id}/approve")
+async def approve_control(control_id: str, body: ApproveRequestBody) -> dict[str, str]:
+    """Approve a flagged assessment. Logged to audit fabric. Moves item to reviewed."""
+    _ensure_review_queue_seed()
+    notes = (body.notes or "").strip()
+    if not notes:
+        raise HTTPException(status_code=400, detail="notes is required")
+    idx = next((i for i, x in enumerate(_review_queue_pending) if x["id"] == control_id), None)
+    if idx is None:
+        raise HTTPException(status_code=404, detail=f"Control not in queue: {control_id}")
+    item = _review_queue_pending.pop(idx)
+    acted_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    reviewed_entry = {
+        "id": item["id"],
+        "framework": item["framework"],
+        "control_id": item["control_id"],
+        "action": "approved",
+        "acted_by": "CISO",
+        "acted_at": acted_at,
+        "original_confidence": item["confidence"],
+        "final_decision": item["assessment"],
+        "audit_ref": f"audit-{control_id}-approve-{acted_at[:10]}",
+    }
+    _review_queue_reviewed.append(reviewed_entry)
+    logger.info(
+        "human_review_approve",
+        control_id=control_id,
+        notes=notes[:200],
+        audit_ref=reviewed_entry["audit_ref"],
+    )
+    return {"status": "approved", "control_id": control_id, "audit_ref": reviewed_entry["audit_ref"]}
+
+
+@router.post("/assessments/controls/{control_id}/override")
+async def override_control(control_id: str, body: OverrideRequestBody) -> dict[str, str]:
+    """Override AI assessment. Logged immutably to audit fabric. Moves item to reviewed."""
+    _ensure_review_queue_seed()
+    justification = (body.justification or "").strip()
+    if len(justification) < 20:
+        raise HTTPException(status_code=400, detail="justification must be at least 20 characters")
+    if body.assessment not in ("COMPLIANT", "PARTIAL", "NON_COMPLIANT"):
+        raise HTTPException(status_code=400, detail="assessment must be COMPLIANT, PARTIAL, or NON_COMPLIANT")
+    idx = next((i for i, x in enumerate(_review_queue_pending) if x["id"] == control_id), None)
+    if idx is None:
+        raise HTTPException(status_code=404, detail=f"Control not in queue: {control_id}")
+    item = _review_queue_pending.pop(idx)
+    acted_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    reviewed_entry = {
+        "id": item["id"],
+        "framework": item["framework"],
+        "control_id": item["control_id"],
+        "action": "overridden",
+        "acted_by": "CISO",
+        "acted_at": acted_at,
+        "original_confidence": item["confidence"],
+        "final_decision": body.assessment,
+        "audit_ref": f"audit-{control_id}-override-{acted_at[:10]}",
+    }
+    _review_queue_reviewed.append(reviewed_entry)
+    logger.info(
+        "human_review_override",
+        control_id=control_id,
+        final_decision=body.assessment,
+        justification_len=len(justification),
+        audit_ref=reviewed_entry["audit_ref"],
+    )
+    return {"status": "overridden", "control_id": control_id, "audit_ref": reviewed_entry["audit_ref"]}
