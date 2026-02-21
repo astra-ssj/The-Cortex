@@ -119,7 +119,7 @@ class AWSConnector:
         """Sync: validate credentials via STS GetCallerIdentity. Used inside executor."""
         session = self._get_session()
         sts = session.client("sts")
-        return sts.get_caller_identity()
+        return cast(dict[str, Any], sts.get_caller_identity())
 
     async def connect(self) -> bool:
         """Validate credentials via sts.get_caller_identity(). Log to audit_fabric."""
@@ -313,7 +313,7 @@ class AWSConnector:
             entity_id=CONNECTOR_ID,
             payload={"count": len(assets)},
         )
-        return assets
+        return cast(list[SystemAsset], assets)
 
     def _discover_controls_sync(self) -> list[ControlFinding]:
         """Sync: Security Hub score, Config rules, IAM Credential Report, CloudTrail, GuardDuty -> ControlFinding."""
@@ -336,8 +336,8 @@ class AWSConnector:
                             raw_data={"source": "security_hub"},
                         )
                     )
-            except Exception:
-                pass
+            except Exception as inner_e:
+                logger.debug("aws_security_hub_control_definitions_skip", error=str(inner_e))
         except Exception as e:
             logger.warning("aws_discover_security_hub_error", error=str(e))
 
@@ -406,8 +406,8 @@ class AWSConnector:
             iam = session.client("iam")
             try:
                 iam.generate_credential_report()
-            except Exception:
-                pass
+            except Exception as gen_e:
+                logger.debug("aws_iam_credential_report_generate_skip", error=str(gen_e))
             report = iam.get_credential_report()
             content = report["Content"].decode("utf-8")
             reader = csv.DictReader(io.StringIO(content))
@@ -451,7 +451,7 @@ class AWSConnector:
             entity_id=CONNECTOR_ID,
             payload={"count": len(out)},
         )
-        return out
+        return cast(list[ControlFinding], out)
 
     def _pull_findings_sync(self) -> list[Finding]:
         """Sync: Convert Security Hub findings to CORTEX Findings; map to obligation_ids; CRITICAL -> CRITICAL."""
@@ -493,7 +493,7 @@ class AWSConnector:
         except Exception as e:
             logger.warning("aws_pull_findings_security_hub_error", error=str(e))
 
-        return results
+        return cast(list[Finding], results)
 
     async def pull_findings(self) -> list[Finding]:
         """Convert Security Hub findings to CORTEX Findings; map AWS types to obligation_ids; CRITICAL -> CRITICAL."""
@@ -518,7 +518,7 @@ class AWSConnector:
             entity_id=CONNECTOR_ID,
             payload={"count": len(findings)},
         )
-        return findings
+        return cast(list[Finding], findings)
 
     def _get_identity_summary_sync(self) -> dict[str, Any]:
         """Sync: IAM users without MFA, root usage 90d, stale access keys >90d."""
@@ -532,8 +532,8 @@ class AWSConnector:
             iam = session.client("iam")
             try:
                 iam.generate_credential_report()
-            except Exception:
-                pass
+            except Exception as gen_e:
+                logger.debug("aws_iam_credential_report_generate_skip", error=str(gen_e))
             report = iam.get_credential_report()
             content = report["Content"].decode("utf-8")
             reader = csv.DictReader(io.StringIO(content))
@@ -546,8 +546,8 @@ class AWSConnector:
                             last_dt = datetime.fromisoformat(last_used.replace("Z", "+00:00"))
                             if (cutoff - last_dt).days <= 90:
                                 summary["root_usage_last_90_days"] = 1
-                    except Exception:
-                        pass
+                    except Exception as parse_e:
+                        logger.debug("aws_iam_root_usage_parse_skip", error=str(parse_e))
                     continue
                 if row.get("mfa_active", "false") != "true":
                     summary["users_without_mfa"] += 1
@@ -559,8 +559,8 @@ class AWSConnector:
                         last_dt = datetime.fromisoformat(used.replace("Z", "+00:00"))
                         if (cutoff - last_dt).days > 90:
                             summary["stale_access_keys_90_days"] += 1
-                    except Exception:
-                        pass
+                    except Exception as parse_e:
+                        logger.debug("aws_iam_stale_key_parse_skip", error=str(parse_e))
         except Exception as e:
             logger.warning("aws_identity_summary_error", error=str(e))
         return summary
@@ -588,7 +588,7 @@ class AWSConnector:
             entity_id=CONNECTOR_ID,
             payload=summary,
         )
-        return summary
+        return cast(dict[str, Any], summary)
 
 
 def create_connector_from_store() -> AWSConnector | None:
