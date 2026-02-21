@@ -24,7 +24,7 @@ jobs:
           pip install ruff mypy ".[dev]"
 
       - name: Ruff check
-        run: ruff check services/compliance-engine/app/ compliance/ core/ api/ services/ --fix
+        run: ruff check services/compliance-engine/app/ compliance/ core/ api/ services/
 
       - name: Mypy
         run: mypy services/compliance-engine/app/ --ignore-missing-imports
@@ -82,5 +82,7 @@ jobs:
           pip install ".[dev]"
 
       - name: Pytest with coverage (57% minimum gate; raise to 60% as tests expand)
+        env:
+          PYTHONPATH: .:services/compliance-engine
         run: |
           pytest tests/ --cov=app --cov=compliance --cov=core --cov=api --cov=services --cov-report=term-missing --cov-fail-under=57 -q

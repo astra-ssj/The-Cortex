@@ -18,6 +18,10 @@ dependencies = [
     "pypdf>=4",
     "python-docx>=1.0",
     "python-multipart>=0.0.22",
+    # Security: minimum versions to avoid known CVEs in transitive deps (pip-audit)
+    "filelock>=3.20.3",
+    "future>=0.18.3",
+    "marshmallow>=4.1.2",
 ]
 
 [project.optional-dependencies]
@@ -59,6 +63,11 @@ python_version = "3.12"
 ignore_missing_imports = true
 warn_return_any = true
 warn_unused_ignores = true
+
+# Connectors return third-party SDK objects (boto3.Session, Azure clients); avoid noisy Any warnings
+[[tool.mypy.overrides]]
+module = ["app.connectors.aws.*", "app.connectors.azure.*"]
+warn_return_any = false
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "venv"]
