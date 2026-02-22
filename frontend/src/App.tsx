@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Link, Route, Routes, useLocation } from "react-router-dom";
+import { AuditReport } from "./components/AuditReport";
 import { ComplianceDashboard } from "./ComplianceDashboard";
 import { FrameworkDetailPage } from "./FrameworkDetailPage";
 import { HumanReview } from "./HumanReview";
@@ -16,6 +17,7 @@ const allNavItems = [
   { to: "/review-queue", label: "Review Queue", roles: ["ciso", "dpo"] as const },
   { to: "/remediation", label: "Remediation", roles: ["ciso", "dpo"] as const },
   { to: "/roadmap", label: "Roadmap", roles: ["ciso"] as const },
+  { to: "/audit-report", label: "Audit Report", roles: ["ciso", "dpo", "auditor"] as const },
 ];
 
 function navItemsForRole(role: AuthUser["role"]) {
@@ -133,6 +135,7 @@ function App() {
             <Route path="/review-queue" element={<HumanReview />} />
             <Route path="/remediation" element={<RemediationTracker />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
+            <Route path="/audit-report" element={<AuditReport />} />
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
           </Routes>
         </main>
