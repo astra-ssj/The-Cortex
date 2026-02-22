@@ -1,3 +1,38 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Audit Report: print-only layout — hide nav/config, show report on white A4 */
+@media print {
+  header,
+  .print\:hidden {
+    display: none !important;
+  }
+  body,
+  main {
+    background: #fff !important;
+    min-height: auto !important;
+  }
+  .audit-report-preview {
+    border: none !important;
+    background: #fff !important;
+    color: #111 !important;
+    box-shadow: none !important;
+    padding: 1rem !important;
+  }
+  .audit-report-preview [class*="cortex-"] {
+    color: inherit !important;
+  }
+  .audit-report-preview .text-cortex-muted {
+    color: #374151 !important;
+  }
+  .audit-report-preview .text-cortex-red {
+    color: #b91c1c !important;
+  }
+  .audit-report-preview .text-cortex-amber {
+    color: #b45309 !important;
+  }
+  .audit-report-preview .text-cortex-green {
+    color: #047857 !important;
+  }
+}

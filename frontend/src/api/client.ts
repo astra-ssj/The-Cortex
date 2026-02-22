@@ -94,6 +94,57 @@ export async function fetchZtaipStatus(): Promise<ZTAIPStatus> {
   return fetchApi<ZTAIPStatus>("/api/v1/system/ztaip-status");
 }
 
+// ---- Audit Report (Executive Summary) ----
+
+export interface ExecutiveSummaryReport {
+  as_at: string;
+  org_id: string;
+  org_name: string;
+  overall_posture: {
+    group_compliance_score: number;
+    audit_readiness: number;
+    overall_risk_level: string;
+    frameworks_active: number;
+    total_controls_assessed: number;
+    critical_gaps: number;
+    findings_open: number;
+    findings_overdue: number;
+  };
+  framework_summary: Array<{
+    framework_name: string;
+    score: number | null;
+    status: string;
+    risk_level: string;
+  }>;
+  top_critical_findings: Array<{
+    title: string;
+    framework: string;
+    owner: string;
+    due_date: string;
+    days_open: number;
+  }>;
+  regulatory_exposure: Record<string, string>;
+  management_attention: string[];
+  recommendations: string[];
+  next_review: string;
+  ztaip?: ZTAIPStatus | null;
+}
+
+export interface ExecutiveSummaryParams {
+  org_id?: string;
+  as_at?: string;
+  entity_scope?: string;
+}
+
+export async function fetchExecutiveSummary(params?: ExecutiveSummaryParams): Promise<ExecutiveSummaryReport> {
+  const search = new URLSearchParams();
+  if (params?.org_id) search.set("org_id", params.org_id);
+  if (params?.as_at) search.set("as_at", params.as_at);
+  if (params?.entity_scope) search.set("entity_scope", params.entity_scope);
+  const qs = search.toString();
+  return fetchApi<ExecutiveSummaryReport>(`/api/v1/reports/executive-summary${qs ? `?${qs}` : ""}`);
+}
+
 // ---- Assessment stream (SSE) ----
 
 import type { AssessmentEvent } from "../types/compliance";
