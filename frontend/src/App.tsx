@@ -5,16 +5,22 @@ import { FrameworkDetailPage } from "./FrameworkDetailPage";
 import { HumanReview } from "./HumanReview";
 import { ProjectTracker } from "./ProjectTracker";
 import { RemediationTracker } from "./RemediationTracker";
+import { Login } from "./components/Login";
 import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
 import { useAssessmentStream } from "./store/complianceStore";
+import { getToken, setAuth, clearAuth, getUser, type AuthUser } from "./auth";
 
-const navItems = [
-  { to: "/", label: "Dashboard" },
-  { to: "/#frameworks", label: "Frameworks" },
-  { to: "/review-queue", label: "Review Queue" },
-  { to: "/remediation", label: "Remediation" },
-  { to: "/roadmap", label: "Roadmap" },
+const allNavItems = [
+  { to: "/", label: "Dashboard", roles: ["ciso", "dpo", "auditor"] as const },
+  { to: "/#frameworks", label: "Frameworks", roles: ["ciso", "auditor"] as const },
+  { to: "/review-queue", label: "Review Queue", roles: ["ciso", "dpo"] as const },
+  { to: "/remediation", label: "Remediation", roles: ["ciso", "dpo"] as const },
+  { to: "/roadmap", label: "Roadmap", roles: ["ciso"] as const },
 ];
+
+function navItemsForRole(role: AuthUser["role"]) {
+  return allNavItems.filter((item) => item.roles.includes(role));
+}
 
 function formatClock(): string {
   const d = new Date();
@@ -23,10 +29,11 @@ function formatClock(): string {
   return `${time} · ${date}`;
 }
 
-function Header() {
+function Header({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
   const [clock, setClock] = useState(formatClock());
   const { isStreaming, startStream, stopStream } = useAssessmentStream();
   const location = useLocation();
+  const navItems = navItemsForRole(user.role);
 
   useEffect(() => {
     const id = setInterval(() => setClock(formatClock()), 1000);
@@ -68,14 +75,28 @@ function Header() {
             <span className="font-data text-xs font-medium uppercase tracking-wider text-cortex-green">Monitoring</span>
           </div>
           <span className="font-data text-sm text-cortex-muted">{clock}</span>
-          <button
-            type="button"
-            onClick={() => (isStreaming ? stopStream() : startStream(DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS.split(",")))}
-            disabled={isStreaming}
-            className="rounded-lg bg-gradient-to-r from-cortex-blue to-cortex-blue/90 px-4 py-2 font-ui text-sm font-semibold text-white shadow-lg transition hover:from-cortex-blue/95 hover:to-cortex-blue/85 disabled:opacity-60"
-          >
-            {isStreaming ? "Streaming…" : "Run Assessment"}
-          </button>
+          {user.role === "ciso" && (
+            <button
+              type="button"
+              onClick={() => (isStreaming ? stopStream() : startStream(DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS.split(",")))}
+              disabled={isStreaming}
+              className="rounded-lg bg-gradient-to-r from-cortex-blue to-cortex-blue/90 px-4 py-2 font-ui text-sm font-semibold text-white shadow-lg transition hover:from-cortex-blue/95 hover:to-cortex-blue/85 disabled:opacity-60"
+            >
+              {isStreaming ? "Streaming…" : "Run Assessment"}
+            </button>
+          )}
+          <div className="flex items-center gap-2 rounded-md border border-cortex-border bg-cortex-panel px-3 py-1.5">
+            <span className="font-ui text-sm text-cortex-text">
+              {user.name} · {user.entity}
+            </span>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="rounded px-2 py-1 font-ui text-xs text-cortex-muted hover:bg-cortex-border hover:text-cortex-text"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -83,10 +104,29 @@ function Header() {
 }
 
 function App() {
+  const [token, setToken] = useState<string | null>(() => getToken());
+  const [user, setUser] = useState<AuthUser | null>(() => getUser());
+
+  const handleLogin = (newToken: string, newUser: AuthUser) => {
+    setAuth(newToken, newUser);
+    setToken(newToken);
+    setUser(newUser);
+  };
+
+  const handleLogout = () => {
+    clearAuth();
+    setToken(null);
+    setUser(null);
+  };
+
+  if (!token || !user) {
+    return <Login onSuccess={handleLogin} />;
+  }
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-cortex-bg font-ui text-cortex-text">
-        <Header />
+        <Header user={user} onLogout={handleLogout} />
         <main className="mx-auto max-w-[1920px] px-6 py-6">
           <Routes>
             <Route path="/" element={<ComplianceDashboard />} />

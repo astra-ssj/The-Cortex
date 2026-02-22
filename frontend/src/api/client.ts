@@ -2,15 +2,25 @@
  * Central API client. All endpoints the frontend calls.
  * Types match backend and frontend/src/types/compliance.ts.
  * VITE_API_URL: set to http://localhost:8000 for production build or when not using Vite dev proxy.
+ * Token from auth state (getToken) is sent as Authorization header and as query param for SSE.
  */
 import { useState, useEffect, useCallback } from "react";
+import { getToken } from "../auth";
 
 const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
   (import.meta.env.DEV ? "" : "http://localhost:8000");
 
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 async function fetchApi<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`);
+  const res = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `HTTP ${res.status}`);
@@ -21,7 +31,7 @@ async function fetchApi<T>(path: string): Promise<T> {
 async function postApi<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -34,7 +44,7 @@ async function postApi<T>(path: string, body: unknown): Promise<T> {
 async function patchApi<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -107,10 +117,11 @@ export function createAssessmentStream(
   onError?: (err: Event) => void
 ): EventSource {
   const frameworks = frameworkIds.length ? frameworkIds.join(",") : ALL_FRAMEWORK_IDS;
-  // Use /assessments/run (organization_id, framework_ids) for compatibility with deployed API
   const url = new URL(`${STREAM_BASE}/api/v1/assessments/run`);
   url.searchParams.set("organization_id", organizationId);
   url.searchParams.set("framework_ids", frameworks);
+  const token = getToken();
+  if (token) url.searchParams.set("token", token);
   const es = new EventSource(url.toString());
   const handler = (e: MessageEvent) => {
     try {
