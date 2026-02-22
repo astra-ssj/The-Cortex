@@ -20,16 +20,21 @@ export function Login({ onSuccess }: LoginProps) {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    const timeoutMs = 10_000;
+    const ac = new AbortController();
+    const timeoutId = setTimeout(() => ac.abort(), timeoutMs);
     try {
       const body = new URLSearchParams({ username: email, password });
       const res = await fetch(`${API_BASE}/api/v1/auth/token`, {
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
         body: body.toString(),
+        signal: ac.signal,
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail ?? "Invalid email or password");
+        const detail = Array.isArray(data.detail) ? data.detail[0]?.msg : data.detail;
+        throw new Error(typeof detail === "string" ? detail : "Invalid email or password");
       }
       const data = await res.json();
       const user: AuthUser = {
@@ -40,9 +45,18 @@ export function Login({ onSuccess }: LoginProps) {
       };
       onSuccess(data.access_token, user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid email or password");
+      if (err instanceof Error) {
+        if (err.name === "AbortError") {
+          setError("Connection failed. Is the server running?");
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError("Connection failed. Is the server running?");
+      }
       setPassword("");
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   }
