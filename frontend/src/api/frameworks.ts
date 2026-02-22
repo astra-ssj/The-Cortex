@@ -1,7 +1,9 @@
 /**
  * Frameworks API client and TanStack Query hooks.
  * Types match backend api/schemas.py response models.
+ * Uses auth token for protected /api/v1/frameworks.
  */
+import { getToken } from "../auth";
 
 export interface FrameworkSummary {
   id: string;
@@ -52,7 +54,10 @@ const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined) || "";
 
 async function fetchApi<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`);
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}${path}`, { headers });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `HTTP ${res.status}`);

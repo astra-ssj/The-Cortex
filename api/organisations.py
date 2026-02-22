@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
+
+from core.security import get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from compliance import FrameworkId, exists, get
@@ -45,7 +47,10 @@ DEMO_CRITICAL_GAPS: list[dict] = []
 
 
 @router.get("/organisations/{org_id}", response_model=OrgProfile)
-async def get_organisation(org_id: str) -> OrgProfile:
+async def get_organisation(
+    org_id: str,
+    current_user: dict = Depends(get_current_user),
+) -> OrgProfile:
     """Return organisation profile. Mock for demo-org-001."""
     if org_id == "demo-org-001":
         return OrgProfile(
@@ -62,6 +67,7 @@ async def get_organisation(org_id: str) -> OrgProfile:
 async def get_organisation_posture(
     org_id: str,
     session: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> CompliancePosture:
     """Return compliance posture for an organisation. Real scores from PostureCalculator."""
     if org_id != "demo-org-001":

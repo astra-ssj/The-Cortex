@@ -8,7 +8,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from core.security import get_current_user, get_current_user_stream
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -72,7 +74,9 @@ def _framework_to_detail(fw: Framework) -> FrameworkDetail:
 
 
 @router.get("/frameworks", response_model=list[FrameworkSummary])
-async def list_frameworks() -> list[FrameworkSummary]:
+async def list_frameworks(
+    current_user: dict = Depends(get_current_user),
+) -> list[FrameworkSummary]:
     """List all registered frameworks with summaries (no full controls)."""
     summaries = [_framework_to_summary(fw) for fw in REGISTRY.values()]
     logger.info("frameworks_list", count=len(summaries))
@@ -80,7 +84,10 @@ async def list_frameworks() -> list[FrameworkSummary]:
 
 
 @router.get("/frameworks/{framework_id}", response_model=FrameworkDetail)
-async def get_framework(framework_id: str) -> FrameworkDetail:
+async def get_framework(
+    framework_id: str,
+    current_user: dict = Depends(get_current_user),
+) -> FrameworkDetail:
     """Return full framework with all controls by id."""
     try:
         fid = FrameworkId(framework_id)
@@ -97,6 +104,7 @@ async def list_framework_controls(
     framework_id: str,
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    current_user: dict = Depends(get_current_user),
 ) -> PaginatedControls:
     """Paginated list of controls for a framework."""
     try:
@@ -176,6 +184,7 @@ async def stream_assessment(
         ...,
         description="Comma-separated framework ids (e.g. iso27001-2022,gdpr-2016-679,...)",
     ),
+    current_user: dict = Depends(get_current_user_stream),
 ) -> StreamingResponse:
     """Stream assessment run via SSE. Params: org_id, frameworks (comma-separated)."""
     _validate_organization_id(org_id)
@@ -190,6 +199,7 @@ async def run_assessment(
         ...,
         description="Comma-separated framework ids (e.g. iso27001-2022,gdpr-2016-679,...)",
     ),
+    current_user: dict = Depends(get_current_user_stream),
 ) -> StreamingResponse:
     """Stream assessment run via SSE (alias). Params: organization_id, framework_ids."""
     _validate_organization_id(organization_id)
@@ -309,7 +319,9 @@ def _ensure_review_queue_seed() -> None:
 
 
 @router.get("/assessments/review-queue", response_model=ReviewQueueResponse)
-async def get_review_queue() -> ReviewQueueResponse:
+async def get_review_queue(
+    current_user: dict = Depends(get_current_user),
+) -> ReviewQueueResponse:
     """Return Human Review Queue: pending items (confidence < 0.75) and reviewed items."""
     _ensure_review_queue_seed()
     items = [ReviewQueueItem(**x) for x in _review_queue_pending]
@@ -327,7 +339,11 @@ class OverrideRequestBody(BaseModel):
 
 
 @router.post("/assessments/controls/{control_id}/approve")
-async def approve_control(control_id: str, body: ApproveRequestBody) -> dict[str, str]:
+async def approve_control(
+    control_id: str,
+    body: ApproveRequestBody,
+    current_user: dict = Depends(get_current_user),
+) -> dict[str, str]:
     """Approve a flagged assessment. Logged to audit fabric. Moves item to reviewed."""
     _ensure_review_queue_seed()
     notes = (body.notes or "").strip()
@@ -360,7 +376,11 @@ async def approve_control(control_id: str, body: ApproveRequestBody) -> dict[str
 
 
 @router.post("/assessments/controls/{control_id}/override")
-async def override_control(control_id: str, body: OverrideRequestBody) -> dict[str, str]:
+async def override_control(
+    control_id: str,
+    body: OverrideRequestBody,
+    current_user: dict = Depends(get_current_user),
+) -> dict[str, str]:
     """Override AI assessment. Logged immutably to audit fabric. Moves item to reviewed."""
     _ensure_review_queue_seed()
     justification = (body.justification or "").strip()
