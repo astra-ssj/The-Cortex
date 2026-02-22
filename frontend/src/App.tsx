@@ -4,6 +4,7 @@ import { ComplianceDashboard } from "./ComplianceDashboard";
 import { FrameworkDetailPage } from "./FrameworkDetailPage";
 import { HumanReview } from "./HumanReview";
 import { ProjectTracker } from "./ProjectTracker";
+import { RemediationTracker } from "./RemediationTracker";
 import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
 import { useAssessmentStream } from "./store/complianceStore";
 
@@ -11,7 +12,7 @@ const navItems = [
   { to: "/", label: "Dashboard" },
   { to: "/#frameworks", label: "Frameworks" },
   { to: "/review-queue", label: "Review Queue" },
-  { to: "/#audit-report", label: "Audit Report" },
+  { to: "/remediation", label: "Remediation" },
   { to: "/roadmap", label: "Roadmap" },
 ];
 
@@ -90,6 +91,7 @@ function App() {
           <Routes>
             <Route path="/" element={<ComplianceDashboard />} />
             <Route path="/review-queue" element={<HumanReview />} />
+            <Route path="/remediation" element={<RemediationTracker />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
           </Routes>

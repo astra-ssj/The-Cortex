@@ -31,6 +31,19 @@ async function postApi<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function patchApi<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
 // Re-export frameworks API (or keep frameworks.ts and use it from store).
 export {
   fetchFrameworks,
@@ -149,6 +162,66 @@ export interface ReviewQueueResponse {
 
 export async function fetchReviewQueueApi(): Promise<ReviewQueueResponse> {
   return fetchApi<ReviewQueueResponse>("/api/v1/assessments/review-queue");
+}
+
+// ---- Remediation Tracker (Findings) ----
+
+export type FindingStatus = "OPEN" | "IN_PROGRESS" | "REMEDIATED" | "ACCEPTED";
+export type FindingSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+
+export interface RemediationFinding {
+  id: string;
+  title: string;
+  severity: FindingSeverity;
+  framework: string;
+  framework_id: string;
+  control_id: string;
+  control_name: string;
+  reference: string;
+  entity: string;
+  entity_code: string;
+  status: FindingStatus;
+  current_state: string;
+  required_state: string;
+  actions: string[];
+  completed_actions: number[];
+  owner: string;
+  due_date: string;
+  days_open: number;
+  priority: "P0" | "P1" | "P2";
+  notes: { text: string; timestamp: string }[];
+}
+
+export interface ListFindingsParams {
+  status?: string;
+  severity?: string;
+  framework_id?: string;
+  entity?: string;
+}
+
+export async function fetchFindings(params?: ListFindingsParams): Promise<RemediationFinding[]> {
+  const search = new URLSearchParams();
+  if (params?.status) search.set("status", params.status);
+  if (params?.severity) search.set("severity", params.severity);
+  if (params?.framework_id) search.set("framework_id", params.framework_id);
+  if (params?.entity) search.set("entity", params.entity);
+  const qs = search.toString();
+  return fetchApi<RemediationFinding[]>(`/api/v1/findings${qs ? `?${qs}` : ""}`);
+}
+
+export interface UpdateFindingBody {
+  status?: FindingStatus;
+  owner?: string;
+  due_date?: string;
+  notes?: { text: string; timestamp: string }[];
+  note_append?: string;
+  note_timestamp?: string;
+  completed_actions?: number[];
+  priority?: "P0" | "P1" | "P2";
+}
+
+export async function updateFinding(id: string, body: UpdateFindingBody): Promise<RemediationFinding> {
+  return patchApi<RemediationFinding>(`/api/v1/findings/${encodeURIComponent(id)}`, body);
 }
 
 export async function approveControl(id: string, notes: string): Promise<{ status: string; control_id: string; audit_ref: string }> {
