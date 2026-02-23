@@ -90,7 +90,7 @@ function Header({ onLogout }: { onLogout: () => void }) {
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("cortex_token"));
-  const [user, setUser] = useState<{ username?: string; [key: string]: unknown } | null>(() => {
+  const [_user, setUser] = useState<{ username?: string; [key: string]: unknown } | null>(() => {
     try {
       return JSON.parse(localStorage.getItem("cortex_user") ?? "null");
     } catch {

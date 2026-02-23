@@ -211,7 +211,7 @@ export function ProjectTracker() {
         <h2 className="mb-4 font-ui text-sm font-semibold text-cortex-text">Timeline</h2>
         <div className="relative flex items-center justify-between gap-4">
           <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 bg-cortex-border" />
-          {TIMELINE_PHASES.map(({ phase, label, date }, i) => (
+          {TIMELINE_PHASES.map(({ phase, label, date }) => (
             <div key={phase} className="relative z-10 flex flex-col items-center">
               <div className="rounded-full border-2 border-cortex-border bg-cortex-panel px-3 py-1.5">
                 <span className="font-data text-xs font-medium text-cortex-text">{label}</span>
