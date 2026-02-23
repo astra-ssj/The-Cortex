@@ -3,9 +3,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master, compliance-api-505e1, feature/project-tracker]
+    branches: [main, master, compliance-api-505e1, feature/project-tracker, feature/audit-report]
   pull_request:
-    branches: [main, master, compliance-api-505e1, feature/project-tracker]
+    branches: [main, master, compliance-api-505e1, feature/project-tracker, feature/audit-report]
 
 jobs:
   lint-sast:
@@ -81,8 +81,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[dev]"
 
-      - name: Pytest with coverage (57% minimum gate; raise to 60% as tests expand)
+      - name: Pytest with coverage (60% minimum gate)
         env:
           PYTHONPATH: .:services/compliance-engine
         run: |
-          pytest tests/ --cov=app --cov=compliance --cov=core --cov=api --cov=services --cov-report=term-missing --cov-fail-under=57 -q
+          pytest tests/ --cov=app --cov=compliance --cov=core --cov=api --cov=services --cov-report=term-missing --cov-fail-under=60 -q

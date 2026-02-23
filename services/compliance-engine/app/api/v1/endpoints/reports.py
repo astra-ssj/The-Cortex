@@ -7,11 +7,13 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 import structlog
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
+
+from core.security import get_current_user
 
 logger = structlog.get_logger()
 
-router = APIRouter(prefix="/reports", tags=["reports"])
+router = APIRouter(tags=["reports"])
 
 
 async def _fetch_json(
@@ -42,6 +44,7 @@ async def get_executive_summary(
     org_id: str = "demo-org-001",
     as_at: Optional[str] = None,
     entity_scope: Optional[str] = None,
+    _user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
     """
     Pull posture, findings, and ZTAIP status; return structured report object
@@ -103,6 +106,16 @@ async def get_executive_summary(
             {"framework_name": "EU AI Act 2024", "score": 45, "status": "non_compliant", "risk_level": "HIGH"},
             {"framework_name": "EU Cybersecurity Act", "score": 62, "status": "partial", "risk_level": "MEDIUM"},
         ]
+
+    # Compute overall_score, audit_readiness, critical_gaps from framework list when not from posture
+    scores = [f["score"] for f in framework_summary if f.get("score") is not None]
+    if scores:
+        overall_score = round(sum(scores) / len(scores))
+        audit_readiness = round(overall_score * 0.92)
+    critical_gaps_count = sum(
+        1 for f in framework_summary
+        if f.get("risk_level") == "CRITICAL" or f.get("risk") == "CRITICAL"
+    )
 
     next_review = (datetime.strptime(as_at_date, "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=30)).strftime("%Y-%m-%d")
 
