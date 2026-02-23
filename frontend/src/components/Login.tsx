@@ -22,10 +22,16 @@ export function Login({ onSuccess }: LoginProps) {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+      const formData = new URLSearchParams();
+      formData.append("username", username);
+      formData.append("password", password);
+
+      const res = await fetch(`${API_BASE}/api/v1/auth/token`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formData.toString(),
       });
       const data = (await res.json()) as LoginResponse & { detail?: string };
       if (!res.ok) {
