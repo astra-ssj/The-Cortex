@@ -55,12 +55,12 @@ def _framework_to_summary(fw: Framework) -> FrameworkSummary:
 
 def _framework_to_detail(fw: Framework) -> FrameworkDetail:
     return FrameworkDetail(
-        id=fw.id,
-        name=fw.name,
-        version=fw.version,
-        jurisdiction=fw.jurisdiction,
-        purpose_tags=list(fw.purpose_tags),
-        controls=[_control_to_out(c) for c in fw.controls],
+        id=str(fw.id),
+        name=str(fw.name),
+        version=str(fw.version),
+        jurisdiction=str(fw.jurisdiction),
+        purpose_tags=[str(t) for t in (fw.purpose_tags or [])],
+        controls=[_control_to_out(c) for c in (fw.controls or [])],
     )
 
 
@@ -111,10 +111,11 @@ async def list_framework_controls(
     fw = get(fid)
     if fw is None:
         raise HTTPException(status_code=404, detail=f"Framework not found: {framework_id}")
-    total = len(fw.controls)
+    controls = fw.controls or []
+    total = len(controls)
     start = (page - 1) * page_size
     end = start + page_size
-    items = [_control_to_out(c) for c in fw.controls[start:end]]
+    items = [_control_to_out(c) for c in controls[start:end]]
     return PaginatedControls(items=items, total=total, page=page, page_size=page_size)
 
 
