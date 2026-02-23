@@ -10,7 +10,7 @@ from typing import Any
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from core.security import get_current_user, get_current_user_stream
+from core.security import get_current_user, get_current_user_optional, get_current_user_stream
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -184,7 +184,7 @@ async def stream_assessment(
         ...,
         description="Comma-separated framework ids (e.g. iso27001-2022,gdpr-2016-679,...)",
     ),
-    current_user: dict = Depends(get_current_user_stream),
+    current_user: dict = Depends(get_current_user_optional),
 ) -> StreamingResponse:
     """Stream assessment run via SSE. Params: org_id, frameworks (comma-separated)."""
     _validate_organization_id(org_id)
