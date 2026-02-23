@@ -1,7 +1,10 @@
 /**
  * Frameworks API client and TanStack Query hooks.
  * Types match backend api/schemas.py response models.
+ * All requests use authenticated fetchApi from client.
  */
+
+import { fetchApi } from "./client";
 
 export interface FrameworkSummary {
   id: string;
@@ -48,24 +51,18 @@ export interface PaginatedControls {
   page_size: number;
 }
 
-const API_BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) || "";
-
-async function fetchApi<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  return res.json() as Promise<T>;
+async function fetchFrameworksApi<T>(path: string): Promise<T> {
+  return fetchApi(path) as Promise<T>;
 }
 
 export async function fetchFrameworks(): Promise<FrameworkSummary[]> {
-  return fetchApi<FrameworkSummary[]>("/api/v1/frameworks");
+  return fetchFrameworksApi<FrameworkSummary[]>("/api/v1/frameworks");
 }
 
 export async function fetchFramework(id: string): Promise<FrameworkDetail> {
-  return fetchApi<FrameworkDetail>(`/api/v1/frameworks/${encodeURIComponent(id)}`);
+  return fetchFrameworksApi<FrameworkDetail>(
+    `/api/v1/frameworks/${encodeURIComponent(id)}`
+  );
 }
 
 export async function fetchFrameworkControls(
@@ -77,7 +74,7 @@ export async function fetchFrameworkControls(
     page: String(page),
     page_size: String(pageSize),
   });
-  return fetchApi<PaginatedControls>(
+  return fetchFrameworksApi<PaginatedControls>(
     `/api/v1/frameworks/${encodeURIComponent(id)}/controls?${params}`
   );
 }

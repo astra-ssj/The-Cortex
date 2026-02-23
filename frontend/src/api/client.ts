@@ -1,6 +1,6 @@
 const API_BASE = "http://localhost:8000";
 
-async function fetchApi(path: string, options: RequestInit = {}) {
+export async function fetchApi(path: string, options: RequestInit = {}) {
   const token = localStorage.getItem("cortex_token");
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -11,7 +11,10 @@ async function fetchApi(path: string, options: RequestInit = {}) {
     },
   });
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    const err = await response.json().catch(() => ({}));
+    throw new Error(
+      (err as { detail?: string }).detail || `HTTP ${response.status}`
+    );
   }
   return response.json();
 }
