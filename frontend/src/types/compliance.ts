@@ -21,6 +21,16 @@ export interface FrameworkPosture {
   frameworkName: string;
   controlCount: number;
   controls: ControlPosture[];
+  /** From API: framework-level score (0–100). Used when no controls array. */
+  score?: number;
+  /** From API: number of gaps. */
+  gapCount?: number;
+  /** From API: PARTIAL | COMPLIANT | NON_COMPLIANT. */
+  status?: "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT";
+  /** From API: CRITICAL | HIGH | MEDIUM | LOW. */
+  riskLevel?: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  /** From API: trend value. */
+  trend?: number;
 }
 
 export interface CompliancePosture {
@@ -28,6 +38,12 @@ export interface CompliancePosture {
   organisationName: string;
   frameworks: FrameworkPosture[];
   updatedAt: string;
+  /** From API: overall posture percentage. */
+  overallScore?: number;
+  /** From API: audit readiness percentage. */
+  auditReadiness?: number;
+  /** From API: last assessed timestamp. */
+  lastAssessed?: string;
 }
 
 // ---- ZTAIP system status (GET /api/v1/system/ztaip-status) ----

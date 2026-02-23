@@ -60,8 +60,33 @@ export interface OrgProfile {
   region: string | null;
 }
 
+/** Map API posture (snake_case) to frontend CompliancePosture (camelCase). */
+function mapPostureResponse(raw: Record<string, unknown>): CompliancePosture {
+  const frameworks = (raw.frameworks as Record<string, unknown>[] | undefined) ?? [];
+  return {
+    organisationId: String(raw.org_id ?? ""),
+    organisationName: String(raw.org_name ?? ""),
+    updatedAt: String(raw.last_assessed ?? ""),
+    lastAssessed: raw.last_assessed != null ? String(raw.last_assessed) : undefined,
+    overallScore: typeof raw.overall_score === "number" ? raw.overall_score : undefined,
+    auditReadiness: typeof raw.audit_readiness === "number" ? raw.audit_readiness : undefined,
+    frameworks: frameworks.map((f: Record<string, unknown>) => ({
+      frameworkId: String(f.framework_id ?? ""),
+      frameworkName: String(f.framework_name ?? ""),
+      controlCount: typeof f.control_count === "number" ? f.control_count : 0,
+      controls: [],
+      score: typeof f.score === "number" ? f.score : undefined,
+      gapCount: typeof f.gap_count === "number" ? f.gap_count : undefined,
+      status: typeof f.status === "string" ? (f.status as "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT") : undefined,
+      riskLevel: typeof f.risk_level === "string" ? (f.risk_level as "CRITICAL" | "HIGH" | "MEDIUM" | "LOW") : undefined,
+      trend: typeof f.trend === "number" ? f.trend : undefined,
+    })),
+  };
+}
+
 export async function fetchPosture(orgId: string): Promise<CompliancePosture> {
-  return organisationsApi.getPosture(orgId) as Promise<CompliancePosture>;
+  const raw = await organisationsApi.getPosture(orgId) as Record<string, unknown>;
+  return mapPostureResponse(raw);
 }
 
 export async function fetchOrgProfile(orgId: string): Promise<OrgProfile> {

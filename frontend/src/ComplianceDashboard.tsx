@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useRef, useEffect, useMemo } from "react";
-import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
+import { useQuery } from "@tanstack/react-query";
+import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS, findingsApi, reportsApi } from "./api/client";
 import { useFrameworks } from "./hooks/useFrameworks";
 import {
   useAssessmentStream,
@@ -56,7 +57,49 @@ function streamEventColor(type: DisplayType): string {
   }
 }
 
-function scoreFromPosture(fp: FrameworkPosture): { score: number; gaps: number; status: "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT"; risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" } {
+function EvidenceSection() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["findings"],
+    queryFn: () => findingsApi.list(),
+    retry: false,
+  });
+  if (isLoading) return <div className="rounded-xl border border-cortex-border bg-cortex-panel p-6 font-data text-sm text-cortex-muted">Loading findings…</div>;
+  if (error) return <div className="rounded-xl border border-cortex-border bg-cortex-panel p-6 font-data text-sm text-cortex-amber">Findings unavailable: {error instanceof Error ? error.message : String(error)}</div>;
+  const list = Array.isArray(data) ? data : (data as { items?: unknown[] })?.items ?? [];
+  return (
+    <div className="rounded-xl border border-cortex-border bg-cortex-panel p-6">
+      <p className="font-data text-sm text-cortex-muted">{list.length} finding(s) loaded.</p>
+      {list.length > 0 && (
+        <ul className="mt-3 list-inside list-disc font-data text-sm text-cortex-text">
+          {list.slice(0, 10).map((item: unknown, i: number) => (
+            <li key={i}>{typeof item === "object" && item !== null && "title" in (item as object) ? String((item as { title: string }).title) : JSON.stringify(item)}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function AuditReportSection() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["executive-summary"],
+    queryFn: () => reportsApi.getExecutiveSummary(),
+    retry: false,
+  });
+  if (isLoading) return <div className="rounded-xl border border-cortex-border bg-cortex-panel p-6 font-data text-sm text-cortex-muted">Loading executive summary…</div>;
+  if (error) return <div className="rounded-xl border border-cortex-border bg-cortex-panel p-6 font-data text-sm text-cortex-amber">Report unavailable: {error instanceof Error ? error.message : String(error)}</div>;
+  const summary = data && typeof data === "object" ? data as Record<string, unknown> : {};
+  return (
+    <div className="rounded-xl border border-cortex-border bg-cortex-panel p-6">
+      <pre className="whitespace-pre-wrap font-data text-xs text-cortex-text">{Object.keys(summary).length ? JSON.stringify(summary, null, 2) : "No summary data."}</pre>
+    </div>
+  );
+}
+
+function scoreFromPosture(fp: FrameworkPosture): { score: number; gaps: number; status: "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT"; risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"; trend?: number } {
+  if (fp.score != null && fp.gapCount != null && fp.status != null && fp.riskLevel != null) {
+    return { score: fp.score, gaps: fp.gapCount, status: fp.status, risk: fp.riskLevel, trend: fp.trend };
+  }
   const controls = fp.controls || [];
   const total = controls.length || 1;
   const compliant = controls.filter((c) => c.status === "compliant").length;
@@ -105,7 +148,7 @@ function FrameworkCard({
   fw: FrameworkSummary;
   posture: FrameworkPosture | undefined;
 }) {
-  const stats = posture ? scoreFromPosture(posture) : { score: 0, gaps: 0, status: "NON_COMPLIANT" as const, risk: "LOW" as const };
+  const stats = posture ? scoreFromPosture(posture) : { score: 0, gaps: 0, status: "NON_COMPLIANT" as const, risk: "LOW" as const, trend: undefined };
   const score = posture ? stats.score : 0;
   const riskColors = {
     CRITICAL: "bg-cortex-red/20 text-cortex-red border-cortex-red/40",
@@ -155,7 +198,8 @@ function FrameworkCard({
             />
           </div>
           <p className="mt-2 font-data text-xs text-cortex-muted">
-            {posture ? `${stats.gaps} gap${stats.gaps !== 1 ? "s" : ""}` : "Not assessed"} · Trend —
+            {posture ? `${stats.gaps} gap${stats.gaps !== 1 ? "s" : ""}` : "Not assessed"}
+            {stats.trend != null ? ` · Trend ${stats.trend >= 0 ? "+" : ""}${stats.trend}%` : " · Trend —"}
           </p>
         </div>
       </div>
@@ -179,6 +223,22 @@ export function ComplianceDashboard() {
   const stats = useMemo(() => {
     if (!posture?.frameworks?.length) {
       return { overallPosture: 0, auditReadiness: 0, criticalGaps: 0, compliantFrameworks: 0, totalFrameworks: frameworks?.length ?? 8 };
+    }
+    if (posture.overallScore != null && posture.auditReadiness != null) {
+      let criticalGaps = 0;
+      let compliantCount = 0;
+      posture.frameworks.forEach((fp) => {
+        const s = scoreFromPosture(fp);
+        criticalGaps += s.gaps;
+        if (s.status === "COMPLIANT") compliantCount += 1;
+      });
+      return {
+        overallPosture: posture.overallScore,
+        auditReadiness: posture.auditReadiness,
+        criticalGaps,
+        compliantFrameworks: compliantCount,
+        totalFrameworks: frameworks?.length ?? 8,
+      };
     }
     let totalScore = 0;
     let criticalGaps = 0;
@@ -232,7 +292,7 @@ export function ComplianceDashboard() {
 
   const jurisdictions = Array.from(new Set(frameworks.map((f) => f.jurisdiction))).slice(0, 6);
   const orgName = posture?.organisationName ?? "AstraLabs Group";
-  const lastAssessed = posture?.updatedAt ?? "—";
+  const lastAssessed = posture?.lastAssessed ?? posture?.updatedAt ?? "—";
 
   return (
     <div className="space-y-6">
@@ -287,6 +347,18 @@ export function ComplianceDashboard() {
             <FrameworkCard key={fw.id} fw={fw} posture={postureByFramework.get(fw.id)} />
           ))}
         </div>
+      </section>
+
+      {/* Evidence — GET /api/v1/findings with auth */}
+      <section id="evidence" className="scroll-mt-6">
+        <h2 className="mb-4 font-ui text-lg font-semibold text-cortex-text">Evidence</h2>
+        <EvidenceSection />
+      </section>
+
+      {/* Audit Report — GET /api/v1/reports/executive-summary with auth */}
+      <section id="audit-report" className="scroll-mt-6">
+        <h2 className="mb-4 font-ui text-lg font-semibold text-cortex-text">Audit Report</h2>
+        <AuditReportSection />
       </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
