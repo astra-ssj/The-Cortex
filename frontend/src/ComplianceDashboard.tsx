@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
-import { useRef, useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS, reportsApi } from "./api/client";
+import { useRef, useEffect, useMemo } from "react";
+import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
 import { useFrameworks } from "./hooks/useFrameworks";
 import {
   useAssessmentStream,
@@ -11,8 +10,6 @@ import {
 import type { FrameworkSummary } from "./api/frameworks";
 import type { AssessmentEvent } from "./types/compliance";
 import type { FrameworkPosture } from "./types/compliance";
-import RemediationTracker from "./components/RemediationTracker";
-import { AuditReport, type ReportData } from "./components/AuditReport";
 
 type DisplayType = "start" | "fw_start" | "fw_done" | "control" | "review" | "complete" | "error";
 
@@ -57,59 +54,6 @@ function streamEventColor(type: DisplayType): string {
     default:
       return "text-cortex-muted";
   }
-}
-
-function AuditReportSection({ posture }: { posture: ReturnType<typeof useCompliancePosture>["data"] }) {
-  const [reportData, setReportData] = useState<ReportData | null>(null);
-  const { data: summary, isLoading, error, refetch } = useQuery({
-    queryKey: ["executive-summary"],
-    queryFn: () => reportsApi.getExecutiveSummary(),
-    retry: false,
-  });
-
-  function buildReport(summaryData: Record<string, unknown> | undefined) {
-    const sum = summaryData ?? (summary && typeof summary === "object" ? (summary as Record<string, unknown>) : {});
-    const frameworks = (posture?.frameworks ?? []).map((fw) => ({
-      name: fw.frameworkName ?? "",
-      score: fw.score ?? 0,
-      status: fw.status ?? "PARTIAL",
-      risk: fw.riskLevel ?? "MEDIUM",
-    }));
-    let criticalGaps = 0;
-    posture?.frameworks?.forEach((fw) => {
-      criticalGaps += fw.gapCount ?? 0;
-    });
-    const asAt = typeof sum.generated_at === "string" ? sum.generated_at : posture?.lastAssessed ?? new Date().toISOString();
-    const recs: string[] = typeof sum.summary === "string" ? [sum.summary] : [];
-    return {
-      org_name: posture?.organisationName,
-      as_at: asAt,
-      overall_score: posture?.overallScore,
-      audit_readiness: posture?.auditReadiness,
-      risk_level: posture?.frameworks?.some((f) => f.riskLevel === "CRITICAL") ? "CRITICAL" : "HIGH",
-      critical_gaps: criticalGaps,
-      findings_open: 0,
-      frameworks,
-      top_findings: [],
-      recommendations: recs.length ? recs : undefined,
-    };
-  }
-
-  const onGenerate = () => {
-    refetch().then(({ data }) => {
-      const raw = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
-      setReportData(buildReport(raw));
-    });
-  };
-
-  return (
-    <AuditReport
-      report={reportData}
-      isLoading={isLoading}
-      error={error != null ? (error instanceof Error ? error.message : String(error)) : null}
-      onGenerate={onGenerate}
-    />
-  );
 }
 
 function scoreFromPosture(fp: FrameworkPosture): { score: number; gaps: number; status: "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT"; risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"; trend?: number } {
@@ -223,7 +167,8 @@ function FrameworkCard({
   );
 }
 
-export function ComplianceDashboard() {
+export function ComplianceDashboard(props?: { token?: string | null }) {
+  void props?.token; // passed by App for API consistency; stream uses localStorage
   const { data: frameworks, isLoading, error } = useFrameworks();
   const { data: posture } = useCompliancePosture(DEFAULT_ORG_ID);
   const { data: ztaip } = useZtaipStatus();
@@ -363,18 +308,6 @@ export function ComplianceDashboard() {
             <FrameworkCard key={fw.id} fw={fw} posture={postureByFramework.get(fw.id)} />
           ))}
         </div>
-      </section>
-
-      {/* Evidence — Remediation Tracker (Kanban) */}
-      <section id="evidence" className="scroll-mt-6">
-        <h2 className="mb-4 font-ui text-lg font-semibold text-cortex-text">Evidence</h2>
-        <RemediationTracker />
-      </section>
-
-      {/* Audit Report — formatted report UI after Generate */}
-      <section id="audit-report" className="scroll-mt-6">
-        <h2 className="mb-4 font-ui text-lg font-semibold text-cortex-text">Audit Report</h2>
-        <AuditReportSection posture={posture} />
       </section>
 
       <div className="grid gap-6 lg:grid-cols-3">

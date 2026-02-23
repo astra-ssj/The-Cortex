@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Link, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ComplianceDashboard } from "./ComplianceDashboard";
 import { FrameworkDetailPage } from "./FrameworkDetailPage";
 import { ProjectTracker } from "./ProjectTracker";
+import RemediationTracker from "./components/RemediationTracker";
+import AuditReportPage from "./components/AuditReportPage";
+import HumanReview from "./components/HumanReview";
 import { Login } from "./components/Login";
 import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
 import { useAssessmentStream } from "./store/complianceStore";
 
 const navItems = [
-  { to: "/", label: "Dashboard" },
-  { to: "/#frameworks", label: "Frameworks" },
-  { to: "/#evidence", label: "Evidence" },
-  { to: "/#audit-report", label: "Audit Report" },
-  { to: "/roadmap", label: "Roadmap" },
+  { label: "Dashboard", path: "/dashboard" },
+  { label: "Frameworks", path: "/frameworks" },
+  { label: "Review Queue", path: "/review-queue" },
+  { label: "Audit Report", path: "/audit-report" },
+  { label: "Roadmap", path: "/roadmap" },
 ];
 
 function formatClock(): string {
@@ -22,7 +25,7 @@ function formatClock(): string {
   return `${time} · ${date}`;
 }
 
-function Header({ onLogout }: { onLogout: () => void }) {
+function Header({ user: _user, onLogout }: { user: { username?: string; [key: string]: unknown } | null; onLogout: () => void }) {
   const [clock, setClock] = useState(formatClock());
   const { isStreaming, startStream, stopStream } = useAssessmentStream();
   const location = useLocation();
@@ -36,22 +39,23 @@ function Header({ onLogout }: { onLogout: () => void }) {
     <header className="sticky top-0 z-50 border-b border-cortex-border bg-cortex-surface/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1920px] items-center justify-between px-6">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-3">
+          <Link to="/dashboard" className="flex items-center gap-3">
             <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded bg-gradient-to-br from-cortex-blue to-cortex-purple font-data text-lg font-semibold text-white shadow-lg">
               C
             </div>
             <span className="font-ui text-xl font-semibold text-cortex-text">CORTEX</span>
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
-            {navItems.map(({ to, label }) => (
+            {navItems.map(({ path, label }) => (
               <Link
-                key={to}
-                to={to}
-                className={`rounded px-3 py-2 text-sm font-medium transition ${
-                  location.pathname === to
-                    ? "bg-cortex-panel text-cortex-text"
-                    : "text-cortex-muted hover:bg-cortex-panel hover:text-cortex-text"
-                }`}
+                key={path}
+                to={path}
+                style={{
+                  color: location.pathname === path ? "#e2e8f4" : "#4a5a72",
+                  fontWeight: location.pathname === path ? "bold" : "normal",
+                  textDecoration: "none",
+                  padding: "0 12px",
+                }}
               >
                 {label}
               </Link>
@@ -118,17 +122,26 @@ function App() {
     return <Login onSuccess={handleLoginSuccess} />;
   }
 
+  const user = _user;
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-cortex-bg font-ui text-cortex-text">
-        <Header onLogout={handleLogout} />
-        <main className="mx-auto max-w-[1920px] px-6 py-6">
-          <Routes>
-            <Route path="/" element={<ComplianceDashboard />} />
-            <Route path="/roadmap" element={<ProjectTracker />} />
-            <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
-          </Routes>
-        </main>
+        <>
+          <Header user={user} onLogout={handleLogout} />
+          <main className="mx-auto max-w-[1920px] px-6 py-6">
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<ComplianceDashboard token={token} />} />
+              <Route path="/frameworks" element={<ComplianceDashboard token={token} />} />
+              <Route path="/evidence" element={<RemediationTracker token={token} />} />
+              <Route path="/review-queue" element={<HumanReview token={token} />} />
+              <Route path="/audit-report" element={<AuditReportPage token={token} />} />
+              <Route path="/roadmap" element={<ProjectTracker />} />
+              <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </main>
+        </>
       </div>
     </BrowserRouter>
   );

@@ -18,7 +18,7 @@ export function FrameworkDetailPage() {
       <div className="rounded-xl border border-cortex-red/50 bg-cortex-red/10 p-4 text-cortex-red">
         <p className="font-medium">Failed to load framework</p>
         <p className="mt-1 font-data text-sm">{error instanceof Error ? error.message : "Not found"}</p>
-        <Link to="/" className="mt-3 inline-block text-sm font-medium text-cortex-red hover:underline">
+        <Link to="/frameworks" className="mt-3 inline-block text-sm font-medium text-cortex-red hover:underline">
           ← Back to frameworks
         </Link>
       </div>
@@ -27,7 +27,7 @@ export function FrameworkDetailPage() {
 
   return (
     <div>
-      <Link to="/" className="mb-4 inline-block text-sm font-medium text-cortex-muted hover:text-cortex-text">
+      <Link to="/frameworks" className="mb-4 inline-block text-sm font-medium text-cortex-muted hover:text-cortex-text">
         ← Back to frameworks
       </Link>
       <div className="mb-6">

@@ -24,7 +24,7 @@ function placeCards(findings: unknown[]): Card[] {
   });
 }
 
-export default function RemediationTracker() {
+export default function RemediationTracker(_props?: { token?: string | null }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["findings"],
     queryFn: () => findingsApi.list(),
