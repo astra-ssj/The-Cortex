@@ -194,6 +194,15 @@ export default function App() {
   const [token, setToken] = useState<string | null>(getToken());
   const [user, setUser] = useState<{ name?: string; username?: string; [key: string]: unknown } | null>(getUser());
 
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setToken(null);
+      setUser(null);
+    };
+    window.addEventListener("cortex:auth-expired", handleAuthExpired);
+    return () => window.removeEventListener("cortex:auth-expired", handleAuthExpired);
+  }, []);
+
   const handleLoginSuccess = (newToken: string, newUser: object) => {
     setToken(newToken);
     setUser(newUser as { name?: string; username?: string; [key: string]: unknown });
