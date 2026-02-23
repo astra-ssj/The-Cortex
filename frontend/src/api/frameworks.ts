@@ -3,7 +3,7 @@
  * Types match backend api/schemas.py response models.
  * Uses auth token for protected /api/v1/frameworks.
  */
-import { getToken } from "../auth";
+import { fetchApi } from "./client";
 
 export interface FrameworkSummary {
   id: string;
@@ -48,21 +48,6 @@ export interface PaginatedControls {
   total: number;
   page: number;
   page_size: number;
-}
-
-const API_BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) || "";
-
-async function fetchApi<T>(path: string): Promise<T> {
-  const token = getToken();
-  const headers: Record<string, string> = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE}${path}`, { headers });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  return res.json() as Promise<T>;
 }
 
 export async function fetchFrameworks(): Promise<FrameworkSummary[]> {

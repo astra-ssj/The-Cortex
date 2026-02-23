@@ -1,233 +1,154 @@
-/**
- * Central API client. All endpoints the frontend calls.
- * Types match backend and frontend/src/types/compliance.ts.
- * VITE_API_URL: set to http://localhost:8000 for production build or when not using Vite dev proxy.
- * Token from auth state (getToken) is sent as Authorization header and as query param for SSE.
- */
-import { useState, useEffect, useCallback } from "react";
-import { getToken } from "../auth";
+import { useState, useCallback, useEffect } from "react";
 
-const API_BASE =
-  (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-  (import.meta.env.DEV ? "" : "http://localhost:8000");
+const API_BASE = "http://localhost:8000";
 
-function authHeaders(): Record<string, string> {
+export const getToken = (): string | null =>
+  localStorage.getItem("cortex_token");
+
+export const getUser = () => {
+  const u = localStorage.getItem("cortex_user");
+  return u ? JSON.parse(u) : null;
+};
+
+export async function fetchApi<T = unknown>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
   const token = getToken();
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
-async function fetchApi<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || `HTTP ${res.status}`);
   }
   return res.json() as Promise<T>;
 }
 
 async function postApi<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  return res.json() as Promise<T>;
+  return fetchApi<T>(path, { method: "POST", body: JSON.stringify(body) });
 }
 
 async function patchApi<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "PATCH",
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-  return res.json() as Promise<T>;
+  return fetchApi<T>(path, { method: "PATCH", body: JSON.stringify(body) });
 }
 
-// Re-export frameworks API (or keep frameworks.ts and use it from store).
-export {
-  fetchFrameworks,
-  fetchFramework,
-  fetchFrameworkControls,
-} from "./frameworks";
-export type { FrameworkSummary, FrameworkDetail, PaginatedControls } from "./frameworks";
+// API modules
+export const frameworksApi = {
+  list: () => fetchApi("/api/v1/frameworks"),
+};
 
-// ---- Organisations ----
+export const organisationsApi = {
+  getPosture: (orgId = "demo-org-001") =>
+    fetchApi(`/api/v1/organisations/${orgId}/posture`),
+};
 
-export interface OrgProfile {
-  id: string;
-  name: string;
-  jurisdiction: string;
-  industry: string | null;
-  region: string | null;
-}
+export const assessmentsApi = {
+  getReviewQueue: () =>
+    fetchApi("/api/v1/assessments/review-queue"),
+};
 
-export async function fetchOrgProfile(orgId: string): Promise<OrgProfile> {
-  return fetchApi<OrgProfile>(`/api/v1/organisations/${encodeURIComponent(orgId)}`);
-}
+export const findingsApi = {
+  list: () => fetchApi("/api/v1/findings"),
+  update: (id: string, body: object) =>
+    patchApi(`/api/v1/findings/${encodeURIComponent(id)}`, body),
+};
 
-import type { CompliancePosture } from "../types/compliance";
+export const reportsApi = {
+  getExecutiveSummary: () =>
+    fetchApi("/api/v1/reports/executive-summary"),
+};
 
-export type { CompliancePosture } from "../types/compliance";
+export const ztaipApi = {
+  getStatus: () => fetchApi("/api/v1/system/ztaip-status"),
+};
 
-export async function fetchPosture(orgId: string): Promise<CompliancePosture> {
-  return fetchApi<CompliancePosture>(`/api/v1/organisations/${encodeURIComponent(orgId)}/posture`);
-}
+// SSE stream builder
+export const buildStreamUrl = (): string => {
+  const url = new URL(
+    `${API_BASE}/api/v1/assessments/stream`
+  );
+  url.searchParams.set("org_id", "demo-org-001");
+  url.searchParams.set(
+    "frameworks",
+    [
+      "iso27001-2022",
+      "gdpr-2016-679",
+      "nis2-2022-2555",
+      "nist-csf-2.0",
+      "csa-ccm-v4",
+      "cyber-essentials-v3.1",
+      "eu-ai-act-2024",
+      "eu-cybersecurity-act",
+    ].join(",")
+  );
+  const token = getToken();
+  if (token) url.searchParams.set("token", token);
+  return url.toString();
+};
 
-// ---- ZTAIP status ----
+// Compatibility for dashboard and App header
+export const DEFAULT_ORG_ID = "demo-org-001";
+export const ALL_FRAMEWORK_IDS =
+  "iso27001-2022,gdpr-2016-679,nis2-2022-2555,nist-csf-2.0,csa-ccm-v4,cyber-essentials-v3.1,eu-ai-act-2024,eu-cybersecurity-act";
 
-import type { ZTAIPStatus } from "../types/compliance";
-
-export type { ZTAIPStatus } from "../types/compliance";
-
-export async function fetchZtaipStatus(): Promise<ZTAIPStatus> {
-  return fetchApi<ZTAIPStatus>("/api/v1/system/ztaip-status");
-}
-
-// ---- Audit Report (Executive Summary) ----
-
-export interface ExecutiveSummaryReport {
-  as_at: string;
-  org_id: string;
-  org_name: string;
-  overall_posture: {
-    group_compliance_score: number;
-    audit_readiness: number;
-    overall_risk_level: string;
-    frameworks_active: number;
-    total_controls_assessed: number;
-    critical_gaps: number;
-    findings_open: number;
-    findings_overdue: number;
-  };
-  framework_summary: Array<{
-    framework_name: string;
-    score: number | null;
-    status: string;
-    risk_level: string;
-  }>;
-  top_critical_findings: Array<{
-    title: string;
-    framework: string;
-    owner: string;
-    due_date: string;
-    days_open: number;
-  }>;
-  regulatory_exposure: Record<string, string>;
-  management_attention: string[];
-  recommendations: string[];
-  next_review: string;
-  ztaip?: ZTAIPStatus | null;
-}
-
+// ---- Audit Report (Executive Summary) — for components/AuditReport.tsx ----
 export interface ExecutiveSummaryParams {
   org_id?: string;
   as_at?: string;
   entity_scope?: string;
 }
 
-export async function fetchExecutiveSummary(params?: ExecutiveSummaryParams): Promise<ExecutiveSummaryReport> {
+export interface ExecutiveSummaryReport {
+  as_at?: string;
+  org_id?: string;
+  org_name?: string;
+  overall_posture: {
+    group_compliance_score?: number;
+    audit_readiness?: number;
+    overall_risk_level?: string;
+    frameworks_active?: number;
+    total_controls_assessed?: number;
+    critical_gaps?: number;
+    findings_open?: number;
+    findings_overdue?: number;
+    [key: string]: unknown;
+  };
+  framework_summary: Array<{ framework_name: string; score: number | null; status: string; risk_level: string }>;
+  top_critical_findings: Array<{
+    title: string;
+    framework: string;
+    owner: string;
+    due_date: string;
+    days_open: number;
+    [key: string]: unknown;
+  }>;
+  regulatory_exposure?: Record<string, string>;
+  management_attention?: string[];
+  recommendations?: string[];
+  next_review?: string;
+  [key: string]: unknown;
+}
+
+export async function fetchExecutiveSummary(
+  params?: ExecutiveSummaryParams
+): Promise<ExecutiveSummaryReport> {
   const search = new URLSearchParams();
   if (params?.org_id) search.set("org_id", params.org_id);
   if (params?.as_at) search.set("as_at", params.as_at);
   if (params?.entity_scope) search.set("entity_scope", params.entity_scope);
   const qs = search.toString();
-  return fetchApi<ExecutiveSummaryReport>(`/api/v1/reports/executive-summary${qs ? `?${qs}` : ""}`);
-}
-
-// ---- Assessment stream (SSE) ----
-
-import type { AssessmentEvent } from "../types/compliance";
-
-// SSE must hit the API directly; dev proxy can buffer and block streaming.
-const STREAM_BASE =
-  (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-  (import.meta.env.DEV ? "http://localhost:8000" : API_BASE);
-
-/** Comma-separated list of all 8 framework IDs for assessment stream. */
-export const ALL_FRAMEWORK_IDS =
-  "iso27001-2022,gdpr-2016-679,nis2-2022-2555,nist-csf-2.0,csa-ccm-v4,cyber-essentials-v3.1,eu-ai-act-2024,eu-cybersecurity-act";
-
-/** Default org_id for assessment stream. */
-export const DEFAULT_ORG_ID = "demo-org-001";
-
-export function createAssessmentStream(
-  organizationId: string,
-  frameworkIds: string[],
-  onEvent: (event: AssessmentEvent) => void,
-  onError?: (err: Event) => void
-): EventSource {
-  const frameworks = frameworkIds.length ? frameworkIds.join(",") : ALL_FRAMEWORK_IDS;
-  const url = new URL(`${STREAM_BASE}/api/v1/assessments/run`);
-  url.searchParams.set("organization_id", organizationId);
-  url.searchParams.set("framework_ids", frameworks);
-  const token = getToken();
-  if (token) url.searchParams.set("token", token);
-  const es = new EventSource(url.toString());
-  const handler = (e: MessageEvent) => {
-    try {
-      const data = JSON.parse(e.data) as AssessmentEvent;
-      console.log("Event received:", data);
-      if (data && typeof data === "object" && "kind" in data) onEvent(data);
-    } catch {
-      // ignore parse errors
-    }
-  };
-  ["run_start", "framework_start", "control_context", "control_result", "framework_done", "run_done", "error"].forEach(
-    (kind) => es.addEventListener(kind, handler)
+  return fetchApi<ExecutiveSummaryReport>(
+    `/api/v1/reports/executive-summary${qs ? `?${qs}` : ""}`
   );
-  es.onmessage = handler; // fallback if event type not set
-  if (onError) es.onerror = onError;
-  return es;
 }
 
-// ---- Human Review Queue (GDPR Art.22 / EU AI Act Art.14) ----
-
-export interface ReviewQueueItem {
-  id: string;
-  framework: string;
-  controlId: string;
-  name: string;
-  assessment: string;
-  confidence: number;
-  severity: string;
-  reference: string;
-  dateFlagged: string;
-}
-
-export interface ReviewedItem {
-  id: string;
-  framework: string;
-  controlId: string;
-  action: string;
-  actedBy: string;
-  actedAt: string;
-  originalConfidence: number;
-  finalDecision: string;
-  auditRef?: string;
-}
-
-export interface ReviewQueueResponse {
-  items: ReviewQueueItem[];
-  reviewed: ReviewedItem[];
-}
-
-export async function fetchReviewQueueApi(): Promise<ReviewQueueResponse> {
-  return fetchApi<ReviewQueueResponse>("/api/v1/assessments/review-queue");
-}
-
-// ---- Remediation Tracker (Findings) ----
-
+// ---- Remediation / Findings (for RemediationTracker) ----
 export type FindingStatus = "OPEN" | "IN_PROGRESS" | "REMEDIATED" | "ACCEPTED";
 export type FindingSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
@@ -252,6 +173,7 @@ export interface RemediationFinding {
   days_open: number;
   priority: "P0" | "P1" | "P2";
   notes: { text: string; timestamp: string }[];
+  [key: string]: unknown;
 }
 
 export interface ListFindingsParams {
@@ -286,7 +208,46 @@ export async function updateFinding(id: string, body: UpdateFindingBody): Promis
   return patchApi<RemediationFinding>(`/api/v1/findings/${encodeURIComponent(id)}`, body);
 }
 
-export async function approveControl(id: string, notes: string): Promise<{ status: string; control_id: string; audit_ref: string }> {
+// ---- Human Review Queue (for HumanReview) ----
+export interface ReviewQueueItem {
+  id: string;
+  framework: string;
+  controlId: string;
+  name: string;
+  assessment: string;
+  confidence: number;
+  severity: string;
+  reference: string;
+  dateFlagged: string;
+  [key: string]: unknown;
+}
+
+export interface ReviewedItem {
+  id: string;
+  framework: string;
+  controlId: string;
+  action: string;
+  actedBy: string;
+  actedAt: string;
+  originalConfidence: number;
+  finalDecision: string;
+  auditRef?: string;
+  [key: string]: unknown;
+}
+
+export interface ReviewQueueResponse {
+  items: ReviewQueueItem[];
+  reviewed: ReviewedItem[];
+}
+
+export async function fetchReviewQueueApi(): Promise<ReviewQueueResponse> {
+  return fetchApi<ReviewQueueResponse>("/api/v1/assessments/review-queue");
+}
+
+export async function approveControl(
+  id: string,
+  notes: string
+): Promise<{ status: string; control_id: string; audit_ref: string }> {
   return postApi(`/api/v1/assessments/controls/${encodeURIComponent(id)}/approve`, { notes });
 }
 

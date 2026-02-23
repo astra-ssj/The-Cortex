@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 
 SECRET_KEY = "cortex-dev-secret-change-in-production"
@@ -98,3 +98,31 @@ async def get_current_user_stream(request: Request = Depends()) -> dict[str, Any
     """Dependency for SSE endpoints: auth via query param 'token' or Authorization header."""
     token = request.query_params.get("token")
     return get_current_user_query_or_header(request, token)
+
+
+async def get_current_user_optional(
+    request: Request,
+    token_header: Optional[str] = Header(None, alias="Authorization"),
+) -> dict[str, Any]:
+    """Auth for SSE/stream: try Authorization header first, then query param 'token'."""
+    token: Optional[str] = None
+    if token_header and token_header.startswith("Bearer "):
+        token = token_header.split(" ")[1]
+    if not token:
+        token = request.query_params.get("token")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        if email not in DEMO_USERS:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+        return DEMO_USERS[email]
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )

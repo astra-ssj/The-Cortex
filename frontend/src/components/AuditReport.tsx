@@ -264,7 +264,7 @@ export function AuditReport() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-cortex-muted">Overall Risk Level</span>
-                  <span className={riskColor(report.overall_posture.overall_risk_level)}>
+                  <span className={riskColor(report.overall_posture.overall_risk_level ?? "")}>
                     {report.overall_posture.overall_risk_level}
                   </span>
                 </div>

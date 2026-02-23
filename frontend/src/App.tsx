@@ -1,147 +1,245 @@
-import { useEffect, useState } from "react";
-import { BrowserRouter, Link, Route, Routes, useLocation } from "react-router-dom";
-import { AuditReport } from "./components/AuditReport";
+import { useState, useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { getToken, getUser, DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
+import Login from "./components/Login";
 import { ComplianceDashboard } from "./ComplianceDashboard";
-import { FrameworkDetailPage } from "./FrameworkDetailPage";
-import { HumanReview } from "./HumanReview";
-import { ProjectTracker } from "./ProjectTracker";
 import { RemediationTracker } from "./RemediationTracker";
-import { Login } from "./components/Login";
-import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
+import { HumanReview } from "./HumanReview";
+import { AuditReport } from "./components/AuditReport";
+import { ProjectTracker } from "./ProjectTracker";
+import { FrameworkDetailPage } from "./FrameworkDetailPage";
 import { useAssessmentStream } from "./store/complianceStore";
-import { getToken, setAuth, clearAuth, getUser, type AuthUser } from "./auth";
 
-const allNavItems = [
-  { to: "/", label: "Dashboard", roles: ["ciso", "dpo", "auditor"] as const },
-  { to: "/#frameworks", label: "Frameworks", roles: ["ciso", "auditor"] as const },
-  { to: "/review-queue", label: "Review Queue", roles: ["ciso", "dpo"] as const },
-  { to: "/remediation", label: "Remediation", roles: ["ciso", "dpo"] as const },
-  { to: "/roadmap", label: "Roadmap", roles: ["ciso"] as const },
-  { to: "/audit-report", label: "Audit Report", roles: ["ciso", "dpo", "auditor"] as const },
+// ── Clock component ──────────────────────────────
+function LiveClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span style={{ color: "#4a5a72", fontSize: "13px", fontFamily: "DM Mono, monospace" }}>
+      {time.toLocaleTimeString("en-GB", { hour12: false })}
+      {" · "}
+      {time.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })}
+    </span>
+  );
+}
+
+// ── Navigation ───────────────────────────────────
+const NAV_ITEMS = [
+  { label: "Dashboard", path: "/dashboard" },
+  { label: "Frameworks", path: "/frameworks" },
+  { label: "Review Queue", path: "/review-queue" },
+  { label: "Audit Report", path: "/audit-report" },
+  { label: "Roadmap", path: "/roadmap" },
 ];
 
-function navItemsForRole(role: AuthUser["role"]) {
-  return allNavItems.filter((item) => item.roles.includes(role));
-}
-
-function formatClock(): string {
-  const d = new Date();
-  const time = d.toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  const date = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-  return `${time} · ${date}`;
-}
-
-function Header({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
-  const [clock, setClock] = useState(formatClock());
-  const { isStreaming, startStream, stopStream } = useAssessmentStream();
+function Header({
+  user,
+  onLogout,
+}: {
+  user: { name?: string; username?: string; [key: string]: unknown } | null;
+  onLogout: () => void;
+}) {
   const location = useLocation();
-  const navItems = navItemsForRole(user.role);
+  const navigate = useNavigate();
+  const { isStreaming, startStream } = useAssessmentStream();
 
-  useEffect(() => {
-    const id = setInterval(() => setClock(formatClock()), 1000);
-    return () => clearInterval(id);
-  }, []);
+  const handleRunAssessment = () => {
+    startStream(DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS.split(","));
+    navigate("/dashboard");
+  };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-cortex-border bg-cortex-surface/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-[1920px] items-center justify-between px-6">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded bg-gradient-to-br from-cortex-blue to-cortex-purple font-data text-lg font-semibold text-white shadow-lg">
-              C
-            </div>
-            <span className="font-ui text-xl font-semibold text-cortex-text">CORTEX</span>
+    <header
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 24px",
+        height: "52px",
+        background: "#090e1a",
+        borderBottom: "1px solid #141e30",
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
+      }}
+    >
+      {/* Logo */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: "bold",
+            color: "#fff",
+            fontSize: 16,
+          }}
+        >
+          C
+        </div>
+        <span
+          style={{
+            color: "#e2e8f4",
+            fontWeight: "bold",
+            fontSize: 16,
+            letterSpacing: 1,
+          }}
+        >
+          CORTEX
+        </span>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ display: "flex", gap: 4 }}>
+        {NAV_ITEMS.map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 6,
+              fontSize: 13,
+              textDecoration: "none",
+              fontWeight: location.pathname === item.path ? "bold" : "normal",
+              color: location.pathname === item.path ? "#e2e8f4" : "#4a5a72",
+              background: location.pathname === item.path ? "#141e30" : "transparent",
+            }}
+          >
+            {item.label}
           </Link>
-          <nav className="hidden items-center gap-1 md:flex">
-            {navItems.map(({ to, label }) => (
-              <Link
-                key={to}
-                to={to}
-                className={`rounded px-3 py-2 text-sm font-medium transition ${
-                  location.pathname === to
-                    ? "bg-cortex-panel text-cortex-text"
-                    : "text-cortex-muted hover:bg-cortex-panel hover:text-cortex-text"
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
+        ))}
+      </nav>
+
+      {/* Right side */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "#10b981",
+              boxShadow: "0 0 6px #10b981",
+            }}
+          />
+          <span style={{ color: "#10b981", fontSize: 12, fontWeight: "bold" }}>
+            MONITORING
+          </span>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 rounded-md border border-cortex-border bg-cortex-panel px-3 py-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cortex-green opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-cortex-green" />
-            </span>
-            <span className="font-data text-xs font-medium uppercase tracking-wider text-cortex-green">Monitoring</span>
-          </div>
-          <span className="font-data text-sm text-cortex-muted">{clock}</span>
-          {user.role === "ciso" && (
-            <button
-              type="button"
-              onClick={() => (isStreaming ? stopStream() : startStream(DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS.split(",")))}
-              disabled={isStreaming}
-              className="rounded-lg bg-gradient-to-r from-cortex-blue to-cortex-blue/90 px-4 py-2 font-ui text-sm font-semibold text-white shadow-lg transition hover:from-cortex-blue/95 hover:to-cortex-blue/85 disabled:opacity-60"
-            >
-              {isStreaming ? "Streaming…" : "Run Assessment"}
-            </button>
-          )}
-          <div className="flex items-center gap-2 rounded-md border border-cortex-border bg-cortex-panel px-3 py-1.5">
-            <span className="font-ui text-sm text-cortex-text">
-              {user.name} · {user.entity}
-            </span>
-            <button
-              type="button"
-              onClick={onLogout}
-              className="rounded px-2 py-1 font-ui text-xs text-cortex-muted hover:bg-cortex-border hover:text-cortex-text"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
+        <LiveClock />
+        {user && (
+          <span style={{ color: "#4a5a72", fontSize: 12 }}>
+            {(user as { name?: string }).name ?? (user as { username?: string }).username ?? "User"}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={onLogout}
+          style={{
+            padding: "6px 14px",
+            borderRadius: 6,
+            background: "#141e30",
+            border: "1px solid #1e2e48",
+            color: "#94a3b8",
+            fontSize: 12,
+            cursor: "pointer",
+          }}
+        >
+          Logout
+        </button>
+        <button
+          type="button"
+          onClick={handleRunAssessment}
+          disabled={isStreaming}
+          style={{
+            padding: "6px 16px",
+            borderRadius: 6,
+            background: "linear-gradient(135deg, #2563eb, #3b82f6)",
+            border: "none",
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: "bold",
+            cursor: isStreaming ? "not-allowed" : "pointer",
+            opacity: isStreaming ? 0.7 : 1,
+          }}
+        >
+          {isStreaming ? "Streaming…" : "Run Assessment"}
+        </button>
       </div>
     </header>
   );
 }
 
-function App() {
-  const [token, setToken] = useState<string | null>(() => getToken());
-  const [user, setUser] = useState<AuthUser | null>(() => getUser());
+// ── App ──────────────────────────────────────────
+export default function App() {
+  const [token, setToken] = useState<string | null>(getToken());
+  const [user, setUser] = useState<{ name?: string; username?: string; [key: string]: unknown } | null>(getUser());
 
-  const handleLogin = (newToken: string, newUser: AuthUser) => {
-    setAuth(newToken, newUser);
+  const handleLoginSuccess = (newToken: string, newUser: object) => {
     setToken(newToken);
-    setUser(newUser);
+    setUser(newUser as { name?: string; username?: string; [key: string]: unknown });
   };
 
   const handleLogout = () => {
-    clearAuth();
+    localStorage.removeItem("cortex_token");
+    localStorage.removeItem("cortex_user");
     setToken(null);
     setUser(null);
   };
 
-  if (!token || !user) {
-    return <Login onSuccess={handleLogin} />;
+  if (!token) {
+    return <Login onSuccess={handleLoginSuccess} />;
   }
 
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-cortex-bg font-ui text-cortex-text">
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#05080f",
+          color: "#e2e8f4",
+          fontFamily: "DM Sans, sans-serif",
+        }}
+      >
         <Header user={user} onLogout={handleLogout} />
-        <main className="mx-auto max-w-[1920px] px-6 py-6">
+        <main style={{ padding: "24px" }}>
           <Routes>
-            <Route path="/" element={<ComplianceDashboard />} />
-            <Route path="/review-queue" element={<HumanReview />} />
-            <Route path="/remediation" element={<RemediationTracker />} />
-            <Route path="/roadmap" element={<ProjectTracker />} />
-            <Route path="/audit-report" element={<AuditReport />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<ComplianceDashboard />} />
+            <Route path="/frameworks" element={<ComplianceDashboard />} />
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
+            <Route path="/review-queue" element={<HumanReview />} />
+            <Route path="/audit-report" element={<AuditReport />} />
+            <Route path="/roadmap" element={<ProjectTracker />} />
+            <Route path="/evidence" element={<RemediationTracker />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
       </div>
     </BrowserRouter>
   );
 }
-
-export default App;
