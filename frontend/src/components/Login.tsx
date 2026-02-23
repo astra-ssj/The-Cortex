@@ -18,17 +18,14 @@ export default function Login({ onSuccess }: LoginProps) {
       const form = new URLSearchParams();
       form.append("username", email);
       form.append("password", password);
-      const res = await fetch(
-        "http://localhost:8000/api/v1/auth/token",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/x-www-form-urlencoded",
-          },
-          body: form.toString(),
-        }
-      );
+      const base = import.meta.env.DEV ? "" : "http://localhost:8000";
+      const res = await fetch(`${base}/api/v1/auth/token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: form.toString(),
+      });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
         throw new Error((e as { detail?: string }).detail || "Invalid credentials");

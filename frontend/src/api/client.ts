@@ -1,6 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 
-const API_BASE = "http://localhost:8000";
+// In dev use relative URLs so Vite proxy (→ localhost:8000) is used; avoids CORS and connection to wrong host.
+const API_BASE = import.meta.env.DEV ? "" : "http://localhost:8000";
+
+function getApiOrigin(): string {
+  if (API_BASE) return API_BASE;
+  if (typeof window !== "undefined") return window.location.origin;
+  return "http://localhost:8000";
+}
 
 export const getToken = (): string | null =>
   localStorage.getItem("cortex_token");
@@ -15,7 +22,8 @@ export async function fetchApi<T = unknown>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE || ""}${path}`;
+  const res = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -24,6 +32,11 @@ export async function fetchApi<T = unknown>(
     },
   });
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem("cortex_token");
+      localStorage.removeItem("cortex_user");
+      window.dispatchEvent(new CustomEvent("cortex:auth-expired"));
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { detail?: string }).detail || `HTTP ${res.status}`);
   }
@@ -71,7 +84,7 @@ export const ztaipApi = {
 // SSE stream builder
 export const buildStreamUrl = (): string => {
   const url = new URL(
-    `${API_BASE}/api/v1/assessments/stream`
+    `${getApiOrigin()}/api/v1/assessments/stream`
   );
   url.searchParams.set("org_id", "demo-org-001");
   url.searchParams.set(

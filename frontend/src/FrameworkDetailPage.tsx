@@ -14,10 +14,21 @@ export function FrameworkDetailPage() {
   }
 
   if (error || !framework) {
+    const isAuthError =
+      error instanceof Error &&
+      (error.message.includes("Invalid or expired token") || error.message.includes("Not authenticated"));
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
         <p className="font-medium">Failed to load framework</p>
         <p className="mt-1 text-sm">{error instanceof Error ? error.message : "Not found"}</p>
+        {isAuthError ? (
+          <p className="mt-2 text-sm text-red-700">Your session may have expired. You should be redirected to sign in.</p>
+        ) : (
+          <p className="mt-2 text-sm text-red-700">
+            Make sure the API is running. From repo root with Python venv active:{" "}
+            <code className="rounded bg-red-100 px-1">./scripts/run-api.sh</code>
+          </p>
+        )}
         <Link to="/" className="mt-3 inline-block text-sm font-medium text-red-700 hover:underline">
           ← Back to frameworks
         </Link>
