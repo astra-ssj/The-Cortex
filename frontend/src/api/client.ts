@@ -3,9 +3,9 @@
  * Types match backend and frontend/src/types/compliance.ts.
  * VITE_API_URL: set to http://localhost:8000 for production build or when not using Vite dev proxy.
  */
-const API_BASE =
-  (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-  (import.meta.env.DEV ? "" : "http://localhost:8000");
+import { getToken } from "../auth";
+
+const API_BASE = "http://localhost:8000";
 
 async function fetchApi<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);
@@ -60,11 +60,6 @@ export async function fetchZtaipStatus(): Promise<ZTAIPStatus> {
 
 import type { AssessmentEvent } from "../types/compliance";
 
-// SSE must hit the API directly; dev proxy can buffer and block streaming.
-const STREAM_BASE =
-  (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-  (import.meta.env.DEV ? "http://localhost:8000" : API_BASE);
-
 /** Comma-separated list of all 8 framework IDs for assessment stream. */
 export const ALL_FRAMEWORK_IDS =
   "iso27001-2022,gdpr-2016-679,nis2-2022-2555,nist-csf-2.0,csa-ccm-v4,cyber-essentials-v3.1,eu-ai-act-2024,eu-cybersecurity-act";
@@ -78,11 +73,15 @@ export function createAssessmentStream(
   onEvent: (event: AssessmentEvent) => void,
   onError?: (err: Event) => void
 ): EventSource {
-  const frameworks = frameworkIds.length ? frameworkIds.join(",") : ALL_FRAMEWORK_IDS;
-  // Use /assessments/run (organization_id, framework_ids) for compatibility with deployed API
-  const url = new URL(`${STREAM_BASE}/api/v1/assessments/run`);
-  url.searchParams.set("organization_id", organizationId);
-  url.searchParams.set("framework_ids", frameworks);
+  const frameworks =
+    frameworkIds.length > 0
+      ? frameworkIds.join(",")
+      : "iso27001-2022,gdpr-2016-679,nis2-2022-2555,nist-csf-2.0,csa-ccm-v4,cyber-essentials-v3.1,eu-ai-act-2024,eu-cybersecurity-act";
+  const url = new URL("http://localhost:8000/api/v1/assessments/stream");
+  url.searchParams.set("org_id", organizationId);
+  url.searchParams.set("frameworks", frameworks);
+  const token = getToken();
+  if (token) url.searchParams.set("token", token);
   const es = new EventSource(url.toString());
   const handler = (e: MessageEvent) => {
     try {
