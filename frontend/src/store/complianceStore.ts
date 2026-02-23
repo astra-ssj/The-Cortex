@@ -5,12 +5,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
-import type { AssessmentEvent } from "../types/compliance";
+import type { AssessmentEvent, CompliancePosture, ZTAIPStatus } from "../types/compliance";
 import {
-  createAssessmentStream,
-  fetchOrgProfile,
-  fetchPosture,
-  fetchZtaipStatus,
+  buildStreamUrl,
+  organisationsApi,
+  ztaipApi,
 } from "../api/client";
 
 // ─── Roadmap types (epics + stories) ───────────────────────────────────────
@@ -153,10 +152,36 @@ export const postureQueryKey = (orgId: string) => ["posture", orgId] as const;
 export const ztaipStatusQueryKey = ["ztaipStatus"] as const;
 export const orgProfileQueryKey = (orgId: string) => ["orgProfile", orgId] as const;
 
+function mapPostureResponse(raw: Record<string, unknown>): CompliancePosture {
+  const frameworks = (raw.frameworks as Record<string, unknown>[] | undefined) ?? [];
+  return {
+    organisationId: String(raw.org_id ?? ""),
+    organisationName: String(raw.org_name ?? ""),
+    updatedAt: String(raw.last_assessed ?? ""),
+    lastAssessed: raw.last_assessed != null ? String(raw.last_assessed) : undefined,
+    overallScore: typeof raw.overall_score === "number" ? raw.overall_score : undefined,
+    auditReadiness: typeof raw.audit_readiness === "number" ? raw.audit_readiness : undefined,
+    frameworks: frameworks.map((f: Record<string, unknown>) => ({
+      frameworkId: String(f.framework_id ?? ""),
+      frameworkName: String(f.framework_name ?? ""),
+      controlCount: typeof f.control_count === "number" ? f.control_count : 0,
+      controls: [],
+      score: typeof f.score === "number" ? f.score : undefined,
+      gapCount: typeof f.gap_count === "number" ? f.gap_count : undefined,
+      status: typeof f.status === "string" ? (f.status as "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT") : undefined,
+      riskLevel: typeof f.risk_level === "string" ? (f.risk_level as "CRITICAL" | "HIGH" | "MEDIUM" | "LOW") : undefined,
+      trend: typeof f.trend === "number" ? f.trend : undefined,
+    })),
+  };
+}
+
 export function useCompliancePosture(orgId: string | null) {
   return useQuery({
     queryKey: postureQueryKey(orgId ?? ""),
-    queryFn: () => fetchPosture(orgId!),
+    queryFn: async () => {
+      const raw = await organisationsApi.getPosture(orgId ?? undefined);
+      return mapPostureResponse(raw as Record<string, unknown>);
+    },
     enabled: orgId != null && orgId !== "",
     refetchInterval: 60_000,
   });
@@ -165,16 +190,16 @@ export function useCompliancePosture(orgId: string | null) {
 export function useZtaipStatus() {
   return useQuery({
     queryKey: ztaipStatusQueryKey,
-    queryFn: fetchZtaipStatus,
+    queryFn: () => ztaipApi.getStatus() as Promise<ZTAIPStatus>,
     staleTime: 30_000,
   });
 }
 
-export function useOrgProfile(orgId: string | null) {
+export function useOrgProfile(_orgId: string | null) {
   return useQuery({
-    queryKey: orgProfileQueryKey(orgId ?? ""),
-    queryFn: () => fetchOrgProfile(orgId!),
-    enabled: orgId != null && orgId !== "",
+    queryKey: orgProfileQueryKey(_orgId ?? ""),
+    queryFn: async () => ({ id: _orgId, name: "", jurisdiction: "", industry: null, region: null }),
+    enabled: false,
   });
 }
 
@@ -183,32 +208,33 @@ export function useAssessmentStream() {
   const [isStreaming, setIsStreaming] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  const startStream = useCallback((organizationId: string, frameworkIds: string[]) => {
+  const startStream = useCallback((_organizationId: string, _frameworkIds: string[]) => {
     eventSourceRef.current?.close();
     eventSourceRef.current = null;
     setEvents([]);
     setIsStreaming(true);
-    const es = createAssessmentStream(
-      organizationId,
-      frameworkIds,
-      (event) => {
-        setEvents((prev) => [...prev, event]);
-      },
-      () => {
-        setIsStreaming(false);
-        es.close();
+    const url = buildStreamUrl();
+    const es = new EventSource(url);
+    es.onmessage = (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as AssessmentEvent;
+        if (data && typeof data === "object" && "kind" in data) {
+          setEvents((prev) => [...prev, data]);
+        }
+      } catch {
+        // ignore parse errors
       }
-    );
+    };
     es.addEventListener("run_done", () => {
       setIsStreaming(false);
       eventSourceRef.current = null;
       es.close();
     });
-    es.addEventListener("error", () => {
+    es.onerror = () => {
       setIsStreaming(false);
       eventSourceRef.current = null;
       es.close();
-    });
+    };
     eventSourceRef.current = es;
   }, []);
 

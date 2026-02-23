@@ -1,138 +1,246 @@
 import { useState } from "react";
-import type { AuthUser } from "../auth";
 
-const API_BASE =
-  (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-  (import.meta.env.DEV ? "" : "http://localhost:8000");
-
-interface LoginProps {
-  onSuccess: (token: string, user: AuthUser) => void;
+export interface LoginProps {
+  onSuccess: (token: string, user: object) => void;
 }
 
-export function Login({ onSuccess }: LoginProps) {
+export default function Login({ onSuccess }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
+  const handleSubmit = async () => {
     setLoading(true);
-    const timeoutMs = 10_000;
-    const ac = new AbortController();
-    const timeoutId = setTimeout(() => ac.abort(), timeoutMs);
+    setError("");
     try {
-      const body = new URLSearchParams({ username: email, password });
-      const res = await fetch(`${API_BASE}/api/v1/auth/token`, {
-        method: "POST",
-        headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
-        signal: ac.signal,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        const detail = Array.isArray(data.detail) ? data.detail[0]?.msg : data.detail;
-        throw new Error(typeof detail === "string" ? detail : "Invalid email or password");
-      }
-      const data = await res.json();
-      const user: AuthUser = {
-        name: data.user.name,
-        email: data.user.email,
-        role: data.user.role,
-        entity: data.user.entity,
-      };
-      onSuccess(data.access_token, user);
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.name === "AbortError") {
-          setError("Connection failed. Is the server running?");
-        } else {
-          setError(err.message);
+      const form = new URLSearchParams();
+      form.append("username", email);
+      form.append("password", password);
+      const res = await fetch(
+        "http://localhost:8000/api/v1/auth/token",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/x-www-form-urlencoded",
+          },
+          body: form.toString(),
         }
-      } else {
-        setError("Connection failed. Is the server running?");
+      );
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error((e as { detail?: string }).detail || "Invalid credentials");
       }
-      setPassword("");
+      const data = (await res.json()) as { access_token: string; user?: object };
+      localStorage.setItem("cortex_token", data.access_token);
+      localStorage.setItem(
+        "cortex_user",
+        JSON.stringify(data.user ?? {})
+      );
+      onSuccess(data.access_token, data.user ?? {});
+    } catch (e: unknown) {
+      setError(
+        e instanceof Error ? e.message : "Login failed"
+      );
     } finally {
-      clearTimeout(timeoutId);
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#05080f] px-4">
-      <div className="w-full max-w-[400px]">
-        <div className="rounded-xl border border-cortex-border bg-cortex-surface p-8 shadow-2xl">
-          <div className="mb-6 flex flex-col items-center gap-3">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cortex-blue to-cortex-purple font-data text-2xl font-semibold text-white shadow-lg">
-              C
-            </div>
-            <span className="font-ui text-2xl font-semibold text-cortex-text">CORTEX</span>
-            <p className="font-ui text-sm text-cortex-muted">Organisational Intelligence Platform</p>
-          </div>
-          <div className="mb-6 rounded border border-amber-500/60 bg-amber-500/10 px-3 py-2 text-center font-ui text-xs font-medium uppercase tracking-wider text-amber-400">
-            CONFIDENTIAL — Authorised Access Only
-          </div>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div>
-              <label htmlFor="email" className="mb-1 block font-ui text-sm font-medium text-cortex-muted">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-cortex-border bg-cortex-panel px-4 py-2.5 font-ui text-cortex-text placeholder:text-cortex-muted focus:border-cortex-blue focus:outline-none focus:ring-1 focus:ring-cortex-blue"
-                placeholder="you@astralabs.com"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="mb-1 block font-ui text-sm font-medium text-cortex-muted">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-cortex-border bg-cortex-panel px-4 py-2.5 pr-10 font-ui text-cortex-text placeholder:text-cortex-muted focus:border-cortex-blue focus:outline-none focus:ring-1 focus:ring-cortex-blue"
-                  placeholder="••••••••"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((s) => !s)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-1 font-ui text-xs text-cortex-muted hover:text-cortex-text"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? "Hide" : "Show"}
-                </button>
-              </div>
-            </div>
-            {error && (
-              <p className="rounded border border-cortex-red/50 bg-cortex-red/10 px-3 py-2 font-ui text-sm text-cortex-red">
-                {error}
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-lg bg-gradient-to-r from-cortex-blue to-cortex-blue/90 px-4 py-3 font-ui text-sm font-semibold text-white shadow-lg transition hover:from-cortex-blue/95 hover:to-cortex-blue/85 disabled:opacity-60"
-            >
-              {loading ? "Signing in…" : "Sign In"}
-            </button>
-          </form>
-          <p className="mt-6 text-center font-ui text-xs text-cortex-muted">
-            Demo: ciso@astralabs.com / cortex-ciso-2026
-          </p>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#05080f",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "DM Sans, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 400,
+          background: "#090e1a",
+          border: "1px solid #141e30",
+          borderRadius: 12,
+          padding: 32,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+        }}
+      >
+        <div
+          style={{
+            background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+            color: "#05080f",
+            fontSize: 10,
+            fontWeight: "bold",
+            letterSpacing: 2,
+            padding: "6px 12px",
+            textAlign: "center",
+            marginBottom: 24,
+            borderRadius: 4,
+          }}
+        >
+          CONFIDENTIAL
         </div>
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 10,
+            background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: "bold",
+            color: "#fff",
+            fontSize: 24,
+            marginBottom: 16,
+          }}
+        >
+          C
+        </div>
+        <h1
+          style={{
+            color: "#e2e8f4",
+            fontSize: 22,
+            fontWeight: "bold",
+            marginBottom: 24,
+          }}
+        >
+          Sign in to CORTEX
+        </h1>
+        {error && (
+          <div
+            style={{
+              background: "rgba(239, 68, 68, 0.15)",
+              border: "1px solid rgba(239, 68, 68, 0.4)",
+              color: "#fca5a5",
+              padding: "10px 14px",
+              borderRadius: 8,
+              fontSize: 13,
+              marginBottom: 16,
+            }}
+          >
+            {error}
+          </div>
+        )}
+        <div style={{ marginBottom: 16 }}>
+          <label
+            htmlFor="email"
+            style={{
+              display: "block",
+              color: "#94a3b8",
+              fontSize: 12,
+              fontWeight: 500,
+              marginBottom: 6,
+            }}
+          >
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="username"
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 8,
+              border: "1px solid #141e30",
+              background: "#0c1220",
+              color: "#e2e8f4",
+              fontSize: 14,
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+        <div style={{ marginBottom: 24 }}>
+          <label
+            htmlFor="password"
+            style={{
+              display: "block",
+              color: "#94a3b8",
+              fontSize: 12,
+              fontWeight: 500,
+              marginBottom: 6,
+            }}
+          >
+            Password
+          </label>
+          <div style={{ position: "relative" }}>
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                paddingRight: 40,
+                borderRadius: 8,
+                border: "1px solid #141e30",
+                background: "#0c1220",
+                color: "#e2e8f4",
+                fontSize: 14,
+                boxSizing: "border-box",
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                color: "#4a5a72",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{
+            width: "100%",
+            padding: "12px 16px",
+            borderRadius: 8,
+            background: loading
+              ? "#1e2e48"
+              : "linear-gradient(135deg, #2563eb, #3b82f6)",
+            border: "none",
+            color: "#fff",
+            fontSize: 14,
+            fontWeight: "bold",
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.8 : 1,
+          }}
+        >
+          {loading ? "Signing in…" : "Sign In"}
+        </button>
+        <p
+          style={{
+            marginTop: 20,
+            color: "#4a5a72",
+            fontSize: 11,
+            textAlign: "center",
+          }}
+        >
+          Demo: use any email/password if auth endpoint is not configured.
+        </p>
       </div>
     </div>
   );

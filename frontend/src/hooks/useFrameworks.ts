@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { frameworksApi } from "../api/client";
 import {
   fetchFramework,
   fetchFrameworkControls,
-  fetchFrameworks,
+  type FrameworkSummary,
 } from "../api/frameworks";
 
 export const frameworksQueryKey = ["frameworks"] as const;
@@ -16,7 +17,7 @@ export function frameworkControlsQueryKey(id: string, page: number, pageSize: nu
 export function useFrameworks() {
   return useQuery({
     queryKey: frameworksQueryKey,
-    queryFn: fetchFrameworks,
+    queryFn: () => frameworksApi.list() as Promise<FrameworkSummary[]>,
   });
 }
 
