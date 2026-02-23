@@ -3,6 +3,7 @@ import { BrowserRouter, Link, Route, Routes, useLocation } from "react-router-do
 import { ComplianceDashboard } from "./ComplianceDashboard";
 import { FrameworkDetailPage } from "./FrameworkDetailPage";
 import { ProjectTracker } from "./ProjectTracker";
+import { Login } from "./components/Login";
 import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
 import { useAssessmentStream } from "./store/complianceStore";
 
@@ -21,7 +22,7 @@ function formatClock(): string {
   return `${time} · ${date}`;
 }
 
-function Header() {
+function Header({ onLogout }: { onLogout: () => void }) {
   const [clock, setClock] = useState(formatClock());
   const { isStreaming, startStream, stopStream } = useAssessmentStream();
   const location = useLocation();
@@ -68,6 +69,13 @@ function Header() {
           <span className="font-data text-sm text-cortex-muted">{clock}</span>
           <button
             type="button"
+            onClick={onLogout}
+            className="rounded-lg border border-cortex-border bg-cortex-panel px-4 py-2 font-ui text-sm font-medium text-cortex-muted transition hover:bg-cortex-border hover:text-cortex-text"
+          >
+            Logout
+          </button>
+          <button
+            type="button"
             onClick={() => (isStreaming ? stopStream() : startStream(DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS.split(",")))}
             disabled={isStreaming}
             className="rounded-lg bg-gradient-to-r from-cortex-blue to-cortex-blue/90 px-4 py-2 font-ui text-sm font-semibold text-white shadow-lg transition hover:from-cortex-blue/95 hover:to-cortex-blue/85 disabled:opacity-60"
@@ -81,10 +89,39 @@ function Header() {
 }
 
 function App() {
+  const [token, setToken] = useState(localStorage.getItem("cortex_token"));
+  const [user, setUser] = useState<{ username?: string; [key: string]: unknown } | null>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("cortex_user") ?? "null");
+    } catch {
+      return null;
+    }
+  });
+
+  function handleLogout() {
+    localStorage.removeItem("cortex_token");
+    localStorage.removeItem("cortex_user");
+    setToken(null);
+    setUser(null);
+  }
+
+  function handleLoginSuccess() {
+    setToken(localStorage.getItem("cortex_token"));
+    try {
+      setUser(JSON.parse(localStorage.getItem("cortex_user") ?? "null"));
+    } catch {
+      setUser(null);
+    }
+  }
+
+  if (!token) {
+    return <Login onSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-cortex-bg font-ui text-cortex-text">
-        <Header />
+        <Header onLogout={handleLogout} />
         <main className="mx-auto max-w-[1920px] px-6 py-6">
           <Routes>
             <Route path="/" element={<ComplianceDashboard />} />
