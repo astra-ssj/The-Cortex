@@ -26,6 +26,7 @@ export interface FrameworkPosture {
   status?: "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT";
   riskLevel?: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
   trend?: number;
+  jurisdiction?: string;
 }
 
 export interface CompliancePosture {
@@ -36,6 +37,8 @@ export interface CompliancePosture {
   lastAssessed?: string;
   overallScore?: number;
   auditReadiness?: number;
+  /** Total gap count (from API criticalGaps length or sum of framework gapCount). */
+  criticalGapsCount?: number;
 }
 
 // ---- ZTAIP system status (GET /api/v1/system/ztaip-status) ----

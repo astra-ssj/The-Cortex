@@ -129,7 +129,7 @@ function FrameworkCard({
             className="mt-1"
             style={{ color: tokens.textDim, fontSize: "12px" }}
           >
-            v{fw.version} · {fw.jurisdiction}
+            v{fw.version} · {postureEntry?.jurisdiction ?? fw.jurisdiction}
           </p>
         </div>
         {typeof score === "number" && (
@@ -187,6 +187,9 @@ function FrameworkCard({
         style={{ color: tokens.textMuted, fontSize: "13px" }}
       >
         {fw.control_count} control{fw.control_count !== 1 ? "s" : ""}
+        {typeof postureEntry?.gapCount === "number" && (
+          <span style={{ color: tokens.textDim }}> · {postureEntry.gapCount} gaps</span>
+        )}
       </p>
       {(riskLevel != null || status != null) && (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -339,39 +342,9 @@ export function ComplianceDashboard() {
         </div>
       )}
 
-      {/* Stats row */}
+      {/* Stats row: Overall Posture, Audit Readiness, Critical Gaps, Compliant X/8 */}
       {posture && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {typeof posture.overallScore === "number" && (
-            <div
-              className="rounded-lg border p-5"
-              style={{
-                background: tokens.panel,
-                borderColor: tokens.border,
-                padding: "20px 24px",
-              }}
-            >
-              <p style={{ color: tokens.textDim, fontSize: "12px" }}>Overall Posture</p>
-              <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
-                {posture.overallScore}%
-              </p>
-            </div>
-          )}
-          {typeof posture.auditReadiness === "number" && (
-            <div
-              className="rounded-lg border p-5"
-              style={{
-                background: tokens.panel,
-                borderColor: tokens.border,
-                padding: "20px 24px",
-              }}
-            >
-              <p style={{ color: tokens.textDim, fontSize: "12px" }}>Audit Readiness</p>
-              <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
-                {posture.auditReadiness}%
-              </p>
-            </div>
-          )}
           <div
             className="rounded-lg border p-5"
             style={{
@@ -380,9 +353,101 @@ export function ComplianceDashboard() {
               padding: "20px 24px",
             }}
           >
-            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Frameworks</p>
+            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Overall Posture</p>
+            <div className="mt-2 flex items-center gap-3">
+              {typeof posture.overallScore === "number" ? (
+                <>
+                  <div
+                    className="relative flex shrink-0 items-center justify-center"
+                    style={{ width: 48, height: 48 }}
+                    title={`${posture.overallScore}%`}
+                  >
+                    <svg width="48" height="48" viewBox="0 0 48 48" className="-rotate-90">
+                      <circle cx="24" cy="24" r="20" fill="none" stroke={tokens.border} strokeWidth="4" />
+                      <circle
+                        cx="24"
+                        cy="24"
+                        r="20"
+                        fill="none"
+                        stroke={scoreRingColor(posture.overallScore)}
+                        strokeWidth="4"
+                        strokeDasharray={`${(posture.overallScore / 100) * 125.6} 125.6`}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span
+                      className="absolute inset-0 flex items-center justify-center text-sm font-bold"
+                      style={{ color: tokens.textPrimary }}
+                    >
+                      {posture.overallScore}%
+                    </span>
+                  </div>
+                  <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
+                    {posture.overallScore}%
+                  </p>
+                </>
+              ) : (
+                <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>
+              )}
+            </div>
+          </div>
+          <div
+            className="rounded-lg border p-5"
+            style={{
+              background: tokens.panel,
+              borderColor: tokens.border,
+              padding: "20px 24px",
+            }}
+          >
+            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Audit Readiness</p>
+            <div className="mt-2 flex items-center gap-3">
+              {typeof posture.auditReadiness === "number" ? (
+                <>
+                  <div
+                    className="relative flex shrink-0 items-center justify-center"
+                    style={{ width: 48, height: 48 }}
+                    title={`${posture.auditReadiness}%`}
+                  >
+                    <svg width="48" height="48" viewBox="0 0 48 48" className="-rotate-90">
+                      <circle cx="24" cy="24" r="20" fill="none" stroke={tokens.border} strokeWidth="4" />
+                      <circle
+                        cx="24"
+                        cy="24"
+                        r="20"
+                        fill="none"
+                        stroke={scoreRingColor(posture.auditReadiness)}
+                        strokeWidth="4"
+                        strokeDasharray={`${(posture.auditReadiness / 100) * 125.6} 125.6`}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span
+                      className="absolute inset-0 flex items-center justify-center text-sm font-bold"
+                      style={{ color: tokens.textPrimary }}
+                    >
+                      {posture.auditReadiness}%
+                    </span>
+                  </div>
+                  <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
+                    {posture.auditReadiness}%
+                  </p>
+                </>
+              ) : (
+                <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>
+              )}
+            </div>
+          </div>
+          <div
+            className="rounded-lg border p-5"
+            style={{
+              background: tokens.panel,
+              borderColor: tokens.border,
+              padding: "20px 24px",
+            }}
+          >
+            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Critical Gaps</p>
             <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
-              {posture.frameworks.length}
+              {typeof posture.criticalGapsCount === "number" ? posture.criticalGapsCount : "—"}
             </p>
           </div>
           <div
@@ -393,9 +458,9 @@ export function ComplianceDashboard() {
               padding: "20px 24px",
             }}
           >
-            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Last assessed</p>
-            <p className="font-medium" style={{ color: tokens.textPrimary, fontSize: "14px" }}>
-              {posture.updatedAt}
+            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Compliant Frameworks</p>
+            <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
+              {posture.frameworks.filter((f) => f.status === "COMPLIANT").length}/{posture.frameworks.length}
             </p>
           </div>
         </div>

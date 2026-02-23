@@ -152,25 +152,39 @@ export const postureQueryKey = (orgId: string) => ["posture", orgId] as const;
 export const ztaipStatusQueryKey = ["ztaipStatus"] as const;
 export const orgProfileQueryKey = (orgId: string) => ["orgProfile", orgId] as const;
 
+/** API returns camelCase (serialize_by_alias=True). Support both for robustness. */
 function mapPostureResponse(raw: Record<string, unknown>): CompliancePosture {
   const frameworks = (raw.frameworks as Record<string, unknown>[] | undefined) ?? [];
+  const orgId = String(raw.organisationId ?? raw.org_id ?? "");
+  const orgName = String(raw.organisationName ?? raw.org_name ?? "");
+  const updatedAt = String(raw.updatedAt ?? raw.updated_at ?? raw.lastAssessed ?? raw.last_assessed ?? "");
+  const lastAssessed = raw.lastAssessed ?? raw.last_assessed;
+  const overallScore = typeof (raw.overallScore ?? raw.overall_score) === "number" ? (raw.overallScore ?? raw.overall_score) as number : undefined;
+  const auditReadiness = typeof (raw.auditReadiness ?? raw.audit_readiness) === "number" ? (raw.auditReadiness ?? raw.audit_readiness) as number : undefined;
+  const criticalGapsRaw = raw.criticalGaps ?? raw.critical_gaps;
+  const criticalGapsCount = Array.isArray(criticalGapsRaw)
+    ? criticalGapsRaw.length
+    : frameworks.reduce((sum, f) => sum + (typeof (f.gapCount ?? f.gap_count) === "number" ? (f.gapCount ?? f.gap_count) as number : 0), 0);
+
   return {
-    organisationId: String(raw.org_id ?? ""),
-    organisationName: String(raw.org_name ?? ""),
-    updatedAt: String(raw.last_assessed ?? ""),
-    lastAssessed: raw.last_assessed != null ? String(raw.last_assessed) : undefined,
-    overallScore: typeof raw.overall_score === "number" ? raw.overall_score : undefined,
-    auditReadiness: typeof raw.audit_readiness === "number" ? raw.audit_readiness : undefined,
+    organisationId: orgId,
+    organisationName: orgName,
+    updatedAt: String(updatedAt),
+    lastAssessed: lastAssessed != null ? String(lastAssessed) : undefined,
+    overallScore,
+    auditReadiness,
+    criticalGapsCount,
     frameworks: frameworks.map((f: Record<string, unknown>) => ({
-      frameworkId: String(f.framework_id ?? ""),
-      frameworkName: String(f.framework_name ?? ""),
-      controlCount: typeof f.control_count === "number" ? f.control_count : 0,
+      frameworkId: String(f.frameworkId ?? f.framework_id ?? ""),
+      frameworkName: String(f.frameworkName ?? f.framework_name ?? ""),
+      controlCount: typeof (f.controlCount ?? f.control_count) === "number" ? (f.controlCount ?? f.control_count) as number : 0,
       controls: [],
-      score: typeof f.score === "number" ? f.score : undefined,
-      gapCount: typeof f.gap_count === "number" ? f.gap_count : undefined,
-      status: typeof f.status === "string" ? (f.status as "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT") : undefined,
-      riskLevel: typeof f.risk_level === "string" ? (f.risk_level as "CRITICAL" | "HIGH" | "MEDIUM" | "LOW") : undefined,
-      trend: typeof f.trend === "number" ? f.trend : undefined,
+      score: typeof (f.score) === "number" ? f.score : undefined,
+      gapCount: typeof (f.gapCount ?? f.gap_count) === "number" ? (f.gapCount ?? f.gap_count) as number : undefined,
+      status: typeof (f.status) === "string" ? (f.status as "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT") : undefined,
+      riskLevel: typeof (f.riskLevel ?? f.risk_level) === "string" ? (f.riskLevel ?? f.risk_level) as "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" : undefined,
+      trend: typeof (f.trend) === "number" ? f.trend : undefined,
+      jurisdiction: typeof (f.jurisdiction) === "string" ? f.jurisdiction : undefined,
     })),
   };
 }
