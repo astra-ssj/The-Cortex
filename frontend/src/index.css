@@ -5,20 +5,44 @@
 /* Audit Report: print-only layout — hide nav/config, show report on white A4 */
 @media print {
   header,
+  nav,
+  .report-controls,
+  button,
+  .no-print,
   .print\:hidden {
     display: none !important;
   }
+  /* Show logo in print */
+  .report-logo {
+    display: flex !important;
+  }
   body,
-  main {
+  main,
+  .audit-report-preview {
     background: #fff !important;
+    color: #111 !important;
     min-height: auto !important;
   }
   .audit-report-preview {
     border: none !important;
-    background: #fff !important;
-    color: #111 !important;
     box-shadow: none !important;
     padding: 1rem !important;
+  }
+  /* Dark text for print readability */
+  .report-content * {
+    color: #111 !important;
+  }
+  /* Keep cyan for logo and accents in print */
+  .report-logo svg path,
+  .report-logo svg circle {
+    stroke: #0891b2 !important;
+    fill: #0891b2 !important;
+  }
+  /* Keep classification badge visible in print */
+  .classification-badge {
+    border: 1px solid #dc2626 !important;
+    color: #dc2626 !important;
+    background: transparent !important;
   }
   .audit-report-preview [class*="cortex-"] {
     color: inherit !important;
@@ -34,5 +58,9 @@
   }
   .audit-report-preview .text-cortex-green {
     color: #047857 !important;
+  }
+  @page {
+    size: A4;
+    margin: 20mm 15mm;
   }
 }

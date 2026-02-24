@@ -144,7 +144,7 @@ export function AuditReport() {
   return (
     <div className="space-y-6 print:space-y-0">
       {/* Config panel — hidden when printing */}
-      <div className="rounded-xl border border-cortex-border bg-cortex-surface p-6 print:hidden">
+      <div className="report-controls rounded-xl border border-cortex-border bg-cortex-surface p-6 print:hidden no-print">
         <h1 className="font-ui text-2xl font-semibold text-cortex-text">Audit Report Generator</h1>
         <p className="mt-1 font-ui text-sm text-cortex-muted">
           Generate board-ready compliance reports for AstraLabs Group
@@ -235,18 +235,122 @@ export function AuditReport() {
         )}
         {loading && <p className="font-ui text-cortex-muted">Loading report…</p>}
         {report && (
-          <div className="space-y-4 text-cortex-text">
-            <div className="border-b border-cortex-border pb-2 text-center">
-              <div className="font-ui font-semibold uppercase tracking-wider text-cortex-muted">
-                ASTRALABS GROUP
+          <div className="space-y-4 text-cortex-text report-content">
+            {/* Report header — logo left, classification right */}
+            <div
+              className="report-logo"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                marginBottom: "32px",
+                paddingBottom: "24px",
+                borderBottom: "2px solid #2dd4bf33",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "14px",
+                }}
+              >
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 80 80"
+                  fill="none"
+                >
+                  <path
+                    d="M 13 40 A 27 27 0 1 1 67 40"
+                    stroke="#2dd4bf"
+                    strokeWidth="3"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M 21 40 A 19 19 0 1 1 59 40"
+                    stroke="#2dd4bf"
+                    strokeWidth="2.5"
+                    fill="none"
+                    strokeLinecap="round"
+                    opacity="0.6"
+                  />
+                  <path
+                    d="M 29 40 A 11 11 0 1 1 51 40"
+                    stroke="#2dd4bf"
+                    strokeWidth="2"
+                    fill="none"
+                    strokeLinecap="round"
+                    opacity="0.3"
+                  />
+                  <circle cx="40" cy="40" r="4.5" fill="#2dd4bf" />
+                  <circle cx="13" cy="40" r="3" fill="#2dd4bf" opacity="0.5" />
+                  <circle cx="67" cy="40" r="3" fill="#2dd4bf" opacity="0.5" />
+                </svg>
+                <div>
+                  <div
+                    style={{
+                      fontFamily: "'Syne', 'DM Sans', sans-serif",
+                      fontWeight: 800,
+                      fontSize: "22px",
+                      letterSpacing: "4px",
+                      color: "#e2e8f4",
+                      lineHeight: 1,
+                    }}
+                  >
+                    CORTEX
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'DM Mono', monospace",
+                      fontSize: "10px",
+                      letterSpacing: "2px",
+                      color: "#2dd4bf",
+                      marginTop: "4px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Zero Trust AI Platform
+                  </div>
+                </div>
               </div>
-              <div className="font-ui font-semibold uppercase tracking-wider text-cortex-muted">
-                INFORMATION SECURITY & COMPLIANCE
+
+              <div style={{ textAlign: "right" }}>
+                <div
+                  className="classification-badge"
+                  style={{
+                    display: "inline-block",
+                    padding: "4px 12px",
+                    background: "#7f1d1d22",
+                    border: "1px solid #ef444444",
+                    borderRadius: "4px",
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: "10px",
+                    letterSpacing: "2px",
+                    color: "#fca5a5",
+                    marginBottom: "8px",
+                  }}
+                >
+                  BOARD CONFIDENTIAL
+                </div>
+                <div
+                  style={{
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: "11px",
+                    color: "#4a5a72",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  <div>AstraLabs Group</div>
+                  <div>As at: {report?.as_at ?? new Date().toISOString().split("T")[0]}</div>
+                  <div>Prepared by CORTEX Intelligence</div>
+                </div>
               </div>
-              <div className="mt-1 font-ui font-semibold text-cortex-text">EXECUTIVE SUMMARY</div>
-              <div className="mt-1 font-data text-cortex-muted">
-                As at: {report.as_at} · Classification: Board Confidential
-              </div>
+            </div>
+
+            <div className="font-ui font-semibold uppercase tracking-wider text-cortex-muted text-center pb-2">
+              EXECUTIVE SUMMARY
             </div>
 
             <section>
@@ -375,8 +479,82 @@ export function AuditReport() {
               </ol>
             </section>
 
-            <div className="border-t border-cortex-border pt-4 text-center font-data text-xs text-cortex-muted">
-              Prepared by: CORTEX Intelligence Platform · Approved by: Group CISO · Next review: {report.next_review}
+            {/* Report footer */}
+            <div
+              style={{
+                marginTop: "48px",
+                paddingTop: "16px",
+                borderTop: "1px solid #1e2e48",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  opacity: 0.5,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 80 80" fill="none">
+                  <path
+                    d="M 13 40 A 27 27 0 1 1 67 40"
+                    stroke="#2dd4bf"
+                    strokeWidth="4"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M 25 40 A 15 15 0 1 1 55 40"
+                    stroke="#2dd4bf"
+                    strokeWidth="3"
+                    fill="none"
+                    strokeLinecap="round"
+                    opacity="0.5"
+                  />
+                  <circle cx="40" cy="40" r="5" fill="#2dd4bf" />
+                </svg>
+                <span
+                  style={{
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: "10px",
+                    letterSpacing: "2px",
+                    color: "#4a5a72",
+                  }}
+                >
+                  CORTEX
+                </span>
+              </div>
+
+              <div
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: "10px",
+                  color: "#4a5a72",
+                  textAlign: "center",
+                  letterSpacing: "1px",
+                }}
+              >
+                Generated by CORTEX Zero Trust AI Platform
+                · Confidential · Not for distribution
+              </div>
+
+              <div
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: "10px",
+                  color: "#4a5a72",
+                  letterSpacing: "1px",
+                }}
+              >
+                {new Date().toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </div>
             </div>
           </div>
         )}
