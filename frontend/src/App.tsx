@@ -15,6 +15,7 @@ import { GroupDashboard } from "./components/GroupDashboard";
 import { RemediationTracker } from "./RemediationTracker";
 import { HumanReview } from "./HumanReview";
 import { AuditReport } from "./components/AuditReport";
+import { Integrations } from "./components/Integrations";
 import { ProjectTracker } from "./ProjectTracker";
 import { FrameworkDetailPage } from "./FrameworkDetailPage";
 import { useAssessmentStream } from "./store/complianceStore";
@@ -46,6 +47,7 @@ const NAV_ITEMS = [
   { label: "Frameworks", path: "/frameworks" },
   { label: "Review Queue", path: "/review-queue" },
   { label: "Audit Report", path: "/audit-report" },
+  { label: "Integrations", path: "/integrations" },
   { label: "Roadmap", path: "/roadmap" },
 ];
 
@@ -246,6 +248,7 @@ export default function App() {
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
             <Route path="/review-queue" element={<HumanReview />} />
             <Route path="/audit-report" element={<AuditReport />} />
+            <Route path="/integrations" element={<Integrations />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/evidence" element={<RemediationTracker />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

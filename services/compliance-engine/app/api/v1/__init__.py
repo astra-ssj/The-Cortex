@@ -11,6 +11,7 @@ from app.api.v1.endpoints import findings
 from app.api.v1.endpoints import auth
 from app.api.v1.endpoints import reports
 from app.api.v1.endpoints import groups
+from app.api.v1.endpoints import integrations
 
 router.include_router(
     auth.router, prefix="/auth", tags=["auth"])
@@ -26,3 +27,5 @@ router.include_router(
     reports.router, prefix="/reports", tags=["reports"])
 router.include_router(
     groups.router, prefix="/groups", tags=["groups"])
+router.include_router(
+    integrations.router, prefix="/integrations", tags=["integrations"])
