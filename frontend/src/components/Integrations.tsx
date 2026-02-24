@@ -69,7 +69,7 @@ function StatusBadge({ status }: { status: string }) {
           background: TEXT_GREY,
         }}
       />
-      Not Connected
+      {statusLabel(status)}
     </span>
   );
 }

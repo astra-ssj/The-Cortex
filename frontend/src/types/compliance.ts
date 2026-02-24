@@ -19,6 +19,7 @@ export interface ControlPosture {
 export interface FrameworkPosture {
   frameworkId: string;
   frameworkName: string;
+  version?: string;
   controlCount: number;
   controls: ControlPosture[];
   score?: number;
@@ -37,8 +38,10 @@ export interface CompliancePosture {
   lastAssessed?: string;
   overallScore?: number;
   auditReadiness?: number;
-  /** Total gap count (from API criticalGaps length or sum of framework gapCount). */
+  /** Total gap count (from API critical_gaps number or criticalGaps array length). */
   criticalGapsCount?: number;
+  /** Compliant framework count from API (for 0/8 display). */
+  compliantCount?: number;
 }
 
 // ---- ZTAIP system status (GET /api/v1/system/ztaip-status) ----

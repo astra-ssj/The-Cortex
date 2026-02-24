@@ -123,13 +123,13 @@ function FrameworkCard({
             className="font-bold"
             style={{ color: tokens.textPrimary, fontSize: "15px" }}
           >
-            {fw.name}
+            {postureEntry?.frameworkName ?? fw.name}
           </h3>
           <p
             className="mt-1"
             style={{ color: tokens.textDim, fontSize: "12px" }}
           >
-            v{fw.version} · {postureEntry?.jurisdiction ?? fw.jurisdiction}
+            {postureEntry?.version ?? `v${fw.version}`} · {postureEntry?.jurisdiction ?? fw.jurisdiction}
           </p>
         </div>
         {typeof score === "number" && (
@@ -186,13 +186,22 @@ function FrameworkCard({
         className="mt-3"
         style={{ color: tokens.textMuted, fontSize: "13px" }}
       >
-        {fw.control_count} control{fw.control_count !== 1 ? "s" : ""}
+        {postureEntry?.controlCount ?? fw.control_count ?? 0} control{(postureEntry?.controlCount ?? fw.control_count ?? 0) !== 1 ? "s" : ""}
         {typeof postureEntry?.gapCount === "number" && (
           <span style={{ color: tokens.textDim }}> · {postureEntry.gapCount} gaps</span>
         )}
       </p>
-      {(riskLevel != null || status != null) && (
-        <div className="mt-3 flex flex-wrap gap-2">
+      {(riskLevel != null || status != null || typeof postureEntry?.trend === "number") && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {typeof postureEntry?.trend === "number" && (
+            <span
+              className="text-xs font-medium"
+              style={{ color: postureEntry.trend >= 0 ? tokens.green : tokens.red }}
+              title={`Trend: ${postureEntry.trend >= 0 ? "+" : ""}${postureEntry.trend}%`}
+            >
+              {postureEntry.trend >= 0 ? "↑" : "↓"} {Math.abs(postureEntry.trend)}%
+            </span>
+          )}
           {riskLevel != null && (
             <span
               className="rounded px-2 py-0.5 text-xs font-medium"
@@ -217,13 +226,19 @@ function FrameworkCard({
 
 export function ComplianceDashboard() {
   const { data: frameworks, isLoading, error } = useFrameworks();
-  const { data: posture } = useCompliancePosture(DEFAULT_ORG_ID);
+  const {
+    data: posture,
+    isLoading: isPostureLoading,
+    error: postureError,
+    refetch: refetchPosture,
+  } = useCompliancePosture(DEFAULT_ORG_ID);
   const { data: ztaip } = useZtaipStatus();
   const { events, isStreaming, startStream, stopStream } = useAssessmentStream();
   const streamPanelRef = useRef<HTMLDivElement | null>(null);
 
-  const postureByFrameworkId = posture
-    ? new Map(posture.frameworks.map((f) => [f.frameworkId, f]))
+  const postureByFrameworkId =
+    posture?.frameworks?.length ?
+      new Map(posture.frameworks.map((f) => [f.frameworkId, f]))
     : null;
 
   useEffect(() => {
@@ -305,166 +320,196 @@ export function ComplianceDashboard() {
       )}
 
       {/* Org banner */}
-      {posture && (
+      <div
+        className="rounded-lg border-b px-4 py-4"
+        style={{
+          background: tokens.surface,
+          borderColor: tokens.border,
+          borderBottomWidth: "1px",
+        }}
+      >
+        <h2 className="font-bold" style={{ color: tokens.textPrimary }}>
+          {posture?.organisationName ?? "Compliance"}
+        </h2>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <span
+            className="rounded px-2 py-0.5"
+            style={{
+              background: tokens.border,
+              color: tokens.textMuted,
+              fontSize: "11px",
+            }}
+          >
+            {posture ? `${posture.frameworks.length} frameworks` : "—"}
+          </span>
+          <span
+            className="rounded px-2 py-0.5"
+            style={{
+              background: tokens.border,
+              color: tokens.textMuted,
+              fontSize: "11px",
+            }}
+          >
+            {posture ? `Updated ${posture.updatedAt}` : isPostureLoading ? "Loading…" : "—"}
+          </span>
+        </div>
+      </div>
+
+      {/* Posture error banner — non-blocking, with retry */}
+      {postureError && (
         <div
-          className="rounded-lg border-b px-4 py-4"
+          className="rounded-lg border px-4 py-3"
           style={{
-            background: tokens.surface,
-            borderColor: tokens.border,
-            borderBottomWidth: "1px",
+            background: "#1c1917",
+            borderColor: tokens.amber,
+            color: "#fcd34d",
           }}
         >
-          <h2 className="font-bold" style={{ color: tokens.textPrimary }}>
-            {posture.organisationName}
-          </h2>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <span
-              className="rounded px-2 py-0.5"
-              style={{
-                background: tokens.border,
-                color: tokens.textMuted,
-                fontSize: "11px",
-              }}
+          <p className="text-sm font-medium">Posture scores unavailable</p>
+          <p className="mt-1 text-xs" style={{ color: tokens.textMuted }}>
+            {postureError instanceof Error ? postureError.message : String(postureError)}
+          </p>
+          <p className="mt-2 text-xs" style={{ color: tokens.textDim }}>
+            Ensure the API is running and you are signed in.{" "}
+            <button
+              type="button"
+              onClick={() => refetchPosture()}
+              className="font-medium underline focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-offset-[#05080f] focus:ring-[#1e2e48]"
+              style={{ color: tokens.blue }}
             >
-              {posture.frameworks.length} frameworks
-            </span>
-            <span
-              className="rounded px-2 py-0.5"
-              style={{
-                background: tokens.border,
-                color: tokens.textMuted,
-                fontSize: "11px",
-              }}
-            >
-              Updated {posture.updatedAt}
-            </span>
-          </div>
+              Retry
+            </button>
+          </p>
         </div>
       )}
 
-      {/* Stats row: Overall Posture, Audit Readiness, Critical Gaps, Compliant X/8 */}
-      {posture && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div
-            className="rounded-lg border p-5"
-            style={{
-              background: tokens.panel,
-              borderColor: tokens.border,
-              padding: "20px 24px",
-            }}
-          >
-            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Overall Posture</p>
-            <div className="mt-2 flex items-center gap-3">
-              {typeof posture.overallScore === "number" ? (
-                <>
-                  <div
-                    className="relative flex shrink-0 items-center justify-center"
-                    style={{ width: 48, height: 48 }}
-                    title={`${posture.overallScore}%`}
+      {/* Stats row: Overall Posture, Audit Readiness, Critical Gaps, Compliant X/8 — always visible */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div
+          className="rounded-lg border p-5"
+          style={{
+            background: tokens.panel,
+            borderColor: tokens.border,
+            padding: "20px 24px",
+          }}
+        >
+          <p style={{ color: tokens.textDim, fontSize: "12px" }}>Overall Posture</p>
+          <div className="mt-2 flex items-center gap-3">
+            {isPostureLoading ? (
+              <p className="font-medium" style={{ color: tokens.textMuted, fontSize: "24px" }}>Loading…</p>
+            ) : typeof posture?.overallScore === "number" ? (
+              <>
+                <div
+                  className="relative flex shrink-0 items-center justify-center"
+                  style={{ width: 48, height: 48 }}
+                  title={`${posture.overallScore}%`}
+                >
+                  <svg width="48" height="48" viewBox="0 0 48 48" className="-rotate-90">
+                    <circle cx="24" cy="24" r="20" fill="none" stroke={tokens.border} strokeWidth="4" />
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="20"
+                      fill="none"
+                      stroke={scoreRingColor(posture.overallScore)}
+                      strokeWidth="4"
+                      strokeDasharray={`${(posture.overallScore / 100) * 125.6} 125.6`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span
+                    className="absolute inset-0 flex items-center justify-center text-sm font-bold"
+                    style={{ color: tokens.textPrimary }}
                   >
-                    <svg width="48" height="48" viewBox="0 0 48 48" className="-rotate-90">
-                      <circle cx="24" cy="24" r="20" fill="none" stroke={tokens.border} strokeWidth="4" />
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="20"
-                        fill="none"
-                        stroke={scoreRingColor(posture.overallScore)}
-                        strokeWidth="4"
-                        strokeDasharray={`${(posture.overallScore / 100) * 125.6} 125.6`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span
-                      className="absolute inset-0 flex items-center justify-center text-sm font-bold"
-                      style={{ color: tokens.textPrimary }}
-                    >
-                      {posture.overallScore}%
-                    </span>
-                  </div>
-                  <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
                     {posture.overallScore}%
-                  </p>
-                </>
-              ) : (
-                <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>
-              )}
-            </div>
-          </div>
-          <div
-            className="rounded-lg border p-5"
-            style={{
-              background: tokens.panel,
-              borderColor: tokens.border,
-              padding: "20px 24px",
-            }}
-          >
-            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Audit Readiness</p>
-            <div className="mt-2 flex items-center gap-3">
-              {typeof posture.auditReadiness === "number" ? (
-                <>
-                  <div
-                    className="relative flex shrink-0 items-center justify-center"
-                    style={{ width: 48, height: 48 }}
-                    title={`${posture.auditReadiness}%`}
-                  >
-                    <svg width="48" height="48" viewBox="0 0 48 48" className="-rotate-90">
-                      <circle cx="24" cy="24" r="20" fill="none" stroke={tokens.border} strokeWidth="4" />
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="20"
-                        fill="none"
-                        stroke={scoreRingColor(posture.auditReadiness)}
-                        strokeWidth="4"
-                        strokeDasharray={`${(posture.auditReadiness / 100) * 125.6} 125.6`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span
-                      className="absolute inset-0 flex items-center justify-center text-sm font-bold"
-                      style={{ color: tokens.textPrimary }}
-                    >
-                      {posture.auditReadiness}%
-                    </span>
-                  </div>
-                  <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
-                    {posture.auditReadiness}%
-                  </p>
-                </>
-              ) : (
-                <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>
-              )}
-            </div>
-          </div>
-          <div
-            className="rounded-lg border p-5"
-            style={{
-              background: tokens.panel,
-              borderColor: tokens.border,
-              padding: "20px 24px",
-            }}
-          >
-            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Critical Gaps</p>
-            <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
-              {typeof posture.criticalGapsCount === "number" ? posture.criticalGapsCount : "—"}
-            </p>
-          </div>
-          <div
-            className="rounded-lg border p-5"
-            style={{
-              background: tokens.panel,
-              borderColor: tokens.border,
-              padding: "20px 24px",
-            }}
-          >
-            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Compliant Frameworks</p>
-            <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
-              {posture.frameworks.filter((f) => f.status === "COMPLIANT").length}/{posture.frameworks.length}
-            </p>
+                  </span>
+                </div>
+                <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
+                  {posture.overallScore}%
+                </p>
+              </>
+            ) : (
+              <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>
+            )}
           </div>
         </div>
-      )}
+        <div
+          className="rounded-lg border p-5"
+          style={{
+            background: tokens.panel,
+            borderColor: tokens.border,
+            padding: "20px 24px",
+          }}
+        >
+          <p style={{ color: tokens.textDim, fontSize: "12px" }}>Audit Readiness</p>
+          <div className="mt-2 flex items-center gap-3">
+            {isPostureLoading ? (
+              <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>
+            ) : typeof posture?.auditReadiness === "number" ? (
+              <>
+                <div
+                  className="relative flex shrink-0 items-center justify-center"
+                  style={{ width: 48, height: 48 }}
+                  title={`${posture.auditReadiness}%`}
+                >
+                  <svg width="48" height="48" viewBox="0 0 48 48" className="-rotate-90">
+                    <circle cx="24" cy="24" r="20" fill="none" stroke={tokens.border} strokeWidth="4" />
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="20"
+                      fill="none"
+                      stroke={scoreRingColor(posture.auditReadiness)}
+                      strokeWidth="4"
+                      strokeDasharray={`${(posture.auditReadiness / 100) * 125.6} 125.6`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span
+                    className="absolute inset-0 flex items-center justify-center text-sm font-bold"
+                    style={{ color: tokens.textPrimary }}
+                  >
+                    {posture.auditReadiness}%
+                  </span>
+                </div>
+                <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
+                  {posture.auditReadiness}%
+                </p>
+              </>
+            ) : (
+              <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>
+            )}
+          </div>
+        </div>
+        <div
+          className="rounded-lg border p-5"
+          style={{
+            background: tokens.panel,
+            borderColor: tokens.border,
+            padding: "20px 24px",
+          }}
+        >
+          <p style={{ color: tokens.textDim, fontSize: "12px" }}>Critical Gaps</p>
+          <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
+            {posture && typeof posture.criticalGapsCount === "number" ? posture.criticalGapsCount : "—"}
+          </p>
+        </div>
+        <div
+          className="rounded-lg border p-5"
+          style={{
+            background: tokens.panel,
+            borderColor: tokens.border,
+            padding: "20px 24px",
+          }}
+        >
+          <p style={{ color: tokens.textDim, fontSize: "12px" }}>Compliant Frameworks</p>
+          <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
+            {posture
+              ? `${posture.compliantCount ?? posture.frameworks.filter((f) => f.status === "COMPLIANT").length}/${posture.frameworks.length}`
+              : "—"}
+          </p>
+        </div>
+      </div>
 
       {/* Framework cards */}
       <div>
@@ -472,7 +517,7 @@ export function ComplianceDashboard() {
           Compliance frameworks
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {frameworks.map((fw) => (
+          {(frameworks ?? []).map((fw) => (
             <FrameworkCard
               key={fw.id}
               fw={fw}

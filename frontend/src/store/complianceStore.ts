@@ -58,18 +58,18 @@ export const ROADMAP_EPICS: RoadmapEpic[] = [
     id: "epic-2",
     number: 2,
     title: "Core Intelligence",
-    status: "IN PROGRESS",
+    status: "COMPLETE",
     stories: [
       { id: "s2-1", title: "Assessment Engine with SSE streaming", status: "done", priority: "P0", owner: "CORTEX", phase: 2 },
       { id: "s2-2", title: "Framework posture display", status: "done", priority: "P0", owner: "CORTEX", phase: 2 },
       { id: "s2-3", title: "Dark intelligence dashboard", status: "done", priority: "P0", owner: "CORTEX", phase: 2 },
       { id: "s2-4", title: "AstraLabs org data seeded", status: "done", priority: "P0", owner: "CORTEX", phase: 2 },
-      { id: "s2-5", title: "Real posture scores", status: "in_progress", priority: "P0", owner: "CORTEX", phase: 2 },
+      { id: "s2-5", title: "Real posture scores", status: "done", priority: "P0", owner: "CORTEX", phase: 2 },
       { id: "s2-6", title: "Trend data from historical runs", status: "done", priority: "P1", owner: "CORTEX", phase: 2 },
       { id: "s2-7", title: "Human Review Workflow (GDPR Art.22)", status: "done", priority: "P0", owner: "CORTEX", phase: 2 },
       { id: "s2-8", title: "Remediation Tracker with Kanban", status: "done", priority: "P0", owner: "CORTEX", phase: 2 },
-      { id: "s2-9", title: "Audit Report Generator", status: "in_progress", priority: "P1", owner: "Cursor", phase: 2 },
-      { id: "s2-10", title: "Multi-Entity Group Dashboard", status: "not_started", priority: "P1", owner: "Cursor", phase: 2 },
+      { id: "s2-9", title: "Audit Report Generator", status: "done", priority: "P1", owner: "Cursor", phase: 2 },
+      { id: "s2-10", title: "Multi-Entity Group Dashboard", status: "done", priority: "P1", owner: "Cursor", phase: 2 },
     ],
   },
   {
@@ -162,9 +162,17 @@ function mapPostureResponse(raw: Record<string, unknown>): CompliancePosture {
   const overallScore = typeof (raw.overallScore ?? raw.overall_score) === "number" ? (raw.overallScore ?? raw.overall_score) as number : undefined;
   const auditReadiness = typeof (raw.auditReadiness ?? raw.audit_readiness) === "number" ? (raw.auditReadiness ?? raw.audit_readiness) as number : undefined;
   const criticalGapsRaw = raw.criticalGaps ?? raw.critical_gaps;
-  const criticalGapsCount = Array.isArray(criticalGapsRaw)
-    ? criticalGapsRaw.length
-    : frameworks.reduce((sum, f) => sum + (typeof (f.gapCount ?? f.gap_count) === "number" ? (f.gapCount ?? f.gap_count) as number : 0), 0);
+  const criticalGapsCount =
+    typeof criticalGapsRaw === "number"
+      ? criticalGapsRaw
+      : Array.isArray(criticalGapsRaw)
+        ? criticalGapsRaw.length
+        : frameworks.reduce((sum, f) => sum + (typeof (f.gapCount ?? f.gap_count) === "number" ? (f.gapCount ?? f.gap_count) as number : 0), 0);
+
+  const compliantCount =
+    typeof (raw.compliantCount ?? raw.compliant_count) === "number"
+      ? (raw.compliantCount ?? raw.compliant_count) as number
+      : undefined;
 
   return {
     organisationId: orgId,
@@ -174,9 +182,11 @@ function mapPostureResponse(raw: Record<string, unknown>): CompliancePosture {
     overallScore,
     auditReadiness,
     criticalGapsCount,
+    compliantCount,
     frameworks: frameworks.map((f: Record<string, unknown>) => ({
       frameworkId: String(f.frameworkId ?? f.framework_id ?? ""),
       frameworkName: String(f.frameworkName ?? f.framework_name ?? ""),
+      version: typeof (f.version) === "string" ? f.version : undefined,
       controlCount: typeof (f.controlCount ?? f.control_count) === "number" ? (f.controlCount ?? f.control_count) as number : 0,
       controls: [],
       score: typeof (f.score) === "number" ? f.score : undefined,

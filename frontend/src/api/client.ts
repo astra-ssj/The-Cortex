@@ -194,10 +194,13 @@ export interface ExecutiveSummaryParams {
   entity_scope?: string;
 }
 
+/** Normalized shape for Audit Report UI (overall_posture + framework_summary + top_critical_findings). */
 export interface ExecutiveSummaryReport {
   as_at?: string;
   org_id?: string;
   org_name?: string;
+  classification?: string;
+  prepared_by?: string;
   overall_posture: {
     group_compliance_score?: number;
     audit_readiness?: number;
@@ -209,7 +212,7 @@ export interface ExecutiveSummaryReport {
     findings_overdue?: number;
     [key: string]: unknown;
   };
-  framework_summary: Array<{ framework_name: string; score: number | null; status: string; risk_level: string }>;
+  framework_summary: Array<{ framework_name: string; score: number | null; status: string; risk_level: string; gaps?: number }>;
   top_critical_findings: Array<{
     title: string;
     framework: string;
@@ -218,11 +221,87 @@ export interface ExecutiveSummaryReport {
     days_open: number;
     [key: string]: unknown;
   }>;
-  regulatory_exposure?: Record<string, string>;
+  /** Legacy: key-value. New API: array of { regulation, status, deadline, max_fine }. */
+  regulatory_exposure?: Record<string, string> | Array<{ regulation: string; status: string; deadline: string; max_fine: string }>;
   management_attention?: string[];
   recommendations?: string[];
   next_review?: string;
   [key: string]: unknown;
+}
+
+/** Raw executive-summary API response (flat shape from reports.py). */
+function isNewReportShape(raw: unknown): raw is {
+  overall_score?: number;
+  frameworks?: Array<{ name: string; score: number; status: string; risk: string; gaps?: number }>;
+  top_findings?: Array<{ title: string; framework: string; owner: string; due: string; days_open: number }>;
+  regulatory_exposure?: Array<{ regulation: string; status: string; deadline: string; max_fine: string }>;
+} {
+  return (
+    typeof raw === "object" &&
+    raw !== null &&
+    "overall_score" in raw &&
+    typeof (raw as { overall_score?: number }).overall_score === "number"
+  );
+}
+
+function normalizeExecutiveSummary(raw: unknown): ExecutiveSummaryReport {
+  if (isNewReportShape(raw)) {
+    const r = raw as {
+      as_at?: string;
+      org_id?: string;
+      org_name?: string;
+      classification?: string;
+      prepared_by?: string;
+      overall_score: number;
+      audit_readiness?: number;
+      risk_level?: string;
+      frameworks_active?: number;
+      controls_assessed?: number;
+      critical_gaps?: number;
+      findings_open?: number;
+      findings_overdue?: number;
+      frameworks?: Array<{ name: string; score: number; status: string; risk: string; gaps?: number }>;
+      top_findings?: Array<{ title: string; framework: string; owner: string; due: string; days_open: number }>;
+      regulatory_exposure?: Array<{ regulation: string; status: string; deadline: string; max_fine: string }>;
+      management_attention?: string[];
+      recommendations?: string[];
+    };
+    return {
+      as_at: r.as_at,
+      org_id: r.org_id,
+      org_name: r.org_name,
+      classification: r.classification,
+      prepared_by: r.prepared_by,
+      overall_posture: {
+        group_compliance_score: r.overall_score,
+        audit_readiness: r.audit_readiness ?? r.overall_score,
+        overall_risk_level: r.risk_level,
+        frameworks_active: r.frameworks_active,
+        total_controls_assessed: r.controls_assessed,
+        critical_gaps: r.critical_gaps,
+        findings_open: r.findings_open,
+        findings_overdue: r.findings_overdue,
+      },
+      framework_summary: (r.frameworks ?? []).map((f) => ({
+        framework_name: f.name,
+        score: f.score,
+        status: f.status,
+        risk_level: f.risk,
+        gaps: f.gaps,
+      })),
+      top_critical_findings: (r.top_findings ?? []).map((f) => ({
+        title: f.title,
+        framework: f.framework,
+        owner: f.owner,
+        due_date: f.due,
+        days_open: f.days_open,
+      })),
+      regulatory_exposure: r.regulatory_exposure,
+      management_attention: r.management_attention,
+      recommendations: r.recommendations,
+    };
+  }
+  return raw as ExecutiveSummaryReport;
 }
 
 export async function fetchExecutiveSummary(
@@ -233,9 +312,10 @@ export async function fetchExecutiveSummary(
   if (params?.as_at) search.set("as_at", params.as_at);
   if (params?.entity_scope) search.set("entity_scope", params.entity_scope);
   const qs = search.toString();
-  return fetchApi<ExecutiveSummaryReport>(
+  const raw = await fetchApi<unknown>(
     `/api/v1/reports/executive-summary${qs ? `?${qs}` : ""}`
   );
+  return normalizeExecutiveSummary(raw);
 }
 
 // ---- Remediation / Findings (for RemediationTracker) ----

@@ -94,14 +94,14 @@ export function AuditReport() {
       "",
       "OVERALL POSTURE",
       "───────────────",
-      `Group Compliance Score:    ${report.overall_posture.group_compliance_score}%`,
-      `Audit Readiness:           ${report.overall_posture.audit_readiness}%`,
-      `Overall Risk Level:        ${report.overall_posture.overall_risk_level}`,
-      `Frameworks Active:         ${report.overall_posture.frameworks_active}`,
-      `Total Controls Assessed:   ${report.overall_posture.total_controls_assessed}`,
-      `Critical Gaps:             ${report.overall_posture.critical_gaps}`,
-      `Findings Open:             ${report.overall_posture.findings_open}`,
-      `Findings Overdue:          ${report.overall_posture.findings_overdue}`,
+      `Group Compliance Score:    ${report.overall_posture?.group_compliance_score ?? "—"}%`,
+      `Audit Readiness:           ${report.overall_posture?.audit_readiness ?? "—"}%`,
+      `Overall Risk Level:        ${report.overall_posture?.overall_risk_level ?? "—"}`,
+      `Frameworks Active:         ${report.overall_posture?.frameworks_active ?? "—"}`,
+      `Total Controls Assessed:   ${report.overall_posture?.total_controls_assessed ?? "—"}`,
+      `Critical Gaps:             ${report.overall_posture?.critical_gaps ?? "—"}`,
+      `Findings Open:             ${report.overall_posture?.findings_open ?? "—"}`,
+      `Findings Overdue:          ${report.overall_posture?.findings_overdue ?? "—"}`,
       "",
       "FRAMEWORK POSTURE SUMMARY",
       "─────────────────────────",
@@ -112,16 +112,22 @@ export function AuditReport() {
       );
     });
     lines.push("", "TOP 5 CRITICAL FINDINGS", "───────────────────────");
-    report.top_critical_findings.forEach((f, i) => {
+    (report.top_critical_findings || []).forEach((f, i) => {
       lines.push(
         `${i + 1}. ${f.title} — ${f.framework} — Owner: ${f.owner}`,
         `   Due: ${f.due_date} · ${f.days_open} days open`
       );
     });
     lines.push("", "REGULATORY EXPOSURE", "──────────────────");
-    Object.entries(report.regulatory_exposure || {}).forEach(([k, v]) => {
-      lines.push(`${k.replace(/_/g, " ")}:     ${v}`);
-    });
+    if (Array.isArray(report.regulatory_exposure)) {
+      report.regulatory_exposure.forEach((row) => {
+        lines.push(`${row.regulation}: ${row.status} — ${row.deadline} — ${row.max_fine}`);
+      });
+    } else {
+      Object.entries(report.regulatory_exposure || {}).forEach(([k, v]) => {
+        lines.push(`${k.replace(/_/g, " ")}:     ${v}`);
+      });
+    }
     lines.push("", "MANAGEMENT ATTENTION REQUIRED", "─────────────────────────────");
     (report.management_attention || []).forEach((m) => lines.push(`· ${m}`));
     lines.push("", "RECOMMENDATIONS", "───────────────");
@@ -371,9 +377,9 @@ export function AuditReport() {
                     lineHeight: 1.6,
                   }}
                 >
-                  <div>AstraLabs Group</div>
+                  <div>{report?.org_name ?? "AstraLabs Group"}</div>
                   <div>As at: {report?.as_at ?? new Date().toISOString().split("T")[0]}</div>
-                  <div>Prepared by CORTEX Intelligence</div>
+                  <div>{report?.prepared_by ?? "Prepared by CORTEX Intelligence"}</div>
                 </div>
               </div>
             </div>
@@ -437,7 +443,10 @@ export function AuditReport() {
                       <th className="py-1 pr-4">Framework</th>
                       <th className="py-1 pr-2">Score</th>
                       <th className="py-1 pr-2">Status</th>
-                      <th className="py-1">Risk</th>
+                      <th className="py-1 pr-2">Risk</th>
+                      {report.framework_summary.some((fw) => fw.gaps != null) && (
+                        <th className="py-1">Gaps</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -446,7 +455,10 @@ export function AuditReport() {
                         <td className="py-1 pr-4 text-cortex-text">{fw.framework_name}</td>
                         <td className="py-1 pr-2">{fw.score != null ? `${fw.score}%` : "—"}</td>
                         <td className={`py-1 pr-2 ${statusColor(fw.status)}`}>{fw.status}</td>
-                        <td className={`py-1 ${riskColor(fw.risk_level)}`}>{fw.risk_level}</td>
+                        <td className={`py-1 pr-2 ${riskColor(fw.risk_level)}`}>{fw.risk_level}</td>
+                        {report.framework_summary.some((f) => f.gaps != null) && (
+                          <td className="py-1">{fw.gaps != null ? fw.gaps : "—"}</td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -476,13 +488,36 @@ export function AuditReport() {
                 REGULATORY EXPOSURE
               </h2>
               <div className="mt-2 space-y-1 font-mono text-xs">
-                {report.regulatory_exposure &&
+                {Array.isArray(report.regulatory_exposure) ? (
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-cortex-border text-left text-cortex-muted">
+                        <th className="py-1 pr-4">Regulation</th>
+                        <th className="py-1 pr-2">Status</th>
+                        <th className="py-1 pr-2">Deadline</th>
+                        <th className="py-1">Max fine</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.regulatory_exposure.map((row, i) => (
+                        <tr key={i} className="border-b border-cortex-border/50">
+                          <td className="py-1 pr-4 text-cortex-text">{row.regulation}</td>
+                          <td className={`py-1 pr-2 ${statusColor(row.status)}`}>{row.status}</td>
+                          <td className="py-1 pr-2 text-cortex-muted">{row.deadline}</td>
+                          <td className="py-1 text-cortex-text">{row.max_fine}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  report.regulatory_exposure &&
                   Object.entries(report.regulatory_exposure).map(([key, value]) => (
                     <div key={key} className="flex justify-between">
                       <span className="text-cortex-muted">{key.replace(/_/g, " ")}</span>
                       <span className={statusColor(value)}>{value}</span>
                     </div>
-                  ))}
+                  ))
+                )}
               </div>
             </section>
 
