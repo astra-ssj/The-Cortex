@@ -234,67 +234,95 @@ export function AuditReport() {
           <p className="font-ui text-cortex-muted">Select options and click Generate Report to see the preview.</p>
         )}
         {loading && <p className="font-ui text-cortex-muted">Loading report…</p>}
-        {report && (
+            {report && (
           <div className="space-y-4 text-cortex-text report-content">
-            {/* Report header — logo left, classification right */}
+            {/* Report header — logo lockup left, classification right (light variant for PDF) */}
             <div
-              className="report-logo"
+              className="report-logo report-header"
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "flex-start",
                 marginBottom: "32px",
                 paddingBottom: "24px",
-                borderBottom: "2px solid #2dd4bf33",
+                borderBottom: "2px solid #2dd4bf40",
               }}
             >
               <div
+                className="report-logo-brand"
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "14px",
+                  gap: "18px",
+                  padding: "16px 24px",
+                  borderRadius: "12px",
+                  background: "linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 58, 138, 0.12) 100%)",
+                  border: "1px solid rgba(45, 212, 191, 0.25)",
                 }}
               >
+                {/* Radar Arc C — light-optimised for white PDF */}
                 <svg
-                  width="48"
-                  height="48"
+                  className="report-logo-svg"
+                  width="52"
+                  height="52"
                   viewBox="0 0 80 80"
                   fill="none"
+                  aria-hidden
                 >
                   <path
                     d="M 13 40 A 27 27 0 1 1 67 40"
-                    stroke="#2dd4bf"
+                    stroke="#0e7490"
                     strokeWidth="3"
                     fill="none"
                     strokeLinecap="round"
                   />
                   <path
                     d="M 21 40 A 19 19 0 1 1 59 40"
-                    stroke="#2dd4bf"
+                    stroke="#0891b2"
                     strokeWidth="2.5"
                     fill="none"
                     strokeLinecap="round"
-                    opacity="0.6"
+                    opacity="0.75"
                   />
                   <path
                     d="M 29 40 A 11 11 0 1 1 51 40"
-                    stroke="#2dd4bf"
+                    stroke="#06b6d4"
                     strokeWidth="2"
+                    fill="none"
+                    strokeLinecap="round"
+                    opacity="0.5"
+                  />
+                  <path
+                    d="M 35 40 A 5 5 0 1 1 45 40"
+                    stroke="#22d3ee"
+                    strokeWidth="1.5"
                     fill="none"
                     strokeLinecap="round"
                     opacity="0.3"
                   />
-                  <circle cx="40" cy="40" r="4.5" fill="#2dd4bf" />
-                  <circle cx="13" cy="40" r="3" fill="#2dd4bf" opacity="0.5" />
-                  <circle cx="67" cy="40" r="3" fill="#2dd4bf" opacity="0.5" />
+                  <circle cx="40" cy="40" r="4" fill="#0e7490" />
+                  <line
+                    x1="40"
+                    y1="40"
+                    x2="65"
+                    y2="31"
+                    stroke="#0891b2"
+                    strokeWidth="1"
+                    opacity="0.4"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="65" cy="31" r="1.5" fill="#0891b2" opacity="0.5" />
+                  <circle cx="13" cy="40" r="2.5" fill="#0e7490" opacity="0.4" />
+                  <circle cx="67" cy="40" r="2.5" fill="#0e7490" opacity="0.4" />
                 </svg>
                 <div>
                   <div
+                    className="report-logo-wordmark"
                     style={{
                       fontFamily: "'Syne', 'DM Sans', sans-serif",
                       fontWeight: 800,
                       fontSize: "22px",
-                      letterSpacing: "4px",
+                      letterSpacing: "5px",
                       color: "#e2e8f4",
                       lineHeight: 1,
                     }}
@@ -302,10 +330,11 @@ export function AuditReport() {
                     CORTEX
                   </div>
                   <div
+                    className="report-logo-tagline subtitle"
                     style={{
                       fontFamily: "'DM Mono', monospace",
                       fontSize: "10px",
-                      letterSpacing: "2px",
+                      letterSpacing: "3px",
                       color: "#2dd4bf",
                       marginTop: "4px",
                       textTransform: "uppercase",
@@ -322,13 +351,13 @@ export function AuditReport() {
                   style={{
                     display: "inline-block",
                     padding: "4px 12px",
-                    background: "#7f1d1d22",
-                    border: "1px solid #ef444444",
+                    background: "transparent",
+                    border: "1px solid #dc2626",
                     borderRadius: "4px",
                     fontFamily: "'DM Mono', monospace",
                     fontSize: "10px",
                     letterSpacing: "2px",
-                    color: "#fca5a5",
+                    color: "#dc2626",
                     marginBottom: "8px",
                   }}
                 >
@@ -481,9 +510,10 @@ export function AuditReport() {
 
             {/* Report footer */}
             <div
+              className="report-footer"
               style={{
                 marginTop: "48px",
-                paddingTop: "16px",
+                paddingTop: "20px",
                 borderTop: "1px solid #1e2e48",
                 display: "flex",
                 justifyContent: "space-between",
@@ -491,37 +521,53 @@ export function AuditReport() {
               }}
             >
               <div
+                className="report-footer-logo"
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
-                  opacity: 0.5,
+                  gap: "10px",
                 }}
               >
-                <svg width="20" height="20" viewBox="0 0 80 80" fill="none">
+                <svg
+                  className="report-logo-svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 80 80"
+                  fill="none"
+                  aria-hidden
+                >
                   <path
                     d="M 13 40 A 27 27 0 1 1 67 40"
-                    stroke="#2dd4bf"
+                    stroke="#0e7490"
                     strokeWidth="4"
                     fill="none"
                     strokeLinecap="round"
                   />
                   <path
-                    d="M 25 40 A 15 15 0 1 1 55 40"
-                    stroke="#2dd4bf"
+                    d="M 23 40 A 17 17 0 1 1 57 40"
+                    stroke="#0891b2"
                     strokeWidth="3"
                     fill="none"
                     strokeLinecap="round"
-                    opacity="0.5"
+                    opacity="0.6"
                   />
-                  <circle cx="40" cy="40" r="5" fill="#2dd4bf" />
+                  <path
+                    d="M 33 40 A 7 7 0 1 1 47 40"
+                    stroke="#06b6d4"
+                    strokeWidth="2"
+                    fill="none"
+                    strokeLinecap="round"
+                    opacity="0.35"
+                  />
+                  <circle cx="40" cy="40" r="5" fill="#0e7490" />
                 </svg>
                 <span
                   style={{
                     fontFamily: "'DM Mono', monospace",
-                    fontSize: "10px",
+                    fontSize: "11px",
                     letterSpacing: "2px",
                     color: "#4a5a72",
+                    fontWeight: 600,
                   }}
                 >
                   CORTEX

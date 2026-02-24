@@ -16,6 +16,25 @@
   .report-logo {
     display: flex !important;
   }
+  /* Report header: white background for PDF, readable contrast */
+  .report-header {
+    background: white !important;
+    border-bottom: 2px solid #0891b2 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .report-header * {
+    color: #0c1a2e !important;
+  }
+  .report-header .subtitle {
+    color: #0891b2 !important;
+  }
+  /* Logo lockup: no tint on white PDF */
+  .report-logo-brand {
+    background: transparent !important;
+    border: none !important;
+  }
+  /* Light-variant logo already uses #0e7490/#0891b2 in SVG — no override needed */
   body,
   main,
   .audit-report-preview {
@@ -32,11 +51,15 @@
   .report-content * {
     color: #111 !important;
   }
-  /* Keep cyan for logo and accents in print */
-  .report-logo svg path,
-  .report-logo svg circle {
-    stroke: #0891b2 !important;
-    fill: #0891b2 !important;
+  /* Logo lockup on white PDF (override .report-content *) */
+  .report-logo-wordmark {
+    color: #0c1a2e !important;
+  }
+  .report-logo-tagline.subtitle {
+    color: #0891b2 !important;
+  }
+  .report-footer-logo span {
+    color: #475569 !important;
   }
   /* Keep classification badge visible in print */
   .classification-badge {
