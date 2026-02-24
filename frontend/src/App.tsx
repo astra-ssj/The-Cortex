@@ -9,6 +9,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { getToken, getUser, DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
+import { LogoFull } from "./components/Logo";
 import Login from "./components/Login";
 import { ComplianceDashboard } from "./ComplianceDashboard";
 import { GroupDashboard } from "./components/GroupDashboard";
@@ -29,18 +30,12 @@ function LiveClock() {
   }, []);
   return (
     <span style={{ color: "#4a5a72", fontSize: "13px", fontFamily: "DM Mono, monospace" }}>
-      {time.toLocaleTimeString("en-GB", { hour12: false })}
-      {" · "}
-      {time.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })}
+      {time.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
     </span>
   );
 }
 
-// ── Navigation ───────────────────────────────────
+// ── Navigation: secondary bar (full width) ──────────────────────────────────
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Group", path: "/group" },
@@ -68,119 +63,116 @@ function Header({
   };
 
   return (
-    <header
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 24px",
-        height: "52px",
-        background: "#090e1a",
-        borderBottom: "1px solid #141e30",
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
-      }}
-    >
-      {/* Logo */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: "bold",
-            color: "#fff",
-            fontSize: 16,
-          }}
-        >
-          C
+    <>
+      {/* Top bar: slim, always visible — [C CORTEX] ●MONITORING 20:13 · 24 Feb  Group CISO  [Logout] */}
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 24px",
+          height: "40px",
+          background: "#090e1a",
+          borderBottom: "1px solid #141e30",
+          position: "sticky",
+          top: 0,
+          zIndex: 101,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <LogoFull size="md" />
+          <span style={{ color: "#2d3a52", marginLeft: 4 }}>·</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "#10b981",
+                boxShadow: "0 0 6px #10b981",
+              }}
+            />
+            <span style={{ color: "#10b981", fontSize: 11, fontWeight: "bold" }}>
+              MONITORING
+            </span>
+          </div>
+          <span style={{ color: "#2d3a52", marginLeft: 4 }}>·</span>
+          <LiveClock />
         </div>
-        <span
-          style={{
-            color: "#e2e8f4",
-            fontWeight: "bold",
-            fontSize: 16,
-            letterSpacing: 1,
-          }}
-        >
-          CORTEX
-        </span>
-      </div>
-
-      {/* Nav */}
-      <nav style={{ display: "flex", gap: 4 }}>
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {user && (
+            <span style={{ color: "#4a5a72", fontSize: 12 }}>
+              {(user as { name?: string }).name ?? (user as { username?: string }).username ?? "User"}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onLogout}
             style={{
-              padding: "6px 14px",
+              padding: "4px 12px",
               borderRadius: 6,
-              fontSize: 13,
-              textDecoration: "none",
-              fontWeight: location.pathname === item.path ? "bold" : "normal",
-              color: location.pathname === item.path ? "#e2e8f4" : "#4a5a72",
-              background: location.pathname === item.path ? "#141e30" : "transparent",
+              background: "#141e30",
+              border: "1px solid #1e2e48",
+              color: "#94a3b8",
+              fontSize: 12,
+              cursor: "pointer",
             }}
           >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-
-      {/* Right side */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "#10b981",
-              boxShadow: "0 0 6px #10b981",
-            }}
-          />
-          <span style={{ color: "#10b981", fontSize: 12, fontWeight: "bold" }}>
-            MONITORING
-          </span>
+            Logout
+          </button>
         </div>
-        <LiveClock />
-        {user && (
-          <span style={{ color: "#4a5a72", fontSize: 12 }}>
-            {(user as { name?: string }).name ?? (user as { username?: string }).username ?? "User"}
-          </span>
-        )}
-        <button
-          type="button"
-          onClick={onLogout}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 6,
-            background: "#141e30",
-            border: "1px solid #1e2e48",
-            color: "#94a3b8",
-            fontSize: 12,
-            cursor: "pointer",
-          }}
-        >
-          Logout
-        </button>
+      </header>
+
+      {/* Secondary nav: full width — Dashboard | Group | Frameworks | ... | Roadmap [Run Assessment] */}
+      <nav
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 24px",
+          height: "44px",
+          background: "#0b1220",
+          borderBottom: "1px solid #141e30",
+          position: "sticky",
+          top: 40,
+          zIndex: 100,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+          {NAV_ITEMS.map((item, i) => (
+            <span key={item.path} style={{ display: "flex", alignItems: "center" }}>
+              {i > 0 && (
+                <span style={{ color: "#2d3a52", margin: "0 6px", fontSize: 12 }}>|</span>
+              )}
+              <Link
+                to={item.path}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  letterSpacing: 0,
+                  textDecoration: "none",
+                  fontWeight: location.pathname === item.path ? "bold" : "normal",
+                  color: location.pathname === item.path ? "#e2e8f4" : "#4a5a72",
+                  background: location.pathname === item.path ? "#141e30" : "transparent",
+                }}
+              >
+                {item.label}
+              </Link>
+            </span>
+          ))}
+        </div>
         <button
           type="button"
           onClick={handleRunAssessment}
           disabled={isStreaming}
           style={{
-            padding: "6px 16px",
+            padding: "6px 14px",
             borderRadius: 6,
             background: "linear-gradient(135deg, #2563eb, #3b82f6)",
             border: "none",
             color: "#fff",
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: "bold",
             cursor: isStreaming ? "not-allowed" : "pointer",
             opacity: isStreaming ? 0.7 : 1,
@@ -188,8 +180,8 @@ function Header({
         >
           {isStreaming ? "Streaming…" : "Run Assessment"}
         </button>
-      </div>
-    </header>
+      </nav>
+    </>
   );
 }
 

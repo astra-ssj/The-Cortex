@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LogoIcon } from "./Logo";
 
 export interface LoginProps {
   onSuccess: (token: string, user: object) => void;
@@ -85,31 +86,37 @@ export default function Login({ onSuccess }: LoginProps) {
         </div>
         <div
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 10,
-            background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
-            justifyContent: "center",
-            fontWeight: "bold",
-            color: "#fff",
-            fontSize: 24,
-            marginBottom: 16,
+            gap: "16px",
+            marginBottom: "8px",
           }}
         >
-          C
+          <LogoIcon size={64} glow={true} />
+          <span
+            style={{
+              fontFamily: "'Syne', 'DM Sans', sans-serif",
+              fontWeight: 800,
+              fontSize: 28,
+              letterSpacing: "6px",
+              color: "#e2e8f4",
+            }}
+          >
+            CORTEX
+          </span>
+          <span
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 11,
+              letterSpacing: "3px",
+              color: "#2dd4bf",
+              textTransform: "uppercase",
+            }}
+          >
+            Zero Trust AI Platform
+          </span>
         </div>
-        <h1
-          style={{
-            color: "#e2e8f4",
-            fontSize: 22,
-            fontWeight: "bold",
-            marginBottom: 24,
-          }}
-        >
-          Sign in to CORTEX
-        </h1>
         {error && (
           <div
             style={{
