@@ -85,6 +85,42 @@ export const ztaipApi = {
   getStatus: () => fetchApi("/api/v1/system/ztaip-status"),
 };
 
+export const integrationsApi = {
+  list: () => fetchApi<IntegrationSummary[]>("/api/v1/integrations"),
+  get: (id: string) => fetchApi<IntegrationDetail>(`/api/v1/integrations/${encodeURIComponent(id)}`),
+  test: (id: string) => fetchApi<{ status: string; message?: string }>(`/api/v1/integrations/${encodeURIComponent(id)}/test`, { method: "POST" }),
+};
+
+export interface IntegrationSetupStep {
+  step: number;
+  title: string;
+  description: string;
+  docs_url: string | null;
+}
+
+export interface IntegrationCredentialField {
+  key: string;
+  label: string;
+  placeholder: string;
+  secret?: boolean;
+  multiline?: boolean;
+}
+
+export interface IntegrationSummary {
+  id: string;
+  name: string;
+  category: string;
+  icon: string;
+  color: string;
+  status: "not_connected" | "connected" | "coming_soon";
+  description: string;
+  compliance_value: string[];
+  data_collected: string[];
+  setup_steps: IntegrationSetupStep[];
+  credentials_required: IntegrationCredentialField[];
+}
+export type IntegrationDetail = IntegrationSummary;
+
 // ---- Group posture (multi-entity dashboard) ----
 export interface GroupFrameworkEntry {
   id: string;
