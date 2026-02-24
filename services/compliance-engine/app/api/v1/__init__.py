@@ -8,6 +8,7 @@ from .azure import router as azure_router
 from .aws import router as aws_router
 from .endpoints.assessments import router as assessments_router
 from .endpoints.findings import router as findings_router
+from .endpoints.groups import router as groups_router
 from .endpoints.reports import router as reports_router
 from .ingest import router as ingest_router
 
@@ -17,4 +18,5 @@ router.include_router(azure_router)
 router.include_router(aws_router)
 router.include_router(assessments_router)
 router.include_router(findings_router, prefix="/findings", tags=["findings"])
+router.include_router(groups_router, prefix="/groups", tags=["groups"])
 router.include_router(reports_router)
