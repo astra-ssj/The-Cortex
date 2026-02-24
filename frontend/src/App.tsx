@@ -11,6 +11,7 @@ import {
 import { getToken, getUser, DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
 import Login from "./components/Login";
 import { ComplianceDashboard } from "./ComplianceDashboard";
+import { GroupDashboard } from "./components/GroupDashboard";
 import { RemediationTracker } from "./RemediationTracker";
 import { HumanReview } from "./HumanReview";
 import { AuditReport } from "./components/AuditReport";
@@ -41,6 +42,7 @@ function LiveClock() {
 // ── Navigation ───────────────────────────────────
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard" },
+  { label: "Group", path: "/group" },
   { label: "Frameworks", path: "/frameworks" },
   { label: "Review Queue", path: "/review-queue" },
   { label: "Audit Report", path: "/audit-report" },
@@ -239,6 +241,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<ComplianceDashboard />} />
+            <Route path="/group" element={<GroupDashboard />} />
             <Route path="/frameworks" element={<ComplianceDashboard />} />
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
             <Route path="/review-queue" element={<HumanReview />} />

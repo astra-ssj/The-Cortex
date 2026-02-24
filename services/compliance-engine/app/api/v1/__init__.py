@@ -1,20 +1,28 @@
-# api/v1 — Register all v1 routers (ingest, azure connector, aws connector, assessments, etc.)
-
-from __future__ import annotations
+# api/v1 — Register all v1 routers (frameworks, organisations, assessments, findings, auth, reports, groups)
 
 from fastapi import APIRouter
 
-from .azure import router as azure_router
-from .aws import router as aws_router
-from .endpoints.assessments import router as assessments_router
-from .endpoints.findings import router as findings_router
-from .endpoints.reports import router as reports_router
-from .ingest import router as ingest_router
-
 router = APIRouter(prefix="/api/v1", tags=["v1"])
-router.include_router(ingest_router, tags=["ingestion"])
-router.include_router(azure_router)
-router.include_router(aws_router)
-router.include_router(assessments_router)
-router.include_router(findings_router, prefix="/findings", tags=["findings"])
-router.include_router(reports_router)
+
+from app.api.v1.endpoints import frameworks
+from app.api.v1.endpoints import organisations
+from app.api.v1.endpoints import assessments
+from app.api.v1.endpoints import findings
+from app.api.v1.endpoints import auth
+from app.api.v1.endpoints import reports
+from app.api.v1.endpoints import groups
+
+router.include_router(
+    auth.router, prefix="/auth", tags=["auth"])
+router.include_router(
+    frameworks.router, prefix="/frameworks", tags=["frameworks"])
+router.include_router(
+    organisations.router, prefix="/organisations", tags=["organisations"])
+router.include_router(
+    assessments.router, prefix="/assessments", tags=["assessments"])
+router.include_router(
+    findings.router, prefix="/findings", tags=["findings"])
+router.include_router(
+    reports.router, prefix="/reports", tags=["reports"])
+router.include_router(
+    groups.router, prefix="/groups", tags=["groups"])

@@ -16,6 +16,7 @@ from starlette.responses import Response
 from api.assessments import router as assessments_router
 from api.auth import router as auth_router
 from api.findings import router as findings_router
+from api.groups import router as groups_router
 from api.organisations import router as organisations_router
 from api.system import router as system_router
 
@@ -81,6 +82,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessments_router)
 app.include_router(findings_router, prefix="/api/v1/findings")
+app.include_router(groups_router)
 if _has_v1:
     app.include_router(v1_router)
 app.include_router(organisations_router)

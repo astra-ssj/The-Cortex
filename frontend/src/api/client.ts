@@ -77,9 +77,50 @@ export const reportsApi = {
     fetchApi("/api/v1/reports/executive-summary"),
 };
 
+export const groupsApi = {
+  getPosture: () => fetchApi<GroupPostureResponse>("/api/v1/groups/posture"),
+};
+
 export const ztaipApi = {
   getStatus: () => fetchApi("/api/v1/system/ztaip-status"),
 };
+
+// ---- Group posture (multi-entity dashboard) ----
+export interface GroupFrameworkEntry {
+  id: string;
+  name: string;
+  score: number;
+  status: string;
+  risk: string;
+}
+
+export interface GroupEntity {
+  id: string;
+  name: string;
+  jurisdiction: string;
+  flag: string;
+  type: "ESSENTIAL" | "IMPORTANT" | "STANDARD";
+  employees: number;
+  role: string;
+  overall_score: number;
+  risk_level: string;
+  status: string;
+  frameworks: GroupFrameworkEntry[];
+  critical_findings: number;
+  open_findings: number;
+  last_assessed: string;
+}
+
+export interface GroupPostureResponse {
+  group_name: string;
+  as_at: string;
+  overall_score: number;
+  overall_risk: string;
+  entities_count: number;
+  frameworks_active: number;
+  critical_findings: number;
+  entities: GroupEntity[];
+}
 
 // SSE stream builder
 export const buildStreamUrl = (): string => {
