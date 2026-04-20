@@ -16,6 +16,9 @@ frontend/dist/
 *.key
 secrets/
 
+# GRC Skills — raw .skill binaries (extracted SKILL.md is committed)
+services/skills/raw/*.skill
+
 # IDE and test
 .pytest_cache/
 .coverage

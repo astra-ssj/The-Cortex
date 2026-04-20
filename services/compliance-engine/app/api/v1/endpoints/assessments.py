@@ -1,4 +1,8 @@
 # assessments — Minimal assessments stub (compliance-engine).
+#
+# Production SSE assessments (with GRC skill metadata per control) are served by
+# api/assessments.py → services.assessment_engine.run_assessment_stream, which
+# attaches skill_id / citation_format via app.core.skills_loader.
 
 import json
 

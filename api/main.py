@@ -38,6 +38,22 @@ logger = structlog.get_logger()
 async def lifespan(app: FastAPI):
     # Ensure compliance registry is loaded (side effect of import).
     import compliance  # noqa: F401
+
+    if _has_v1:
+        try:
+            from app.core.skills_loader import get_skills_loader
+
+            loader = get_skills_loader()
+            summary = loader.summary()
+            logger.info(
+                "grc_skills_ready",
+                loaded=summary["loaded"],
+                total=summary["total"],
+                skills=summary.get("skills", []),
+            )
+        except Exception as e:
+            logger.warning("grc_skills_load_failed", error=str(e))
+
     yield
     # Shutdown: nothing to close for in-memory registry.
 

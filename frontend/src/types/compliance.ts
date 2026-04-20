@@ -95,6 +95,10 @@ export interface AssessmentEventControlResult {
   controlName: string;
   status: "assessed" | "skipped" | "error";
   finding?: string;
+  /** GRC bundled skill matched for this framework (assessment_engine). */
+  skill_id?: string | null;
+  skill_name?: string;
+  citation_format?: string;
 }
 
 export interface AssessmentEventFrameworkDone {

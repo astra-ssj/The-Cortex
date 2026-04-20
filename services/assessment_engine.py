@@ -75,7 +75,15 @@ async def run_assessment_stream(
             }
 
             # Demo: no LLM; emit control_result. Real run would call CircuitBreaker-wrapped LLM.
-            yield {
+            skill = None
+            try:
+                from app.core.skills_loader import get_skill_for_framework
+
+                skill = get_skill_for_framework(fid.value)
+            except Exception as e:
+                logger.warning("skill_lookup_failed", framework_id=fid.value, error=str(e))
+
+            result: dict[str, Any] = {
                 "kind": "control_result",
                 "frameworkId": fid.value,
                 "controlId": control.id,
@@ -83,6 +91,24 @@ async def run_assessment_stream(
                 "status": "assessed",
                 "finding": f"Demo assessment for {control.name} (org={organization_id}). Context built.",
             }
+            if skill:
+                result["skill_id"] = skill.id
+                result["skill_name"] = skill.name
+                result["citation_format"] = skill.get_citation_format()
+                logger.info(
+                    "ztaip_skill_matched",
+                    control_id=control.id,
+                    skill_id=skill.id,
+                    framework_id=fid.value,
+                )
+            else:
+                result["skill_id"] = None
+                logger.info(
+                    "ztaip_skill_unmatched",
+                    control_id=control.id,
+                    framework_id=fid.value,
+                )
+            yield result
 
         posture = calculator.calculate_framework_posture(fid.value, org_context)
         await calculator.save_assessment_result(

@@ -13,6 +13,7 @@ from app.api.v1.endpoints import auth
 from app.api.v1.endpoints import reports
 from app.api.v1.endpoints import groups
 from app.api.v1.endpoints import integrations
+from app.api.v1.endpoints import skills
 
 router.include_router(
     auth.router, prefix="/auth", tags=["auth"])
@@ -30,3 +31,5 @@ router.include_router(
     groups.router, prefix="/groups", tags=["groups"])
 router.include_router(
     integrations.router, prefix="/integrations", tags=["integrations"])
+router.include_router(
+    skills.router, prefix="/skills", tags=["skills"])
