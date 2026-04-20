@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional, cast
 
 import structlog
 from sqlalchemy import select
@@ -17,7 +17,7 @@ logger = structlog.get_logger()
 async def get_org_profile(session: AsyncSession, organization_id: str) -> Organization | None:
     """Load organization profile from PostgreSQL."""
     result = await session.execute(select(Organization).where(Organization.id == organization_id))
-    return result.scalars().first()
+    return cast(Optional[Organization], result.scalars().first())
 
 
 def _format_control_for_prompt(control: Control) -> str:

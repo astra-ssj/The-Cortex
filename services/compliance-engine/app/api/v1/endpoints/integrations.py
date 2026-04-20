@@ -1,11 +1,12 @@
 # Integrations hub — data source connectors with setup guides and connection status.
 # ZTAIP: read-only metadata; credentials stored separately (encrypted). No naked LLM calls.
 
+from typing import Any
 from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
 
-INTEGRATIONS = [
+INTEGRATIONS: list[dict[str, Any]] = [
     {
         "id": "microsoft-365",
         "name": "Microsoft 365",

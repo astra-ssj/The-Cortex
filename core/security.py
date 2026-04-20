@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import os
 from typing import Any, Optional
 
 import bcrypt
@@ -10,7 +11,7 @@ from jose import JWTError, jwt
 from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 
-SECRET_KEY = "cortex-dev-secret-change-in-production"
+SECRET_KEY = os.getenv("CORTEX_SECRET_KEY", "cortex-dev-secret-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours
 
@@ -48,7 +49,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_access_token(data: dict[str, Any]) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    return jwt.encode({**data, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+    return str(jwt.encode({**data, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM))
 
 
 def _decode_user(token: str) -> dict[str, Any]:

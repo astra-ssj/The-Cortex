@@ -366,7 +366,7 @@ async def update_finding(finding_id: str, body: dict[str, Any]) -> dict[str, Any
     try:
         from core.audit_fabric import audit_fabric
     except ImportError:
-        audit_fabric = None
+        audit_fabric = None  # type: ignore
 
     idx = next((i for i, f in enumerate(FINDINGS_STORE) if f.get("id") == finding_id), None)
     if idx is None:

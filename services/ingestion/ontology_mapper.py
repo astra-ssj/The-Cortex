@@ -85,4 +85,5 @@ async def map_chunks_to_ontology(
             "requires_human_review": result.requires_human_review,
         },
     )
-    return result
+    from typing import cast
+    return cast(OntologyMappingResult, result)

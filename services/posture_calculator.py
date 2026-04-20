@@ -67,7 +67,8 @@ class PostureCalculator:
         fid = _framework_id_from_str(framework_id)
         if fid is None:
             raise ValueError(f"Unknown or unregistered framework: {framework_id}")
-        framework: Framework = get(fid)
+        from typing import Optional
+        framework: Optional[Framework] = get(fid)
         if framework is None:
             raise ValueError(f"Framework not found: {framework_id}")
 

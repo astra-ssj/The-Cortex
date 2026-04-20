@@ -196,7 +196,8 @@ def insert_all(conn) -> dict[str, int]:
     counts["unit_consumers"] = unit_consumers_count
 
     # 5. People (20)
-    people = [
+    from typing import Optional
+    people: list[tuple[str, str, Optional[str], str, list[str]]] = [
         (P_CISO, E_DE, U_DE_SEC, "Group CISO", ["ciso"]),
         (P_DPO, E_DE, U_DE_LEGAL, "Group DPO", ["dpo"]),
         (P_CTO, E_DE, U_DE_ENG, "CTO", ["cto"]),
@@ -218,7 +219,7 @@ def insert_all(conn) -> dict[str, int]:
         (P_COMPLIANCE_LEAD, E_DE, U_DE_SEC, "Compliance Lead DE", ["compliance_lead"]),
         (P_RISK_OWNER, E_DE, U_DE_SEC, "Risk Owner DE", ["risk_owner"]),
     ]
-    for pid, eid, uid, name, roles in people:
+    for pid, eid, uid, name, roles in people:  # type: ignore
         cur.execute(
             """INSERT INTO people (id, entity_id, unit_id, name, roles)
                VALUES (%s, %s, %s, %s, %s) ON CONFLICT (id) DO NOTHING""",

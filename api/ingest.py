@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 
 import structlog
+from typing import Literal
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
@@ -30,7 +31,7 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
-async def _run_ingest_stream(content: bytes, ext: str, document_type: str, document_id: str):
+async def _run_ingest_stream(content: bytes, ext: str, document_type: Literal['pdf', 'docx', 'txt'], document_id: str):
     """Pipeline: process → map → evidence; yield SSE events. Audit before and after (ZTAIP)."""
     tmp_path = None
     success = False
@@ -90,7 +91,8 @@ async def ingest_document(file: UploadFile = File(...)):
     ext = (file.filename or "").split(".")[-1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"Allowed types: {list(ALLOWED_EXTENSIONS)}")
-    document_type = EXT_TO_TYPE[ext]
+    from typing import Literal, cast
+    document_type = cast(Literal['pdf', 'docx', 'txt'], EXT_TO_TYPE[ext])
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File exceeds 10MB limit")

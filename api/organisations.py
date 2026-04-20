@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from core.security import get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from compliance import FrameworkId, exists, get
+from compliance import FrameworkId, exists
 
 from api.deps import get_db
 from api.schemas import CompliancePosture, FrameworkPosture, OrgProfile

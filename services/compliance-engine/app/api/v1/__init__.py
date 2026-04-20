@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
+# ruff: noqa: E402
 
 from app.api.v1.endpoints import frameworks
 from app.api.v1.endpoints import organisations

@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 
-from compliance import FrameworkId, get, register_all
-from compliance.models import Framework
+from compliance import FrameworkId, register_all
 from compliance.registry import REGISTRY, get as registry_get, register
 
 

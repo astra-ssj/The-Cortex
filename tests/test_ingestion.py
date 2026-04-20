@@ -117,7 +117,7 @@ def test_process_document_unknown_type_raises() -> None:
     with temp_dir_with_file("x.txt", "content") as d:
         path = Path(d) / "x.txt"
         with pytest.raises(ValueError, match="Unsupported"):
-            process_document(path, "xml")
+            process_document(path, "xml")  # type: ignore
 
 
 # ---- ontology_mapper (mock LLM) ----

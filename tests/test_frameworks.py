@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 
 from compliance import FrameworkId, get
-from compliance.models import Framework
 
 
 def test_registry_has_nist_csf() -> None:

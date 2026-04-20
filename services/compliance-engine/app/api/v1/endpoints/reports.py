@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import structlog
 from fastapi import APIRouter, Depends, Request
@@ -32,7 +32,8 @@ async def _fetch_json(
         async with httpx.AsyncClient(timeout=15.0) as client:
             r = await client.get(url, headers=headers)
             if r.status_code == 200:
-                return r.json()
+                res = r.json()
+                return cast(dict[str, Any], res) if isinstance(res, dict) else None
     except Exception as e:
         logger.warning("report_fetch_failed", path=path, error=str(e))
     return None
@@ -66,8 +67,9 @@ async def get_executive_summary(
         [f for f in open_findings if f.get("severity") == "CRITICAL"],
         key=lambda x: (x.get("due_date") or ""),
     )[:5]
+    as_at_str = as_at if as_at else datetime.now(timezone.utc).strftime("%Y-%m-%d")
     overdue_count = sum(
-        1 for f in open_findings if f.get("due_date") and f.get("due_date") < (as_at or datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+        [1 for f in open_findings if dict.get(f, "due_date") and str(dict.get(f, "due_date")) < as_at_str]
     )
 
     as_at_date = as_at or datetime.now(timezone.utc).strftime("%Y-%m-%d")
