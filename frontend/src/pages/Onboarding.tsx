@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
+import AssessmentStream from "../components/AssessmentStream";
 import { LogoFull } from "../components/Logo";
 import { putOnboardingStep } from "../api/client";
 
@@ -72,7 +73,7 @@ export default function Onboarding() {
     return getPresetFrameworks(jurisdiction);
   });
   const [busy, setBusy] = useState(false);
-  const [running, setRunning] = useState(false);
+  const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState("");
 
   const totalControls = useMemo(
@@ -80,46 +81,8 @@ export default function Onboarding() {
     [frameworks]
   );
 
-  async function handleRunAssessment() {
-    setRunning(true);
-    try {
-      const token = localStorage.getItem("cortex_token");
-      const orgId = localStorage.getItem("cortex_org_id") ?? "demo-org-001";
-
-      await fetch("/api/v1/auth/onboarding/step", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ step: 3 }),
-      });
-
-      localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
-
-      void fetch("/api/v1/assessments/run", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          org_id: orgId,
-          frameworks,
-        }),
-      }).catch(() => {
-        // Assessment endpoint may be unavailable — non-blocking
-      });
-
-      window.setTimeout(() => {
-        setRunning(false);
-        navigate("/dashboard", { replace: true });
-      }, 1500);
-    } catch (e) {
-      console.error("Assessment start failed:", e);
-      setRunning(false);
-      navigate("/dashboard", { replace: true });
-    }
+  function handleRunAssessment() {
+    setStreaming(true);
   }
 
   async function handleSkip() {
@@ -199,6 +162,46 @@ export default function Onboarding() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#05080f", color: "#e2e8f4", fontFamily: "DM Sans, sans-serif" }}>
+      {streaming ? (
+        <AssessmentStream
+          orgName={localStorage.getItem("cortex_company") ?? "Your Organisation"}
+          orgId={localStorage.getItem("cortex_org_id") ?? "demo-org-001"}
+          frameworks={frameworks}
+          onComplete={() => {
+            void (async () => {
+              try {
+                const token = localStorage.getItem("cortex_token");
+                await fetch("/api/v1/auth/onboarding/step", {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ step: 3 }),
+                });
+              } catch {
+                /* non-blocking */
+              }
+              localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
+
+              const token = localStorage.getItem("cortex_token");
+              const orgId = localStorage.getItem("cortex_org_id") ?? "demo-org-001";
+              void fetch("/api/v1/assessments/run", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ org_id: orgId, frameworks }),
+              }).catch(() => {
+                /* Assessment endpoint may be unavailable — non-blocking */
+              });
+
+              navigate("/dashboard", { replace: true });
+            })();
+          }}
+        />
+      ) : null}
       <header style={{ background: "#090e1a", borderBottom: "1px solid #141e30", padding: "14px 24px 12px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <LogoFull size="md" />
@@ -386,27 +389,12 @@ export default function Onboarding() {
               ))}
             </div>
 
-            {running ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  color: "#2dd4bf",
-                  fontFamily: "'Space Mono', 'DM Mono', monospace",
-                  fontSize: 12,
-                  padding: 16,
-                  letterSpacing: "2px",
-                }}
-              >
-                ● LAUNCHING ASSESSMENT...
-              </div>
-            ) : (
-              <button type="button" disabled={busy} onClick={() => void handleRunAssessment()} style={runAssessmentStyle(busy)}>
-                ▶ Run First Assessment
-              </button>
-            )}
+            <button type="button" disabled={busy || streaming} onClick={handleRunAssessment} style={runAssessmentStyle(busy || streaming)}>
+              ▶ Run First Assessment
+            </button>
 
             <div style={{ marginTop: 12 }}>
-              <button type="button" disabled={busy || running} onClick={() => void handleSkip()} style={{ ...ghostStyle, color: "#94a3b8", fontSize: 12 }}>
+              <button type="button" disabled={busy || streaming} onClick={() => void handleSkip()} style={{ ...ghostStyle, color: "#94a3b8", fontSize: 12 }}>
                 Skip for now →
               </button>
             </div>
