@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { AuditSimulator } from "../components/AuditSimulator";
 import { TelemetryFusion } from "../components/TelemetryFusion";
+import { RegulationIntel } from "../components/RegulationIntel";
+import { EvidenceVault } from "../components/EvidenceVault";
 
-type IntelligenceTab = "simulator" | "signals";
+type IntelTab = "simulator" | "signals" | "regulation" | "vault";
 
 export default function Intelligence() {
-  const [tab, setTab] = useState<IntelligenceTab>("simulator");
+  const [tab, setTab] = useState<IntelTab>("simulator");
 
   return (
     <div
@@ -103,6 +105,54 @@ export default function Intelligence() {
             />
             3 Regulators Modelled
           </span>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 14px",
+              borderRadius: 999,
+              background: "#0f172a",
+              border: "1px solid #1e40af",
+              fontSize: 12,
+              color: "#60a5fa",
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#3b82f6",
+                flexShrink: 0,
+              }}
+            />
+            6 Regulatory Events
+          </span>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 14px",
+              borderRadius: 999,
+              background: "#0f172a",
+              border: "1px solid #14532d",
+              fontSize: 12,
+              color: "#4ade80",
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#22c55e",
+                flexShrink: 0,
+              }}
+            />
+            12 Evidence Records
+          </span>
         </div>
       </header>
 
@@ -113,6 +163,7 @@ export default function Intelligence() {
           gap: 28,
           marginBottom: 24,
           borderBottom: "1px solid #141e30",
+          flexWrap: "wrap",
         }}
       >
         <button
@@ -157,9 +208,53 @@ export default function Intelligence() {
         >
           Live Signals
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "regulation"}
+          onClick={() => setTab("regulation")}
+          style={{
+            padding: "10px 0",
+            marginBottom: -1,
+            border: "none",
+            borderBottom:
+              tab === "regulation" ? "2px solid #2dd4bf" : "2px solid transparent",
+            background: "transparent",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: tab === "regulation" ? 600 : 400,
+            color: tab === "regulation" ? "#f8fafc" : "var(--dim)",
+            fontFamily: "inherit",
+          }}
+        >
+          Regulation Intel
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "vault"}
+          onClick={() => setTab("vault")}
+          style={{
+            padding: "10px 0",
+            marginBottom: -1,
+            border: "none",
+            borderBottom: tab === "vault" ? "2px solid #2dd4bf" : "2px solid transparent",
+            background: "transparent",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: tab === "vault" ? 600 : 400,
+            color: tab === "vault" ? "#f8fafc" : "var(--dim)",
+            fontFamily: "inherit",
+          }}
+        >
+          Evidence Vault
+        </button>
       </div>
 
-      {tab === "simulator" ? <AuditSimulator /> : <TelemetryFusion />}
+      {tab === "simulator" && <AuditSimulator />}
+      {tab === "signals" && <TelemetryFusion />}
+      {tab === "regulation" && <RegulationIntel />}
+      {tab === "vault" && <EvidenceVault />}
     </div>
   );
 }

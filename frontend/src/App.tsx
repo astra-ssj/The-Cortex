@@ -26,6 +26,7 @@ import { ProjectTracker } from "./ProjectTracker";
 import { FrameworkDetailPage } from "./FrameworkDetailPage";
 import { useAssessmentStream } from "./store/complianceStore";
 import Intelligence from "./pages/Intelligence";
+import AISystems from "./pages/AISystems";
 
 function LiveClock() {
   const [time, setTime] = useState(new Date());
@@ -45,6 +46,7 @@ const NAV_ITEMS = [
   { label: "Group", path: "/group" },
   { label: "Frameworks", path: "/frameworks" },
   { label: "Intelligence", path: "/intelligence" },
+  { label: "AI Systems", path: "/ai-systems" },
   { label: "Review Queue", path: "/review-queue" },
   { label: "Audit Report", path: "/audit-report" },
   { label: "Integrations", path: "/integrations" },
@@ -314,6 +316,7 @@ export default function App() {
             <Route path="/frameworks" element={<ComplianceDashboard />} />
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
             <Route path="/intelligence" element={<Intelligence />} />
+            <Route path="/ai-systems" element={<AISystems />} />
             <Route path="/review-queue" element={<HumanReview />} />
             <Route path="/audit-report" element={<AuditReport />} />
             <Route path="/integrations" element={<Integrations />} />
