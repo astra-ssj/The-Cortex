@@ -216,8 +216,8 @@ async def login(
             },
         }
 
-    # Legacy demo: username admin / password admin (matches seeded admin@astralabs.com when DB present).
-    if username == "admin" and password == "admin":
+    # Legacy demo: ``admin`` / ``admin`` or same password with seeded demo email (works without DB row).
+    if (username == "admin" or username.lower() == "admin@astralabs.com") and password == "admin":
         token = create_access_token(
             {
                 "sub": "demo-user-001",
