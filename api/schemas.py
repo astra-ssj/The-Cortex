@@ -105,6 +105,7 @@ class CompliancePosture(BaseModel):
     risk_level: Optional[str] = Field(None, serialization_alias="riskLevel")
     critical_gaps: Optional[list[dict[str, Any]]] = Field(None, serialization_alias="criticalGaps")
     last_assessed: Optional[str] = Field(None, serialization_alias="lastAssessed")
+    message: Optional[str] = Field(None, serialization_alias="message")
 
 
 # ---- Organisation profile (GET /organisations/{id}) ----

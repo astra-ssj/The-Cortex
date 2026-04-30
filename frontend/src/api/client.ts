@@ -9,6 +9,11 @@ function getApiOrigin(): string {
   return "http://localhost:8000";
 }
 
+/** Default demo tenant — prefer ``useOrgContext().orgId`` for API calls after login. */
+export const DEFAULT_ORG_ID = "demo-org-001";
+export const ALL_FRAMEWORK_IDS =
+  "iso27001-2022,gdpr-2016-679,nis2-2022-2555,nist-csf-2.0,csa-ccm-v4,cyber-essentials-v3.1,eu-ai-act-2024,eu-cybersecurity-act";
+
 export const getToken = (): string | null =>
   localStorage.getItem("cortex_token");
 
@@ -51,19 +56,29 @@ async function patchApi<T>(path: string, body: unknown): Promise<T> {
   return fetchApi<T>(path, { method: "PATCH", body: JSON.stringify(body) });
 }
 
+async function putApi<T>(path: string, body: unknown): Promise<T> {
+  return fetchApi<T>(path, { method: "PUT", body: JSON.stringify(body) });
+}
+
 // API modules
 export const frameworksApi = {
   list: () => fetchApi("/api/v1/frameworks"),
 };
 
 export const organisationsApi = {
-  getPosture: (orgId = "demo-org-001") =>
-    fetchApi(`/api/v1/organisations/${orgId}/posture`),
+  getPosture: (orgId: string = DEFAULT_ORG_ID) =>
+    fetchApi(`/api/v1/organisations/${encodeURIComponent(orgId)}/posture`),
 };
 
 export const assessmentsApi = {
   getReviewQueue: () =>
     fetchApi("/api/v1/assessments/review-queue"),
+  /** Acknowledges run; open SSE via buildStreamUrl + EventSource. */
+  run: (body: { org_id: string; frameworks: string[] }) =>
+    postApi<{ status: string; org_id: string; framework_ids: string[] }>(
+      "/api/v1/assessments/run",
+      body
+    ),
 };
 
 export const findingsApi = {
@@ -78,7 +93,13 @@ export const reportsApi = {
 };
 
 export const groupsApi = {
-  getPosture: () => fetchApi<GroupPostureResponse>("/api/v1/groups/posture"),
+  getPosture: (orgId?: string) => {
+    const qs =
+      orgId != null && orgId !== ""
+        ? `?org_id=${encodeURIComponent(orgId)}`
+        : "";
+    return fetchApi<GroupPostureResponse>(`/api/v1/groups/posture${qs}`);
+  },
 };
 
 export const ztaipApi = {
@@ -159,33 +180,32 @@ export interface GroupPostureResponse {
 }
 
 // SSE stream builder
-export const buildStreamUrl = (): string => {
-  const url = new URL(
-    `${getApiOrigin()}/api/v1/assessments/stream`
-  );
-  url.searchParams.set("org_id", "demo-org-001");
-  url.searchParams.set(
-    "frameworks",
-    [
-      "iso27001-2022",
-      "gdpr-2016-679",
-      "nis2-2022-2555",
-      "nist-csf-2.0",
-      "csa-ccm-v4",
-      "cyber-essentials-v3.1",
-      "eu-ai-act-2024",
-      "eu-cybersecurity-act",
-    ].join(",")
-  );
+const DEFAULT_STREAM_FRAMEWORKS = [
+  "iso27001-2022",
+  "gdpr-2016-679",
+  "nis2-2022-2555",
+  "nist-csf-2.0",
+  "csa-ccm-v4",
+  "cyber-essentials-v3.1",
+  "eu-ai-act-2024",
+  "eu-cybersecurity-act",
+] as const;
+
+export function buildStreamUrl(
+  orgId: string = DEFAULT_ORG_ID,
+  frameworkIds: readonly string[] | string = DEFAULT_STREAM_FRAMEWORKS
+): string {
+  const url = new URL(`${getApiOrigin()}/api/v1/assessments/stream`);
+  url.searchParams.set("org_id", orgId);
+  const fw =
+    typeof frameworkIds === "string"
+      ? frameworkIds
+      : frameworkIds.join(",");
+  url.searchParams.set("frameworks", fw);
   const token = getToken();
   if (token) url.searchParams.set("token", token);
   return url.toString();
-};
-
-// Compatibility for dashboard and App header
-export const DEFAULT_ORG_ID = "demo-org-001";
-export const ALL_FRAMEWORK_IDS =
-  "iso27001-2022,gdpr-2016-679,nis2-2022-2555,nist-csf-2.0,csa-ccm-v4,cyber-essentials-v3.1,eu-ai-act-2024,eu-cybersecurity-act";
+}
 
 // ---- Audit Report (Executive Summary) — for components/AuditReport.tsx ----
 export interface ExecutiveSummaryParams {
@@ -271,6 +291,7 @@ export interface ListFindingsParams {
   severity?: string;
   framework_id?: string;
   entity?: string;
+  org_id?: string;
 }
 
 export async function fetchFindings(params?: ListFindingsParams): Promise<RemediationFinding[]> {
@@ -279,6 +300,7 @@ export async function fetchFindings(params?: ListFindingsParams): Promise<Remedi
   if (params?.severity) search.set("severity", params.severity);
   if (params?.framework_id) search.set("framework_id", params.framework_id);
   if (params?.entity) search.set("entity", params.entity);
+  if (params?.org_id) search.set("org_id", params.org_id);
   const qs = search.toString();
   return fetchApi<RemediationFinding[]>(`/api/v1/findings${qs ? `?${qs}` : ""}`);
 }
@@ -330,8 +352,19 @@ export interface ReviewQueueResponse {
   reviewed: ReviewedItem[];
 }
 
-export async function fetchReviewQueueApi(): Promise<ReviewQueueResponse> {
-  return fetchApi<ReviewQueueResponse>("/api/v1/assessments/review-queue");
+export async function fetchReviewQueueApi(orgId?: string): Promise<ReviewQueueResponse> {
+  const qs =
+    orgId != null && orgId !== ""
+      ? `?org_id=${encodeURIComponent(orgId)}`
+      : "";
+  return fetchApi<ReviewQueueResponse>(`/api/v1/assessments/review-queue${qs}`);
+}
+
+export async function putOnboardingStep(body: {
+  step: number;
+  data?: Record<string, unknown>;
+}): Promise<{ step: number; org_id: string; updated: Record<string, unknown> }> {
+  return putApi("/api/v1/auth/onboarding/step", body);
 }
 
 export async function approveControl(
@@ -352,7 +385,7 @@ export async function overrideControl(
   });
 }
 
-export function useReviewQueue(): {
+export function useReviewQueue(orgId?: string | null): {
   items: ReviewQueueItem[] | null;
   reviewed: ReviewedItem[] | null;
   refetch: () => Promise<void>;
@@ -368,7 +401,7 @@ export function useReviewQueue(): {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchReviewQueueApi();
+      const data = await fetchReviewQueueApi(orgId ?? undefined);
       setItems(data.items);
       setReviewed(data.reviewed);
     } catch (e) {
@@ -376,7 +409,7 @@ export function useReviewQueue(): {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [orgId]);
 
   useEffect(() => {
     refetch();

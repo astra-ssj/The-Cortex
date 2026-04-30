@@ -161,6 +161,12 @@ function mapPostureResponse(raw: Record<string, unknown>): CompliancePosture {
   const lastAssessed = raw.lastAssessed ?? raw.last_assessed;
   const overallScore = typeof (raw.overallScore ?? raw.overall_score) === "number" ? (raw.overallScore ?? raw.overall_score) as number : undefined;
   const auditReadiness = typeof (raw.auditReadiness ?? raw.audit_readiness) === "number" ? (raw.auditReadiness ?? raw.audit_readiness) as number : undefined;
+  const overallRisk =
+    typeof (raw.riskLevel ?? raw.risk_level) === "string"
+      ? (raw.riskLevel ?? raw.risk_level) as CompliancePosture["overallRiskLevel"]
+      : undefined;
+  const postureMessage =
+    typeof (raw.message ?? raw.Message) === "string" ? String(raw.message ?? raw.Message) : undefined;
   const criticalGapsRaw = raw.criticalGaps ?? raw.critical_gaps;
   const criticalGapsCount = Array.isArray(criticalGapsRaw)
     ? criticalGapsRaw.length
@@ -173,6 +179,8 @@ function mapPostureResponse(raw: Record<string, unknown>): CompliancePosture {
     lastAssessed: lastAssessed != null ? String(lastAssessed) : undefined,
     overallScore,
     auditReadiness,
+    overallRiskLevel: overallRisk,
+    message: postureMessage,
     criticalGapsCount,
     frameworks: frameworks.map((f: Record<string, unknown>) => ({
       frameworkId: String(f.frameworkId ?? f.framework_id ?? ""),
@@ -222,12 +230,12 @@ export function useAssessmentStream() {
   const [isStreaming, setIsStreaming] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  const startStream = useCallback((_organizationId: string, _frameworkIds: string[]) => {
+  const startStream = useCallback((organizationId: string, frameworkIds: string[]) => {
     eventSourceRef.current?.close();
     eventSourceRef.current = null;
     setEvents([]);
     setIsStreaming(true);
-    const url = buildStreamUrl();
+    const url = buildStreamUrl(organizationId, frameworkIds);
     const es = new EventSource(url);
     es.onmessage = (e: MessageEvent) => {
       try {

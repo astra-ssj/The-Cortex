@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { groupsApi } from "../api/client";
+import { useOrgContext } from "../hooks/useOrgContext";
 import type { GroupPostureResponse, GroupEntity } from "../api/client";
 
 // ─── CORTEX dark theme (match ComplianceDashboard) ─────────────────────────
@@ -273,6 +274,7 @@ function EntityCard({
 
 // ─── Main view ─────────────────────────────────────────────────────────────
 export function GroupDashboard() {
+  const { orgId } = useOrgContext();
   const [data, setData] = useState<GroupPostureResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -283,7 +285,7 @@ export function GroupDashboard() {
     setLoading(true);
     setError(null);
     groupsApi
-      .getPosture()
+      .getPosture(orgId)
       .then((res) => {
         if (!cancelled) setData(res);
       })
@@ -296,7 +298,7 @@ export function GroupDashboard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [orgId]);
 
   const criticalEntityCount = useMemo(
     () => (data ? data.entities.filter((e) => e.risk_level === "CRITICAL").length : 0),

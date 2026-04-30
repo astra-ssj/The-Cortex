@@ -1,4 +1,4 @@
-# core/security.py — JWT auth and RBAC. Demo users in-memory; replace with DB in production.
+# core/security.py — JWT auth and RBAC. Demo users in-memory; DB-backed users via api/auth.
 
 from __future__ import annotations
 
@@ -43,6 +43,10 @@ DEMO_USERS: dict[str, dict[str, Any]] = {
 }
 
 
+def hash_password(plain: str) -> str:
+    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
+
+
 def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
@@ -52,25 +56,76 @@ def create_access_token(data: dict[str, Any]) -> str:
     return str(jwt.encode({**data, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM))
 
 
+def _claims_user(payload: dict[str, Any]) -> dict[str, Any]:
+    """Normalise JWT claims into the dependency dict used across routers."""
+    email = payload.get("email") or ""
+    name = payload.get("name") or payload.get("full_name") or email or ""
+    entity = payload.get("entity") or payload.get("org_name") or ""
+    role_raw = payload.get("role", "CISO")
+    return {
+        "sub": payload.get("sub"),
+        "user_id": str(payload.get("sub") or ""),
+        "email": email,
+        "role": str(role_raw).lower() if isinstance(role_raw, str) else role_raw,
+        "org_id": str(payload.get("org_id") or ""),
+        "name": name,
+        "entity": entity,
+        "is_demo": bool(payload.get("is_demo", False)),
+        "onboarding_complete": bool(payload.get("onboarding_complete", False)),
+        "onboarding_step": int(payload.get("onboarding_step", 0)),
+    }
+
+
 def _decode_user(token: str) -> dict[str, Any]:
     # Demo bypass: literal "TOKEN" for curl/docs testing (e.g. reports/executive-summary).
     if token == "TOKEN":
-        return {"name": "Demo User", "email": "demo@astralabs.demo", "role": "ciso", "entity": "AstraLabs Group"}
-    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    email = payload.get("sub")
-    if email not in DEMO_USERS:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    return DEMO_USERS[email]
-
-
-def get_current_user(token: str = Depends(oauth2_scheme)) -> dict[str, Any]:
+        return {
+            "sub": "token-bypass",
+            "user_id": "token-bypass",
+            "email": "demo@astralabs.demo",
+            "role": "ciso",
+            "org_id": "demo-org-001",
+            "name": "Demo User",
+            "entity": "AstraLabs Group",
+            "is_demo": True,
+            "onboarding_complete": True,
+            "onboarding_step": 5,
+        }
     try:
-        return _decode_user(token)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
-        )
+        ) from None
+
+    if payload.get("org_id"):
+        return _claims_user(payload)
+
+    email = payload.get("sub")
+    if isinstance(email, str) and email in DEMO_USERS:
+        u = DEMO_USERS[email]
+        return {
+            "sub": email,
+            "user_id": email,
+            "email": email,
+            "role": u["role"],
+            "org_id": "demo-org-001",
+            "name": u["name"],
+            "entity": u["entity"],
+            "is_demo": True,
+            "onboarding_complete": True,
+            "onboarding_step": 5,
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired token",
+    )
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> dict[str, Any]:
+    return _decode_user(token)
 
 
 def get_current_user_query_or_header(
@@ -88,13 +143,7 @@ def get_current_user_query_or_header(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
-    try:
-        return _decode_user(token)
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
+    return _decode_user(token)
 
 
 async def get_current_user_stream(request: Request = Depends()) -> dict[str, Any]:
@@ -110,7 +159,7 @@ async def get_current_user_optional(
     """Auth for SSE/stream: try Authorization header first, then query param 'token'."""
     token: Optional[str] = None
     if token_header and token_header.startswith("Bearer "):
-        token = token_header.split(" ")[1]
+        token = token_header.split(" ", 1)[1].strip()
     if not token:
         token = request.query_params.get("token")
     if not token:
@@ -118,14 +167,4 @@ async def get_current_user_optional(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-        if email not in DEMO_USERS:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-        return DEMO_USERS[email]
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        )
+    return _decode_user(token)

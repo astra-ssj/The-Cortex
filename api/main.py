@@ -99,9 +99,10 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessments_router)
 app.include_router(findings_router, prefix="/api/v1/findings")
 app.include_router(groups_router)
+# Prefer root api.organisations (DB-backed posture) over compliance-engine stub when both register /api/v1/organisations.
+app.include_router(organisations_router)
 if _has_v1:
     app.include_router(v1_router)
-app.include_router(organisations_router)
 app.include_router(system_router)
 
 

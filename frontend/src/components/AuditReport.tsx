@@ -6,10 +6,10 @@
 import { useState, useCallback } from "react";
 import {
   fetchExecutiveSummary,
-  DEFAULT_ORG_ID,
   type ExecutiveSummaryReport,
   type ExecutiveSummaryParams,
 } from "../api/client";
+import { useOrgContext } from "../hooks/useOrgContext";
 
 const REPORT_TYPES = [
   { value: "executive-summary", label: "Executive Summary (Board)" },
@@ -50,6 +50,7 @@ function riskColor(risk: string): string {
 }
 
 export function AuditReport() {
+  const { orgId } = useOrgContext();
   const [reportType, setReportType] = useState<string>(REPORT_TYPES[0].value);
   const [entityScope, setEntityScope] = useState<string>("ALL");
   const [asAt, setAsAt] = useState<string>(() => formatDateForInput(new Date()));
@@ -63,7 +64,7 @@ export function AuditReport() {
     setLoading(true);
     try {
       const params: ExecutiveSummaryParams = {
-        org_id: DEFAULT_ORG_ID,
+        org_id: orgId,
         as_at: asAt,
         entity_scope: entityScope === "ALL" ? undefined : entityScope,
       };
@@ -75,7 +76,7 @@ export function AuditReport() {
     } finally {
       setLoading(false);
     }
-  }, [asAt, entityScope]);
+  }, [asAt, entityScope, orgId]);
 
   const handlePrint = useCallback(() => {
     window.print();

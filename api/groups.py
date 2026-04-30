@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import text
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.deps import get_db
+from core.security import get_current_user
+from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
 
 router = APIRouter(prefix="/api/v1", tags=["groups"])
 
 
-@router.get("/groups/posture")
-async def get_group_posture():
+def _demo_group_posture() -> dict:
     """Return group-level compliance posture across all 6 AstraLabs entities."""
     return {
         "group_name": "AstraLabs Group",
@@ -138,6 +145,59 @@ async def get_group_posture():
                 "critical_findings": 0,
                 "open_findings": 1,
                 "last_assessed": "2026-02-23",
+            },
+        ],
+    }
+
+
+@router.get("/groups/posture")
+async def get_group_posture(
+    org_id: Optional[str] = Query(None, description="Scoped organisation id (demo toggle)"),
+    session: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    scope = (org_id or current_user.get("org_id") or DEMO_ORG_ID).strip()
+    effective = resolve_scoped_org_id(current_user, scope)
+    if effective == DEMO_ORG_ID:
+        return _demo_group_posture()
+
+    display_name = effective
+    try:
+        res = await session.execute(
+            text("SELECT name::text FROM organizations WHERE id = :id"),
+            {"id": effective},
+        )
+        n = res.scalar_one_or_none()
+        if n:
+            display_name = str(n)
+    except ProgrammingError:
+        await session.rollback()
+
+    now = datetime.utcnow().isoformat() + "Z"
+    return {
+        "group_name": display_name,
+        "as_at": now,
+        "overall_score": 0,
+        "overall_risk": "NOT_ASSESSED",
+        "entities_count": 1,
+        "frameworks_active": 0,
+        "critical_findings": 0,
+        "entities": [
+            {
+                "id": effective,
+                "name": display_name,
+                "jurisdiction": "",
+                "flag": "",
+                "type": "STANDARD",
+                "employees": 0,
+                "role": "Primary entity",
+                "overall_score": 0,
+                "risk_level": "NOT_ASSESSED",
+                "status": "NOT_ASSESSED",
+                "frameworks": [],
+                "critical_findings": 0,
+                "open_findings": 0,
+                "last_assessed": "",
             },
         ],
     }

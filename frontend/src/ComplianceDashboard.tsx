@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useRef, useEffect } from "react";
-import { DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
+import { ALL_FRAMEWORK_IDS } from "./api/client";
+import { useOrgContext } from "./hooks/useOrgContext";
 import { useFrameworks } from "./hooks/useFrameworks";
 import {
   useAssessmentStream,
@@ -216,8 +217,9 @@ function FrameworkCard({
 }
 
 export function ComplianceDashboard() {
+  const { orgId } = useOrgContext();
   const { data: frameworks, isLoading, error } = useFrameworks();
-  const { data: posture } = useCompliancePosture(DEFAULT_ORG_ID);
+  const { data: posture } = useCompliancePosture(orgId);
   const { data: ztaip } = useZtaipStatus();
   const { events, isStreaming, startStream, stopStream } = useAssessmentStream();
   const streamPanelRef = useRef<HTMLDivElement | null>(null);
@@ -287,6 +289,18 @@ export function ComplianceDashboard() {
 
   return (
     <div className="space-y-6" style={{ background: tokens.background, color: tokens.textPrimary }}>
+      {posture?.message ? (
+        <div
+          className="rounded-lg border px-4 py-3 text-sm"
+          style={{
+            borderColor: tokens.borderLit,
+            background: tokens.surface,
+            color: tokens.textMuted,
+          }}
+        >
+          {posture.message}
+        </div>
+      ) : null}
       {/* ZTAIP status bar */}
       {ztaip && (
         <div
@@ -494,13 +508,13 @@ export function ComplianceDashboard() {
           Run assessment
         </h2>
         <p className="mt-1 text-sm" style={{ color: tokens.textMuted }}>
-          Stream assessment for {DEFAULT_ORG_ID} — all 8 frameworks
+          Stream assessment for {orgId} — all 8 frameworks
         </p>
         <div className="mt-3 flex gap-2">
           <button
             type="button"
             onClick={() => {
-              startStream(DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS.split(","));
+              startStream(orgId, ALL_FRAMEWORK_IDS.split(","));
             }}
             disabled={isStreaming}
             className="rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"

@@ -24,7 +24,7 @@ export interface FrameworkPosture {
   score?: number;
   gapCount?: number;
   status?: "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT";
-  riskLevel?: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  riskLevel?: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "NOT_ASSESSED";
   trend?: number;
   jurisdiction?: string;
 }
@@ -37,6 +37,9 @@ export interface CompliancePosture {
   lastAssessed?: string;
   overallScore?: number;
   auditReadiness?: number;
+  overallRiskLevel?: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "NOT_ASSESSED";
+  /** Empty-state guidance from API (e.g. before first assessment). */
+  message?: string;
   /** Total gap count (from API criticalGaps length or sum of framework gapCount). */
   criticalGapsCount?: number;
 }

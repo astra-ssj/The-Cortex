@@ -12,6 +12,7 @@ import {
   type FindingStatus,
   type UpdateFindingBody,
 } from "./api/client";
+import { useOrgContext } from "./hooks/useOrgContext";
 
 const STATUSES: FindingStatus[] = ["OPEN", "IN_PROGRESS", "REMEDIATED", "ACCEPTED"];
 const STATUS_LABELS: Record<FindingStatus, string> = {
@@ -112,6 +113,7 @@ function progressPercent(f: RemediationFinding): number {
 }
 
 export function RemediationTracker() {
+  const { orgId } = useOrgContext();
   const [findings, setFindings] = useState<RemediationFinding[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -134,14 +136,14 @@ export function RemediationTracker() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchFindings();
+      const data = await fetchFindings({ org_id: orgId });
       setFindings(data);
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [orgId]);
 
   useEffect(() => {
     loadFindings();

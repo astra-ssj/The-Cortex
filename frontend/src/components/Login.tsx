@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { LogoIcon } from "./Logo";
 
 export interface LoginProps {
@@ -31,13 +32,36 @@ export default function Login({ onSuccess }: LoginProps) {
         const e = await res.json().catch(() => ({}));
         throw new Error((e as { detail?: string }).detail || "Invalid credentials");
       }
-      const data = (await res.json()) as { access_token: string; user?: object };
+      const data = (await res.json()) as {
+        access_token: string;
+        user?: Record<string, unknown>;
+        org_id?: string;
+        role?: string;
+        is_demo?: boolean;
+        onboarding_complete?: boolean;
+        onboarding_step?: number;
+      };
+      const mergedUser: Record<string, unknown> = {
+        ...(data.user ?? {}),
+        org_id: data.org_id ?? data.user?.org_id,
+        role: data.role ?? data.user?.role,
+        is_demo: data.is_demo ?? data.user?.is_demo,
+        onboarding_complete:
+          data.onboarding_complete !== undefined
+            ? data.onboarding_complete
+            : (data.user?.onboarding_complete as boolean | undefined) ?? true,
+        onboarding_step:
+          data.onboarding_step ?? (data.user?.onboarding_step as number | undefined) ?? 5,
+      };
       localStorage.setItem("cortex_token", data.access_token);
-      localStorage.setItem(
-        "cortex_user",
-        JSON.stringify(data.user ?? {})
-      );
-      onSuccess(data.access_token, data.user ?? {});
+      localStorage.setItem("cortex_user", JSON.stringify(mergedUser));
+      if (typeof data.org_id === "string") {
+        localStorage.setItem("cortex_org_id", data.org_id);
+      }
+      if (mergedUser.onboarding_complete === false) {
+        localStorage.setItem("cortex_demo_mode", "false");
+      }
+      onSuccess(data.access_token, mergedUser);
     } catch (e: unknown) {
       setError(
         e instanceof Error ? e.message : "Login failed"
@@ -235,15 +259,13 @@ export default function Login({ onSuccess }: LoginProps) {
         >
           {loading ? "Signing in…" : "Sign In"}
         </button>
-        <p
-          style={{
-            marginTop: 20,
-            color: "#4a5a72",
-            fontSize: 11,
-            textAlign: "center",
-          }}
-        >
-          Demo: use any email/password if auth endpoint is not configured.
+        <p style={{ marginTop: 20, color: "#4a5a72", fontSize: 11, textAlign: "center" }}>
+          <Link to="/register" style={{ color: "#2dd4bf", textDecoration: "none" }}>
+            New to CORTEX? Create account →
+          </Link>
+        </p>
+        <p style={{ marginTop: 12, color: "#4a5a72", fontSize: 11, textAlign: "center" }}>
+          Seeded demo: admin@astralabs.com / admin (after DB migration) or ciso@astralabs.com per README.
         </p>
       </div>
     </div>

@@ -11,6 +11,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from core.security import get_current_user, get_current_user_optional, get_current_user_stream
+from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -160,6 +161,30 @@ def _parse_frameworks(frameworks_str: str) -> list[FrameworkId]:
     if not fids:
         raise HTTPException(status_code=400, detail="At least one framework required")
     return fids
+
+
+class RunAssessmentBody(BaseModel):
+    """JSON body for programmatic assessment kick-off (UI onboarding); SSE still uses GET stream."""
+
+    org_id: str
+    frameworks: list[str]
+
+
+@router.post("/assessments/run")
+async def run_assessment_post_json(
+    body: RunAssessmentBody,
+    current_user: dict = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Accept run intent; client opens GET /assessments/stream for SSE (EventSource cannot POST)."""
+    effective = resolve_scoped_org_id(current_user, body.org_id.strip())
+    _validate_organization_id(effective)
+    fids = _parse_frameworks(",".join(body.frameworks))
+    return {
+        "status": "accepted",
+        "org_id": effective,
+        "framework_ids": [x.value for x in fids],
+        "stream_path": "/api/v1/assessments/stream",
+    }
 
 
 def _stream_response(org_id: str, fids: list[FrameworkId]) -> StreamingResponse:
@@ -320,9 +345,14 @@ def _ensure_review_queue_seed() -> None:
 
 @router.get("/assessments/review-queue", response_model=ReviewQueueResponse)
 async def get_review_queue(
+    org_id: str | None = Query(None, description="Scoped organisation id (demo toggle)"),
     current_user: dict = Depends(get_current_user),
 ) -> ReviewQueueResponse:
     """Return Human Review Queue: pending items (confidence < 0.75) and reviewed items."""
+    scope = (org_id or current_user.get("org_id") or DEMO_ORG_ID).strip()
+    effective = resolve_scoped_org_id(current_user, scope)
+    if effective != DEMO_ORG_ID:
+        return ReviewQueueResponse(items=[], reviewed=[])
     _ensure_review_queue_seed()
     items = [ReviewQueueItem(**x) for x in _review_queue_pending]
     reviewed = [ReviewedItem(**x) for x in _review_queue_reviewed]

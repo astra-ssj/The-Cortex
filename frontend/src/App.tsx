@@ -5,12 +5,17 @@ import {
   Route,
   Navigate,
   Link,
+  Outlet,
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { getToken, getUser, DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS } from "./api/client";
+import { getToken, getUser, ALL_FRAMEWORK_IDS } from "./api/client";
 import { LogoFull } from "./components/Logo";
 import Login from "./components/Login";
+import { DemoToggle } from "./components/DemoToggle";
+import { OrgScopeProvider, useOrgContext } from "./hooks/useOrgContext";
+import Register from "./pages/Register";
+import Onboarding from "./pages/Onboarding";
 import { ComplianceDashboard } from "./ComplianceDashboard";
 import { GroupDashboard } from "./components/GroupDashboard";
 import { RemediationTracker } from "./RemediationTracker";
@@ -21,7 +26,6 @@ import { ProjectTracker } from "./ProjectTracker";
 import { FrameworkDetailPage } from "./FrameworkDetailPage";
 import { useAssessmentStream } from "./store/complianceStore";
 
-// ── Clock component ──────────────────────────────
 function LiveClock() {
   const [time, setTime] = useState(new Date());
   useEffect(() => {
@@ -35,7 +39,6 @@ function LiveClock() {
   );
 }
 
-// ── Navigation: secondary bar (full width) ──────────────────────────────────
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Group", path: "/group" },
@@ -46,7 +49,7 @@ const NAV_ITEMS = [
   { label: "Roadmap", path: "/roadmap" },
 ];
 
-function Header({
+function HeaderShell({
   user,
   onLogout,
 }: {
@@ -55,16 +58,16 @@ function Header({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { orgId } = useOrgContext();
   const { isStreaming, startStream } = useAssessmentStream();
 
   const handleRunAssessment = () => {
-    startStream(DEFAULT_ORG_ID, ALL_FRAMEWORK_IDS.split(","));
+    startStream(orgId, ALL_FRAMEWORK_IDS.split(","));
     navigate("/dashboard");
   };
 
   return (
     <>
-      {/* Top bar: slim, always visible — [C CORTEX] ●MONITORING 20:13 · 24 Feb  Group CISO  [Logout] */}
       <header
         style={{
           display: "flex",
@@ -92,17 +95,19 @@ function Header({
                 boxShadow: "0 0 6px #10b981",
               }}
             />
-            <span style={{ color: "#10b981", fontSize: 11, fontWeight: "bold" }}>
-              MONITORING
-            </span>
+            <span style={{ color: "#10b981", fontSize: 11, fontWeight: "bold" }}>MONITORING</span>
           </div>
           <span style={{ color: "#2d3a52", marginLeft: 4 }}>·</span>
           <LiveClock />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <DemoToggle />
           {user && (
             <span style={{ color: "#4a5a72", fontSize: 12 }}>
-              {(user as { name?: string }).name ?? (user as { username?: string }).username ?? "User"}
+              {(user as { name?: string }).name ??
+                (user as { username?: string }).username ??
+                (user as { email?: string }).email ??
+                "User"}
             </span>
           )}
           <button
@@ -123,7 +128,6 @@ function Header({
         </div>
       </header>
 
-      {/* Secondary nav: full width — Dashboard | Group | Frameworks | ... | Roadmap [Run Assessment] */}
       <nav
         style={{
           display: "flex",
@@ -185,36 +189,97 @@ function Header({
   );
 }
 
-// ── App ──────────────────────────────────────────
-export default function App() {
-  const [token, setToken] = useState<string | null>(getToken());
-  const [user, setUser] = useState<{ name?: string; username?: string; [key: string]: unknown } | null>(getUser());
+function MainChrome() {
+  const [user, setUser] = useState(() => getUser());
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleAuthExpired = () => {
-      setToken(null);
       setUser(null);
     };
     window.addEventListener("cortex:auth-expired", handleAuthExpired);
     return () => window.removeEventListener("cortex:auth-expired", handleAuthExpired);
   }, []);
 
-  const handleLoginSuccess = (newToken: string, newUser: object) => {
-    setToken(newToken);
-    setUser(newUser as { name?: string; username?: string; [key: string]: unknown });
-  };
-
-  const handleLogout = () => {
+  const onLogout = () => {
     localStorage.removeItem("cortex_token");
     localStorage.removeItem("cortex_user");
-    setToken(null);
+    localStorage.removeItem("cortex_org_id");
+    localStorage.removeItem("cortex_demo_mode");
+    localStorage.removeItem("cortex_jurisdiction");
     setUser(null);
+    navigate("/login", { replace: true });
   };
 
-  if (!token) {
-    return <Login onSuccess={handleLoginSuccess} />;
-  }
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#05080f",
+        color: "#e2e8f4",
+        fontFamily: "DM Sans, sans-serif",
+      }}
+    >
+      <HeaderShell user={user} onLogout={onLogout} />
+      <main style={{ padding: "24px" }}>
+        <Outlet />
+      </main>
+    </div>
+  );
+}
 
+function AuthGate() {
+  const token = getToken();
+  const loc = useLocation();
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  const u = getUser() as Record<string, unknown> | null;
+  const needsOnboarding = u?.onboarding_complete === false;
+  if (needsOnboarding && loc.pathname !== "/onboarding") {
+    return <Navigate to="/onboarding" replace />;
+  }
+  if (!needsOnboarding && loc.pathname === "/onboarding") {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <Outlet />;
+}
+
+function RootRedirect() {
+  if (!getToken()) {
+    return <Navigate to="/login" replace />;
+  }
+  const u = getUser() as Record<string, unknown> | null;
+  if (u?.onboarding_complete === false) {
+    return <Navigate to="/onboarding" replace />;
+  }
+  return <Navigate to="/dashboard" replace />;
+}
+
+function LoginScreen() {
+  const navigate = useNavigate();
+  if (getToken()) {
+    const u = getUser() as Record<string, unknown> | null;
+    if (u?.onboarding_complete === false) {
+      return <Navigate to="/onboarding" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+  return (
+    <Login
+      onSuccess={() => {
+        const u = getUser() as Record<string, unknown> | null;
+        if (u?.onboarding_complete === false) {
+          navigate("/onboarding", { replace: true });
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
+      }}
+    />
+  );
+}
+
+export default function App() {
   return (
     <BrowserRouter
       future={{
@@ -222,18 +287,26 @@ export default function App() {
         v7_relativeSplatPath: true,
       }}
     >
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#05080f",
-          color: "#e2e8f4",
-          fontFamily: "DM Sans, sans-serif",
-        }}
-      >
-        <Header user={user} onLogout={handleLogout} />
-        <main style={{ padding: "24px" }}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Routes>
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/login" element={<LoginScreen />} />
+        <Route path="/register" element={<Register />} />
+        <Route element={<AuthGate />}>
+          <Route
+            path="/onboarding"
+            element={
+              <OrgScopeProvider>
+                <Onboarding />
+              </OrgScopeProvider>
+            }
+          />
+          <Route
+            element={
+              <OrgScopeProvider>
+                <MainChrome />
+              </OrgScopeProvider>
+            }
+          >
             <Route path="/dashboard" element={<ComplianceDashboard />} />
             <Route path="/group" element={<GroupDashboard />} />
             <Route path="/frameworks" element={<ComplianceDashboard />} />
@@ -244,9 +317,9 @@ export default function App() {
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/evidence" element={<RemediationTracker />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </main>
-      </div>
+          </Route>
+        </Route>
+      </Routes>
     </BrowserRouter>
   );
 }

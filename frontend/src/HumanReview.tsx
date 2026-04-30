@@ -6,6 +6,7 @@
 
 import { useState, useMemo } from "react";
 import { useReviewQueue, approveControl, overrideControl } from "./api/client";
+import { useOrgContext } from "./hooks/useOrgContext";
 
 const SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM"] as const;
 const FRAMEWORKS = [
@@ -48,7 +49,8 @@ function truncate(s: string, len: number): string {
 }
 
 export function HumanReview() {
-  const { items: rawItems, reviewed, refetch, isLoading, error } = useReviewQueue();
+  const { orgId } = useOrgContext();
+  const { items: rawItems, reviewed, refetch, isLoading, error } = useReviewQueue(orgId);
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("All");
   const [frameworkFilter, setFrameworkFilter] = useState<FrameworkFilter>("All");
   const [sortBy, setSortBy] = useState<SortKey>("confidence");

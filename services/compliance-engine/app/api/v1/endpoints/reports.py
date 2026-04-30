@@ -10,6 +10,7 @@ import structlog
 from fastapi import APIRouter, Depends, Request
 
 from core.security import get_current_user
+from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
 
 logger = structlog.get_logger()
 
@@ -42,20 +43,27 @@ async def _fetch_json(
 @router.get("/executive-summary", summary="Get executive summary report data")
 async def get_executive_summary(
     request: Request,
-    org_id: str = "demo-org-001",
+    org_id: Optional[str] = None,
     as_at: Optional[str] = None,
     entity_scope: Optional[str] = None,
-    _user: dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
     """
     Pull posture, findings, and ZTAIP status; return structured report object
     for the Audit Report UI. Entity scope filters findings (e.g. DE, UK, All).
     """
+    raw_org = org_id or current_user.get("org_id") or DEMO_ORG_ID
+    scoped_org = resolve_scoped_org_id(current_user, str(raw_org))
+
     base = str(request.base_url).rstrip("/")
     auth = request.headers.get("Authorization")
 
-    posture = await _fetch_json(base, f"/api/v1/organisations/{org_id}/posture", auth)
-    findings_raw = await _fetch_json(base, "/api/v1/findings", auth)
+    posture = await _fetch_json(base, f"/api/v1/organisations/{scoped_org}/posture", auth)
+    findings_raw = await _fetch_json(
+        base,
+        f"/api/v1/findings?org_id={scoped_org}",
+        auth,
+    )
     ztaip = await _fetch_json(base, "/api/v1/system/ztaip-status", auth)
 
     findings: list[dict[str, Any]] = list(findings_raw) if isinstance(findings_raw, list) else []
@@ -98,16 +106,21 @@ async def get_executive_summary(
             })
 
     if not framework_summary:
-        framework_summary = [
-            {"framework_name": "ISO/IEC 27001:2022", "score": 72, "status": "partial", "risk_level": "MEDIUM"},
-            {"framework_name": "GDPR 2016/679", "score": 65, "status": "partial", "risk_level": "HIGH"},
-            {"framework_name": "NIS2 Directive", "score": 58, "status": "non_compliant", "risk_level": "HIGH"},
-            {"framework_name": "NIST CSF 2.0", "score": 70, "status": "partial", "risk_level": "MEDIUM"},
-            {"framework_name": "CSA CCM v4.0", "score": 68, "status": "partial", "risk_level": "MEDIUM"},
-            {"framework_name": "Cyber Essentials v3.1", "score": 75, "status": "partial", "risk_level": "LOW"},
-            {"framework_name": "EU AI Act 2024", "score": 45, "status": "non_compliant", "risk_level": "HIGH"},
-            {"framework_name": "EU Cybersecurity Act", "score": 62, "status": "partial", "risk_level": "MEDIUM"},
-        ]
+        if scoped_org == DEMO_ORG_ID:
+            framework_summary = [
+                {"framework_name": "ISO/IEC 27001:2022", "score": 72, "status": "partial", "risk_level": "MEDIUM"},
+                {"framework_name": "GDPR 2016/679", "score": 65, "status": "partial", "risk_level": "HIGH"},
+                {"framework_name": "NIS2 Directive", "score": 58, "status": "non_compliant", "risk_level": "HIGH"},
+                {"framework_name": "NIST CSF 2.0", "score": 70, "status": "partial", "risk_level": "MEDIUM"},
+                {"framework_name": "CSA CCM v4.0", "score": 68, "status": "partial", "risk_level": "MEDIUM"},
+                {"framework_name": "Cyber Essentials v3.1", "score": 75, "status": "partial", "risk_level": "LOW"},
+                {"framework_name": "EU AI Act 2024", "score": 45, "status": "non_compliant", "risk_level": "HIGH"},
+                {"framework_name": "EU Cybersecurity Act", "score": 62, "status": "partial", "risk_level": "MEDIUM"},
+            ]
+        else:
+            frameworks_active = 0
+            total_controls = 0
+            risk_level = "NOT_ASSESSED"
 
     # Compute overall_score, audit_readiness, critical_gaps from framework list when not from posture
     scores = [f["score"] for f in framework_summary if f.get("score") is not None]
@@ -123,7 +136,7 @@ async def get_executive_summary(
 
     return {
         "as_at": as_at_date,
-        "org_id": org_id,
+        "org_id": scoped_org,
         "org_name": (posture or {}).get("organisationName") or (posture or {}).get("organisation_name") or "AstraLabs Group",
         "overall_posture": {
             "group_compliance_score": overall_score,
