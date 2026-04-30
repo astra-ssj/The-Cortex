@@ -120,9 +120,18 @@ export function AuditReport() {
       );
     });
     lines.push("", "REGULATORY EXPOSURE", "──────────────────");
-    Object.entries(report.regulatory_exposure || {}).forEach(([k, v]) => {
-      lines.push(`${k.replace(/_/g, " ")}:     ${v}`);
-    });
+    const exposure = report.regulatory_exposure;
+    if (Array.isArray(exposure)) {
+      exposure.forEach((row) => {
+        lines.push(
+          `${row.regulation ?? "—"} · ${row.status ?? ""} · ${row.likely_fine ?? ""} (${row.basis ?? ""})`
+        );
+      });
+    } else if (exposure && typeof exposure === "object") {
+      Object.entries(exposure).forEach(([k, v]) => {
+        lines.push(`${k.replace(/_/g, " ")}:     ${String(v)}`);
+      });
+    }
     lines.push("", "MANAGEMENT ATTENTION REQUIRED", "─────────────────────────────");
     (report.management_attention || []).forEach((m) => lines.push(`· ${m}`));
     lines.push("", "RECOMMENDATIONS", "───────────────");
@@ -476,14 +485,31 @@ export function AuditReport() {
               <h2 className="font-data text-xs uppercase tracking-wider text-cortex-muted">
                 REGULATORY EXPOSURE
               </h2>
-              <div className="mt-2 space-y-1 font-mono text-xs">
+              <div className="mt-2 space-y-2 font-mono text-xs">
                 {report.regulatory_exposure &&
-                  Object.entries(report.regulatory_exposure).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span className="text-cortex-muted">{key.replace(/_/g, " ")}</span>
-                      <span className={statusColor(value)}>{value}</span>
-                    </div>
-                  ))}
+                  (Array.isArray(report.regulatory_exposure)
+                    ? report.regulatory_exposure.map((row, i) => (
+                        <div
+                          key={`${row.regulation ?? "ex"}-${i}`}
+                          className="flex flex-col gap-0.5 border-b border-cortex-border/40 pb-2 last:border-0"
+                        >
+                          <div className="flex justify-between gap-4">
+                            <span className="text-cortex-text">{row.regulation}</span>
+                            <span className={riskColor(row.status ?? "")}>{row.status}</span>
+                          </div>
+                          <div className="flex justify-between text-cortex-muted">
+                            <span>{row.basis}</span>
+                            <span>{row.likely_fine}</span>
+                          </div>
+                          <span className="text-[10px] text-cortex-muted">{row.max_fine}</span>
+                        </div>
+                      ))
+                    : Object.entries(report.regulatory_exposure).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-cortex-muted">{key.replace(/_/g, " ")}</span>
+                          <span className={statusColor(value)}>{value}</span>
+                        </div>
+                      )))}
               </div>
             </section>
 

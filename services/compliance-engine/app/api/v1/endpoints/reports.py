@@ -1,14 +1,17 @@
-# app/api/v1/endpoints/reports.py — Audit report generator.
-# GET /api/v1/reports/executive-summary: aggregate posture, findings, ZTAIP into board-ready report.
+# app/api/v1/endpoints/reports.py — Audit report generator (DB-backed executive summary).
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 import structlog
 from fastapi import APIRouter, Depends, Request
+from sqlalchemy import text
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.deps import get_db
 from core.security import get_current_user
 from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
 
@@ -34,10 +37,45 @@ async def _fetch_json(
             r = await client.get(url, headers=headers)
             if r.status_code == 200:
                 res = r.json()
-                return cast(dict[str, Any], res) if isinstance(res, dict) else None
+                return res if isinstance(res, dict) else None
     except Exception as e:
         logger.warning("report_fetch_failed", path=path, error=str(e))
     return None
+
+
+def _regulatory_exposure(fw_results: list[Any]) -> list[dict[str, Any]]:
+    exposure: list[dict[str, Any]] = []
+    for r in fw_results:
+        fid = str(r.get("framework_id") or "")
+        score = float(r.get("score") or 0)
+        if fid == "nis2-2022-2555" and score < 70:
+            likely = round(10_000_000 * (1 - score / 100) * 0.24)
+            exposure.append({
+                "regulation": "NIS2 Directive",
+                "max_fine": "€10M or 2% turnover",
+                "likely_fine": f"€{likely:,.0f}",
+                "basis": "Art.34(4)",
+                "status": "AT RISK",
+            })
+        if fid == "gdpr-2016-679" and score < 70:
+            likely = round(20_000_000 * (1 - score / 100) * 0.16)
+            exposure.append({
+                "regulation": "GDPR 2016/679",
+                "max_fine": "€20M or 4% turnover",
+                "likely_fine": f"€{likely:,.0f}",
+                "basis": "Art.83(4)",
+                "status": "AT RISK",
+            })
+        if fid == "eu-ai-act-2024" and score < 70:
+            likely = round(35_000_000 * (1 - score / 100) * 0.24)
+            exposure.append({
+                "regulation": "EU AI Act 2024",
+                "max_fine": "€35M or 7% turnover",
+                "likely_fine": f"€{likely:,.0f}",
+                "basis": "Art.99(3)",
+                "status": "CRITICAL",
+            })
+    return exposure
 
 
 @router.get("/executive-summary", summary="Get executive summary report data")
@@ -47,134 +85,201 @@ async def get_executive_summary(
     as_at: Optional[str] = None,
     entity_scope: Optional[str] = None,
     current_user: dict[str, Any] = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    """
-    Pull posture, findings, and ZTAIP status; return structured report object
-    for the Audit Report UI. Entity scope filters findings (e.g. DE, UK, All).
-    """
     raw_org = org_id or current_user.get("org_id") or DEMO_ORG_ID
     scoped_org = resolve_scoped_org_id(current_user, str(raw_org))
+    as_at_date = (as_at or datetime.now(timezone.utc).strftime("%Y-%m-%d")).strip()
+    esc_raw = (entity_scope or "").strip()
+    scope_upper = esc_raw.upper() if esc_raw.upper() not in ("ALL", "") else ""
 
     base = str(request.base_url).rstrip("/")
     auth = request.headers.get("Authorization")
-
-    posture = await _fetch_json(base, f"/api/v1/organisations/{scoped_org}/posture", auth)
-    findings_raw = await _fetch_json(
-        base,
-        f"/api/v1/findings?org_id={scoped_org}",
-        auth,
-    )
     ztaip = await _fetch_json(base, "/api/v1/system/ztaip-status", auth)
 
-    findings: list[dict[str, Any]] = list(findings_raw) if isinstance(findings_raw, list) else []
-    if entity_scope and entity_scope.strip().upper() not in ("ALL", ""):
-        findings = [f for f in findings if f.get("entity_code") == entity_scope.strip().upper()]
+    org_name = "AstraLabs Group"
+    overall = 0
+    readiness = 0
+    risk = "UNKNOWN"
+    fw_results: list[Any] = []
+    findings_rows: list[Any] = []
 
-    open_findings = [f for f in findings if f.get("status") in ("OPEN", "IN_PROGRESS")]
-    critical_findings = sorted(
-        [f for f in open_findings if f.get("severity") == "CRITICAL"],
-        key=lambda x: (x.get("due_date") or ""),
-    )[:5]
-    as_at_str = as_at if as_at else datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    overdue_count = sum(
-        [1 for f in open_findings if dict.get(f, "due_date") and str(dict.get(f, "due_date")) < as_at_str]
+    try:
+        org_row = await session.execute(
+            text(
+                """
+                SELECT name::text AS name, overall_score, audit_readiness,
+                       risk_level::text AS risk_level, updated_at
+                FROM organizations WHERE id = :oid
+                """
+            ),
+            {"oid": scoped_org},
+        )
+        org = org_row.mappings().one_or_none()
+        if org:
+            org_d = dict(org)
+            org_name = str(org_d.get("name") or org_name)
+            if org_d.get("overall_score") is not None:
+                overall = int(org_d["overall_score"])
+            if org_d.get("audit_readiness") is not None:
+                readiness = int(org_d["audit_readiness"])
+            rl = org_d.get("risk_level")
+            if isinstance(rl, str) and rl.strip():
+                risk = rl.strip().upper()
+
+        fw_sql = text(
+            """
+            SELECT ar.framework_id::text AS framework_id, ar.score,
+                   ar.gap_count, ar.status::text AS status,
+                   ar.risk_level::text AS risk_level, ar.trend,
+                   f.name::text AS framework_name
+            FROM assessment_results ar
+            LEFT JOIN frameworks f ON f.id = ar.framework_id
+            WHERE ar.org_id = :oid
+            ORDER BY ar.score ASC NULLS LAST
+            """
+        )
+        fw_res = await session.execute(fw_sql, {"oid": scoped_org})
+        fw_results = list(fw_res.mappings().all())
+
+        find_sql = text(
+            """
+            SELECT fi.id::text AS id, fi.title::text AS title, fi.framework_id::text AS framework_id,
+                   fi.control_id::text AS control_id, fi.severity::text AS severity,
+                   fi.status::text AS status, fi.owner::text AS owner, fi.due_date,
+                   fi.days_open, fi.confidence,
+                   fw.name::text AS framework_name,
+                   fi.entity_code::text AS entity_code
+            FROM findings fi
+            LEFT JOIN frameworks fw ON fw.id = fi.framework_id
+            WHERE fi.org_id = :oid
+              AND (
+                :no_entity_scope
+                OR UPPER(TRIM(COALESCE(fi.entity_code, ''))) = UPPER(TRIM(:entity_scope_val))
+              )
+            ORDER BY
+              CASE fi.severity
+                WHEN 'CRITICAL' THEN 1
+                WHEN 'HIGH' THEN 2
+                WHEN 'MEDIUM' THEN 3
+                ELSE 4
+              END,
+              fi.days_open DESC NULLS LAST
+            LIMIT 10
+            """
+        )
+        find_res = await session.execute(
+            find_sql,
+            {
+                "oid": scoped_org,
+                "no_entity_scope": scope_upper == "",
+                "entity_scope_val": scope_upper,
+            },
+        )
+        findings_rows = list(find_res.mappings().all())
+    except ProgrammingError as e:
+        await session.rollback()
+        logger.warning("executive_summary_db_partial", error=str(e))
+
+    if fw_results and overall == 0:
+        scores = [float(r["score"]) for r in fw_results if r.get("score") is not None]
+        if scores:
+            overall = round(sum(scores) / len(scores))
+    if fw_results and readiness == 0 and overall:
+        readiness = round(overall * 0.92)
+    if fw_results and risk == "UNKNOWN":
+        scores = [float(r["score"]) for r in fw_results if r.get("score") is not None]
+        if scores:
+            avg = sum(scores) / len(scores)
+            from services.posture_calculator import _risk
+
+            risk = _risk(float(round(avg)))
+
+    critical_gaps = sum(1 for r in fw_results if str(r.get("risk_level") or "").upper() == "CRITICAL")
+    compliant_count = sum(1 for r in fw_results if str(r.get("status") or "").upper() == "COMPLIANT")
+    total_gaps = sum(int(r["gap_count"] or 0) for r in fw_results)
+
+    exposure = _regulatory_exposure(fw_results)
+
+    open_status = {"OPEN", "IN_PROGRESS"}
+    findings_open_ct = sum(
+        1 for f in findings_rows if str(f.get("status") or "").upper() == "OPEN"
+    )
+    overdue_ct = sum(
+        1
+        for f in findings_rows
+        if f.get("days_open") is not None and int(f["days_open"] or 0) > 30
     )
 
-    as_at_date = as_at or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    frameworks_active = 8
-    total_controls = 491
+    framework_summary = [
+        {
+            "framework_name": str(r.get("framework_name") or r.get("framework_id") or ""),
+            "score": int(round(float(r["score"]))) if r.get("score") is not None else None,
+            "status": str(r.get("status") or "NOT_ASSESSED"),
+            "risk_level": str(r.get("risk_level") or "UNKNOWN"),
+        }
+        for r in fw_results
+    ]
 
-    overall_score = 0
-    audit_readiness = 0
-    risk_level = "MEDIUM"
-    framework_summary: list[dict[str, Any]] = []
-    critical_gaps_count = 0
+    top_findings: list[dict[str, Any]] = []
+    for f in findings_rows:
+        dd = f.get("due_date")
+        due_s = str(dd) if dd is not None else ""
+        fw_label = str(f.get("framework_name") or f.get("framework_id") or "")
+        top_findings.append({
+            "title": str(f.get("title") or ""),
+            "framework": fw_label,
+            "framework_id": str(f.get("framework_id") or ""),
+            "control_id": str(f.get("control_id") or ""),
+            "severity": str(f.get("severity") or ""),
+            "status": str(f.get("status") or ""),
+            "owner": str(f.get("owner") or "Unassigned"),
+            "due_date": due_s,
+            "days_open": int(f.get("days_open") or 0),
+            "confidence": float(f.get("confidence") or 1.0),
+        })
 
-    if posture:
-        overall_score = posture.get("overallScore") or posture.get("overall_score") or 0
-        audit_readiness = posture.get("auditReadiness") or posture.get("audit_readiness") or round(overall_score * 0.92)
-        risk_level = (posture.get("riskLevel") or posture.get("risk_level") or "MEDIUM").upper()
-        critical_gaps = posture.get("criticalGaps") or posture.get("critical_gaps") or []
-        critical_gaps_count = len(critical_gaps) if isinstance(critical_gaps, list) else 0
-        fws = posture.get("frameworks") or []
-        for fp in fws:
-            framework_summary.append({
-                "framework_name": fp.get("frameworkName") or fp.get("framework_name") or "",
-                "score": fp.get("score"),
-                "status": fp.get("status") or "not_assessed",
-                "risk_level": fp.get("riskLevel") or fp.get("risk_level") or "MEDIUM",
-            })
+    next_review = (
+        datetime.strptime(as_at_date, "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=30)
+    ).strftime("%Y-%m-%d")
 
-    if not framework_summary:
-        if scoped_org == DEMO_ORG_ID:
-            framework_summary = [
-                {"framework_name": "ISO/IEC 27001:2022", "score": 72, "status": "partial", "risk_level": "MEDIUM"},
-                {"framework_name": "GDPR 2016/679", "score": 65, "status": "partial", "risk_level": "HIGH"},
-                {"framework_name": "NIS2 Directive", "score": 58, "status": "non_compliant", "risk_level": "HIGH"},
-                {"framework_name": "NIST CSF 2.0", "score": 70, "status": "partial", "risk_level": "MEDIUM"},
-                {"framework_name": "CSA CCM v4.0", "score": 68, "status": "partial", "risk_level": "MEDIUM"},
-                {"framework_name": "Cyber Essentials v3.1", "score": 75, "status": "partial", "risk_level": "LOW"},
-                {"framework_name": "EU AI Act 2024", "score": 45, "status": "non_compliant", "risk_level": "HIGH"},
-                {"framework_name": "EU Cybersecurity Act", "score": 62, "status": "partial", "risk_level": "MEDIUM"},
-            ]
-        else:
-            frameworks_active = 0
-            total_controls = 0
-            risk_level = "NOT_ASSESSED"
-
-    # Compute overall_score, audit_readiness, critical_gaps from framework list when not from posture
-    scores = [f["score"] for f in framework_summary if f.get("score") is not None]
-    if scores:
-        overall_score = round(sum(scores) / len(scores))
-        audit_readiness = round(overall_score * 0.92)
-    critical_gaps_count = sum(
-        1 for f in framework_summary
-        if f.get("risk_level") == "CRITICAL" or f.get("risk") == "CRITICAL"
+    critical_open = sum(
+        1 for f in findings_rows
+        if str(f.get("severity") or "").upper() == "CRITICAL"
+        and str(f.get("status") or "").upper() in open_status
     )
-
-    next_review = (datetime.strptime(as_at_date, "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=30)).strftime("%Y-%m-%d")
 
     return {
         "as_at": as_at_date,
         "org_id": scoped_org,
-        "org_name": (posture or {}).get("organisationName") or (posture or {}).get("organisation_name") or "AstraLabs Group",
+        "org_name": org_name,
         "overall_posture": {
-            "group_compliance_score": overall_score,
-            "audit_readiness": audit_readiness,
-            "overall_risk_level": risk_level,
-            "frameworks_active": frameworks_active,
-            "total_controls_assessed": total_controls,
-            "critical_gaps": critical_gaps_count,
-            "findings_open": len(open_findings),
-            "findings_overdue": overdue_count,
+            "group_compliance_score": overall,
+            "audit_readiness": readiness,
+            "overall_risk_level": risk,
+            "frameworks_active": len(fw_results),
+            "total_controls_assessed": 491,
+            "critical_gaps": critical_gaps,
+            "compliant_count": compliant_count,
+            "total_gaps": total_gaps,
+            "findings_open": findings_open_ct,
+            "findings_overdue": overdue_ct,
         },
         "framework_summary": framework_summary,
-        "top_critical_findings": [
-            {
-                "title": f.get("title"),
-                "framework": f.get("framework"),
-                "owner": f.get("owner"),
-                "due_date": f.get("due_date"),
-                "days_open": f.get("days_open", 0),
-            }
-            for f in critical_findings
-        ],
-        "regulatory_exposure": {
-            "nis2_art23_breach_reporting": "NOT READY",
-            "gdpr_art33_72h_notification": "NOT READY",
-            "eu_ai_act_art14_human_oversight": "PARTIAL",
-            "iso27001_certification": "IN SCOPE",
-        },
+        "top_critical_findings": top_findings,
+        "regulatory_exposure": exposure,
         "management_attention": [
-            f"{len([x for x in open_findings if x.get('severity') == 'CRITICAL'])} CRITICAL findings require immediate action",
+            f"{critical_open} CRITICAL findings require immediate action",
             "NIS2 registration deadline approaching (ES entity)",
-            f"{overdue_count} findings overdue — escalation required",
+            f"{overdue_ct} findings overdue — escalation required",
             f"Next assessment scheduled: {as_at_date}",
         ],
         "recommendations": [
-            "Prioritise NIS2 incident reporting process (NIS2-IR-01) — regulatory deadline risk",
-            "Complete US SCC review (GDPR-IT-01) — DPO owned, due 2026-02-28",
-            "Appoint UK DPO (GDPR-DPO-01) — UK entity exposure without DPO",
+            "Register DE and ES entities under NIS2 immediately",
+            "Complete GDPR 72-hour breach notification procedure testing",
+            "Assign EU AI Act human oversight owner — Aug 2026 deadline",
+            "Commission penetration test — 18 months overdue",
+            "Accelerate ISO 27001 certification",
         ],
         "next_review": next_review,
         "ztaip": ztaip,
