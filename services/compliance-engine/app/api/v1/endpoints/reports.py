@@ -221,6 +221,20 @@ async def get_executive_summary(
         for r in fw_results
     ]
 
+    # Mirrors assessment rows — handy for CLI/scripts expecting ``frameworks`` + ``framework_id``.
+    frameworks_full = [
+        {
+            "framework_id": str(r.get("framework_id") or ""),
+            "framework_name": str(r.get("framework_name") or r.get("framework_id") or ""),
+            "score": int(round(float(r["score"]))) if r.get("score") is not None else None,
+            "status": str(r.get("status") or "NOT_ASSESSED"),
+            "risk_level": str(r.get("risk_level") or "UNKNOWN"),
+            "gap_count": int(r["gap_count"] or 0) if r.get("gap_count") is not None else 0,
+            "trend": float(r["trend"]) if r.get("trend") is not None else 0.0,
+        }
+        for r in fw_results
+    ]
+
     top_findings: list[dict[str, Any]] = []
     for f in findings_rows:
         dd = f.get("due_date")
@@ -255,6 +269,7 @@ async def get_executive_summary(
         "org_name": org_name,
         "overall_posture": {
             "group_compliance_score": overall,
+            "overall_score": overall,
             "audit_readiness": readiness,
             "overall_risk_level": risk,
             "frameworks_active": len(fw_results),
@@ -266,6 +281,7 @@ async def get_executive_summary(
             "findings_overdue": overdue_ct,
         },
         "framework_summary": framework_summary,
+        "frameworks": frameworks_full,
         "top_critical_findings": top_findings,
         "regulatory_exposure": exposure,
         "management_attention": [
