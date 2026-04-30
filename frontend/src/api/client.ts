@@ -238,7 +238,15 @@ export interface ExecutiveSummaryReport {
     days_open: number;
     [key: string]: unknown;
   }>;
-  regulatory_exposure?: Record<string, string>;
+  regulatory_exposure?:
+    | Record<string, string>
+    | Array<{
+        regulation?: string;
+        max_fine?: string;
+        likely_fine?: string;
+        basis?: string;
+        status?: string;
+      }>;
   management_attention?: string[];
   recommendations?: string[];
   next_review?: string;

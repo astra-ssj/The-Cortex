@@ -68,8 +68,8 @@ export const ROADMAP_EPICS: RoadmapEpic[] = [
       { id: "s2-6", title: "Trend data from historical runs", status: "done", priority: "P1", owner: "CORTEX", phase: 2 },
       { id: "s2-7", title: "Human Review Workflow (GDPR Art.22)", status: "done", priority: "P0", owner: "CORTEX", phase: 2 },
       { id: "s2-8", title: "Remediation Tracker with Kanban", status: "done", priority: "P0", owner: "CORTEX", phase: 2 },
-      { id: "s2-9", title: "Audit Report Generator", status: "in_progress", priority: "P1", owner: "Cursor", phase: 2 },
-      { id: "s2-10", title: "Multi-Entity Group Dashboard", status: "not_started", priority: "P1", owner: "Cursor", phase: 2 },
+      { id: "s2-9", title: "Audit Report Generator", status: "done", priority: "P1", owner: "Cursor", phase: 2 },
+      { id: "s2-10", title: "Multi-Entity Group Dashboard", status: "done", priority: "P1", owner: "Cursor", phase: 2 },
     ],
   },
   {

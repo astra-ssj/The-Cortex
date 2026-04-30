@@ -19,6 +19,9 @@ services:
       - ./migrations/003_assessment_results.sql:/docker-entrypoint-initdb.d/03_assessment_results.sql
       - ./services/graphjin/migrations/003_controls_authoritative.sql:/docker-entrypoint-initdb.d/04_controls_authoritative.sql:ro
       - ./services/graphjin/migrations/004_multi_tenancy.sql:/docker-entrypoint-initdb.d/05_multi_tenancy.sql:ro
+      - ./migrations/004_assessment_results_status_risk.sql:/docker-entrypoint-initdb.d/06_assessment_results_status_risk.sql:ro
+      - ./services/graphjin/migrations/005_assessment_results_fix.sql:/docker-entrypoint-initdb.d/07_assessment_results_fix.sql:ro
+      - ./services/graphjin/migrations:/graphjin/migrations:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
       interval: 5s
