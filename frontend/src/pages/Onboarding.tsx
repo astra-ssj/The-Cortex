@@ -1,146 +1,134 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogoFull } from "../components/Logo";
-import {
-  ALL_FRAMEWORK_IDS,
-  assessmentsApi,
-  putOnboardingStep,
-} from "../api/client";
+import { assessmentsApi, putOnboardingStep } from "../api/client";
 import { useAssessmentStream } from "../store/complianceStore";
 import { useOrgContext } from "../hooks/useOrgContext";
 
-type EntityDraft = { name: string; jurisdiction: string; role: string };
+type StructureType = "single" | "multi";
 
-const FRAMEWORK_CARDS: Array<{
-  id: string;
+type EntityDraft = {
+  flag: string;
   name: string;
-  version: string;
   jurisdiction: string;
+  role: string;
+};
+
+type FrameworkCard = {
+  id: string;
+  title: string;
+  subtitle: string;
   control_count: number;
   description: string;
-}> = [
-  {
-    id: "gdpr-2016-679",
-    name: "GDPR",
-    version: "2016/679",
-    jurisdiction: "EU",
-    control_count: 25,
-    description: "EU personal data protection and breach notification.",
-  },
-  {
-    id: "nis2-2022-2555",
-    name: "NIS2 Directive",
-    version: "2022/2555",
-    jurisdiction: "EU",
-    control_count: 20,
-    description: "Critical entities and incident reporting obligations.",
-  },
-  {
-    id: "eu-ai-act-2024",
-    name: "EU AI Act",
-    version: "2024",
-    jurisdiction: "EU",
-    control_count: 31,
-    description: "High-risk AI governance and human oversight.",
-  },
-  {
-    id: "eu-cybersecurity-act",
-    name: "EU Cybersecurity Act",
-    version: "2019",
-    jurisdiction: "EU",
-    control_count: 22,
-    description: "Certification and ICT supply chain resilience.",
-  },
-  {
-    id: "cyber-essentials-v3.1",
-    name: "Cyber Essentials",
-    version: "v3.1",
-    jurisdiction: "UK",
-    control_count: 18,
-    description: "UK baseline technical controls for organisations.",
-  },
-  {
-    id: "iso27001-2022",
-    name: "ISO/IEC 27001",
-    version: "2022",
-    jurisdiction: "International",
-    control_count: 93,
-    description: "Information security management system standard.",
-  },
-  {
-    id: "nist-csf-2.0",
-    name: "NIST CSF",
-    version: "2.0",
-    jurisdiction: "US",
-    control_count: 106,
-    description: "US cybersecurity framework outcomes and tiers.",
-  },
-  {
-    id: "csa-ccm-v4",
-    name: "CSA CCM",
-    version: "v4.0",
-    jurisdiction: "Cloud",
-    control_count: 197,
-    description: "Cloud control matrix for CSP assurance.",
-  },
+};
+
+const FRAMEWORK_CARDS: FrameworkCard[] = [
+  { id: "iso27001-2022", title: "ISO/IEC 27001:2022", subtitle: "v2022 · international", control_count: 93, description: "Information Security Mgmt" },
+  { id: "gdpr-2016-679", title: "GDPR", subtitle: "2016/679 · EU", control_count: 25, description: "Personal data protection" },
+  { id: "nis2-2022-2555", title: "NIS2", subtitle: "2022/2555 · EU", control_count: 20, description: "Critical entity resilience" },
+  { id: "eu-ai-act-2024", title: "EU AI Act", subtitle: "2024 · EU", control_count: 31, description: "High-risk AI governance" },
+  { id: "cyber-essentials-v3.1", title: "Cyber Essentials", subtitle: "v3.1 · UK", control_count: 18, description: "UK baseline controls" },
+  { id: "nist-csf-2.0", title: "NIST CSF", subtitle: "v2.0 · US", control_count: 106, description: "Cybersecurity outcomes" },
+  { id: "csa-ccm-v4", title: "CSA CCM", subtitle: "v4 · cloud", control_count: 197, description: "Cloud control matrix" },
+  { id: "eu-cybersecurity-act", title: "EU Cybersecurity Act", subtitle: "2019 · EU", control_count: 22, description: "Certification and resilience" },
 ];
 
-function presetFrameworkIds(jurisdiction: string): string[] {
+const JURIS_OPTIONS = ["DE", "UK", "AU", "TH", "ES", "US", "EU", "OTHER"] as const;
+
+const FLAG_BY_JURISDICTION: Record<string, string> = {
+  DE: "🇩🇪",
+  UK: "🇬🇧",
+  AU: "🇦🇺",
+  TH: "🇹🇭",
+  ES: "🇪🇸",
+  US: "🇺🇸",
+  EU: "🇪🇺",
+  OTHER: "🏳️",
+};
+
+function getPresetFrameworks(jurisdiction: string): string[] {
   const j = jurisdiction.toUpperCase();
-  if (j === "UK")
-    return ["cyber-essentials-v3.1", "iso27001-2022"];
+  if (["DE", "ES", "EU"].includes(j)) {
+    return ["gdpr-2016-679", "nis2-2022-2555", "eu-ai-act-2024", "iso27001-2022"];
+  }
+  if (j === "UK") return ["cyber-essentials-v3.1", "iso27001-2022"];
   if (j === "US") return ["nist-csf-2.0", "csa-ccm-v4"];
-  if (["DE", "ES", "AU", "TH", "OTHER", "EU"].includes(j))
-    return ["gdpr-2016-679", "nis2-2022-2555", "eu-ai-act-2024", "eu-cybersecurity-act"];
-  return ALL_FRAMEWORK_IDS.split(",");
+  if (["AU", "TH"].includes(j)) return ["iso27001-2022", "nist-csf-2.0"];
+  return ["iso27001-2022"];
+}
+
+function frameworkLabel(id: string): string {
+  const fw = FRAMEWORK_CARDS.find((item) => item.id === id);
+  return fw ? fw.title : id;
 }
 
 export default function Onboarding() {
   const navigate = useNavigate();
   const { orgId } = useOrgContext();
-  const jurisdiction =
-    typeof window !== "undefined"
-      ? localStorage.getItem("cortex_jurisdiction") ?? "EU"
-      : "EU";
 
   const [step, setStep] = useState(1);
-  const [structure, setStructure] = useState<"single" | "multi">("single");
-  const [entities, setEntities] = useState<EntityDraft[]>([
-    { name: "", jurisdiction: "DE", role: "Operating company" },
-    { name: "", jurisdiction: "UK", role: "Subsidiary" },
-  ]);
-  const [selectedFw, setSelectedFw] = useState<Set<string>>(
-    () => new Set(presetFrameworkIds(jurisdiction))
-  );
-  const [error, setError] = useState("");
+  const [structure, setStructure] = useState<StructureType | null>(null);
+  const [entities, setEntities] = useState<EntityDraft[]>([]);
+  const [frameworks, setFrameworks] = useState<string[]>(() => {
+    const jurisdiction = localStorage.getItem("cortex_jurisdiction") ?? "OTHER";
+    return getPresetFrameworks(jurisdiction);
+  });
   const [busy, setBusy] = useState(false);
-  const { startStream, isStreaming } = useAssessmentStream();
+  const [error, setError] = useState("");
 
-  const stepTitles = useMemo(
-    () => ["Company structure", "Frameworks", "First assessment"],
-    []
+  const { events, isStreaming, startStream } = useAssessmentStream();
+
+  const totalControls = useMemo(
+    () => frameworks.reduce((sum, id) => sum + (FRAMEWORK_CARDS.find((f) => f.id === id)?.control_count ?? 0), 0),
+    [frameworks]
   );
 
-  const toggleFw = (id: string) => {
-    setSelectedFw((prev) => {
-      const n = new Set(prev);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
-    });
+  const lastFrameworkEvent = [...events]
+    .reverse()
+    .find((event) => event.kind === "framework_start") as
+    | { frameworkName?: string; frameworkId?: string }
+    | undefined;
+
+  const streamStatus = lastFrameworkEvent
+    ? `Assessing ${lastFrameworkEvent.frameworkName ?? lastFrameworkEvent.frameworkId ?? "framework"}...`
+    : isStreaming
+      ? "Assessing selected frameworks..."
+      : "";
+
+  useEffect(() => {
+    if (events.some((e) => e.kind === "run_done")) {
+      void (async () => {
+        await putOnboardingStep({ step: 3 });
+        localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
+        navigate("/dashboard", { replace: true });
+      })();
+    }
+  }, [events, navigate]);
+
+  const updateEntity = (index: number, patch: Partial<EntityDraft>) => {
+    setEntities((prev) => prev.map((entity, idx) => (idx === index ? { ...entity, ...patch } : entity)));
   };
 
-  const persistStep1 = async () => {
-    if (structure === "multi") {
-      const filled = entities.filter((e) => e.name.trim());
-      if (filled.length < 2) {
-        setError("Add at least two entities for a multi-entity group.");
-        return;
-      }
+  const selectStructure = (value: StructureType) => {
+    setStructure(value);
+    if (value === "multi" && entities.length < 2) {
+      setEntities([
+        { flag: "🇩🇪", name: "", jurisdiction: "DE", role: "" },
+        { flag: "🇬🇧", name: "", jurisdiction: "UK", role: "" },
+      ]);
     }
-    setError("");
+  };
+
+  const canContinueStep1 =
+    structure === "single" ||
+    (structure === "multi" &&
+      entities.filter((entity) => entity.name.trim() && entity.jurisdiction && entity.role.trim()).length >= 2);
+
+  const persistStep1 = async () => {
+    if (!canContinueStep1 || !structure) return;
     setBusy(true);
+    setError("");
     try {
       await putOnboardingStep({
         step: 1,
@@ -149,219 +137,173 @@ export default function Onboarding() {
           entities: structure === "multi" ? entities : [],
         },
       });
+      localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: false, step: 1 }));
       setStep(2);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Could not save step");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save structure.");
     } finally {
       setBusy(false);
     }
   };
 
   const persistStep2 = async () => {
-    const fw = Array.from(selectedFw);
-    if (fw.length === 0) {
-      setError("Select at least one framework.");
-      return;
-    }
-    setError("");
+    if (frameworks.length === 0) return;
     setBusy(true);
+    setError("");
     try {
-      await putOnboardingStep({ step: 2, data: { frameworks: fw } });
+      await putOnboardingStep({ step: 2, data: { frameworks } });
+      localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: false, step: 2 }));
       setStep(3);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Could not save step");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save frameworks.");
     } finally {
       setBusy(false);
     }
   };
 
-  const skipAll = async () => {
+  const skipForNow = async () => {
     setBusy(true);
-    try {
-      await putOnboardingStep({ step: 3, data: {} });
-      const raw = localStorage.getItem("cortex_user");
-      if (raw) {
-        const u = JSON.parse(raw) as Record<string, unknown>;
-        u.onboarding_complete = true;
-        u.onboarding_step = 3;
-        localStorage.setItem("cortex_user", JSON.stringify(u));
-      }
-      navigate("/dashboard", { replace: true });
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Skip failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const runFirst = async () => {
-    const fw = Array.from(selectedFw);
-    if (fw.length === 0) {
-      setError("Select frameworks in the previous step.");
-      return;
-    }
     setError("");
-    setBusy(true);
     try {
-      await putOnboardingStep({ step: 3, data: {} });
-      await assessmentsApi.run({ org_id: orgId, frameworks: fw });
-      startStream(orgId, fw);
-      const raw = localStorage.getItem("cortex_user");
-      if (raw) {
-        const u = JSON.parse(raw) as Record<string, unknown>;
-        u.onboarding_complete = true;
-        u.onboarding_step = 3;
-        localStorage.setItem("cortex_user", JSON.stringify(u));
-      }
+      await putOnboardingStep({ step: 3 });
+      localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
       navigate("/dashboard", { replace: true });
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Assessment failed to start");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not finish onboarding.");
     } finally {
+      setBusy(false);
+    }
+  };
+
+  const runFirstAssessment = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await assessmentsApi.run({
+        org_id: localStorage.getItem("cortex_org_id") ?? orgId,
+        frameworks,
+      });
+      startStream(orgId, frameworks);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start assessment.");
       setBusy(false);
     }
   };
 
   return (
     <div style={{ minHeight: "100vh", background: "#05080f", color: "#e2e8f4", fontFamily: "DM Sans, sans-serif" }}>
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "16px 24px",
-          borderBottom: "1px solid #141e30",
-          background: "#090e1a",
-        }}
-      >
-        <LogoFull size="md" />
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {stepTitles.map((t, i) => (
-            <span
-              key={t}
-              style={{
-                fontSize: 11,
-                fontFamily: "'DM Mono', monospace",
-                color: i + 1 === step ? "#2dd4bf" : "#4a5a72",
-              }}
-            >
-              {i + 1}. {t}
-            </span>
-          ))}
+      <header style={{ background: "#090e1a", borderBottom: "1px solid #141e30", padding: "14px 24px 12px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <LogoFull size="md" />
+          <span style={{ color: "#94a3b8", fontFamily: "'Space Mono', 'DM Mono', monospace", fontSize: 12 }}>
+            Step {step} of 3
+          </span>
+        </div>
+        <div style={{ width: "100%", height: 6, borderRadius: 999, background: "#1e293b", overflow: "hidden" }}>
+          <div style={{ width: `${(step / 3) * 100}%`, height: "100%", background: "#2dd4bf", transition: "width 0.25s ease" }} />
         </div>
       </header>
 
-      <main style={{ maxWidth: 960, margin: "0 auto", padding: "32px 24px 48px" }}>
-        {error && (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: "12px 16px",
-              borderRadius: 8,
-              background: "rgba(239,68,68,0.12)",
-              border: "1px solid rgba(239,68,68,0.35)",
-              color: "#fca5a5",
-              fontSize: 14,
-            }}
-          >
-            {error}
-          </div>
-        )}
+      <main style={{ maxWidth: 980, margin: "0 auto", padding: "26px 24px 40px" }}>
+        <div style={{ display: "flex", gap: 12, marginBottom: 22 }}>
+          {["Structure", "Frameworks", "Assess"].map((label, index) => {
+            const stepIndex = index + 1;
+            const done = stepIndex < step;
+            const active = stepIndex === step;
+            return (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 999,
+                    background: active ? "#2dd4bf" : done ? "#10b981" : "#475569",
+                    boxShadow: active ? "0 0 8px rgba(45,212,191,0.6)" : "none",
+                  }}
+                />
+                <span style={{ color: active ? "#e2e8f4" : "#94a3b8", fontSize: 12 }}>{label}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {error ? <div style={errorBanner}>{error}</div> : null}
 
         {step === 1 && (
           <section>
-            <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, marginBottom: 8 }}>
-              How is your organisation structured?
-            </h1>
-            <p style={{ color: "#94a3b8", marginBottom: 28 }}>
-              Choose how CORTEX should model your compliance scope.
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <button
-                type="button"
-                onClick={() => setStructure("single")}
-                style={cardStyle(structure === "single")}
-              >
-                <div style={{ fontSize: 28 }}>🏢</div>
-                <h2 style={{ fontSize: 18, margin: "12px 0 8px" }}>Single Entity</h2>
-                <p style={{ color: "#94a3b8", fontSize: 14 }}>
-                  One company, one jurisdiction — “I operate in one country”.
-                </p>
+            <h1 style={h1Style}>How is your organisation structured?</h1>
+            <p style={subStyle}>This determines how CORTEX maps your compliance posture.</p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <button type="button" onClick={() => selectStructure("single")} style={optionCard(structure === "single")}> 
+                <div style={{ fontSize: 34, marginBottom: 6 }}>🏢</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Single Entity</div>
+                <div style={{ color: "#94a3b8", fontSize: 13 }}>One company, operating in one primary jurisdiction.</div>
+                <div style={{ color: "#64748b", fontSize: 12, marginTop: 8 }}>e.g. a startup or SMB</div>
               </button>
-              <button
-                type="button"
-                onClick={() => setStructure("multi")}
-                style={cardStyle(structure === "multi")}
-              >
-                <div style={{ fontSize: 28 }}>🌍</div>
-                <h2 style={{ fontSize: 18, margin: "12px 0 8px" }}>Multi-Entity Group</h2>
-                <p style={{ color: "#94a3b8", fontSize: 14 }}>
-                  Multiple entities across countries — “We have offices in 2+ countries”.
-                </p>
+
+              <button type="button" onClick={() => selectStructure("multi")} style={optionCard(structure === "multi")}> 
+                <div style={{ fontSize: 34, marginBottom: 6 }}>🌍</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Multi-Entity Group</div>
+                <div style={{ color: "#94a3b8", fontSize: 13 }}>Multiple entities across different countries.</div>
+                <div style={{ color: "#64748b", fontSize: 12, marginTop: 8 }}>e.g. international group with EU, UK, APAC offices</div>
               </button>
             </div>
 
             {structure === "multi" && (
-              <div style={{ marginTop: 28 }}>
-                <p style={{ color: "#94a3b8", marginBottom: 12, fontSize: 14 }}>
-                  Add at least two entities (name, jurisdiction, role).
-                </p>
-                {entities.map((e, idx) => (
-                  <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 100px 1fr", gap: 8, marginBottom: 8 }}>
-                    <input
-                      placeholder="Entity name"
-                      value={e.name}
-                      onChange={(ev) => {
-                        const next = [...entities];
-                        next[idx] = { ...e, name: ev.target.value };
-                        setEntities(next);
-                      }}
+              <div style={{ marginTop: 18, background: "#090e1a", border: "1px solid #141e30", borderRadius: 10, padding: 14 }}>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>Add your entities</div>
+                <div style={{ color: "#94a3b8", fontSize: 12, marginBottom: 12 }}>Add at least 2 entities</div>
+
+                {entities.map((entity, index) => (
+                  <div key={index} style={{ display: "grid", gridTemplateColumns: "70px 1fr 130px 1fr 34px", gap: 8, marginBottom: 8 }}>
+                    <select
+                      value={entity.flag}
+                      onChange={(e) => updateEntity(index, { flag: e.target.value })}
                       style={inputStyle}
-                    />
-                    <input
-                      placeholder="CC"
-                      value={e.jurisdiction}
-                      onChange={(ev) => {
-                        const next = [...entities];
-                        next[idx] = { ...e, jurisdiction: ev.target.value };
-                        setEntities(next);
-                      }}
+                    >
+                      {Object.values(FLAG_BY_JURISDICTION).map((flag) => (
+                        <option key={flag} value={flag}>{flag}</option>
+                      ))}
+                    </select>
+                    <input value={entity.name} onChange={(e) => updateEntity(index, { name: e.target.value })} placeholder="Entity name" style={inputStyle} />
+                    <select
+                      value={entity.jurisdiction}
+                      onChange={(e) =>
+                        updateEntity(index, {
+                          jurisdiction: e.target.value,
+                          flag: FLAG_BY_JURISDICTION[e.target.value] ?? "🏳️",
+                        })
+                      }
                       style={inputStyle}
-                    />
-                    <input
-                      placeholder="Role"
-                      value={e.role}
-                      onChange={(ev) => {
-                        const next = [...entities];
-                        next[idx] = { ...e, role: ev.target.value };
-                        setEntities(next);
-                      }}
-                      style={inputStyle}
-                    />
+                    >
+                      {JURIS_OPTIONS.map((j) => (
+                        <option key={j} value={j}>{j}</option>
+                      ))}
+                    </select>
+                    <input value={entity.role} onChange={(e) => updateEntity(index, { role: e.target.value })} placeholder="Role" style={inputStyle} />
+                    <button
+                      type="button"
+                      onClick={() => setEntities((prev) => prev.filter((_, idx) => idx !== index))}
+                      style={{ ...inputStyle, padding: 0, color: "#94a3b8", cursor: "pointer" }}
+                    >
+                      ✕
+                    </button>
                   </div>
                 ))}
+
                 <button
                   type="button"
-                  onClick={() =>
-                    setEntities([...entities, { name: "", jurisdiction: "EU", role: "" }])
-                  }
-                  style={{
-                    marginTop: 8,
-                    background: "transparent",
-                    border: "1px dashed #2dd4bf",
-                    color: "#2dd4bf",
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    cursor: "pointer",
-                    fontSize: 13,
-                  }}
+                  onClick={() => setEntities((prev) => [...prev, { flag: "🇪🇺", name: "", jurisdiction: "EU", role: "" }])}
+                  style={{ ...ghostStyle, border: "1px dashed #2dd4bf", color: "#2dd4bf" }}
                 >
-                  + Add another entity
+                  ＋ Add another entity
                 </button>
               </div>
             )}
 
-            <div style={{ marginTop: 32 }}>
-              <button type="button" disabled={busy} onClick={persistStep1} style={primaryBtn(busy)}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+              <button type="button" disabled={!canContinueStep1 || busy} onClick={persistStep1} style={primaryStyle(!canContinueStep1 || busy)}>
                 Continue →
               </button>
             </div>
@@ -370,62 +312,49 @@ export default function Onboarding() {
 
         {step === 2 && (
           <section>
-            <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, marginBottom: 8 }}>
-              Which regulations apply to you?
-            </h1>
-            <p style={{ color: "#94a3b8", marginBottom: 24 }}>
-              We will pre-assess your posture against these frameworks.
-            </p>
-            <div style={{ display: "grid", gap: 12 }}>
-              {FRAMEWORK_CARDS.map((f) => (
-                <label
-                  key={f.id}
-                  style={{
-                    display: "flex",
-                    gap: 14,
-                    alignItems: "flex-start",
-                    padding: 16,
-                    borderRadius: 10,
-                    border: selectedFw.has(f.id) ? "1px solid #2dd4bf" : "1px solid #141e30",
-                    background: "#090e1a",
-                    cursor: "pointer",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedFw.has(f.id)}
-                    onChange={() => toggleFw(f.id)}
-                    style={{ marginTop: 4 }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                      <strong>{f.name}</strong>
-                      <span style={{ color: "#4a5a72", fontSize: 13 }}>{f.version}</span>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          letterSpacing: 1,
-                          padding: "2px 8px",
-                          borderRadius: 4,
-                          background: "#0e7490",
-                          color: "#cffafe",
-                        }}
-                      >
-                        {f.jurisdiction}
-                      </span>
-                      <span style={{ color: "#64748b", fontSize: 12 }}>{f.control_count} controls</span>
+            <h1 style={h1Style}>Which regulations apply to you?</h1>
+            <p style={subStyle}>Pre-selected based on your jurisdiction. Adjust as needed.</p>
+            <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 12 }}>{frameworks.length} frameworks selected</p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+              {FRAMEWORK_CARDS.map((framework) => {
+                const checked = frameworks.includes(framework.id);
+                return (
+                  <button
+                    key={framework.id}
+                    type="button"
+                    onClick={() => {
+                      setFrameworks((prev) =>
+                        prev.includes(framework.id)
+                          ? prev.filter((id) => id !== framework.id)
+                          : [...prev, framework.id]
+                      );
+                    }}
+                    style={{
+                      textAlign: "left",
+                      border: checked ? "1px solid #2dd4bf" : "1px solid #1e293b",
+                      background: checked ? "rgba(45, 212, 191, 0.08)" : "#090e1a",
+                      borderRadius: 10,
+                      padding: 14,
+                      color: "#e2e8f4",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                      <span style={{ color: checked ? "#2dd4bf" : "#64748b" }}>{checked ? "☑" : "☐"}</span>
+                      <span style={{ fontWeight: 700, fontSize: 14 }}>{framework.title}</span>
                     </div>
-                    <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 6 }}>{f.description}</p>
-                  </div>
-                </label>
-              ))}
+                    <div style={{ color: "#94a3b8", fontSize: 12 }}>{framework.subtitle}</div>
+                    <div style={{ color: "#64748b", fontSize: 12 }}>{framework.control_count} controls</div>
+                    <div style={{ color: "#94a3b8", fontSize: 12 }}>{framework.description}</div>
+                  </button>
+                );
+              })}
             </div>
-            <div style={{ marginTop: 28, display: "flex", gap: 12 }}>
-              <button type="button" disabled={busy} onClick={persistStep2} style={primaryBtn(busy)}>
+
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 18 }}>
+              <button type="button" onClick={() => setStep(1)} style={ghostStyle}>← Back</button>
+              <button type="button" disabled={frameworks.length === 0 || busy} onClick={persistStep2} style={primaryStyle(frameworks.length === 0 || busy)}>
                 Continue →
-              </button>
-              <button type="button" onClick={() => setStep(1)} style={ghostBtn}>
-                Back
               </button>
             </div>
           </section>
@@ -433,99 +362,144 @@ export default function Onboarding() {
 
         {step === 3 && (
           <section>
-            <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, marginBottom: 8 }}>
-              You&apos;re ready. Let&apos;s assess.
-            </h1>
-            <p style={{ color: "#94a3b8", marginBottom: 24 }}>
-              CORTEX will assess your posture across {selectedFw.size} framework
-              {selectedFw.size === 1 ? "" : "s"} (~2 minutes).
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
-              {Array.from(selectedFw).map((id) => (
-                <span
-                  key={id}
-                  style={{
-                    fontSize: 12,
-                    padding: "6px 10px",
-                    borderRadius: 6,
-                    background: "#0c1220",
-                    border: "1px solid #1e2e48",
-                  }}
-                >
-                  {id}
+            <h1 style={h1Style}>You&apos;re ready. Let&apos;s assess.</h1>
+            <p style={subStyle}>CORTEX will assess your compliance posture across your selected frameworks.</p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 10, marginBottom: 14 }}>
+              <StatCard title="Frameworks" value={String(frameworks.length)} />
+              <StatCard title="Controls" value={String(totalControls)} />
+              <StatCard title="Entities" value={String(structure === "multi" ? entities.length : 1)} />
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
+              {frameworks.map((id) => (
+                <span key={id} style={{ fontSize: 12, background: "#0f172a", border: "1px solid #2dd4bf66", color: "#2dd4bf", borderRadius: 999, padding: "4px 10px" }}>
+                  {frameworkLabel(id)}
                 </span>
               ))}
             </div>
-            <button
-              type="button"
-              disabled={busy || isStreaming}
-              onClick={runFirst}
-              style={{
-                ...primaryBtn(busy || isStreaming),
-                background: "linear-gradient(135deg, #0d9488, #2dd4bf)",
-                fontSize: 16,
-                padding: "14px 22px",
-              }}
-            >
-              {isStreaming ? "Streaming…" : "Run First Assessment →"}
+
+            <button type="button" disabled={busy || isStreaming} onClick={runFirstAssessment} style={runAssessmentStyle(busy || isStreaming)}>
+              ▶ Run First Assessment
             </button>
-            <div style={{ marginTop: 16 }}>
-              <button type="button" onClick={skipAll} disabled={busy} style={{ ...ghostBtn, fontSize: 12 }}>
+
+            {streamStatus ? <div style={{ marginTop: 10, fontSize: 13, color: "#2dd4bf" }}>{streamStatus}</div> : null}
+
+            {events.length > 0 && (
+              <div style={{ marginTop: 10, maxHeight: 220, overflowY: "auto", border: "1px solid #141e30", borderRadius: 10, padding: 10, background: "#090e1a", fontFamily: "'DM Mono', monospace", fontSize: 12 }}>
+                {events.map((event, index) => (
+                  <div key={`${event.kind}-${index}`} style={{ color: "#94a3b8", marginBottom: 4 }}>
+                    {event.kind === "framework_start"
+                      ? `Assessing ${(event as { frameworkName?: string; frameworkId?: string }).frameworkName ?? (event as { frameworkId?: string }).frameworkId ?? "framework"}...`
+                      : event.kind}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ marginTop: 12 }}>
+              <button type="button" disabled={busy || isStreaming} onClick={skipForNow} style={{ ...ghostStyle, color: "#94a3b8", fontSize: 12 }}>
                 Skip for now →
               </button>
             </div>
-            <p style={{ marginTop: 24 }}>
-              <button type="button" onClick={() => setStep(2)} style={ghostBtn}>
-                Back
-              </button>
-            </p>
           </section>
         )}
-
       </main>
     </div>
   );
 }
 
-function cardStyle(active: boolean): CSSProperties {
+function StatCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div style={{ background: "#090e1a", border: "1px solid #141e30", borderRadius: 10, padding: 12 }}>
+      <div style={{ fontSize: 12, color: "#94a3b8" }}>{title}</div>
+      <div style={{ marginTop: 4, fontSize: 22, fontWeight: 700 }}>{value}</div>
+    </div>
+  );
+}
+
+const h1Style: CSSProperties = {
+  margin: 0,
+  marginBottom: 6,
+  fontSize: 28,
+  fontFamily: "'Syne', 'DM Sans', sans-serif",
+  letterSpacing: "0.2px",
+};
+
+const subStyle: CSSProperties = {
+  marginTop: 0,
+  color: "#94a3b8",
+  marginBottom: 16,
+};
+
+const inputStyle: CSSProperties = {
+  width: "100%",
+  borderRadius: 8,
+  border: "1px solid #1e293b",
+  background: "#0f172a",
+  color: "#e2e8f4",
+  padding: "9px 10px",
+  fontSize: 13,
+};
+
+function optionCard(active: boolean): CSSProperties {
   return {
-    textAlign: "left" as const,
-    padding: 24,
-    borderRadius: 12,
-    border: active ? "2px solid #2dd4bf" : "1px solid #141e30",
+    borderRadius: 10,
+    border: active ? "1px solid #2dd4bf" : "1px solid #1e293b",
     background: "#090e1a",
     color: "#e2e8f4",
+    boxShadow: active ? "0 0 14px rgba(45,212,191,0.18)" : "none",
+    padding: 16,
+    textAlign: "left",
     cursor: "pointer",
   };
 }
 
-const inputStyle: CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: 8,
-  border: "1px solid #141e30",
-  background: "#0c1220",
-  color: "#e2e8f4",
-  fontSize: 14,
-};
-
-function primaryBtn(disabled: boolean): CSSProperties {
+function primaryStyle(disabled: boolean): CSSProperties {
   return {
-    padding: "12px 20px",
+    padding: "10px 16px",
     borderRadius: 8,
     border: "none",
-    fontWeight: "bold",
     color: "#fff",
+    background: "linear-gradient(135deg, #0d9488, #2dd4bf)",
     cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.65 : 1,
-    background: "linear-gradient(135deg, #2563eb, #3b82f6)",
+    fontWeight: 700,
   };
 }
 
-const ghostBtn: CSSProperties = {
-  padding: "10px 16px",
+const ghostStyle: CSSProperties = {
+  padding: "10px 14px",
   borderRadius: 8,
-  border: "1px solid #1e2e48",
+  border: "1px solid #334155",
   background: "transparent",
-  color: "#94a3b8",
+  color: "#cbd5e1",
   cursor: "pointer",
 };
+
+const errorBanner: CSSProperties = {
+  marginBottom: 14,
+  background: "rgba(239,68,68,0.15)",
+  border: "1px solid rgba(239,68,68,0.4)",
+  color: "#fca5a5",
+  borderRadius: 8,
+  padding: "10px 12px",
+  fontSize: 13,
+};
+
+function runAssessmentStyle(disabled: boolean): CSSProperties {
+  return {
+    width: "100%",
+    padding: "14px 18px",
+    borderRadius: 10,
+    border: "none",
+    background: "linear-gradient(135deg, #0d9488, #2dd4bf)",
+    color: "#06231e",
+    fontFamily: "'Syne', 'DM Sans', sans-serif",
+    fontWeight: 700,
+    fontSize: 15,
+    letterSpacing: "2px",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.6 : 1,
+  };
+}

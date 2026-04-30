@@ -11,9 +11,9 @@ import {
 } from "react-router-dom";
 import { getToken, getUser, ALL_FRAMEWORK_IDS } from "./api/client";
 import { LogoFull } from "./components/Logo";
-import Login from "./components/Login";
+import Login from "./pages/Login";
 import { DemoToggle } from "./components/DemoToggle";
-import { OrgScopeProvider, useOrgContext } from "./hooks/useOrgContext";
+import { useOrgContext } from "./hooks/useOrgContext";
 import Register from "./pages/Register";
 import Onboarding from "./pages/Onboarding";
 import { ComplianceDashboard } from "./ComplianceDashboard";
@@ -234,8 +234,11 @@ function AuthGate() {
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  const u = getUser() as Record<string, unknown> | null;
-  const needsOnboarding = u?.onboarding_complete === false;
+  const onboardingRaw = localStorage.getItem("cortex_onboarding");
+  const onboardingState = onboardingRaw
+    ? (JSON.parse(onboardingRaw) as { complete?: boolean })
+    : null;
+  const needsOnboarding = onboardingState?.complete === false;
   if (needsOnboarding && loc.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
   }
@@ -249,8 +252,11 @@ function RootRedirect() {
   if (!getToken()) {
     return <Navigate to="/login" replace />;
   }
-  const u = getUser() as Record<string, unknown> | null;
-  if (u?.onboarding_complete === false) {
+  const onboardingRaw = localStorage.getItem("cortex_onboarding");
+  const onboardingState = onboardingRaw
+    ? (JSON.parse(onboardingRaw) as { complete?: boolean })
+    : null;
+  if (onboardingState?.complete === false) {
     return <Navigate to="/onboarding" replace />;
   }
   return <Navigate to="/dashboard" replace />;
@@ -259,17 +265,20 @@ function RootRedirect() {
 function LoginScreen() {
   const navigate = useNavigate();
   if (getToken()) {
-    const u = getUser() as Record<string, unknown> | null;
-    if (u?.onboarding_complete === false) {
+    const onboardingRaw = localStorage.getItem("cortex_onboarding");
+    const onboardingState = onboardingRaw
+      ? (JSON.parse(onboardingRaw) as { complete?: boolean })
+      : null;
+    if (onboardingState?.complete === false) {
       return <Navigate to="/onboarding" replace />;
     }
     return <Navigate to="/dashboard" replace />;
   }
   return (
     <Login
-      onSuccess={() => {
-        const u = getUser() as Record<string, unknown> | null;
-        if (u?.onboarding_complete === false) {
+      onSuccess={(_token, user) => {
+        const u = user as { onboarding_complete?: boolean };
+        if (u.onboarding_complete === false) {
           navigate("/onboarding", { replace: true });
         } else {
           navigate("/dashboard", { replace: true });
@@ -292,19 +301,10 @@ export default function App() {
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/register" element={<Register />} />
         <Route element={<AuthGate />}>
-          <Route
-            path="/onboarding"
-            element={
-              <OrgScopeProvider>
-                <Onboarding />
-              </OrgScopeProvider>
-            }
-          />
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route
             element={
-              <OrgScopeProvider>
-                <MainChrome />
-              </OrgScopeProvider>
+              <MainChrome />
             }
           >
             <Route path="/dashboard" element={<ComplianceDashboard />} />

@@ -274,7 +274,7 @@ function EntityCard({
 
 // ─── Main view ─────────────────────────────────────────────────────────────
 export function GroupDashboard() {
-  const { orgId } = useOrgContext();
+  const { orgId, demoMode } = useOrgContext();
   const [data, setData] = useState<GroupPostureResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -298,7 +298,7 @@ export function GroupDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [orgId]);
+  }, [orgId, demoMode]);
 
   const criticalEntityCount = useMemo(
     () => (data ? data.entities.filter((e) => e.risk_level === "CRITICAL").length : 0),
@@ -343,10 +343,10 @@ export function GroupDashboard() {
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: "bold", color: tokens.text, margin: "0 0 4px 0" }}>
-          AstraLabs Group — Intelligence Overview
+          {demoMode ? "AstraLabs Group — Intelligence Overview" : `${data.group_name} — Intelligence Overview`}
         </h1>
         <p style={{ fontSize: 14, color: tokens.muted, margin: 0 }}>
-          Multi-entity compliance posture across 6 jurisdictions
+          {demoMode ? "Multi-entity compliance posture across 6 jurisdictions" : "Multi-entity compliance posture overview"}
         </p>
       </div>
 

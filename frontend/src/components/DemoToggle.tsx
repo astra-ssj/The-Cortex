@@ -13,15 +13,23 @@ export function DemoToggle() {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 10,
-        padding: "4px 10px",
+        gap: 8,
+        padding: "4px 8px",
         borderRadius: 8,
         background: "#141e30",
         border: "1px solid #1e2e48",
       }}
+      title={demoMode ? "Showing AstraLabs demo data" : "Showing your live data"}
     >
-      <span style={{ color: "#94a3b8", fontSize: 11, fontFamily: "'DM Mono', monospace" }}>
-        Demo Mode
+      <span
+        style={{
+          color: demoMode ? "#f59e0b" : "#64748b",
+          fontSize: 10,
+          fontFamily: "'Space Mono', 'DM Mono', monospace",
+          letterSpacing: 0.7,
+        }}
+      >
+        DEMO
       </span>
       <button
         type="button"
@@ -44,7 +52,7 @@ export function DemoToggle() {
           style={{
             position: "absolute",
             top: 3,
-            left: demoMode ? 22 : 4,
+            left: demoMode ? 4 : 24,
             width: 16,
             height: 16,
             borderRadius: "50%",
@@ -54,8 +62,15 @@ export function DemoToggle() {
           }}
         />
       </button>
-      <span style={{ color: "#94a3b8", fontSize: 11, fontFamily: "'DM Mono', monospace" }}>
-        Live
+      <span
+        style={{
+          color: demoMode ? "#64748b" : "#2dd4bf",
+          fontSize: 10,
+          fontFamily: "'Space Mono', 'DM Mono', monospace",
+          letterSpacing: 0.7,
+        }}
+      >
+        LIVE
       </span>
       <span
         style={{

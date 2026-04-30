@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useRef, useEffect } from "react";
 import { ALL_FRAMEWORK_IDS } from "./api/client";
 import { useOrgContext } from "./hooks/useOrgContext";
@@ -217,7 +218,8 @@ function FrameworkCard({
 }
 
 export function ComplianceDashboard() {
-  const { orgId } = useOrgContext();
+  const navigate = useNavigate();
+  const { orgId, demoMode } = useOrgContext();
   const { data: frameworks, isLoading, error } = useFrameworks();
   const { data: posture } = useCompliancePosture(orgId);
   const { data: ztaip } = useZtaipStatus();
@@ -329,7 +331,7 @@ export function ComplianceDashboard() {
           }}
         >
           <h2 className="font-bold" style={{ color: tokens.textPrimary }}>
-            {posture.organisationName}
+            {demoMode ? "AstraLabs Group" : posture.organisationName}
           </h2>
           <div className="mt-2 flex flex-wrap gap-2">
             <span
@@ -369,7 +371,7 @@ export function ComplianceDashboard() {
           >
             <p style={{ color: tokens.textDim, fontSize: "12px" }}>Overall Posture</p>
             <div className="mt-2 flex items-center gap-3">
-              {typeof posture.overallScore === "number" ? (
+              {typeof posture.overallScore === "number" && posture.overallScore > 0 ? (
                 <>
                   <div
                     className="relative flex shrink-0 items-center justify-center"
@@ -401,7 +403,26 @@ export function ComplianceDashboard() {
                   </p>
                 </>
               ) : (
-                <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>
+                <div>
+                  <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "20px", margin: 0 }}>
+                    Not Yet Assessed
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/onboarding")}
+                    style={{
+                      marginTop: 8,
+                      border: "none",
+                      background: "transparent",
+                      color: "#2dd4bf",
+                      padding: 0,
+                      cursor: "pointer",
+                      fontSize: 12,
+                    }}
+                  >
+                    Run your first assessment →
+                  </button>
+                </div>
               )}
             </div>
           </div>
