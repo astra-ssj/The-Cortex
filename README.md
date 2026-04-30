@@ -1,6 +1,98 @@
-# CORTEX
+# CORTEX — Zero Trust AI Compliance Platform
 
-**Enterprise organizational intelligence platform** on the **ZTAIP** (Zero Trust Agentic Intelligence Platform) architecture. CORTEX helps organizations manage compliance across multiple frameworks, run assessments, ingest evidence, and connect to cloud providers (AWS, Azure) for control discovery and findings.
+> The only compliance platform that governs its own AI while governing yours — across every framework, every jurisdiction, in real time.
+
+## What is CORTEX?
+
+CORTEX is an EU-first, mid-market compliance intelligence platform for organisations that operate across entities and jurisdictions. It combines continuous posture scoring across major frameworks (including **NIS2**, **GDPR**, and the **EU AI Act**) with a Zero Trust Agentic Intelligence Platform (**ZTAIP**) architecture: every AI-assisted outcome is confidence-scored, consequential actions are audit-logged, and low-confidence decisions are routed to human review.
+
+Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — federated ontology, governance at the data layer, and cryptographic evidence chains meant for real auditors and regulators, not slide decks.
+
+## Key Features
+
+### Compliance Intelligence
+
+- Multi-entity group dashboard (six jurisdictions)
+- AI assessment engine (ZTAIP) with confidence scoring
+- Human review queue (aligned with GDPR Art.22 and EU AI Act Art.14 concepts)
+- Remediation tracker with audit trail
+
+### Intelligence Section
+
+- Counterfactual Audit Simulator (BSI, CNIL, ICO, Garante, EU AI Office patterns)
+- Live control-telemetry fusion (signals mapped to controls)
+- Regulation-as-Code style EU regulatory change feed
+- Cryptographic evidence vault (SHA-256 hash chain)
+
+### AI Systems (EU AI Act)
+
+- AI system inventory and Annex III classification
+- ISO 42001-grounded classification reasoning
+- Obligation mapping with August 2026 countdown and deadline tracker
+
+### Customer Onboarding
+
+- Multi-tenant registration
+- Three-step setup wizard
+- Demo mode toggle for comparing tenant vs AstraLabs reference data
+
+## Tech Stack
+
+| Layer       | Technology                                              |
+|-------------|---------------------------------------------------------|
+| Frontend    | React 18, TypeScript, Vite                              |
+| Backend     | FastAPI, Python 3.12, SQLAlchemy async, asyncpg       |
+| Database    | PostgreSQL 16 (Docker Compose)                        |
+| Data layer  | GraphJin (GraphQL auto-generated, migrations in-repo) |
+| GRC Skills  | Loaded examples include GDPR, ISO 27001, DORA, ISO 42001 (via compliance-engine loader) |
+| Auth        | JWT (HS256), bcrypt passwords                           |
+| Container   | Docker Compose                                          |
+
+## Frameworks Supported
+
+| Framework              | Controls | Jurisdiction  |
+|------------------------|----------|----------------|
+| ISO/IEC 27001:2022     | 93       | International  |
+| GDPR 2016/679          | 25       | EU             |
+| NIS2 Directive         | 20       | EU             |
+| NIST CSF 2.0           | 106      | US             |
+| CSA CCM v4.0           | 197      | International  |
+| Cyber Essentials v3.1  | 18       | UK             |
+| EU AI Act 2024         | 31       | EU             |
+| EU Cybersecurity Act   | 22       | EU             |
+| **Total**              | **491**  |                |
+
+## Quick Start
+
+### Prerequisites
+
+- Docker Desktop
+- Node.js 18+
+- Git
+
+### Setup
+
+```bash
+git clone https://github.com/AstraLabs-AI/The-Cortex
+cd The-Cortex
+
+# Start backend
+POSTGRES_PASSWORD=cortex-dev docker compose up -d
+
+# Verify API health
+curl http://localhost:8000/health
+
+# Start frontend
+cd frontend && npm install && npm run dev
+```
+
+Open http://localhost:3000
+
+**Login:** `admin` / `admin` (AstraLabs Group demo tenant).
+
+### Register a new tenant
+
+Open http://localhost:3000/register, fill company details, complete the three-step wizard.
 
 ---
 
@@ -8,133 +100,75 @@
 
 ### Principles (ZTAIP)
 
-- **Zero trust:** Every LLM call is wrapped in a **CircuitBreaker**; no direct external calls without protection.
-- **Audit-first:** Consequential actions are logged to the **audit fabric** before and after execution (append-only).
-- **Human-in-the-loop:** Outcomes with `confidence_score < 0.75` are routed to human review; no autonomous high-impact decisions.
-- **Federated ontology:** Domain models use jurisdiction and purpose tags; no single monolithic cross-service dependency.
-- **Governance as infrastructure:** Policy and compliance are enforced at the data layer.
+- **Zero trust:** External LLM and brittle integrations run behind circuit breakers; no unconstrained agent autonomy on high-impact paths.
+- **Audit-first:** Consequential operations target append-only audit semantics (`audit_fabric` / audit log patterns — evolve toward persistent store).
+- **Human-in-the-loop:** Confidence below **0.75** routes to the Review Queue for explicit approve / override with rationale.
+- **Federated ontology:** Domain concepts carry jurisdiction and purpose tags; avoid monolithic cross-service coupling.
+- **Governance as infrastructure:** Prefer enforcing posture and scope at the data and API boundary, not only in UI logic.
 
-### Stack
+### Request flow (Compose dev)
 
-| Layer        | Technology |
-|-------------|------------|
-| Backend     | Python 3.12, FastAPI, SQLAlchemy async, Pydantic v2 |
-| API gateway | Node.js 20, TypeScript, Express |
-| Frontend    | React 18, TypeScript, Tailwind, TanStack Query |
-| Data        | PostgreSQL 16, Redis 7, Kafka, Qdrant |
-| Tests       | pytest, pytest-asyncio (Python); vitest (TS) |
-| Runtime     | Docker, Kubernetes |
+```text
+Browser (React, :3000)
+    → FastAPI (`api.main`, :8000)
+        → PostgreSQL (:5432 internal to Compose network)
+        → Optional: compliance-engine routers mounted from `services/compliance-engine`
+```
 
-### Core components
+### Repository layout (high level)
 
-- **Compliance engine** — Registry of frameworks (NIST CSF, GDPR, NIS2, SOC2, ISO 27001, HIPAA, PCI DSS, CCPA). Frameworks define controls, requirements, and evidence types.
-- **Assessment engine** — Runs assessments per organization and framework; streams events via SSE; uses context builder and (when enabled) LLM behind CircuitBreaker.
-- **Audit fabric** — Append-only audit log for all consequential operations.
-- **Ingestion** — Document upload (PDF, DOCX, TXT), chunking, mapping to ontology, evidence creation; progress via SSE.
-- **Connectors** — AWS and Azure: connect (validate credentials, discover systems/controls), sync (re-run discovery, stream progress via SSE). Credentials stored encrypted (Fernet when `CORTEX_CONNECTOR_SECRET_KEY` is set).
+| Area | Role |
+|------|------|
+| `api/` | REST routers: auth, assessments, organisations, findings, groups, system |
+| `core/` | Security (JWT, bcrypt), tenant scoping, shared helpers |
+| `compliance/` | Framework registry and posture primitives |
+| `services/` | Posture calculator, GraphJin config/migrations, compliance-engine app |
+| `frontend/` | Vite + React SPA, dashboards, Intelligence, AI Systems |
+| `init.sql`, `migrations/` | PostgreSQL schema and incremental DDL |
 
----
+### Security defaults
 
-## API reference
-
-Base URL: `/api/v1` (plus `/health`, `/ready` at root).
-
-### Frameworks & assessments
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/frameworks` | List all registered frameworks (summary). |
-| `GET` | `/frameworks/{framework_id}` | Get one framework with full controls. |
-| `GET` | `/frameworks/{framework_id}/controls` | Paginated controls (`page`, `page_size`). |
-| `GET` | `/assessments/run` | Run assessment stream (SSE). Query: `organization_id`, `framework_ids` (comma-separated). |
-
-### Organisations
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/organisations/{org_id}` | Organisation profile. |
-| `GET` | `/organisations/{org_id}/posture` | Compliance posture for the organisation. |
-
-### Ingestion
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/ingest/document` | Multipart upload (PDF, DOCX, TXT; max 10MB). Returns SSE stream (progress, mapping_done, evidence_created, summary, done). |
-
-### Connectors
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/connectors/aws/connect` | Validate AWS credentials, run discovery, store credentials. Body: `account_id`, `access_key_id`, `secret_access_key`, `region`, optional `role_arn`, `external_id`. |
-| `POST` | `/connectors/aws/sync` | Re-run AWS discovery with stored credentials; stream progress via SSE. |
-| `POST` | `/connectors/azure/connect` | Validate Azure credentials, run discovery, store credentials. Body: `tenant_id`, `client_id`, `client_secret`, `subscription_id`. |
-| `POST` | `/connectors/azure/sync` | Re-run Azure discovery with stored credentials; stream progress via SSE. |
-
-### System
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/system/ztaip-status` | ZTAIP status: audit fabric (total events, last event), circuit breaker count, human review queue count, sovereignty broker, agent certificates. |
-
-### Health
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | Liveness. |
-| `GET` | `/ready` | Readiness. |
+- **JWT:** Prefer `JWT_SECRET` (falls back to `CORTEX_SECRET_KEY`). Eight-hour token lifetime.
+- **CORS:** Explicit localhost origins plus optional `FRONTEND_URL` — no `*` wildcard with credentials.
+- **Rate limiting:** SlowAPI on `/api/v1/auth/register` and `/api/v1/auth/token`.
+- **Headers:** `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, etc.
+- **Dev-only JWT bypass:** Literal bearer `TOKEN` is rejected unless `CORTEX_ALLOW_TOKEN_BYPASS=true`.
 
 ---
 
-## Quick start
+## API sketch
 
-1. **Clone and install**
+Base URL: `/api/v1` (plus `/health`, `/ready`).
 
-   ```bash
-   git clone https://github.com/AstraLabs-AI/The-Cortex
-   cd The-Cortex
-   pip install -e ".[dev]"
-   ```
+Notable routes:
 
-2. **Database (Docker)**
+| Area | Examples |
+|------|-----------|
+| Auth | `POST /auth/token`, `POST /auth/register`, `GET /auth/me`, `PUT /auth/onboarding/step` |
+| Organisations | `GET /organisations/{org_id}`, `GET /organisations/{org_id}/posture` |
+| Assessments | Stream and summary endpoints under `api/assessments.py` patterns |
 
-   Set `POSTGRES_PASSWORD` (required), then:
-
-   ```bash
-   export POSTGRES_PASSWORD=your-secure-password
-   docker-compose up -d postgres
-   docker-compose run --rm seed
-   ```
-
-3. **Run API**
-
-   ```bash
-   export DATABASE_URL="postgresql+asyncpg://cortex:your-password@localhost:5432/cortex"
-   uvicorn api.main:app --reload
-   ```
-
-4. **Run tests**
-
-   ```bash
-   pytest tests/ -v
-   pytest tests/ --cov=app --cov=compliance --cov=core --cov=api --cov=services --cov-report=term-missing
-   ```
-
-See **CORTEX_SETUP.md** for Cursor/Composer workflow and first-session checklist.
+See `.cursorrules` for non‑negotiable ZTAIP conventions when extending the codebase.
 
 ---
 
-## Roadmap
+## Development notes
 
-- [ ] **LLM integration** — Wire assessment and ingestion to real LLM calls behind CircuitBreaker; keep confidence threshold and human-review routing.
-- [ ] **Audit persistence** — Move audit fabric from in-memory to append-only DB (e.g. `audit_log` table).
-- [ ] **Authentication & authorization** — Enforce auth on all endpoints; no disabling for convenience.
-- [ ] **Rate limiting** — Enforce limits at gateway or in-app (headers already added; enforcement TBD).
-- [ ] **Sovereignty broker & agent certs** — Replace placeholders in ZTAIP status with real broker and certificate counts.
-- [ ] **Additional frameworks** — Add new frameworks via the NIST CSF pattern; register in `compliance/registry.py` and extend `FrameworkId`.
-- [ ] **Kubernetes manifests** — Add K8s deployment and service manifests for all services; health/ready probes.
+- **Python:** `pip install -e ".[dev]"` (requires Python **≥ 3.12**).
+- **Tests:** `pytest tests/ -v`
+- **Frontend audit:** After `npm install`, run `npm audit --audit-level=high`. There is no committed lockfile by default; generate `package-lock.json` locally if you want reproducible audits.
+- **Python dependency audit:** Use `pip install safety` / `pip-audit` in your environment (Docker image strips dev tooling).
+
+---
+
+## Roadmap (selected)
+
+- Deeper LLM integration behind CircuitBreaker with persisted audit fabric.
+- Hardened production JWT settings (`JWT_SECRET`, no dev bypass).
+- Kubernetes manifests and gateway-level rate limits alongside in-app limits.
 
 ---
 
 ## License & contributing
 
-See repository license. For contribution and code patterns, follow **.cursorrules** (ZTAIP rules, stack, patterns, no raw LLM calls, structlog, audit_fabric on consequential ops).
+See repository license. Contribution guidelines follow `.cursorrules` (structlog, no naked LLM calls, SovereignModel patterns for new domain entities, append-only audit assumptions).

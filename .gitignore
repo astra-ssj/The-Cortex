@@ -1,23 +1,44 @@
-# Dependencies and build
-node_modules/
+# Environment
+.env
+.env.local
+.env.*.local
+.env.*
+
+# GRC Skills raw binaries
+services/skills/raw/*.skill
+
+# Python
 __pycache__/
 *.py[cod]
+*.pyc
+*.pyo
 .venv/
 venv/
 *.egg-info/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Build artifacts
 dist/
 build/
-frontend/dist/
+*.tsbuildinfo
 
-# Env and secrets
-.env
-.env.*
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/settings.json
+*.swp
+
+# Secrets and certs (additional)
 *.pem
 *.key
 secrets/
-
-# GRC Skills — raw .skill binaries (extracted SKILL.md is committed)
-services/skills/raw/*.skill
 
 # IDE and test
 .pytest_cache/
