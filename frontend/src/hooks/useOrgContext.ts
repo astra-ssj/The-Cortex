@@ -1,9 +1,8 @@
-import { useSyncExternalStore } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 const DEMO_ORG = "demo-org-001";
 const DEMO_MODE_KEY = "cortex_demo_mode";
 const ORG_ID_KEY = "cortex_org_id";
-const ORG_CONTEXT_EVENT = "cortex:org-context-updated";
 
 export interface OrgContext {
   orgId: string;
@@ -13,77 +12,61 @@ export interface OrgContext {
   isDemoOrg: boolean;
 }
 
-type OrgSnapshot = {
-  storedOrgId: string;
-  demoMode: boolean;
-};
-
-const listeners = new Set<() => void>();
-
-function getSnapshot(): OrgSnapshot {
-  const storedOrgId = localStorage.getItem(ORG_ID_KEY) ?? DEMO_ORG;
-  const initialDemo =
-    storedOrgId === DEMO_ORG ||
-    localStorage.getItem(DEMO_MODE_KEY) === "true";
-  return { storedOrgId, demoMode: initialDemo };
-}
-
-function getServerSnapshot(): OrgSnapshot {
-  return { storedOrgId: DEMO_ORG, demoMode: true };
-}
-
-function emitContextChanged() {
-  listeners.forEach((listener) => listener());
-  window.dispatchEvent(new CustomEvent(ORG_CONTEXT_EVENT));
-}
-
-function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  const onStorage = (event: StorageEvent) => {
-    if (event.key === ORG_ID_KEY || event.key === DEMO_MODE_KEY) {
-      listener();
-    }
-  };
-  const onLocalEvent = () => listener();
-  window.addEventListener("storage", onStorage);
-  window.addEventListener(ORG_CONTEXT_EVENT, onLocalEvent);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
-    window.removeEventListener(ORG_CONTEXT_EVENT, onLocalEvent);
-  };
-}
-
 export function useOrgContext(): OrgContext {
-  const { storedOrgId, demoMode } = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot
-  );
+  const getStoredOrgId = () => localStorage.getItem(ORG_ID_KEY) ?? DEMO_ORG;
 
-  const effectiveOrgId = demoMode ? DEMO_ORG : storedOrgId;
-
-  const toggleDemoMode = () => {
-    const next = !demoMode;
-    localStorage.setItem(DEMO_MODE_KEY, String(next));
-    emitContextChanged();
+  const getStoredDemoMode = () => {
+    const orgId = getStoredOrgId();
+    if (orgId === DEMO_ORG) return true;
+    return localStorage.getItem(DEMO_MODE_KEY) === "true";
   };
+
+  const [orgId, setOrgId] = useState<string>(getStoredOrgId);
+  const [demoMode, setDemoMode] = useState<boolean>(getStoredDemoMode);
+
+  // Sync when localStorage changes from another component (e.g. login sets org_id)
+  useEffect(() => {
+    const handleStorage = () => {
+      setOrgId(getStoredOrgId());
+      setDemoMode(getStoredDemoMode());
+    };
+    window.addEventListener("storage", handleStorage);
+    // Also listen to custom event for same-tab updates
+    window.addEventListener("cortex-org-changed", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("cortex-org-changed", handleStorage);
+    };
+  }, []);
+
+  const toggleDemoMode = useCallback(() => {
+    setDemoMode((prev) => {
+      const next = !prev;
+      localStorage.setItem(DEMO_MODE_KEY, String(next));
+      return next;
+    });
+    window.dispatchEvent(new Event("cortex-org-changed"));
+  }, []);
+
+  const effectiveOrgId = demoMode ? DEMO_ORG : orgId;
 
   return {
     orgId: effectiveOrgId,
     demoMode,
     toggleDemoMode,
-    isOwnData: !demoMode && storedOrgId !== DEMO_ORG,
-    isDemoOrg: storedOrgId === DEMO_ORG,
+    isOwnData: !demoMode && orgId !== DEMO_ORG,
+    isDemoOrg: orgId === DEMO_ORG,
   };
 }
 
-// Helper — save org_id to localStorage after login
-export function setStoredOrgId(orgId: string) {
-  localStorage.setItem(ORG_ID_KEY, orgId);
-  // If new org is demo, set demo mode on
-  if (orgId === DEMO_ORG) {
+// Call this after login/register to update all components using useOrgContext
+export function setStoredOrgId(newOrgId: string) {
+  localStorage.setItem(ORG_ID_KEY, newOrgId);
+  if (newOrgId === DEMO_ORG) {
     localStorage.setItem(DEMO_MODE_KEY, "true");
+  } else {
+    localStorage.setItem(DEMO_MODE_KEY, "false");
   }
-  emitContextChanged();
+  // Notify same-tab listeners
+  window.dispatchEvent(new Event("cortex-org-changed"));
 }

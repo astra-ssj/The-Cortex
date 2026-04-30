@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogoFull } from "../components/Logo";
-import { assessmentsApi, putOnboardingStep } from "../api/client";
-import { useAssessmentStream } from "../store/complianceStore";
-import { useOrgContext } from "../hooks/useOrgContext";
+import { putOnboardingStep } from "../api/client";
 
 type StructureType = "single" | "multi";
 
@@ -65,7 +63,6 @@ function frameworkLabel(id: string): string {
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { orgId } = useOrgContext();
 
   const [step, setStep] = useState(1);
   const [structure, setStructure] = useState<StructureType | null>(null);
@@ -75,36 +72,75 @@ export default function Onboarding() {
     return getPresetFrameworks(jurisdiction);
   });
   const [busy, setBusy] = useState(false);
+  const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
-
-  const { events, isStreaming, startStream } = useAssessmentStream();
 
   const totalControls = useMemo(
     () => frameworks.reduce((sum, id) => sum + (FRAMEWORK_CARDS.find((f) => f.id === id)?.control_count ?? 0), 0),
     [frameworks]
   );
 
-  const lastFrameworkEvent = [...events]
-    .reverse()
-    .find((event) => event.kind === "framework_start") as
-    | { frameworkName?: string; frameworkId?: string }
-    | undefined;
+  async function handleRunAssessment() {
+    setRunning(true);
+    try {
+      const token = localStorage.getItem("cortex_token");
+      const orgId = localStorage.getItem("cortex_org_id") ?? "demo-org-001";
 
-  const streamStatus = lastFrameworkEvent
-    ? `Assessing ${lastFrameworkEvent.frameworkName ?? lastFrameworkEvent.frameworkId ?? "framework"}...`
-    : isStreaming
-      ? "Assessing selected frameworks..."
-      : "";
+      await fetch("/api/v1/auth/onboarding/step", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ step: 3 }),
+      });
 
-  useEffect(() => {
-    if (events.some((e) => e.kind === "run_done")) {
-      void (async () => {
-        await putOnboardingStep({ step: 3 });
-        localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
+      localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
+
+      void fetch("/api/v1/assessments/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          org_id: orgId,
+          frameworks,
+        }),
+      }).catch(() => {
+        // Assessment endpoint may be unavailable — non-blocking
+      });
+
+      window.setTimeout(() => {
+        setRunning(false);
         navigate("/dashboard", { replace: true });
-      })();
+      }, 1500);
+    } catch (e) {
+      console.error("Assessment start failed:", e);
+      setRunning(false);
+      navigate("/dashboard", { replace: true });
     }
-  }, [events, navigate]);
+  }
+
+  async function handleSkip() {
+    try {
+      const token = localStorage.getItem("cortex_token");
+      await fetch("/api/v1/auth/onboarding/step", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ step: 3 }),
+      });
+      localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
+    } catch {
+      // Non-blocking
+    } finally {
+      navigate("/dashboard", { replace: true });
+    }
+  }
+
 
   const updateEntity = (index: number, patch: Partial<EntityDraft>) => {
     setEntities((prev) => prev.map((entity, idx) => (idx === index ? { ...entity, ...patch } : entity)));
@@ -157,35 +193,6 @@ export default function Onboarding() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save frameworks.");
     } finally {
-      setBusy(false);
-    }
-  };
-
-  const skipForNow = async () => {
-    setBusy(true);
-    setError("");
-    try {
-      await putOnboardingStep({ step: 3 });
-      localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
-      navigate("/dashboard", { replace: true });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not finish onboarding.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const runFirstAssessment = async () => {
-    setBusy(true);
-    setError("");
-    try {
-      await assessmentsApi.run({
-        org_id: localStorage.getItem("cortex_org_id") ?? orgId,
-        frameworks,
-      });
-      startStream(orgId, frameworks);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not start assessment.");
       setBusy(false);
     }
   };
@@ -379,26 +386,27 @@ export default function Onboarding() {
               ))}
             </div>
 
-            <button type="button" disabled={busy || isStreaming} onClick={runFirstAssessment} style={runAssessmentStyle(busy || isStreaming)}>
-              ▶ Run First Assessment
-            </button>
-
-            {streamStatus ? <div style={{ marginTop: 10, fontSize: 13, color: "#2dd4bf" }}>{streamStatus}</div> : null}
-
-            {events.length > 0 && (
-              <div style={{ marginTop: 10, maxHeight: 220, overflowY: "auto", border: "1px solid #141e30", borderRadius: 10, padding: 10, background: "#090e1a", fontFamily: "'DM Mono', monospace", fontSize: 12 }}>
-                {events.map((event, index) => (
-                  <div key={`${event.kind}-${index}`} style={{ color: "#94a3b8", marginBottom: 4 }}>
-                    {event.kind === "framework_start"
-                      ? `Assessing ${(event as { frameworkName?: string; frameworkId?: string }).frameworkName ?? (event as { frameworkId?: string }).frameworkId ?? "framework"}...`
-                      : event.kind}
-                  </div>
-                ))}
+            {running ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  color: "#2dd4bf",
+                  fontFamily: "'Space Mono', 'DM Mono', monospace",
+                  fontSize: 12,
+                  padding: 16,
+                  letterSpacing: "2px",
+                }}
+              >
+                ● LAUNCHING ASSESSMENT...
               </div>
+            ) : (
+              <button type="button" disabled={busy} onClick={() => void handleRunAssessment()} style={runAssessmentStyle(busy)}>
+                ▶ Run First Assessment
+              </button>
             )}
 
             <div style={{ marginTop: 12 }}>
-              <button type="button" disabled={busy || isStreaming} onClick={skipForNow} style={{ ...ghostStyle, color: "#94a3b8", fontSize: 12 }}>
+              <button type="button" disabled={busy || running} onClick={() => void handleSkip()} style={{ ...ghostStyle, color: "#94a3b8", fontSize: 12 }}>
                 Skip for now →
               </button>
             </div>

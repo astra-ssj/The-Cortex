@@ -12,12 +12,6 @@ const TEXT_PRIMARY = "#e2e8f4";
 const TEXT_MUTED = "#94a3b8";
 const TEXT_GREY = "#4a5a72";
 
-function statusLabel(status: string): string {
-  if (status === "connected") return "Connected";
-  if (status === "coming_soon") return "Coming Soon";
-  return "Not Connected";
-}
-
 function StatusBadge({ status }: { status: string }) {
   if (status === "connected") {
     return (
