@@ -4,6 +4,9 @@
 
 :root {
   --dim: #64748b;
+  --border: #141e30;
+  --border-l: #1e2e48;
+  --muted: #94a3b8;
 }
 
 @keyframes intelligence-fade-in-up {

@@ -2,23 +2,41 @@
 
 from __future__ import annotations
 
+import os
+import secrets
 import uuid
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
-from sqlalchemy import text
+from sqlalchemy import Column, Integer, MetaData, String, Table, bindparam, func, text, update
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.exc import DBAPIError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
+from api.limits import limiter
 from core.security import DEMO_USERS, create_access_token, get_current_user, hash_password, verify_password
 
 logger = structlog.get_logger()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_orgs = Table(
+    "organizations",
+    MetaData(),
+    Column("id", String, primary_key=True),
+    Column("onboarding_step", Integer),
+    Column("entity_structure", String),
+    Column("selected_frameworks", ARRAY(String)),
+    Column("onboarding_complete", Boolean),
+)
+
+# Optional legacy demo login (plaintext compare). Disabled unless password is set via env (avoids hardcoded credentials).
+_LEGACY_DEMO_USER = os.getenv("CORTEX_LEGACY_DEMO_USER", "admin").strip()
+_LEGACY_DEMO_PASSWORD = os.getenv("CORTEX_LEGACY_DEMO_PASSWORD", "").strip()
 
 
 class RegisterBody(BaseModel):
@@ -75,8 +93,15 @@ def _token_for_db_user(user_row: dict[str, Any]) -> str:
 
 
 @router.post("/register")
-async def register(payload: RegisterBody, session: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+@limiter.limit("5/minute")
+async def register(
+    request: Request,
+    payload: RegisterBody,
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
     """Create organisation + admin user; return JWT for immediate session."""
+    if len(payload.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     try:
         existing = (
             await session.execute(
@@ -163,7 +188,9 @@ async def register(payload: RegisterBody, session: AsyncSession = Depends(get_db
 
 
 @router.post("/token")
+@limiter.limit("10/minute")
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
@@ -216,8 +243,13 @@ async def login(
             },
         }
 
-    # Legacy demo: ``admin`` / ``admin`` or same password with seeded demo email (works without DB row).
-    if (username == "admin" or username.lower() == "admin@astralabs.com") and password == "admin":
+    # Legacy demo (e.g. curl scripts): set CORTEX_LEGACY_DEMO_PASSWORD — never commit a real password.
+    _uname_ok = username == _LEGACY_DEMO_USER or username.lower() == "admin@astralabs.com"
+    if (
+        _LEGACY_DEMO_PASSWORD
+        and _uname_ok
+        and secrets.compare_digest(password, _LEGACY_DEMO_PASSWORD)
+    ):
         token = create_access_token(
             {
                 "sub": "demo-user-001",
@@ -278,13 +310,25 @@ async def update_onboarding_step(
     if step == 3:
         updates["onboarding_complete"] = True
 
-    sets_sql = ", ".join(f"{k} = :{k}" for k in updates)
-    params = {"org_id": org_id, **updates}
+    values_clause: dict[str, Any] = {"updated_at": func.now()}
+    params: dict[str, Any] = {"org_id": org_id}
+    if "onboarding_step" in updates:
+        values_clause["onboarding_step"] = bindparam("onboarding_step")
+        params["onboarding_step"] = updates["onboarding_step"]
+    if "entity_structure" in updates:
+        values_clause["entity_structure"] = bindparam("entity_structure")
+        params["entity_structure"] = updates["entity_structure"]
+    if "selected_frameworks" in updates:
+        values_clause["selected_frameworks"] = bindparam("selected_frameworks")
+        params["selected_frameworks"] = updates["selected_frameworks"]
+    if "onboarding_complete" in updates:
+        values_clause["onboarding_complete"] = bindparam("onboarding_complete")
+        params["onboarding_complete"] = updates["onboarding_complete"]
+    if len(values_clause) <= 1:
+        raise HTTPException(status_code=400, detail="No onboarding fields to update")
+    stmt = update(_orgs).where(_orgs.c.id == bindparam("org_id")).values(**values_clause)
     try:
-        await session.execute(
-            text(f"UPDATE organizations SET {sets_sql}, updated_at = NOW() WHERE id = :org_id"),
-            params,
-        )
+        await session.execute(stmt, params)
     except ProgrammingError as e:
         await session.rollback()
         raise HTTPException(status_code=503, detail="Database schema not ready") from e

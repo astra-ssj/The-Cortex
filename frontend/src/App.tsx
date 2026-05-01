@@ -27,6 +27,7 @@ import { FrameworkDetailPage } from "./FrameworkDetailPage";
 import { useAssessmentStream } from "./store/complianceStore";
 import Intelligence from "./pages/Intelligence";
 import AISystems from "./pages/AISystems";
+import { HelpPanel } from "./components/HelpPanel";
 
 function LiveClock() {
   const [time, setTime] = useState(new Date());
@@ -48,6 +49,7 @@ const NAV_ITEMS = [
   { label: "Intelligence", path: "/intelligence" },
   { label: "AI Systems", path: "/ai-systems" },
   { label: "Review Queue", path: "/review-queue" },
+  { label: "Remediation", path: "/evidence" },
   { label: "Audit Report", path: "/audit-report" },
   { label: "Integrations", path: "/integrations" },
   { label: "Roadmap", path: "/roadmap" },
@@ -56,9 +58,11 @@ const NAV_ITEMS = [
 function HeaderShell({
   user,
   onLogout,
+  onOpenHelp,
 }: {
   user: { name?: string; username?: string; [key: string]: unknown } | null;
   onLogout: () => void;
+  onOpenHelp: () => void;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -170,30 +174,51 @@ function HeaderShell({
             </span>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={handleRunAssessment}
-          disabled={isStreaming}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 6,
-            background: "linear-gradient(135deg, #2563eb, #3b82f6)",
-            border: "none",
-            color: "#fff",
-            fontSize: 12,
-            fontWeight: "bold",
-            cursor: isStreaming ? "not-allowed" : "pointer",
-            opacity: isStreaming ? 0.7 : 1,
-          }}
-        >
-          {isStreaming ? "Streaming…" : "Run Assessment"}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            type="button"
+            onClick={handleRunAssessment}
+            disabled={isStreaming}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 6,
+              background: "linear-gradient(135deg, #2563eb, #3b82f6)",
+              border: "none",
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: "bold",
+              cursor: isStreaming ? "not-allowed" : "pointer",
+              opacity: isStreaming ? 0.7 : 1,
+            }}
+          >
+            {isStreaming ? "Streaming…" : "Run Assessment"}
+          </button>
+          <button
+            type="button"
+            onClick={onOpenHelp}
+            title="Help"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              background: "var(--border)",
+              border: "1px solid var(--border-l)",
+              color: "var(--muted)",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "'Syne', sans-serif",
+            }}
+          >
+            ?
+          </button>
+        </div>
       </nav>
     </>
   );
 }
 
-function MainChrome() {
+function MainChrome({ onOpenHelp }: { onOpenHelp: () => void }) {
   const [user, setUser] = useState(() => getUser());
   const navigate = useNavigate();
 
@@ -224,7 +249,7 @@ function MainChrome() {
         fontFamily: "DM Sans, sans-serif",
       }}
     >
-      <HeaderShell user={user} onLogout={onLogout} />
+      <HeaderShell user={user} onLogout={onLogout} onOpenHelp={onOpenHelp} />
       <main style={{ padding: "24px" }}>
         <Outlet />
       </main>
@@ -292,25 +317,59 @@ function LoginScreen() {
   );
 }
 
-export default function App() {
+function AppRoutes() {
+  const navigate = useNavigate();
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+      if (e.key === "Escape") {
+        setHelpOpen(false);
+        return;
+      }
+      switch (e.key.toLowerCase()) {
+        case "d":
+          navigate("/dashboard");
+          break;
+        case "g":
+          navigate("/group");
+          break;
+        case "i":
+          navigate("/intelligence");
+          break;
+        case "a":
+          navigate("/ai-systems");
+          break;
+        case "r":
+          navigate("/review-queue");
+          break;
+        case "h":
+          setHelpOpen(true);
+          break;
+        default:
+          break;
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [navigate]);
+
   return (
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
+    <>
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/register" element={<Register />} />
         <Route element={<AuthGate />}>
           <Route path="/onboarding" element={<Onboarding />} />
-          <Route
-            element={
-              <MainChrome />
-            }
-          >
+          <Route element={<MainChrome onOpenHelp={() => setHelpOpen(true)} />}>
             <Route path="/dashboard" element={<ComplianceDashboard />} />
             <Route path="/group" element={<GroupDashboard />} />
             <Route path="/frameworks" element={<ComplianceDashboard />} />
@@ -326,6 +385,20 @@ export default function App() {
           </Route>
         </Route>
       </Routes>
+      <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
+      <AppRoutes />
     </BrowserRouter>
   );
 }

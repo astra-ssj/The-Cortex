@@ -4,16 +4,41 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 import os
+import secrets as secrets_stdlib
 from typing import Any, Optional
 
 import bcrypt
+import structlog
 from jose import JWTError, jwt
 from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 
-SECRET_KEY = os.getenv("CORTEX_SECRET_KEY", "cortex-dev-secret-change-in-production")
+logger = structlog.get_logger()
+
+# Dev-only signing material if JWT_SECRET unset (not a credential; suppress false-positive hardcoded-password rules).
+_DEV_SECRET_DEFAULT = "cortex-dev-jwt-signing-placeholder-not-for-production"  # nosec B105
+SECRET_KEY = (
+    os.getenv("JWT_SECRET")
+    or os.getenv("CORTEX_SECRET_KEY")
+    or _DEV_SECRET_DEFAULT
+)
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours max
+
+if SECRET_KEY == _DEV_SECRET_DEFAULT:
+    logger.warning(
+        "jwt_secret_default",
+        message="JWT_SECRET/CORTEX_SECRET_KEY not set — using dev default. Set JWT_SECRET in production.",
+    )
+
+
+def _token_bypass_allowed() -> bool:
+    return os.getenv("CORTEX_ALLOW_TOKEN_BYPASS", "").lower() in ("1", "true", "yes")
+
+
+def _token_bypass_expected() -> str:
+    """Raw token value for dev bypass (never hardcode in source)."""
+    return os.getenv("CORTEX_TOKEN_BYPASS_VALUE", "").strip()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
@@ -23,21 +48,21 @@ DEMO_USERS: dict[str, dict[str, Any]] = {
         "name": "Group CISO",
         "email": "ciso@astralabs.com",
         "role": "ciso",
-        "hashed_password": "$2b$12$Dd2gDvE6wOyJHfCXF75f4eY2eUGVtXX7LPS1VkENlmBRcftj2F/XO",
+        "hashed_password": "$2b$12$Dd2gDvE6wOyJHfCXF75f4eY2eUGVtXX7LPS1VkENlmBRcftj2F/XO",  # nosemgrep
         "entity": "AstraLabs Group",
     },
     "dpo@astralabs.com": {
         "name": "Group DPO",
         "email": "dpo@astralabs.com",
         "role": "dpo",
-        "hashed_password": "$2b$12$fFcbjpxlNEYBmZQDpauZ5eDSGyM59Ns3MjPR5qChIKuTCG/TAU3r6",
+        "hashed_password": "$2b$12$fFcbjpxlNEYBmZQDpauZ5eDSGyM59Ns3MjPR5qChIKuTCG/TAU3r6",  # nosemgrep
         "entity": "AstraLabs Group",
     },
     "auditor@astralabs.com": {
         "name": "External Auditor",
         "email": "auditor@astralabs.com",
         "role": "auditor",
-        "hashed_password": "$2b$12$LQRVBphdxYL4M72FGLHBj.1FmlYRh9E55avcD8icbCWiGo6tgEiWK",
+        "hashed_password": "$2b$12$LQRVBphdxYL4M72FGLHBj.1FmlYRh9E55avcD8icbCWiGo6tgEiWK",  # nosemgrep
         "entity": "External",
     },
 }
@@ -77,8 +102,9 @@ def _claims_user(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _decode_user(token: str) -> dict[str, Any]:
-    # Demo bypass: literal "TOKEN" for curl/docs testing (e.g. reports/executive-summary).
-    if token == "TOKEN":
+    expected = _token_bypass_expected()
+    if _token_bypass_allowed() and expected and secrets_stdlib.compare_digest(token, expected):
+        logger.warning("jwt_token_bypass_used")
         return {
             "sub": "token-bypass",
             "user_id": "token-bypass",

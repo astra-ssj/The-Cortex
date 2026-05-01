@@ -132,7 +132,8 @@ Browser (React, :3000)
 - **CORS:** Explicit localhost origins plus optional `FRONTEND_URL` — no `*` wildcard with credentials.
 - **Rate limiting:** SlowAPI on `/api/v1/auth/register` and `/api/v1/auth/token`.
 - **Headers:** `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, etc.
-- **Dev-only JWT bypass:** Literal bearer `TOKEN` is rejected unless `CORTEX_ALLOW_TOKEN_BYPASS=true`.
+- **Dev-only JWT bypass:** Set `CORTEX_ALLOW_TOKEN_BYPASS=true` **and** `CORTEX_TOKEN_BYPASS_VALUE` to the raw bearer string (constant-time compare). Never enable in production.
+- **Legacy demo login:** Optional `CORTEX_LEGACY_DEMO_PASSWORD` (and `CORTEX_LEGACY_DEMO_USER`, default `admin`) for scripted demos; unset disables plaintext legacy path (prefer seeded bcrypt demo users in `core/security.py`).
 
 ---
 
