@@ -11,7 +11,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, Integer, MetaData, String, Table, bindparam, func, text, update
+from sqlalchemy import Boolean, Column, Integer, MetaData, String, Table, bindparam, func, text, update
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.exc import DBAPIError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
