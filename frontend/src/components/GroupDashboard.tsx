@@ -5,6 +5,7 @@ import { useOrgContext } from "../hooks/useOrgContext";
 import type { GroupPostureResponse, GroupEntity } from "../api/client";
 import { Skeleton, StatCardSkeleton, EntityCardSkeleton, HeatmapSkeleton } from "./Skeleton";
 import { GroupEmpty } from "./EmptyState";
+import { AnimatedNumber } from "./AnimatedScore";
 
 // ─── CORTEX dark theme (match ComplianceDashboard) ─────────────────────────
 const tokens = {
@@ -26,6 +27,12 @@ function scoreColor(score: number): string {
   if (score >= 70) return tokens.green;
   if (score >= 50) return tokens.amber;
   return tokens.red;
+}
+
+function entityScoreCssColor(score: number): string {
+  if (score >= 70) return "var(--green)";
+  if (score >= 50) return "var(--amber)";
+  return "var(--red)";
 }
 
 function riskBorderColor(risk: string): string {
@@ -89,10 +96,12 @@ function EntityCard({
   entity,
   expanded,
   onToggle,
+  index,
 }: {
   entity: GroupEntity;
   expanded: boolean;
   onToggle: () => void;
+  index: number;
 }) {
   const borderColor = riskBorderColor(entity.risk_level);
   const typeStyle = typeBadgeStyle(entity.type);
@@ -100,6 +109,7 @@ function EntityCard({
 
   return (
     <div
+      className="card-stagger"
       role="button"
       tabIndex={0}
       onClick={onToggle}
@@ -153,16 +163,18 @@ function EntityCard({
 
       {/* Score section */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-        <span
+        <AnimatedNumber
+          value={entity.overall_score}
+          suffix="%"
+          duration={1000}
+          delay={index * 80}
           style={{
-            fontSize: 28,
-            fontWeight: "bold",
-            color: scoreColor(entity.overall_score),
-            fontFamily: "DM Mono, monospace",
+            fontSize: 32,
+            fontWeight: 800,
+            fontFamily: "'Syne', sans-serif",
+            color: entityScoreCssColor(entity.overall_score),
           }}
-        >
-          {entity.overall_score}%
-        </span>
+        />
         <span
           style={{
             fontSize: 11,
@@ -446,16 +458,18 @@ export function GroupDashboard() {
           }}
         >
           <div style={{ fontSize: 11, color: tokens.muted, marginBottom: 4 }}>Group Score</div>
-          <div
+          <AnimatedNumber
+            value={data.overall_score}
+            suffix="%"
+            duration={1200}
+            delay={0}
             style={{
-              fontSize: 24,
-              fontWeight: "bold",
-              fontFamily: "DM Mono, monospace",
-              color: scoreColor(data.overall_score),
+              color: "var(--amber)",
+              fontSize: "28px",
+              fontWeight: 700,
+              fontFamily: "'Syne', sans-serif",
             }}
-          >
-            {data.overall_score}%
-          </div>
+          />
         </div>
         <div
           style={{
@@ -466,9 +480,17 @@ export function GroupDashboard() {
           }}
         >
           <div style={{ fontSize: 11, color: tokens.muted, marginBottom: 4 }}>Entities</div>
-          <div style={{ fontSize: 24, fontWeight: "bold", color: tokens.text }}>
-            {data.entities_count}
-          </div>
+          <AnimatedNumber
+            value={data.entities_count}
+            duration={600}
+            delay={100}
+            style={{
+              fontSize: "28px",
+              fontWeight: 700,
+              fontFamily: "'Syne', sans-serif",
+              color: tokens.text,
+            }}
+          />
         </div>
         <div
           style={{
@@ -479,9 +501,17 @@ export function GroupDashboard() {
           }}
         >
           <div style={{ fontSize: 11, color: tokens.muted, marginBottom: 4 }}>Frameworks Active</div>
-          <div style={{ fontSize: 24, fontWeight: "bold", color: tokens.text }}>
-            {data.frameworks_active}
-          </div>
+          <AnimatedNumber
+            value={data.frameworks_active}
+            duration={600}
+            delay={150}
+            style={{
+              fontSize: "28px",
+              fontWeight: 700,
+              fontFamily: "'Syne', sans-serif",
+              color: tokens.text,
+            }}
+          />
         </div>
         <div
           style={{
@@ -492,9 +522,17 @@ export function GroupDashboard() {
           }}
         >
           <div style={{ fontSize: 11, color: tokens.muted, marginBottom: 4 }}>Critical Entities</div>
-          <div style={{ fontSize: 24, fontWeight: "bold", color: tokens.red }}>
-            {criticalEntityCount}
-          </div>
+          <AnimatedNumber
+            value={criticalEntityCount}
+            duration={600}
+            delay={200}
+            style={{
+              color: "var(--red)",
+              fontSize: "28px",
+              fontWeight: 700,
+              fontFamily: "'Syne', sans-serif",
+            }}
+          />
         </div>
         <div
           style={{
@@ -505,7 +543,17 @@ export function GroupDashboard() {
           }}
         >
           <div style={{ fontSize: 11, color: tokens.muted, marginBottom: 4 }}>Total Findings</div>
-          <div style={{ fontSize: 24, fontWeight: "bold", color: tokens.amber }}>{totalFindings}</div>
+          <AnimatedNumber
+            value={totalFindings}
+            duration={600}
+            delay={250}
+            style={{
+              fontSize: "28px",
+              fontWeight: 700,
+              fontFamily: "'Syne', sans-serif",
+              color: tokens.amber,
+            }}
+          />
         </div>
       </div>
 
@@ -518,10 +566,11 @@ export function GroupDashboard() {
           marginBottom: 32,
         }}
       >
-        {data.entities.map((entity) => (
+        {data.entities.map((entity, index) => (
           <EntityCard
             key={entity.id}
             entity={entity}
+            index={index}
             expanded={expandedId === entity.id}
             onToggle={() => setExpandedId((id) => (id === entity.id ? null : entity.id))}
           />

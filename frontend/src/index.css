@@ -11,6 +11,74 @@
   --surface: #090e1a;
   --panel: #0c1220;
   --card: #0d1526;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+}
+
+/* ── Stagger card entrance ── */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.card-stagger {
+  opacity: 0;
+  animation: card-enter 0.4s ease forwards;
+}
+
+.card-stagger:nth-child(1) {
+  animation-delay: 0ms;
+}
+.card-stagger:nth-child(2) {
+  animation-delay: 60ms;
+}
+.card-stagger:nth-child(3) {
+  animation-delay: 120ms;
+}
+.card-stagger:nth-child(4) {
+  animation-delay: 180ms;
+}
+.card-stagger:nth-child(5) {
+  animation-delay: 240ms;
+}
+.card-stagger:nth-child(6) {
+  animation-delay: 300ms;
+}
+.card-stagger:nth-child(7) {
+  animation-delay: 360ms;
+}
+.card-stagger:nth-child(8) {
+  animation-delay: 420ms;
+}
+.card-stagger:nth-child(9) {
+  animation-delay: 480ms;
+}
+.card-stagger:nth-child(10) {
+  animation-delay: 540ms;
+}
+.card-stagger:nth-child(11) {
+  animation-delay: 600ms;
+}
+.card-stagger:nth-child(12) {
+  animation-delay: 660ms;
+}
+
+/* ── Progress bar fill animation ── */
+@keyframes bar-fill {
+  from {
+    width: 0%;
+  }
+}
+
+.bar-animated {
+  animation: bar-fill 1.2s ease forwards;
 }
 
 /* ── Skeleton shimmer ── */
@@ -72,6 +140,17 @@
 
 .intelligence-threshold-notify {
   animation: intelligence-threshold-pulse 1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-stagger,
+  .bar-animated,
+  .skeleton-shimmer,
+  .content-loaded {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 /* Audit Report: print-only layout — hide nav/config, show report on white A4 */

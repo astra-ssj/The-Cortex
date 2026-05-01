@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AISystemCardSkeleton } from "../components/Skeleton";
+import { AnimatedNumber } from "../components/AnimatedScore";
 
 type RiskLabel = "HIGH" | "LIMITED" | "MINIMAL" | "UNCLASSIFIED";
 type SystemStatus = "NOT_ASSESSED" | "IN_PROGRESS" | "ASSESSED" | "UNCLASSIFIED";
@@ -326,7 +327,18 @@ export default function AISystems() {
         <div style={{ fontSize: 14, fontWeight: 700, color: "#fecaca" }}>⚠ EU AI Act High-Risk Obligations</div>
         <div style={{ fontSize: 13, color: "#fde68a", marginTop: 6 }}>Apply from 2 August 2026</div>
         <div style={{ fontSize: 16, fontWeight: 700, color: countdownStyle, marginTop: 10 }}>
-          {daysLeft} days remaining
+          <AnimatedNumber
+            value={daysLeft}
+            duration={1500}
+            delay={300}
+            style={{
+              fontSize: "28px",
+              fontWeight: 800,
+              fontFamily: "'Syne', sans-serif",
+              color: daysLeft < 90 ? "#ef4444" : "#f59e0b",
+            }}
+          />{" "}
+          days remaining
         </div>
         <p style={{ fontSize: 13, color: "#cbd5e1", marginTop: 10, marginBottom: 0 }}>
           {systemsNeedingConformity} systems require conformity assessment before this deadline
@@ -342,6 +354,7 @@ export default function AISystems() {
         ].map((p) => (
           <span
             key={p.label}
+            className="card-stagger"
             style={{
               padding: "6px 14px",
               borderRadius: 999,
@@ -417,6 +430,7 @@ export default function AISystems() {
             : SYSTEMS.map((sys) => (
                 <article
                   key={sys.id}
+                  className="card-stagger"
                   style={{
                     padding: 18,
                     background: "#0b1220",

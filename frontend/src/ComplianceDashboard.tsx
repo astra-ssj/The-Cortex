@@ -13,6 +13,7 @@ import type { FrameworkSummary } from "./api/frameworks";
 import type { AssessmentEvent, FrameworkPosture } from "./types/compliance";
 import { Skeleton, StatCardSkeleton, FrameworkCardSkeleton } from "./components/Skeleton";
 import { DashboardEmpty, FrameworksEmpty } from "./components/EmptyState";
+import { AnimatedNumber, AnimatedScoreRing } from "./components/AnimatedScore";
 
 // ─── CORTEX dark theme design tokens ───────────────────────────────────────
 const tokens = {
@@ -105,7 +106,7 @@ function FrameworkCard({
   return (
     <Link
       to={`/frameworks/${fw.id}`}
-      className="block rounded-lg transition focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-offset-[#05080f] focus:ring-[#1e2e48]"
+      className="card-stagger block rounded-lg transition focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-offset-[#05080f] focus:ring-[#1e2e48]"
       style={{
         background: tokens.card,
         border: "1px solid " + tokens.border,
@@ -195,6 +196,22 @@ function FrameworkCard({
           <span style={{ color: tokens.textDim }}> · {postureEntry.gapCount} gaps</span>
         )}
       </p>
+      {typeof score === "number" && (
+        <div
+          className="mt-3 overflow-hidden rounded"
+          style={{ height: 4, background: tokens.border }}
+        >
+          <div
+            className="bar-animated"
+            style={{
+              height: "100%",
+              width: `${score}%`,
+              background: scoreRingColor(score),
+              borderRadius: 2,
+            }}
+          />
+        </div>
+      )}
       {(riskLevel != null || status != null) && (
         <div className="mt-3 flex flex-wrap gap-2">
           {riskLevel != null && (
@@ -457,36 +474,13 @@ export function ComplianceDashboard() {
             <p style={{ color: tokens.textDim, fontSize: "12px" }}>Overall Posture</p>
             <div className="mt-2 flex items-center gap-3">
               {typeof posture.overallScore === "number" && posture.overallScore > 0 ? (
-                <>
-                  <div
-                    className="relative flex shrink-0 items-center justify-center"
-                    style={{ width: 48, height: 48 }}
-                    title={`${posture.overallScore}%`}
-                  >
-                    <svg width="48" height="48" viewBox="0 0 48 48" className="-rotate-90">
-                      <circle cx="24" cy="24" r="20" fill="none" stroke={tokens.border} strokeWidth="4" />
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="20"
-                        fill="none"
-                        stroke={scoreRingColor(posture.overallScore)}
-                        strokeWidth="4"
-                        strokeDasharray={`${(posture.overallScore / 100) * 125.6} 125.6`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span
-                      className="absolute inset-0 flex items-center justify-center text-sm font-bold"
-                      style={{ color: tokens.textPrimary }}
-                    >
-                      {posture.overallScore}%
-                    </span>
-                  </div>
-                  <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
-                    {posture.overallScore}%
-                  </p>
-                </>
+                <AnimatedScoreRing
+                  value={posture.overallScore}
+                  size={64}
+                  strokeWidth={5}
+                  duration={1400}
+                  delay={100}
+                />
               ) : (
                 <div>
                   <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "20px", margin: 0 }}>
@@ -522,36 +516,14 @@ export function ComplianceDashboard() {
             <p style={{ color: tokens.textDim, fontSize: "12px" }}>Audit Readiness</p>
             <div className="mt-2 flex items-center gap-3">
               {typeof posture.auditReadiness === "number" ? (
-                <>
-                  <div
-                    className="relative flex shrink-0 items-center justify-center"
-                    style={{ width: 48, height: 48 }}
-                    title={`${posture.auditReadiness}%`}
-                  >
-                    <svg width="48" height="48" viewBox="0 0 48 48" className="-rotate-90">
-                      <circle cx="24" cy="24" r="20" fill="none" stroke={tokens.border} strokeWidth="4" />
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="20"
-                        fill="none"
-                        stroke={scoreRingColor(posture.auditReadiness)}
-                        strokeWidth="4"
-                        strokeDasharray={`${(posture.auditReadiness / 100) * 125.6} 125.6`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span
-                      className="absolute inset-0 flex items-center justify-center text-sm font-bold"
-                      style={{ color: tokens.textPrimary }}
-                    >
-                      {posture.auditReadiness}%
-                    </span>
-                  </div>
-                  <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
-                    {posture.auditReadiness}%
-                  </p>
-                </>
+                <AnimatedScoreRing
+                  value={posture.auditReadiness}
+                  size={64}
+                  strokeWidth={5}
+                  duration={1400}
+                  delay={200}
+                  color="#f59e0b"
+                />
               ) : (
                 <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>
               )}
@@ -567,7 +539,21 @@ export function ComplianceDashboard() {
           >
             <p style={{ color: tokens.textDim, fontSize: "12px" }}>Critical Gaps</p>
             <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
-              {typeof posture.criticalGapsCount === "number" ? posture.criticalGapsCount : "—"}
+              {typeof posture.criticalGapsCount === "number" ? (
+                <AnimatedNumber
+                  value={posture.criticalGapsCount}
+                  duration={800}
+                  delay={300}
+                  style={{
+                    fontSize: "28px",
+                    fontWeight: 700,
+                    fontFamily: "'Syne', sans-serif",
+                    color: "var(--red)",
+                  }}
+                />
+              ) : (
+                "—"
+              )}
             </p>
           </div>
           <div
@@ -580,7 +566,18 @@ export function ComplianceDashboard() {
           >
             <p style={{ color: tokens.textDim, fontSize: "12px" }}>Compliant Frameworks</p>
             <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
-              {posture.frameworks.filter((f) => f.status === "COMPLIANT").length}/{posture.frameworks.length}
+              <AnimatedNumber
+                value={posture.frameworks.filter((f) => f.status === "COMPLIANT").length}
+                duration={800}
+                delay={400}
+                style={{
+                  fontSize: "28px",
+                  fontWeight: 700,
+                  fontFamily: "'Syne', sans-serif",
+                  color: tokens.textPrimary,
+                }}
+              />
+              /{posture.frameworks.length}
             </p>
           </div>
         </div>
