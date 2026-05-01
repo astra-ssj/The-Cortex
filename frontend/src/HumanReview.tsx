@@ -5,8 +5,11 @@
  */
 
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useReviewQueue, approveControl, overrideControl } from "./api/client";
 import { useOrgContext } from "./hooks/useOrgContext";
+import { Skeleton, TableRowSkeleton } from "./components/Skeleton";
+import { ReviewQueueEmpty } from "./components/EmptyState";
 
 const SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM"] as const;
 const FRAMEWORKS = [
@@ -49,6 +52,7 @@ function truncate(s: string, len: number): string {
 }
 
 export function HumanReview() {
+  const navigate = useNavigate();
   const { orgId } = useOrgContext();
   const { items: rawItems, reviewed, refetch, isLoading, error } = useReviewQueue(orgId);
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("All");
@@ -86,8 +90,59 @@ export function HumanReview() {
 
   if (isLoading && !rawItems?.length) {
     return (
-      <div className="flex items-center justify-center py-16 font-ui text-cortex-muted">
-        Loading review queue…
+      <div style={{ padding: "28px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "20px",
+          }}
+        >
+          <div>
+            <Skeleton width="220px" height="24px" style={{ marginBottom: "8px" }} />
+            <Skeleton width="380px" height="12px" />
+          </div>
+          <Skeleton width="140px" height="28px" borderRadius="8px" />
+        </div>
+        <div
+          style={{
+            background: "var(--panel)",
+            border: "1px solid var(--border)",
+            borderRadius: "10px",
+            overflow: "hidden",
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+            }}
+          >
+            <thead>
+              <tr
+                style={{
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
+                {["", "", "", "", "", ""].map((_, i) => (
+                  <th
+                    key={i}
+                    style={{
+                      padding: "10px 14px",
+                    }}
+                  >
+                    <Skeleton width="70px" height="10px" />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <TableRowSkeleton key={i} cols={6} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }
@@ -95,6 +150,43 @@ export function HumanReview() {
     return (
       <div className="rounded-lg border border-cortex-red/50 bg-cortex-red/10 p-4 font-ui text-cortex-red">
         Failed to load review queue: {error.message}
+      </div>
+    );
+  }
+
+  if (!isLoading && (!rawItems || rawItems.length === 0)) {
+    return (
+      <div style={{ padding: "28px" }}>
+        <div style={{ marginBottom: "20px" }}>
+          <div
+            style={{
+              fontSize: "20px",
+              fontWeight: 700,
+              fontFamily: "'Syne', sans-serif",
+              color: "var(--text)",
+            }}
+          >
+            Human Review Queue
+          </div>
+          <div
+            style={{
+              fontSize: "12px",
+              color: "var(--dim)",
+              marginTop: "4px",
+            }}
+          >
+            AI assessments requiring human oversight — ZTAIP confidence {"<"} 0.75
+          </div>
+        </div>
+        <div
+          style={{
+            background: "var(--panel)",
+            border: "1px solid var(--border)",
+            borderRadius: "10px",
+          }}
+        >
+          <ReviewQueueEmpty onRunAssessment={() => navigate("/onboarding")} />
+        </div>
       </div>
     );
   }

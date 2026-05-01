@@ -1,4 +1,5 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { AISystemCardSkeleton } from "../components/Skeleton";
 
 type RiskLabel = "HIGH" | "LIMITED" | "MINIMAL" | "UNCLASSIFIED";
 type SystemStatus = "NOT_ASSESSED" | "IN_PROGRESS" | "ASSESSED" | "UNCLASSIFIED";
@@ -280,6 +281,11 @@ type TabKey = "inventory" | "classification" | "obligations";
 export default function AISystems() {
   const [tab, setTab] = useState<TabKey>("inventory");
   const [selectedSystemId, setSelectedSystemId] = useState<string>(SYSTEMS[0]!.id);
+  const [inventorySkeleton, setInventorySkeleton] = useState(true);
+
+  useEffect(() => {
+    setInventorySkeleton(false);
+  }, []);
 
   const daysLeft = useMemo(() => calendarDaysUntilDeadline(), []);
   const countdownStyle = countdownColor(daysLeft);
@@ -398,109 +404,119 @@ export default function AISystems() {
             gap: 16,
           }}
         >
-          {SYSTEMS.map((sys) => (
-            <article
-              key={sys.id}
-              style={{
-                padding: 18,
-                background: "#0b1220",
-                border: "1px solid #141e30",
-                borderRadius: 10,
-                ...cardBorder(sys.risk),
-              }}
-            >
-              <div style={{ fontSize: 18, marginBottom: 8 }}>
-                {sys.icon} {sys.name}
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-                <span
+          {/* Empty state — uncomment when systems are loaded from API:
+          {!inventorySkeleton && systems.length === 0 && (
+            <AISystemsEmpty
+              onAddSystem={handleAddSystem}
+              onViewObligations={() => setTab("obligations")}
+            />
+          )}
+          */}
+          {inventorySkeleton
+            ? [1, 2, 3, 4, 5, 6].map((i) => <AISystemCardSkeleton key={i} />)
+            : SYSTEMS.map((sys) => (
+                <article
+                  key={sys.id}
                   style={{
-                    padding: "2px 8px",
-                    borderRadius: 4,
-                    background:
-                      sys.risk === "HIGH"
-                        ? "#450a0a"
-                        : sys.risk === "LIMITED"
-                          ? "#422006"
-                          : sys.risk === "MINIMAL"
-                            ? "#14532d"
-                            : "#1e293b",
-                    color:
-                      sys.risk === "HIGH"
-                        ? "#fca5a5"
-                        : sys.risk === "LIMITED"
-                          ? "#fde68a"
-                          : sys.risk === "MINIMAL"
-                            ? "#86efac"
-                            : "#94a3b8",
-                    fontSize: 10,
-                    fontWeight: 700,
+                    padding: 18,
+                    background: "#0b1220",
+                    border: "1px solid #141e30",
+                    borderRadius: 10,
+                    ...cardBorder(sys.risk),
                   }}
                 >
-                  {sys.risk === "UNCLASSIFIED" ? "UNCLASSIFIED" : `${sys.risk} RISK`}
-                </span>
-                <span style={{ padding: "2px 8px", borderRadius: 4, background: "#141e30", color: "#94a3b8", fontSize: 10 }}>
-                  [{sys.annex}]
-                </span>
-              </div>
-              <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.6 }}>
-                <div>
-                  <strong style={{ color: "#64748b" }}>Deployed by:</strong> {sys.entity}
-                </div>
-                <div>
-                  <strong style={{ color: "#64748b" }}>Provider:</strong> {sys.provider}
-                </div>
-                <div>
-                  <strong style={{ color: "#64748b" }}>Use case:</strong> {sys.use_case}
-                </div>
-                <div>
-                  <strong style={{ color: "#64748b" }}>Data:</strong> {sys.data}
-                </div>
-                <div style={{ marginTop: 10 }}>
-                  <strong style={{ color: "#64748b" }}>Conformity:</strong> {sys.conformity}
-                </div>
-                <div style={{ marginTop: 6, color: "#f8fafc" }}>Status: {statusLabel(sys.status)}</div>
-              </div>
-              <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTab("classification");
-                    setSelectedSystemId(sys.id);
-                  }}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #2dd4bf",
-                    background: "transparent",
-                    color: "#2dd4bf",
-                    fontSize: 11,
-                    cursor: "pointer",
-                  }}
-                >
-                  Classify →
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTab("obligations");
-                    setSelectedSystemId(sys.id);
-                  }}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #3b82f6",
-                    background: "#1e3a5f",
-                    color: "#93c5fd",
-                    fontSize: 11,
-                    cursor: "pointer",
-                  }}
-                >
-                  View Obligations →
-                </button>
-              </div>
-            </article>
-          ))}
+                  <div style={{ fontSize: 18, marginBottom: 8 }}>
+                    {sys.icon} {sys.name}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        background:
+                          sys.risk === "HIGH"
+                            ? "#450a0a"
+                            : sys.risk === "LIMITED"
+                              ? "#422006"
+                              : sys.risk === "MINIMAL"
+                                ? "#14532d"
+                                : "#1e293b",
+                        color:
+                          sys.risk === "HIGH"
+                            ? "#fca5a5"
+                            : sys.risk === "LIMITED"
+                              ? "#fde68a"
+                              : sys.risk === "MINIMAL"
+                                ? "#86efac"
+                                : "#94a3b8",
+                        fontSize: 10,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {sys.risk === "UNCLASSIFIED" ? "UNCLASSIFIED" : `${sys.risk} RISK`}
+                    </span>
+                    <span style={{ padding: "2px 8px", borderRadius: 4, background: "#141e30", color: "#94a3b8", fontSize: 10 }}>
+                      [{sys.annex}]
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.6 }}>
+                    <div>
+                      <strong style={{ color: "#64748b" }}>Deployed by:</strong> {sys.entity}
+                    </div>
+                    <div>
+                      <strong style={{ color: "#64748b" }}>Provider:</strong> {sys.provider}
+                    </div>
+                    <div>
+                      <strong style={{ color: "#64748b" }}>Use case:</strong> {sys.use_case}
+                    </div>
+                    <div>
+                      <strong style={{ color: "#64748b" }}>Data:</strong> {sys.data}
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <strong style={{ color: "#64748b" }}>Conformity:</strong> {sys.conformity}
+                    </div>
+                    <div style={{ marginTop: 6, color: "#f8fafc" }}>Status: {statusLabel(sys.status)}</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTab("classification");
+                        setSelectedSystemId(sys.id);
+                      }}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 6,
+                        border: "1px solid #2dd4bf",
+                        background: "transparent",
+                        color: "#2dd4bf",
+                        fontSize: 11,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Classify →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTab("obligations");
+                        setSelectedSystemId(sys.id);
+                      }}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 6,
+                        border: "1px solid #3b82f6",
+                        background: "#1e3a5f",
+                        color: "#93c5fd",
+                        fontSize: 11,
+                        cursor: "pointer",
+                      }}
+                    >
+                      View Obligations →
+                    </button>
+                  </div>
+                </article>
+              ))}
         </div>
       )}
 

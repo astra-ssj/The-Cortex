@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { groupsApi } from "../api/client";
 import { useOrgContext } from "../hooks/useOrgContext";
 import type { GroupPostureResponse, GroupEntity } from "../api/client";
+import { Skeleton, StatCardSkeleton, EntityCardSkeleton, HeatmapSkeleton } from "./Skeleton";
+import { GroupEmpty } from "./EmptyState";
 
 // ─── CORTEX dark theme (match ComplianceDashboard) ─────────────────────────
 const tokens = {
@@ -274,6 +277,7 @@ function EntityCard({
 
 // ─── Main view ─────────────────────────────────────────────────────────────
 export function GroupDashboard() {
+  const navigate = useNavigate();
   const { orgId, demoMode } = useOrgContext();
   const [data, setData] = useState<GroupPostureResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -324,8 +328,55 @@ export function GroupDashboard() {
 
   if (loading) {
     return (
-      <div style={{ padding: 48, textAlign: "center", color: tokens.muted }}>
-        Loading group posture…
+      <div style={{ padding: "28px", maxWidth: 1200, margin: "0 auto" }}>
+        <div
+          style={{
+            background: tokens.surface,
+            border: `1px solid ${tokens.border}`,
+            borderRadius: "10px",
+            padding: "16px 20px",
+            marginBottom: "24px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <Skeleton width="280px" height="18px" style={{ marginBottom: "6px" }} />
+            <Skeleton width="380px" height="12px" />
+          </div>
+          <Skeleton width="80px" height="20px" borderRadius="4px" />
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gap: "16px",
+            marginBottom: "28px",
+          }}
+        >
+          {[1, 2, 3, 4, 5].map((i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+
+        <Skeleton width="120px" height="13px" style={{ marginBottom: "16px" }} />
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "16px",
+            marginBottom: "28px",
+          }}
+        >
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <EntityCardSkeleton key={i} />
+          ))}
+        </div>
+
+        <HeatmapSkeleton />
       </div>
     );
   }
@@ -337,6 +388,33 @@ export function GroupDashboard() {
     );
   }
   if (!data) return null;
+
+  if (data.entities.length === 0) {
+    return (
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 8px" }}>
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ fontSize: 22, fontWeight: "bold", color: tokens.text, margin: "0 0 4px 0" }}>
+            {demoMode ? "AstraLabs Group — Intelligence Overview" : `${data.group_name} — Intelligence Overview`}
+          </h1>
+          <p style={{ fontSize: 14, color: tokens.muted, margin: 0 }}>
+            {demoMode ? "Multi-entity compliance posture across 6 jurisdictions" : "Multi-entity compliance posture overview"}
+          </p>
+        </div>
+        <div
+          style={{
+            background: tokens.panel,
+            border: `1px solid ${tokens.border}`,
+            borderRadius: "10px",
+          }}
+        >
+          <GroupEmpty
+            onAddEntities={() => navigate("/onboarding")}
+            onLearnMore={() => navigate("/dashboard")}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto" }}>

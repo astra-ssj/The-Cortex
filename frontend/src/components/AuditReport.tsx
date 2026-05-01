@@ -10,6 +10,8 @@ import {
   type ExecutiveSummaryParams,
 } from "../api/client";
 import { useOrgContext } from "../hooks/useOrgContext";
+import { ReportSkeleton } from "./Skeleton";
+import { AuditReportEmpty } from "./EmptyState";
 
 const REPORT_TYPES = [
   { value: "executive-summary", label: "Executive Summary (Board)" },
@@ -239,13 +241,26 @@ export function AuditReport() {
       </div>
 
       {/* Report preview — visible in screen and print */}
-      <div className="audit-report-preview rounded-xl border border-cortex-border bg-cortex-panel p-6 font-mono text-sm">
-        {!report && !loading && (
-          <p className="font-ui text-cortex-muted">Select options and click Generate Report to see the preview.</p>
+      <div className="audit-report-preview rounded-xl border border-cortex-border bg-cortex-panel font-mono text-sm">
+        {!loading && !report && (
+          <div
+            style={{
+              background: "var(--panel)",
+              border: "1px solid var(--border)",
+              borderRadius: "10px",
+              margin: "-1px",
+            }}
+          >
+            <AuditReportEmpty onGenerate={generateReport} />
+          </div>
         )}
-        {loading && <p className="font-ui text-cortex-muted">Loading report…</p>}
-            {report && (
-          <div className="space-y-4 text-cortex-text report-content">
+        {loading && (
+          <div className="overflow-hidden rounded-xl border border-cortex-border bg-cortex-panel p-6 print:hidden">
+            <ReportSkeleton />
+          </div>
+        )}
+        {report && (
+          <div className="space-y-4 p-6 text-cortex-text report-content">
             {/* Report header — logo lockup left, classification right (light variant for PDF) */}
             <div
               className="report-logo report-header"

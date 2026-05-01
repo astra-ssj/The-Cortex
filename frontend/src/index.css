@@ -3,10 +3,30 @@
 @tailwind utilities;
 
 :root {
+  --text: #e2e8f4;
   --dim: #64748b;
   --border: #141e30;
   --border-l: #1e2e48;
   --muted: #94a3b8;
+  --surface: #090e1a;
+  --panel: #0c1220;
+  --card: #0d1526;
+}
+
+/* ── Skeleton shimmer ── */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--border) 0%, var(--border-l) 40%, var(--border) 80%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
 @keyframes intelligence-fade-in-up {

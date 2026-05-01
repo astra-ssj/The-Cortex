@@ -11,6 +11,8 @@ import {
 } from "./store/complianceStore";
 import type { FrameworkSummary } from "./api/frameworks";
 import type { AssessmentEvent, FrameworkPosture } from "./types/compliance";
+import { Skeleton, StatCardSkeleton, FrameworkCardSkeleton } from "./components/Skeleton";
+import { DashboardEmpty, FrameworksEmpty } from "./components/EmptyState";
 
 // ─── CORTEX dark theme design tokens ───────────────────────────────────────
 const tokens = {
@@ -221,7 +223,7 @@ export function ComplianceDashboard() {
   const navigate = useNavigate();
   const { orgId, demoMode } = useOrgContext();
   const { data: frameworks, isLoading, error } = useFrameworks();
-  const { data: posture } = useCompliancePosture(orgId);
+  const { data: posture, isLoading: postureLoading } = useCompliancePosture(orgId);
   const { data: ztaip } = useZtaipStatus();
   const { events, isStreaming, startStream, stopStream } = useAssessmentStream();
   const streamPanelRef = useRef<HTMLDivElement | null>(null);
@@ -238,11 +240,45 @@ export function ComplianceDashboard() {
 
   if (isLoading) {
     return (
-      <div
-        className="flex items-center justify-center py-12"
-        style={{ background: tokens.background }}
-      >
-        <p style={{ color: tokens.textMuted }}>Loading frameworks…</p>
+      <div style={{ padding: "28px", background: tokens.background, color: tokens.textPrimary }}>
+        <div
+          style={{
+            background: tokens.surface,
+            border: `1px solid ${tokens.border}`,
+            borderRadius: "8px",
+            padding: "10px 16px",
+            marginBottom: "24px",
+          }}
+        >
+          <Skeleton width="60%" height="11px" />
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "16px",
+            marginBottom: "28px",
+          }}
+        >
+          {[1, 2, 3, 4].map((i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+
+        <Skeleton width="160px" height="13px" style={{ marginBottom: "16px" }} />
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "14px",
+          }}
+        >
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <FrameworkCardSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -276,15 +312,64 @@ export function ComplianceDashboard() {
 
   if (!frameworks?.length) {
     return (
-      <div
-        className="rounded-lg border p-8 text-center"
-        style={{
-          background: tokens.panel,
-          borderColor: tokens.border,
-          color: tokens.textMuted,
-        }}
-      >
-        No frameworks registered.
+      <div style={{ padding: "28px", background: tokens.background, color: tokens.textPrimary }}>
+        <div
+          style={{
+            background: tokens.panel,
+            border: `1px solid ${tokens.border}`,
+            borderRadius: "10px",
+          }}
+        >
+          <FrameworksEmpty onSelectFrameworks={() => navigate("/onboarding")} />
+        </div>
+      </div>
+    );
+  }
+
+  const hasAssessedPosture =
+    posture &&
+    typeof posture.overallScore === "number" &&
+    posture.overallScore > 0;
+
+  if (!hasAssessedPosture && !isLoading && orgId && !postureLoading) {
+    return (
+      <div style={{ padding: "28px", background: tokens.background, color: tokens.textPrimary }}>
+        {ztaip && (
+          <div
+            className="ztaip-bar rounded-lg border px-4 py-2"
+            style={{
+              marginBottom: "24px",
+              background: tokens.surface,
+              borderColor: tokens.border,
+              color: tokens.textDim,
+              fontSize: "12px",
+              fontFamily: '"DM Mono", monospace',
+            }}
+          >
+            <span className="font-medium" style={{ color: tokens.textMuted }}>
+              ZTAIP:
+            </span>{" "}
+            audit events {ztaip.auditFabric.totalEvents} · circuit breakers {ztaip.circuitBreakersCount} · human review
+            queue {ztaip.humanReviewQueueCount} · {ztaip.sovereigntyBroker}
+          </div>
+        )}
+        <div
+          style={{
+            background: tokens.panel,
+            border: `1px solid ${tokens.border}`,
+            borderRadius: "10px",
+          }}
+        >
+          <DashboardEmpty
+            orgName={posture?.organisationName ?? "Your Organisation"}
+            onRunAssessment={() => {
+              navigate("/onboarding");
+            }}
+            onViewFrameworks={() => {
+              navigate("/frameworks");
+            }}
+          />
+        </div>
       </div>
     );
   }

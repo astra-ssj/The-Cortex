@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   fetchFindings,
   updateFinding,
@@ -13,6 +14,7 @@ import {
   type UpdateFindingBody,
 } from "./api/client";
 import { useOrgContext } from "./hooks/useOrgContext";
+import { RemediationEmpty } from "./components/EmptyState";
 
 const STATUSES: FindingStatus[] = ["OPEN", "IN_PROGRESS", "REMEDIATED", "ACCEPTED"];
 const STATUS_LABELS: Record<FindingStatus, string> = {
@@ -113,6 +115,7 @@ function progressPercent(f: RemediationFinding): number {
 }
 
 export function RemediationTracker() {
+  const navigate = useNavigate();
   const { orgId } = useOrgContext();
   const [findings, setFindings] = useState<RemediationFinding[]>([]);
   const [loading, setLoading] = useState(true);
@@ -318,6 +321,31 @@ export function RemediationTracker() {
     return (
       <div className="rounded-lg border border-cortex-red/50 bg-cortex-red/10 p-4 font-ui text-cortex-red">
         Failed to load findings: {error.message}
+      </div>
+    );
+  }
+
+  if (!loading && findings.length === 0) {
+    return (
+      <div style={{ padding: "28px" }}>
+        <div className="mb-6">
+          <h1 className="font-ui text-2xl font-semibold text-cortex-text">Remediation Tracker</h1>
+          <p className="mt-1 font-ui text-sm text-cortex-muted">
+            Active findings across AstraLabs Group — track owners, due dates and progress
+          </p>
+        </div>
+        <div
+          style={{
+            background: "var(--panel)",
+            border: "1px solid var(--border)",
+            borderRadius: "10px",
+          }}
+        >
+          <RemediationEmpty
+            onViewFindings={() => navigate("/review-queue")}
+            onRunAssessment={() => navigate("/onboarding")}
+          />
+        </div>
       </div>
     );
   }
