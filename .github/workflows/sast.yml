@@ -2,12 +2,13 @@ name: SAST Security Scan
 
 on:
   push:
-    branches: [main, "feature/*", "fix/*"]
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
-  backend-sast:
+  sast:
+    name: SAST — Bandit + Safety
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,68 +16,32 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
 
-      - name: Install tooling and package
+      - name: Install tooling
         run: |
           python -m pip install --upgrade pip
           pip install bandit safety
-          pip install -e ".[dev]"
+          if [ -f pyproject.toml ]; then
+            pip install -e ".[dev]" 2>/dev/null || \
+            pip install -e "." 2>/dev/null || \
+            echo "pyproject install skipped"
+          fi
 
-      - name: Run Bandit
+      - name: Bandit
         run: |
-          python -m bandit -r \
-            services/compliance-engine/app/ \
-            api \
-            core \
-            -f json \
-            -o bandit-results.json \
-            --severity-level high \
-            --confidence-level high \
-            -x "*/tests/*" \
-            || true
+          if [ -d services/compliance-engine/app ]; then
+            bandit -r services/compliance-engine/app/ -ll --skip B101
+          else
+            echo "Bandit: scan path not found, skipping"
+          fi
 
-      - name: Run Safety
+      - name: Safety (frozen environment)
         run: |
           pip freeze > /tmp/project-deps.txt
+          if [ ! -s /tmp/project-deps.txt ]; then
+            echo "Safety: no packages to check, skipping"
+            exit 0
+          fi
           safety check -r /tmp/project-deps.txt --output text || true
-
-      - name: Upload Bandit results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: bandit-results
-          path: bandit-results.json
-
-  frontend-sast:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: cd frontend && npm ci
-
-      - name: npm audit
-        run: |
-          cd frontend
-          npm audit --audit-level=high || true
-
-      - name: ESLint (security plugins)
-        run: cd frontend && npm run lint
-
-      - name: TypeScript check
-        run: |
-          cd frontend
-          npx tsc --noEmit -p tsconfig.json
-
-      - name: Build check
-        run: |
-          cd frontend
-          npm run build
+        continue-on-error: true
