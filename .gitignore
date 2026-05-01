@@ -3,6 +3,7 @@
 .env.local
 .env.*.local
 .env.*
+!.env.example
 
 # GRC Skills raw binaries
 services/skills/raw/*.skill
