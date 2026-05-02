@@ -136,7 +136,7 @@ const SECTIONS: HelpSection[] = [
       {
         subtitle: "Compliance evidence map",
         body:
-          "When you expand Findings for a run, the Compliance evidence map section loads GET /api/v1/shasta/scans/{run_id}/evidence-map — a finding → framework-control graph from stored framework_controls (source labelled Shasta). Same JSON can power a future canvas view.",
+          "Use Preview sample evidence map on Cloud scans to see the table with illustrative data (no AWS/Azure required). When you expand Findings for a run, the same section loads GET /api/v1/shasta/scans/{run_id}/evidence-map — finding → framework_control links from Postgres (source labelled Shasta).",
       },
     ],
   },

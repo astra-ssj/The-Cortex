@@ -9,6 +9,7 @@ Release lines **v0.1.0–v0.7.x** below reflect repository tags and merge histor
 ### Added
 
 - **Shasta evidence map (MVP):** `GET /api/v1/shasta/scans/{scan_run_id}/evidence-map` returns `nodes` + `edges` (finding → `framework_controls`); Cloud scans page shows **Compliance evidence map** when a run’s Findings panel is open; unit tests for graph builder (`tests/test_shasta_evidence_map.py`).
+- **Cloud scans:** **Preview sample evidence map** toggles static demo graph (no cloud/API) for UI demos.
 - **Shasta cloud CSPM:** Async scans (`POST /api/v1/shasta/scans`), Postgres SoT (`shasta_scan_runs`, `shasta_cloud_findings`, migration `009_shasta_cloud`), normalized findings with `framework_controls` JSONB, `GET /api/v1/shasta/contract`, optional **`REDIS_URL` / `SHASTA_REDIS_URL`** job queue (`core/shasta_queue.py`, `workers/shasta_worker.py`), **`docker compose --profile queue`**, and **`Cloud scans`** UI (`/cloud-scans`, nav **Powered by Shasta**).
 - **SSE assessment stream:** `@microsoft/fetch-event-source` + **`Authorization: Bearer`** — JWT no longer appended to the stream URL in the SPA (see `frontend/src/store/complianceStore.ts`, `buildStreamUrl` in `frontend/src/api/client.ts`).
 - **Tests & scripts:** `tests/test_api_shasta_cloud.py`, `tests/test_shasta_adapter.py`, `scripts/verify_shasta_stack.sh`, `scripts/shasta_uvicorn_e2e.sh`, `scripts/smoke_shasta_http.sh`; CI verifies Shasta migration after schema apply.

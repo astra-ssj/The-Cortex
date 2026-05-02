@@ -1,7 +1,163 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOrgContext } from "../hooks/useOrgContext";
-import { shastaCloudApi, type ShastaScanRunRow } from "../api/client";
+import { shastaCloudApi, type ShastaEvidenceMapOut, type ShastaScanRunRow } from "../api/client";
+import { SHASTA_EVIDENCE_MAP_SAMPLE } from "../lib/shastaEvidenceMapMock";
+import { buildEvidenceMapRows } from "../lib/shastaEvidenceMapRows";
+
+function ComplianceEvidenceMapBlock({
+  mapOut,
+  loading,
+  error,
+  isSample,
+  marginTop = 28,
+}: {
+  mapOut?: ShastaEvidenceMapOut;
+  loading?: boolean;
+  error?: Error | null;
+  isSample?: boolean;
+  marginTop?: number;
+}) {
+  const rows = useMemo(() => (mapOut ? buildEvidenceMapRows(mapOut) : []), [mapOut]);
+
+  return (
+    <div
+      style={{
+        marginTop,
+        paddingTop: marginTop > 0 ? 22 : 0,
+        borderTop: marginTop > 0 ? "1px solid #1e293b" : undefined,
+      }}
+    >
+      {isSample && (
+        <div
+          role="status"
+          style={{
+            marginBottom: 14,
+            padding: "10px 14px",
+            borderRadius: 8,
+            border: "1px solid rgba(251, 191, 36, 0.45)",
+            background: "rgba(251, 191, 36, 0.08)",
+            fontSize: 12,
+            color: "#fcd34d",
+            lineHeight: 1.5,
+          }}
+        >
+          <strong style={{ color: "#fde68a" }}>Sample data.</strong> Illustrative finding → control mapping
+          only — not loaded from your organisation or live cloud scans. Toggle off anytime.
+        </div>
+      )}
+      <h3
+        style={{
+          fontSize: 14,
+          color: "#94a3b8",
+          marginBottom: 8,
+          fontFamily: '"Syne", sans-serif',
+          fontWeight: 600,
+        }}
+      >
+        Compliance evidence map
+      </h3>
+      <p style={{ fontSize: 12, color: "#64748b", marginBottom: 14, maxWidth: 720, lineHeight: 1.5 }}>
+        Each finding links to framework control references supplied by Shasta (
+        <code style={{ fontSize: 11, color: "#5eead4" }}>framework_controls</code>
+        ). Source is always this engine — not merged with other connector evidence types.
+      </p>
+      {!isSample && loading && <p style={{ color: "#64748b", fontSize: 13 }}>Loading evidence map…</p>}
+      {!isSample && error && (
+        <p style={{ color: "#f87171", fontSize: 13 }}>{error.message}</p>
+      )}
+      {mapOut && (
+        <>
+          <div
+            style={{
+              marginBottom: 12,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+              alignItems: "center",
+              fontSize: 12,
+              color: "#94a3b8",
+            }}
+          >
+            <span
+              style={{
+                padding: "4px 10px",
+                borderRadius: 6,
+                background: "#0f172a",
+                border: "1px solid #334155",
+              }}
+            >
+              Source: <strong style={{ color: "#e2e8f4" }}>Shasta</strong>
+              {isSample && (
+                <span style={{ color: "#94a3b8", fontWeight: 400 }}> · demo payload</span>
+              )}
+            </span>
+            <span>
+              Scan: {mapOut.scan_status}
+              {mapOut.cloud ? ` · ${mapOut.cloud}` : ""}
+            </span>
+            <span>
+              {mapOut.summary.findings} findings · {mapOut.summary.control_nodes} control nodes ·{" "}
+              {mapOut.summary.edges} links
+            </span>
+          </div>
+          {mapOut.summary.edges === 0 && (
+            <p style={{ color: "#64748b", fontSize: 13, marginBottom: 12 }}>
+              No framework control tags on these rows yet — mappings appear when Shasta populates{" "}
+              <code style={{ fontSize: 11 }}>framework_controls</code>.
+            </p>
+          )}
+          {rows.length > 0 && (
+            <div style={{ overflowX: "auto", border: "1px solid #141e30", borderRadius: 8 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: "#0f172a", textAlign: "left" }}>
+                    <th style={{ padding: 10 }}>Severity</th>
+                    <th style={{ padding: 10 }}>Finding</th>
+                    <th style={{ padding: 10 }}>Mapped controls</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(({ fn, controls }) => (
+                    <tr key={fn.id} style={{ borderTop: "1px solid #141e30", verticalAlign: "top" }}>
+                      <td style={{ padding: 10, whiteSpace: "nowrap" }}>{fn.severity ?? "—"}</td>
+                      <td style={{ padding: 10, maxWidth: 300 }}>
+                        <div style={{ fontWeight: 600, color: "#e2e8f4" }}>{fn.label}</div>
+                      </td>
+                      <td style={{ padding: 10 }}>
+                        {controls.length === 0 ? (
+                          <span style={{ color: "#64748b" }}>—</span>
+                        ) : (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {controls.map((c) => (
+                              <span
+                                key={c.id}
+                                style={{
+                                  fontSize: 11,
+                                  padding: "4px 8px",
+                                  borderRadius: 6,
+                                  background: "rgba(94, 234, 212, 0.08)",
+                                  border: "1px solid rgba(94, 234, 212, 0.25)",
+                                  color: "#99f6e4",
+                                }}
+                              >
+                                {String(c.label ?? c.id)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function CloudScans() {
   const { orgId } = useOrgContext();
@@ -9,6 +165,7 @@ export default function CloudScans() {
   const [pinnedScanId, setPinnedScanId] = useState<string | null>(null);
   const [detailScanId, setDetailScanId] = useState<string | null>(null);
   const [scanNotice, setScanNotice] = useState<string | null>(null);
+  const [sampleEvidenceMapOpen, setSampleEvidenceMapOpen] = useState(false);
   const prevStatusRef = useRef<Record<string, string>>({});
 
   const scansQuery = useQuery({
@@ -52,33 +209,6 @@ export default function CloudScans() {
     enabled: Boolean(detailScanId),
     retry: 1,
   });
-
-  const evidenceMapRows = useMemo(() => {
-    const mapOut = evidenceMapQuery.data;
-    if (!mapOut) return [];
-    const nodes = mapOut.nodes as Array<{
-      id: string;
-      kind?: string;
-      label?: string;
-      severity?: string;
-      family?: string;
-    }>;
-    const edges = mapOut.edges as Array<{
-      id?: string;
-      source?: string;
-      target?: string;
-      kind?: string;
-    }>;
-    const nodeById = new Map(nodes.map((n) => [n.id, n]));
-    const findings = nodes.filter((n) => n.kind === "finding");
-    return findings.map((fn) => {
-      const outs = edges.filter((e) => e.kind === "maps_to" && e.source === fn.id);
-      const controls = outs
-        .map((e) => nodeById.get(String(e.target ?? "")))
-        .filter((c): c is NonNullable<typeof c> => Boolean(c && c.kind === "control"));
-      return { fn, controls };
-    });
-  }, [evidenceMapQuery.data]);
 
   useEffect(() => {
     const rows = scansQuery.data;
@@ -211,6 +341,21 @@ export default function CloudScans() {
         >
           Run Azure scan
         </button>
+        <button
+          type="button"
+          onClick={() => setSampleEvidenceMapOpen((v) => !v)}
+          style={{
+            padding: "10px 18px",
+            borderRadius: 8,
+            border: "1px solid #854d0e",
+            background: sampleEvidenceMapOpen ? "#422006" : "#0c1526",
+            color: "#fcd34d",
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          {sampleEvidenceMapOpen ? "Hide sample evidence map" : "Preview sample evidence map"}
+        </button>
       </div>
 
       {runMutation.isError && (
@@ -263,6 +408,16 @@ export default function CloudScans() {
         <p style={{ color: "#64748b", fontSize: 12, marginBottom: 16 }}>
           Polling scan status every few seconds…
         </p>
+      )}
+
+      {sampleEvidenceMapOpen && (
+        <section style={{ marginBottom: 32 }}>
+          <ComplianceEvidenceMapBlock
+            mapOut={SHASTA_EVIDENCE_MAP_SAMPLE}
+            isSample
+            marginTop={0}
+          />
+        </section>
       )}
 
       <section style={{ marginBottom: 32 }}>
@@ -424,123 +579,11 @@ export default function CloudScans() {
             </div>
           )}
 
-          <div
-            style={{
-              marginTop: 28,
-              paddingTop: 22,
-              borderTop: "1px solid #1e293b",
-            }}
-          >
-            <h3
-              style={{
-                fontSize: 14,
-                color: "#94a3b8",
-                marginBottom: 8,
-                fontFamily: '"Syne", sans-serif',
-                fontWeight: 600,
-              }}
-            >
-              Compliance evidence map
-            </h3>
-            <p style={{ fontSize: 12, color: "#64748b", marginBottom: 14, maxWidth: 720, lineHeight: 1.5 }}>
-              Each finding links to framework control references supplied by Shasta (
-              <code style={{ fontSize: 11, color: "#5eead4" }}>framework_controls</code>
-              ). Source is always this engine — not merged with other connector evidence types.
-            </p>
-            {evidenceMapQuery.isLoading && (
-              <p style={{ color: "#64748b", fontSize: 13 }}>Loading evidence map…</p>
-            )}
-            {evidenceMapQuery.isError && (
-              <p style={{ color: "#f87171", fontSize: 13 }}>
-                {(evidenceMapQuery.error as Error).message}
-              </p>
-            )}
-            {evidenceMapQuery.data && (
-              <div
-                style={{
-                  marginBottom: 12,
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 10,
-                  alignItems: "center",
-                  fontSize: 12,
-                  color: "#94a3b8",
-                }}
-              >
-                <span
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    background: "#0f172a",
-                    border: "1px solid #334155",
-                  }}
-                >
-                  Source: <strong style={{ color: "#e2e8f4" }}>Shasta</strong>
-                </span>
-                <span>
-                  Scan: {evidenceMapQuery.data.scan_status}
-                  {evidenceMapQuery.data.cloud ? ` · ${evidenceMapQuery.data.cloud}` : ""}
-                </span>
-                <span>
-                  {evidenceMapQuery.data.summary.findings} findings ·{" "}
-                  {evidenceMapQuery.data.summary.control_nodes} control nodes ·{" "}
-                  {evidenceMapQuery.data.summary.edges} links
-                </span>
-              </div>
-            )}
-            {evidenceMapQuery.data && evidenceMapQuery.data.summary.edges === 0 && (
-              <p style={{ color: "#64748b", fontSize: 13, marginBottom: 12 }}>
-                No framework control tags on these rows yet — mappings appear when Shasta populates{" "}
-                <code style={{ fontSize: 11 }}>framework_controls</code>.
-              </p>
-            )}
-            {evidenceMapQuery.data && evidenceMapRows.length > 0 && (
-              <div style={{ overflowX: "auto", border: "1px solid #141e30", borderRadius: 8 }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                  <thead>
-                    <tr style={{ background: "#0f172a", textAlign: "left" }}>
-                      <th style={{ padding: 10 }}>Severity</th>
-                      <th style={{ padding: 10 }}>Finding</th>
-                      <th style={{ padding: 10 }}>Mapped controls</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {evidenceMapRows.map(({ fn, controls }) => (
-                      <tr key={fn.id} style={{ borderTop: "1px solid #141e30", verticalAlign: "top" }}>
-                        <td style={{ padding: 10, whiteSpace: "nowrap" }}>{fn.severity ?? "—"}</td>
-                        <td style={{ padding: 10, maxWidth: 300 }}>
-                          <div style={{ fontWeight: 600, color: "#e2e8f4" }}>{fn.label}</div>
-                        </td>
-                        <td style={{ padding: 10 }}>
-                          {controls.length === 0 ? (
-                            <span style={{ color: "#64748b" }}>—</span>
-                          ) : (
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                              {controls.map((c) => (
-                                <span
-                                  key={c.id}
-                                  style={{
-                                    fontSize: 11,
-                                    padding: "4px 8px",
-                                    borderRadius: 6,
-                                    background: "rgba(94, 234, 212, 0.08)",
-                                    border: "1px solid rgba(94, 234, 212, 0.25)",
-                                    color: "#99f6e4",
-                                  }}
-                                >
-                                  {String(c.label ?? c.id)}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <ComplianceEvidenceMapBlock
+            mapOut={evidenceMapQuery.data}
+            loading={evidenceMapQuery.isLoading}
+            error={evidenceMapQuery.isError ? (evidenceMapQuery.error as Error) : null}
+          />
         </section>
       )}
 
