@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from typing import AsyncGenerator
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -17,6 +18,16 @@ engine = create_async_engine(DATABASE_URL, echo=False)
 async_session_factory = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
 )
+
+
+async def database_ready() -> bool:
+    """True if Postgres accepts connections (for readiness probes)."""
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False
 
 
 class Base(DeclarativeBase):

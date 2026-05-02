@@ -13,10 +13,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, Column, Integer, MetaData, String, Table, bindparam, func, text, update
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.exc import DBAPIError, ProgrammingError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps import get_db
+from api.deps import get_db, get_db_login_session
 from api.limits import limiter
 from core.security import DEMO_USERS, create_access_token, get_current_user, hash_password, verify_password
 
@@ -53,6 +53,14 @@ class OnboardingStepBody(BaseModel):
     data: dict[str, Any] = Field(default_factory=dict)
 
 
+def _db_email_for_login(username: str) -> str:
+    """Map shorthand demo username to seeded admin email (README documents admin / admin)."""
+    u = username.strip()
+    if u.lower() == "admin":
+        return "admin@astralabs.com"
+    return u
+
+
 async def _try_load_db_user(session: AsyncSession, email: str) -> dict[str, Any] | None:
     try:
         res = await session.execute(
@@ -72,7 +80,7 @@ async def _try_load_db_user(session: AsyncSession, email: str) -> dict[str, Any]
         )
         row = res.mappings().one_or_none()
         return dict(row) if row else None
-    except (ProgrammingError, DBAPIError) as e:
+    except SQLAlchemyError as e:
         await session.rollback()
         logger.warning("auth_db_user_lookup_skipped", error=str(e))
         return None
@@ -158,12 +166,12 @@ async def register(
     except HTTPException:
         await session.rollback()
         raise
-    except ProgrammingError as e:
+    except SQLAlchemyError as e:
         await session.rollback()
-        logger.warning("register_schema_missing", error=str(e))
+        logger.warning("register_db_error", error=str(e))
         raise HTTPException(
             status_code=503,
-            detail="Registration unavailable — database migration may not be applied",
+            detail="Registration unavailable — database unreachable or migrations not applied",
         ) from e
 
     token = create_access_token(
@@ -192,12 +200,12 @@ async def register(
 async def login(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
-    session: AsyncSession = Depends(get_db),
+    session: AsyncSession = Depends(get_db_login_session),
 ) -> dict[str, Any]:
     username = (form_data.username or "").strip()
     password = form_data.password or ""
 
-    db_user = await _try_load_db_user(session, username)
+    db_user = await _try_load_db_user(session, _db_email_for_login(username))
     if db_user and verify_password(password, db_user["password_hash"]):
         token = _token_for_db_user(db_user)
         return {
@@ -329,9 +337,12 @@ async def update_onboarding_step(
     stmt = update(_orgs).where(_orgs.c.id == bindparam("org_id")).values(**values_clause)
     try:
         await session.execute(stmt, params)
-    except ProgrammingError as e:
+    except SQLAlchemyError as e:
         await session.rollback()
-        raise HTTPException(status_code=503, detail="Database schema not ready") from e
+        raise HTTPException(
+            status_code=503,
+            detail="Onboarding update unavailable — database unreachable or schema mismatch",
+        ) from e
 
     return {"step": step, "org_id": org_id, "updated": updates}
 

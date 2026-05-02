@@ -21,12 +21,37 @@ services:
       - ./services/graphjin/migrations/004_multi_tenancy.sql:/docker-entrypoint-initdb.d/05_multi_tenancy.sql:ro
       - ./migrations/004_assessment_results_status_risk.sql:/docker-entrypoint-initdb.d/06_assessment_results_status_risk.sql:ro
       - ./services/graphjin/migrations/005_assessment_results_fix.sql:/docker-entrypoint-initdb.d/07_assessment_results_fix.sql:ro
+      - ./migrations/006_human_review_queue.sql:/docker-entrypoint-initdb.d/08_human_review_queue.sql:ro
       - ./services/graphjin/migrations:/graphjin/migrations:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # GraphQL read layer: same DB as FastAPI. Dev auth disabled — do not expose 8080 to the internet. See services/graphjin/README.md
+  # Default stack omits GraphJin; start with: docker compose --profile graphql up -d
+  graphjin:
+    profiles:
+      - graphql
+    image: dosco/graphjin:3.18.10
+    # Entrypoint is `graphjin`; without `serve` the container prints CLI help and exits.
+    command: ["serve", "--path", "/app/config"]
+    working_dir: /app
+    volumes:
+      - ./services/graphjin/config:/app/config:ro
+    environment:
+      GO_ENV: development
+      GJ_DATABASE_HOST: postgres
+      GJ_DATABASE_PORT: "5432"
+      GJ_DATABASE_USER: ${POSTGRES_USER:-cortex}
+      GJ_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      GJ_DATABASE_NAME: ${POSTGRES_DB:-cortex}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   api:
     build: .

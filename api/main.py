@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Callable
@@ -15,7 +16,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
 from api.assessments import router as assessments_router
 from api.auth import router as auth_router
@@ -24,6 +25,7 @@ from api.findings import router as findings_router
 from api.groups import router as groups_router
 from api.organisations import router as organisations_router
 from api.system import router as system_router
+from db.session import database_ready
 
 # Compliance-engine app (document ingestion at services/compliance-engine/app/).
 _compliance_engine = Path(__file__).resolve().parent.parent / "services" / "compliance-engine"
@@ -86,6 +88,21 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Propagate X-Request-ID for log/trace correlation (client-supplied or generated)."""
+
+    _HEADER = "X-Request-ID"
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        incoming = request.headers.get("x-request-id")
+        rid = incoming.strip() if incoming else ""
+        if not rid:
+            rid = str(uuid.uuid4())
+        response = await call_next(request)
+        response.headers[self._HEADER] = rid
+        return response
+
+
 _frontend = os.getenv("FRONTEND_URL", "http://localhost:3000").strip().rstrip("/")
 _cors_origins = [
     "http://localhost:5173",
@@ -113,6 +130,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestIDMiddleware)
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessments_router)
@@ -131,5 +149,10 @@ async def health() -> dict[str, str]:
 
 
 @app.get("/ready")
-async def ready() -> dict[str, str]:
+async def ready() -> dict[str, str] | JSONResponse:
+    if not await database_ready():
+        return JSONResponse(
+            status_code=503,
+            content={"status": "not_ready", "detail": "database_unreachable"},
+        )
     return {"status": "ready"}

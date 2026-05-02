@@ -4,14 +4,10 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from api.main import app
 
-client = TestClient(app)
-
-
-def test_list_frameworks() -> None:
+def test_list_frameworks(client: TestClient, auth_headers: dict[str, str]) -> None:
     """GET /api/v1/frameworks returns list of framework summaries."""
-    r = client.get("/api/v1/frameworks")
+    r = client.get("/api/v1/frameworks", headers=auth_headers)
     assert r.status_code == 200
     data = r.json()
     assert isinstance(data, list)
@@ -25,9 +21,9 @@ def test_list_frameworks() -> None:
         assert "control_count" in fw and isinstance(fw["control_count"], int)
 
 
-def test_get_framework() -> None:
+def test_get_framework(client: TestClient, auth_headers: dict[str, str]) -> None:
     """GET /api/v1/frameworks/:id returns full framework with controls."""
-    r = client.get("/api/v1/frameworks/gdpr-2016-679")
+    r = client.get("/api/v1/frameworks/gdpr-2016-679", headers=auth_headers)
     assert r.status_code == 200
     data = r.json()
     assert data["id"] == "gdpr-2016-679"
@@ -39,15 +35,18 @@ def test_get_framework() -> None:
         assert "id" in c and "name" in c and "requirements" in c
 
 
-def test_get_framework_unknown_404() -> None:
+def test_get_framework_unknown_404(client: TestClient, auth_headers: dict[str, str]) -> None:
     """GET /api/v1/frameworks/unknown returns 404."""
-    r = client.get("/api/v1/frameworks/unknown")
+    r = client.get("/api/v1/frameworks/unknown", headers=auth_headers)
     assert r.status_code == 404
 
 
-def test_list_framework_controls_paginated() -> None:
+def test_list_framework_controls_paginated(client: TestClient, auth_headers: dict[str, str]) -> None:
     """GET /api/v1/frameworks/:id/controls returns paginated controls."""
-    r = client.get("/api/v1/frameworks/gdpr-2016-679/controls?page=1&page_size=2")
+    r = client.get(
+        "/api/v1/frameworks/gdpr-2016-679/controls?page=1&page_size=2",
+        headers=auth_headers,
+    )
     assert r.status_code == 200
     data = r.json()
     assert "items" in data and "total" in data and "page" in data and "page_size" in data

@@ -171,7 +171,12 @@ export default function Login({ onSuccess }: LoginProps) {
           </label>
           <input
             id="email"
-            type="email"
+            type="text"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="admin@astralabs.com or admin"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="username"

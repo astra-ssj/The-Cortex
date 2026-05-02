@@ -6,6 +6,16 @@ Release lines **v0.1.0–v0.7.x** below reflect repository tags and merge histor
 
 ## [Unreleased]
 
+### Added
+
+- `scripts/smoke_happy_path.sh`: HTTP smoke for health → readiness → login → frameworks → human-review approve → ZTAIP status → `X-Request-ID` propagation.
+- CI job **Backend — HTTP smoke** runs the script against Uvicorn + Postgres.
+- `RequestIDMiddleware`: echoes or generates **`X-Request-ID`** on API responses.
+
+### Changed
+
+- Docker Compose: **GraphJin** starts only with **`docker compose --profile graphql`** (port 8080 off by default).
+
 ## [0.7.4] — 2026-05-01
 
 ### Changed

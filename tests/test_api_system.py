@@ -32,6 +32,20 @@ def test_ztaip_status_audit_fabric_shape() -> None:
     assert af["totalEvents"] >= 0
 
 
+def test_system_ready_returns_200_when_database_available() -> None:
+    """GET /api/v1/system/ready succeeds when Postgres is reachable."""
+    r = client.get("/api/v1/system/ready")
+    assert r.status_code == 200
+    assert r.json().get("status") == "ready"
+
+
+def test_root_ready_returns_200_when_database_available() -> None:
+    """GET /ready matches /api/v1/system/ready semantics."""
+    r = client.get("/ready")
+    assert r.status_code == 200
+    assert r.json().get("status") == "ready"
+
+
 def test_ztaip_status_circuit_breakers_count() -> None:
     """circuitBreakersCount is read from real circuit breaker registry."""
     r = client.get("/api/v1/system/ztaip-status")

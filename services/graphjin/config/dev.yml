@@ -1,0 +1,27 @@
+# GraphJin — CORTEX read layer (GraphQL → SQL). Used with GO_ENV=development.
+# Mutations/DDL: use FastAPI only. See services/graphjin/README.md
+
+app_name: "CORTEX GraphQL (read layer)"
+host_port: "0.0.0.0:8080"
+web_ui: true
+production: false
+log_level: "info"
+http_compress: true
+# Dev: allow Vite and local browsers. Tighten in production.
+cors_allowed_origins: ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"]
+cors_allowed_headers: ["Authorization", "Content-Type", "X-Request-ID"]
+# Password overridden at runtime: GJ_DATABASE_PASSWORD
+database:
+  type: postgres
+  host: postgres
+  port: 5432
+  dbname: cortex
+  user: cortex
+  password: ""
+  schema: public
+
+# Intention: queries only for most use — all mutations go through FastAPI (audit, tenancy).
+# For a hard read-only connection at the DB role level, use a dedicated PostgreSQL user in production.
+auth:
+  type: none
+  development: true

@@ -13,6 +13,7 @@ Thank you for helping improve CORTEX. This repository follows the **ZTAIP** (Zer
 2. Install backend dev dependencies: `pip install -e ".[dev]"`.
 3. Run tests: `pytest tests/ -v`.
 4. For UI changes: `cd frontend && npm install && npm run dev` (and run any frontend checks you rely on locally).
+5. With Postgres + API running (`docker compose up -d`), optional spine check: `bash scripts/smoke_happy_path.sh` (also executed in CI).
 
 ## Before submitting a PR
 
@@ -31,7 +32,7 @@ python -m pytest
 
 Three rules that must be preserved in all contributions:
 
-1. **Read/write separation** — all data reads go through GraphJin, all mutations through FastAPI. Never mix.
+1. **Read/write split** — **All mutations, auth, and first-party app traffic** go through **FastAPI** (audit, tenancy, ZTAIP). **GraphJin** (see `services/graphjin/`, Compose **`--profile graphql`**, port **8080**) is the optional **GraphQL read** surface on the same PostgreSQL schema for tools, reporting, and exploratory joins — do not bypass FastAPI for writes or for anything requiring audit/authorization hooks until explicitly designed.
 
 2. **Human-in-the-loop** — every AI assessment with confidence below **0.75** must route to the Human Review Queue. This is an EU AI Act Art.14 requirement, not optional.
 

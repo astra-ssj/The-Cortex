@@ -38,7 +38,7 @@ We respond within 48 hours and patch critical issues within 7 days.
 ## Known Development Limitations
 
 - **JWT_SECRET default** — not production-safe. Always set `JWT_SECRET` environment variable.
-- **GraphJin auth** — no auth in dev mode. Restrict to internal network in production.
+- **GraphJin auth** — no auth in dev mode. Restrict to internal network in production. Local Compose starts GraphJin only with `--profile graphql` so port **8080** is not opened unless you opt in.
 - **CORS** — set `FRONTEND_URL` env var to your production domain.
 - **HTTPS** — add TLS termination in production.
 

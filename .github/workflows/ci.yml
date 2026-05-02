@@ -82,6 +82,107 @@ jobs:
           fi
           bandit -r services/compliance-engine/app/ -ll --skip B101
 
+  backend-tests:
+    name: Backend — Pytest (Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: cortex
+          POSTGRES_PASSWORD: cortex_ci_test
+          POSTGRES_DB: cortex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cortex -d cortex"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: cortex
+      PGPASSWORD: cortex_ci_test
+      PGDATABASE: cortex
+      DATABASE_URL: postgresql+asyncpg://cortex:cortex_ci_test@localhost:5432/cortex
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+
+      - name: Apply database schema
+        run: bash scripts/apply_cortex_schema.sh
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install "moto[aws]>=5.0"
+
+      - name: Pytest
+        run: pytest -q --tb=short
+
+  api-smoke:
+    name: Backend — HTTP smoke (happy path)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: cortex
+          POSTGRES_PASSWORD: cortex_ci_test
+          POSTGRES_DB: cortex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cortex -d cortex"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: cortex
+      PGPASSWORD: cortex_ci_test
+      PGDATABASE: cortex
+      DATABASE_URL: postgresql+asyncpg://cortex:cortex_ci_test@localhost:5432/cortex
+      PYTHONPATH: ".:services/compliance-engine"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+
+      - name: Apply database schema
+        run: bash scripts/apply_cortex_schema.sh
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Start API and run smoke script
+        run: |
+          uvicorn api.main:app --host 127.0.0.1 --port 8000 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/health >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8000/health >/dev/null
+          bash scripts/smoke_happy_path.sh
+
   security:
     name: Security — Dependency Audit
     runs-on: ubuntu-latest

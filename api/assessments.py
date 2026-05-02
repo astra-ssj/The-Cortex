@@ -9,7 +9,11 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.deps import get_db
 from core.security import get_current_user, get_current_user_optional, get_current_user_stream
 from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
 from fastapi.responses import StreamingResponse
@@ -232,7 +236,14 @@ async def run_assessment(
     return _stream_response(organization_id, fids)
 
 
-# ---- Human Review Queue (in-memory seed; approve/override logged to audit fabric) ----
+# ---- Human Review Queue (Postgres when 006 migration applied; else in-memory) ----
+
+_review_tables_ok: bool = False
+
+# In-memory store when human_review_* tables are missing (old DB volume without migration).
+_review_queue_pending: list[dict[str, Any]] = []
+_review_queue_reviewed: list[dict[str, Any]] = []
+_review_queue_initialized = False
 
 
 def _review_queue_seed() -> list[dict[str, Any]]:
@@ -330,33 +341,130 @@ def _review_queue_seed() -> list[dict[str, Any]]:
     ]
 
 
-# Module-level in-memory store: pending items (mutable), reviewed list (append-only for session).
-_review_queue_pending: list[dict[str, Any]] = []
-_review_queue_reviewed: list[dict[str, Any]] = []
-_review_queue_initialized = False
-
-
-def _ensure_review_queue_seed() -> None:
+def _ensure_review_queue_seed_memory() -> None:
     global _review_queue_initialized
     if not _review_queue_initialized:
         _review_queue_pending.extend(_review_queue_seed())
         _review_queue_initialized = True
 
 
+async def _human_review_db_ready(session: AsyncSession) -> bool:
+    """Use Postgres when migration 006 is applied; retry SELECT each request until tables exist."""
+    global _review_tables_ok
+    if _review_tables_ok:
+        return True
+    try:
+        await session.execute(text("SELECT 1 FROM human_review_pending LIMIT 1"))
+        _review_tables_ok = True
+        return True
+    except SQLAlchemyError as e:
+        logger.warning("human_review_using_memory_fallback", error=str(e))
+        return False
+
+
+def _iso_ts(val: Any) -> str:
+    if hasattr(val, "isoformat"):
+        return val.isoformat()
+    return str(val)
+
+
+async def _fetch_pending_db(session: AsyncSession, org_id: str) -> list[dict[str, Any]]:
+    r = await session.execute(
+        text(
+            "SELECT id, framework, control_id, name, assessment, confidence, severity, reference, date_flagged "
+            "FROM human_review_pending WHERE org_id = :org ORDER BY id"
+        ),
+        {"org": org_id},
+    )
+    rows = []
+    for row in r.mappings().all():
+        d = dict(row)
+        d["date_flagged"] = _iso_ts(d["date_flagged"])
+        rows.append(d)
+    return rows
+
+
+async def _fetch_reviewed_db(session: AsyncSession, org_id: str) -> list[dict[str, Any]]:
+    r = await session.execute(
+        text(
+            "SELECT item_id AS id, framework, control_id, action, acted_by, acted_at, "
+            "original_confidence, final_decision, audit_ref "
+            "FROM human_review_reviewed WHERE org_id = :org ORDER BY id"
+        ),
+        {"org": org_id},
+    )
+    rows = []
+    for row in r.mappings().all():
+        d = dict(row)
+        d["acted_at"] = _iso_ts(d["acted_at"])
+        rows.append(d)
+    return rows
+
+
+async def _ensure_demo_pending_seed_db(session: AsyncSession, org_id: str) -> None:
+    if org_id != DEMO_ORG_ID:
+        return
+    n = (
+        await session.execute(
+            text("SELECT COUNT(*)::int FROM human_review_pending WHERE org_id = :org"),
+            {"org": org_id},
+        )
+    ).scalar_one()
+    if int(n) > 0:
+        return
+    for item in _review_queue_seed():
+        await session.execute(
+            text(
+                """
+                INSERT INTO human_review_pending (
+                    id, org_id, framework, control_id, name, assessment, confidence, severity, reference, date_flagged
+                ) VALUES (
+                    :id, :org_id, :framework, :control_id, :name, :assessment, :confidence, :severity, :reference,
+                    CAST(:date_flagged AS timestamptz)
+                )
+                """
+            ),
+            {
+                "id": item["id"],
+                "org_id": org_id,
+                "framework": item["framework"],
+                "control_id": item["control_id"],
+                "name": item["name"],
+                "assessment": item["assessment"],
+                "confidence": item["confidence"],
+                "severity": item["severity"],
+                "reference": item["reference"],
+                "date_flagged": item["date_flagged"],
+            },
+        )
+
+
 @router.get("/assessments/review-queue", response_model=ReviewQueueResponse)
 async def get_review_queue(
     org_id: str | None = Query(None, description="Scoped organisation id (demo toggle)"),
     current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
 ) -> ReviewQueueResponse:
     """Return Human Review Queue: pending items (confidence < 0.75) and reviewed items."""
     scope = (org_id or current_user.get("org_id") or DEMO_ORG_ID).strip()
     effective = resolve_scoped_org_id(current_user, scope)
     if effective != DEMO_ORG_ID:
         return ReviewQueueResponse(items=[], reviewed=[])
-    _ensure_review_queue_seed()
-    items = [ReviewQueueItem(**x) for x in _review_queue_pending]
-    reviewed = [ReviewedItem(**x) for x in _review_queue_reviewed]
-    return ReviewQueueResponse(items=items, reviewed=reviewed)
+
+    if await _human_review_db_ready(session):
+        await _ensure_demo_pending_seed_db(session, effective)
+        pending = await _fetch_pending_db(session, effective)
+        reviewed = await _fetch_reviewed_db(session, effective)
+        return ReviewQueueResponse(
+            items=[ReviewQueueItem(**x) for x in pending],
+            reviewed=[ReviewedItem(**x) for x in reviewed],
+        )
+
+    _ensure_review_queue_seed_memory()
+    return ReviewQueueResponse(
+        items=[ReviewQueueItem(**x) for x in _review_queue_pending],
+        reviewed=[ReviewedItem(**x) for x in _review_queue_reviewed],
+    )
 
 
 class ApproveRequestBody(BaseModel):
@@ -373,12 +481,60 @@ async def approve_control(
     control_id: str,
     body: ApproveRequestBody,
     current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     """Approve a flagged assessment. Logged to audit fabric. Moves item to reviewed."""
-    _ensure_review_queue_seed()
     notes = (body.notes or "").strip()
     if not notes:
         raise HTTPException(status_code=400, detail="notes is required")
+    org_scope = str(current_user.get("org_id") or DEMO_ORG_ID).strip()
+
+    if await _human_review_db_ready(session):
+        row = (
+            await session.execute(
+                text(
+                    """
+                    DELETE FROM human_review_pending
+                    WHERE org_id = :org AND id = :rid
+                    RETURNING framework, control_id, assessment, confidence
+                    """
+                ),
+                {"org": org_scope, "rid": control_id},
+            )
+        ).mappings().first()
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"Control not in queue: {control_id}")
+        acted_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        audit_ref = f"audit-{control_id}-approve-{acted_at[:10]}"
+        await session.execute(
+            text(
+                """
+                INSERT INTO human_review_reviewed (
+                    org_id, item_id, framework, control_id, action, acted_by, acted_at,
+                    original_confidence, final_decision, audit_ref
+                ) VALUES (
+                    :org_id, :item_id, :framework, :control_id, :action, :acted_by, CAST(:acted_at AS timestamptz),
+                    :original_confidence, :final_decision, :audit_ref
+                )
+                """
+            ),
+            {
+                "org_id": org_scope,
+                "item_id": control_id,
+                "framework": row["framework"],
+                "control_id": row["control_id"],
+                "action": "approved",
+                "acted_by": "CISO",
+                "acted_at": acted_at,
+                "original_confidence": row["confidence"],
+                "final_decision": row["assessment"],
+                "audit_ref": audit_ref,
+            },
+        )
+        logger.info("human_review_approve", control_id=control_id, notes=notes[:200], audit_ref=audit_ref)
+        return {"status": "approved", "control_id": control_id, "audit_ref": audit_ref}
+
+    _ensure_review_queue_seed_memory()
     idx = next((i for i, x in enumerate(_review_queue_pending) if x["id"] == control_id), None)
     if idx is None:
         raise HTTPException(status_code=404, detail=f"Control not in queue: {control_id}")
@@ -410,14 +566,68 @@ async def override_control(
     control_id: str,
     body: OverrideRequestBody,
     current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     """Override AI assessment. Logged immutably to audit fabric. Moves item to reviewed."""
-    _ensure_review_queue_seed()
     justification = (body.justification or "").strip()
     if len(justification) < 20:
         raise HTTPException(status_code=400, detail="justification must be at least 20 characters")
     if body.assessment not in ("COMPLIANT", "PARTIAL", "NON_COMPLIANT"):
         raise HTTPException(status_code=400, detail="assessment must be COMPLIANT, PARTIAL, or NON_COMPLIANT")
+    org_scope = str(current_user.get("org_id") or DEMO_ORG_ID).strip()
+
+    if await _human_review_db_ready(session):
+        row = (
+            await session.execute(
+                text(
+                    """
+                    DELETE FROM human_review_pending
+                    WHERE org_id = :org AND id = :rid
+                    RETURNING framework, control_id, assessment, confidence
+                    """
+                ),
+                {"org": org_scope, "rid": control_id},
+            )
+        ).mappings().first()
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"Control not in queue: {control_id}")
+        acted_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        audit_ref = f"audit-{control_id}-override-{acted_at[:10]}"
+        await session.execute(
+            text(
+                """
+                INSERT INTO human_review_reviewed (
+                    org_id, item_id, framework, control_id, action, acted_by, acted_at,
+                    original_confidence, final_decision, audit_ref
+                ) VALUES (
+                    :org_id, :item_id, :framework, :control_id, :action, :acted_by, CAST(:acted_at AS timestamptz),
+                    :original_confidence, :final_decision, :audit_ref
+                )
+                """
+            ),
+            {
+                "org_id": org_scope,
+                "item_id": control_id,
+                "framework": row["framework"],
+                "control_id": row["control_id"],
+                "action": "overridden",
+                "acted_by": "CISO",
+                "acted_at": acted_at,
+                "original_confidence": row["confidence"],
+                "final_decision": body.assessment,
+                "audit_ref": audit_ref,
+            },
+        )
+        logger.info(
+            "human_review_override",
+            control_id=control_id,
+            final_decision=body.assessment,
+            justification_len=len(justification),
+            audit_ref=audit_ref,
+        )
+        return {"status": "overridden", "control_id": control_id, "audit_ref": audit_ref}
+
+    _ensure_review_queue_seed_memory()
     idx = next((i for i, x in enumerate(_review_queue_pending) if x["id"] == control_id), None)
     if idx is None:
         raise HTTPException(status_code=404, detail=f"Control not in queue: {control_id}")

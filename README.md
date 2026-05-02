@@ -43,7 +43,7 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 | Frontend    | React 18, TypeScript, Vite                              |
 | Backend     | FastAPI, Python 3.12, SQLAlchemy async, asyncpg       |
 | Database    | PostgreSQL 16 (Docker Compose)                        |
-| Data layer  | GraphJin (GraphQL auto-generated, migrations in-repo) |
+| Data layer  | GraphJin (GraphQL → SQL, [read path](services/graphjin/README.md); Compose **`--profile graphql`** → **:8080**) + FastAPI REST (app + mutations) |
 | GRC Skills  | Loaded examples include GDPR, ISO 27001, DORA, ISO 42001 (via compliance-engine loader) |
 | Auth        | JWT (HS256), bcrypt passwords                           |
 | Container   | Docker Compose                                          |
@@ -76,11 +76,19 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 git clone https://github.com/AstraLabs-AI/The-Cortex
 cd The-Cortex
 
-# Start backend
+# Start backend (Postgres + API; GraphJin is opt-in — see below)
 POSTGRES_PASSWORD=cortex-dev docker compose up -d
 
-# Verify API health
-curl http://localhost:8000/health
+# Verify API health and DB readiness
+curl -s http://localhost:8000/health
+curl -s http://localhost:8000/ready
+
+# End-to-end HTTP smoke (same spine CI runs): health → login → frameworks → review → approve
+bash scripts/smoke_happy_path.sh
+
+# Optional: GraphJin GraphQL read layer (same Postgres; dev UI on :8080 — do not expose publicly)
+# POSTGRES_PASSWORD=cortex-dev docker compose --profile graphql up -d
+# curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/
 
 # Start frontend
 cd frontend && npm install && npm run dev
@@ -88,7 +96,7 @@ cd frontend && npm install && npm run dev
 
 Open http://localhost:3000
 
-**Login:** `admin` / `admin` (AstraLabs Group demo tenant).
+**Login (demo tenant):** Use **`admin`** / **`admin`** or **`admin@astralabs.com`** / **`admin`**. The database seed creates the admin row; Docker Compose also sets `CORTEX_LEGACY_DEMO_PASSWORD=admin` so the shorthand works even before DB lookup. If you run the API outside Compose without that env var, either export `CORTEX_LEGACY_DEMO_PASSWORD=admin` or rely on the seeded email above. **No database:** in-memory demo **`ciso@astralabs.com`** / **`cortex-ciso-2026`** (see `tests/test_auth.py`).
 
 ### Register a new tenant
 
@@ -110,10 +118,16 @@ Open http://localhost:3000/register, fill company details, complete the three-st
 
 ```text
 Browser (React, :3000)
-    → FastAPI (`api.main`, :8000)
-        → PostgreSQL (:5432 internal to Compose network)
-        → Optional: compliance-engine routers mounted from `services/compliance-engine`
+    → FastAPI (`api.main`, :8000) — REST, auth, writes, first-party app reads
+        → PostgreSQL (:5432, internal to Compose network)
+
+GraphQL / reporting / tools (optional, :8080 — `docker compose --profile graphql`)
+    → GraphJin (GraphQL → SQL, read-leaning) → same PostgreSQL
+
+compliance-engine routers: mounted from `services/compliance-engine` under FastAPI
 ```
+
+**Why GraphJin?** It turns ad-hoc and joined reads into GraphQL (compiled to efficient SQL) without new Python endpoints, while **mutations, JWT, audit, and tenancy** stay in FastAPI. See [services/graphjin/README.md](services/graphjin/README.md).
 
 ### Repository layout (high level)
 
@@ -122,7 +136,7 @@ Browser (React, :3000)
 | `api/` | REST routers: auth, assessments, organisations, findings, groups, system |
 | `core/` | Security (JWT, bcrypt), tenant scoping, shared helpers |
 | `compliance/` | Framework registry and posture primitives |
-| `services/` | Posture calculator, GraphJin config/migrations, compliance-engine app |
+| `services/` | Posture calculator, GraphJin [config + README](services/graphjin), SQL migrations, compliance-engine app |
 | `frontend/` | Vite + React SPA, dashboards, Intelligence, AI Systems |
 | `init.sql`, `migrations/` | PostgreSQL schema and incremental DDL |
 

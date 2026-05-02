@@ -17,3 +17,12 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         except Exception:
             await session.rollback()
             raise
+
+
+async def get_db_login_session() -> AsyncGenerator[AsyncSession, None]:
+    """Read-only DB use (login probe). Always rollback — avoids post-response commit when DB is down but demo JWT path succeeds."""
+    async with async_session_factory() as session:
+        try:
+            yield session
+        finally:
+            await session.rollback()
