@@ -24,7 +24,7 @@ SOVEREIGNTY_BROKER_STATUS = "active"
 AGENT_CERTIFICATES_COUNT = 0
 
 
-@router.get("/system/ready")
+@router.get("/system/ready", response_model=None)
 async def get_system_ready() -> dict[str, str] | JSONResponse:
     """Readiness probe: requires Postgres (load balancers should use this, not /health)."""
     if not await database_ready():

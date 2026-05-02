@@ -148,7 +148,7 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/ready")
+@app.get("/ready", response_model=None)
 async def ready() -> dict[str, str] | JSONResponse:
     if not await database_ready():
         return JSONResponse(
