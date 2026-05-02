@@ -108,6 +108,7 @@ jobs:
       PGPASSWORD: cortex_ci_test
       PGDATABASE: cortex
       DATABASE_URL: postgresql+asyncpg://cortex:cortex_ci_test@localhost:5432/cortex
+      PYTHONPATH: ".:services/compliance-engine"
     steps:
       - uses: actions/checkout@v4
 
@@ -121,6 +122,11 @@ jobs:
 
       - name: Apply database schema
         run: bash scripts/apply_cortex_schema.sh
+
+      - name: Verify Shasta migration (009 tables)
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM shasta_scan_runs LIMIT 0;"
+          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM shasta_cloud_findings LIMIT 0;"
 
       - name: Install dependencies
         run: |
@@ -169,6 +175,11 @@ jobs:
 
       - name: Apply database schema
         run: bash scripts/apply_cortex_schema.sh
+
+      - name: Verify Shasta migration (009 tables)
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM shasta_scan_runs LIMIT 0;"
+          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM shasta_cloud_findings LIMIT 0;"
 
       - name: Install dependencies
         run: |

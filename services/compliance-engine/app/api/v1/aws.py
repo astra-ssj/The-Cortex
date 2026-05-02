@@ -27,6 +27,7 @@ class AWSConnectBody(BaseModel):
     region: str = Field("us-east-1", description="AWS region")
     role_arn: Optional[str] = Field(None, description="Optional role ARN for assume_role")
     external_id: Optional[str] = Field(None, description="Optional external ID for assume_role")
+    session_token: Optional[str] = Field(None, description="Optional STS session token (temporary creds)")
 
 
 def _sse(event: str, data: dict) -> str:
@@ -52,6 +53,7 @@ async def aws_connect(body: AWSConnectBody) -> dict:
         region=body.region,
         role_arn=body.role_arn,
         external_id=body.external_id,
+        session_token=body.session_token,
     )
     try:
         await connector.connect()
@@ -70,6 +72,7 @@ async def aws_connect(body: AWSConnectBody) -> dict:
         body.region,
         role_arn=body.role_arn,
         external_id=body.external_id,
+        session_token=body.session_token,
     )
     systems = await connector.discover_systems()
     controls = await connector.discover_controls()
@@ -147,4 +150,24 @@ async def aws_sync() -> StreamingResponse:
         _run_sync_stream(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.get("/shasta-contract")
+async def aws_shasta_contract() -> dict:
+    """Shasta (Transilience) import contract; same as GET /connectors/shasta/contract scoped to AWS context."""
+    from app.connectors.shasta.shasta_adapter import shasta_contract_payload
+
+    return shasta_contract_payload("aws")
+
+
+@router.post("/shasta-scan")
+async def aws_shasta_scan_removed() -> dict:
+    """Removed: use POST /api/v1/shasta/scans with JWT and org_id (persisted to Postgres)."""
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "Use POST /api/v1/shasta/scans with Authorization Bearer token and body "
+            '{"cloud":"aws","org_id":"..."}.'
+        ),
     )

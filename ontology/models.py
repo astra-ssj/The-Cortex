@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 from compliance.models import SovereignModel
@@ -61,6 +63,33 @@ class Finding(BaseModel):
     source: str = ""  # e.g. defender_for_cloud
     resource_id: str = ""
     recommendation_id: str = ""
+
+
+class NormalizedFinding(BaseModel):
+    """Cross-engine finding shape for ingestion (e.g. Shasta → Postgres evidence pipeline).
+
+    Holds vendor-neutral fields plus optional framework mappings and a verbatim raw payload
+    for audit trails. Not stored as ontology SovereignModel — map to Evidence/Finding at persistence.
+    """
+
+    finding_key: str = ""
+    source_engine: str = ""  # e.g. shasta
+    external_id: str = ""
+    scan_run_id: Optional[str] = None
+    cloud_provider: str = ""  # aws | azure
+    account_scope: str = ""  # AWS account id or Azure subscription id
+    region: str = ""
+    check_id: str = ""
+    title: str = ""
+    description: str = ""
+    severity_normalized: str = ""  # CRITICAL, High, Medium, Low, Informational — aligns with Finding.severity
+    compliance_status: str = ""  # pass | fail | partial | not_assessed | ...
+    resource_type: str = ""
+    resource_id: str = ""
+    framework_controls: dict[str, list[str]] = Field(default_factory=dict)
+    remediation: str = ""
+    collected_at: Optional[str] = None  # ISO-8601 from upstream when present
+    raw_finding: dict = Field(default_factory=dict)
 
 
 class ControlFinding(BaseModel):

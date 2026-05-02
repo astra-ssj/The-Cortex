@@ -157,6 +157,23 @@ export default function Intelligence() {
       </header>
 
       <div
+        style={{
+          marginBottom: 20,
+          padding: "12px 14px",
+          borderRadius: 8,
+          border: "1px solid #1e2e48",
+          background: "#0c1220",
+          fontSize: 12,
+          color: "#94a3b8",
+          lineHeight: 1.5,
+        }}
+      >
+        <span style={{ color: "#fbbf24", fontWeight: 700 }}>Illustrative</span> — Audit Simulator, Signals,
+        Regulation Intel, and Evidence Vault use <strong style={{ color: "#e2e8f4" }}>simulated / demo UX</strong>{" "}
+        for storytelling; they are not a substitute for production evidence stores unless wired to backend APIs.
+      </div>
+
+      <div
         role="tablist"
         style={{
           display: "flex",
@@ -185,7 +202,8 @@ export default function Intelligence() {
             fontFamily: "inherit",
           }}
         >
-          Audit Simulator
+          Audit Simulator{" "}
+          <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 600 }}>(demo)</span>
         </button>
         <button
           type="button"
@@ -206,7 +224,8 @@ export default function Intelligence() {
             fontFamily: "inherit",
           }}
         >
-          Live Signals
+          Live Signals{" "}
+          <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 600 }}>(demo)</span>
         </button>
         <button
           type="button"
@@ -227,7 +246,8 @@ export default function Intelligence() {
             fontFamily: "inherit",
           }}
         >
-          Regulation Intel
+          Regulation Intel{" "}
+          <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 600 }}>(demo)</span>
         </button>
         <button
           type="button"
@@ -247,7 +267,8 @@ export default function Intelligence() {
             fontFamily: "inherit",
           }}
         >
-          Evidence Vault
+          Evidence Vault{" "}
+          <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 600 }}>(demo)</span>
         </button>
       </div>
 

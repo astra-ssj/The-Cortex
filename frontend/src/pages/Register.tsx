@@ -115,6 +115,14 @@ export default function Register() {
 
       const data = (await response.json()) as { access_token: string; org_id: string };
       localStorage.setItem("cortex_token", data.access_token);
+      localStorage.setItem(
+        "cortex_user",
+        JSON.stringify({
+          email: form.email.trim(),
+          name: form.full_name.trim() || form.email.trim(),
+          org_id: data.org_id,
+        }),
+      );
       localStorage.setItem("cortex_company", form.company_name.trim());
       setStoredOrgId(data.org_id);
       localStorage.setItem("cortex_jurisdiction", form.jurisdiction);

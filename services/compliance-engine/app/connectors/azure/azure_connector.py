@@ -47,11 +47,13 @@ class AzureConnector:
         client_id: str,
         client_secret: str,
         subscription_id: str,
+        region: str = "eastus",
     ) -> None:
         self.tenant_id = tenant_id
         self.client_id = client_id
         self.client_secret = client_secret
         self.subscription_id = subscription_id
+        self.region = region
         self._credential: Any = None
         self._resource_client: Any = None
 
@@ -251,10 +253,17 @@ def create_connector_from_store() -> AzureConnector | None:
         client_id=creds.get("client_id", ""),
         client_secret=creds.get("client_secret", ""),
         subscription_id=creds.get("subscription_id", ""),
+        region=str(creds.get("region") or "eastus"),
     )
 
 
-def store_connector_credentials(tenant_id: str, client_id: str, client_secret: str, subscription_id: str) -> None:
+def store_connector_credentials(
+    tenant_id: str,
+    client_id: str,
+    client_secret: str,
+    subscription_id: str,
+    region: str = "eastus",
+) -> None:
     """Encrypt and store credentials for sync."""
     store_credentials(
         CONNECTOR_ID,
@@ -263,5 +272,6 @@ def store_connector_credentials(tenant_id: str, client_id: str, client_secret: s
             "client_id": client_id,
             "client_secret": client_secret,
             "subscription_id": subscription_id,
+            "region": region,
         },
     )

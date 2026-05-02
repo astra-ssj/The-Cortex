@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -26,9 +26,98 @@ import { ProjectTracker } from "./ProjectTracker";
 import { FrameworkDetailPage } from "./FrameworkDetailPage";
 import { useAssessmentStream } from "./store/complianceStore";
 import Intelligence from "./pages/Intelligence";
+import CloudScans from "./pages/CloudScans";
 import AISystems from "./pages/AISystems";
 import { HelpPanel } from "./components/HelpPanel";
 import { clearCortexBrowserSession } from "./lib/cortexSession";
+
+/** Optional production/staging label from env; falls back to DEV when running Vite dev server. */
+function DeployEnvBadge() {
+  const custom = import.meta.env.VITE_CORTEX_DEPLOY_LABEL?.trim();
+  const label = custom || (import.meta.env.DEV ? "DEV" : "");
+  if (!label) return null;
+  const isDev = !custom && import.meta.env.DEV;
+  return (
+    <span
+      title={isDev ? "Development build" : "Deployment label from VITE_CORTEX_DEPLOY_LABEL"}
+      style={{
+        marginLeft: 6,
+        padding: "2px 8px",
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.06em",
+        background: isDev ? "rgba(245, 158, 11, 0.15)" : "rgba(59, 130, 246, 0.15)",
+        border: `1px solid ${isDev ? "rgba(245, 158, 11, 0.45)" : "rgba(59, 130, 246, 0.35)"}`,
+        color: isDev ? "#fbbf24" : "#93c5fd",
+      }}
+    >
+      {label.toUpperCase()}
+    </span>
+  );
+}
+
+function HeaderTrustStrip({ orgId, demoMode }: { orgId: string; demoMode: boolean }) {
+  const company =
+    typeof window !== "undefined" ? (localStorage.getItem("cortex_company") ?? "").trim() : "";
+  const showCompany = Boolean(company) && !demoMode;
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "wrap",
+        maxWidth: "min(420px, 42vw)",
+      }}
+      title="Effective organisation scope for API requests (Demo toggle may show reference tenant while JWT stays yours)."
+    >
+      <span
+        style={{
+          fontSize: 10,
+          color: "#64748b",
+          fontFamily: "'DM Mono', monospace",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Org <span style={{ color: "#94a3b8" }}>{orgId}</span>
+      </span>
+      {demoMode && (
+        <span
+          style={{
+            padding: "2px 8px",
+            borderRadius: 4,
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            background: "rgba(245, 158, 11, 0.12)",
+            border: "1px solid rgba(245, 158, 11, 0.35)",
+            color: "#fbbf24",
+          }}
+        >
+          DEMO DATA VIEW
+        </span>
+      )}
+      {showCompany && (
+        <span
+          style={{
+            fontSize: 10,
+            color: "#64748b",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            maxWidth: 160,
+          }}
+          title={company}
+        >
+          {company}
+        </span>
+      )}
+    </div>
+  );
+}
 
 function LiveClock() {
   const [time, setTime] = useState(new Date());
@@ -43,7 +132,7 @@ function LiveClock() {
   );
 }
 
-const NAV_ITEMS = [
+const NAV_ITEMS: { label: ReactNode; path: string }[] = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Group", path: "/group" },
   { label: "Frameworks", path: "/frameworks" },
@@ -53,6 +142,15 @@ const NAV_ITEMS = [
   { label: "Remediation", path: "/evidence" },
   { label: "Audit Report", path: "/audit-report" },
   { label: "Integrations", path: "/integrations" },
+  {
+    label: (
+      <>
+        Cloud scans{" "}
+        <span style={{ fontSize: 10, fontWeight: 600, color: "#5eead4" }}>Powered by Shasta</span>
+      </>
+    ),
+    path: "/cloud-scans",
+  },
   { label: "Roadmap", path: "/roadmap" },
 ];
 
@@ -75,7 +173,7 @@ function HeaderShell({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { orgId } = useOrgContext();
+  const { orgId, demoMode } = useOrgContext();
   const { isStreaming, startStream } = useAssessmentStream();
 
   const handleRunAssessment = () => {
@@ -116,6 +214,9 @@ function HeaderShell({
           </div>
           <span style={{ color: "#2d3a52", marginLeft: 4 }}>·</span>
           <LiveClock />
+          <span style={{ color: "#2d3a52", marginLeft: 4 }}>·</span>
+          <HeaderTrustStrip orgId={orgId} demoMode={demoMode} />
+          <DeployEnvBadge />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <DemoToggle />
@@ -349,6 +450,9 @@ function AppRoutes() {
         case "g":
           navigate("/group");
           break;
+        case "c":
+          navigate("/cloud-scans");
+          break;
         case "i":
           navigate("/intelligence");
           break;
@@ -387,6 +491,7 @@ function AppRoutes() {
             <Route path="/review-queue" element={<HumanReview />} />
             <Route path="/audit-report" element={<AuditReport />} />
             <Route path="/integrations" element={<Integrations />} />
+            <Route path="/cloud-scans" element={<CloudScans />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/evidence" element={<RemediationTracker />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

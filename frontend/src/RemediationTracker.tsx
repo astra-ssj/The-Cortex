@@ -4,6 +4,7 @@
  * detail panel with owner/due date/actions/notes. Drag updates status.
  */
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -14,6 +15,12 @@ import {
   type UpdateFindingBody,
 } from "./api/client";
 import { useOrgContext } from "./hooks/useOrgContext";
+import {
+  FRAMEWORK_FILTER_OPTIONS,
+  frameworkIdFromFilterLabel,
+  type FrameworkFilterOption,
+} from "./lib/frameworkRegistry";
+import { invalidateComplianceData } from "./store/complianceStore";
 import { RemediationEmpty } from "./components/EmptyState";
 
 const STATUSES: FindingStatus[] = ["OPEN", "IN_PROGRESS", "REMEDIATED", "ACCEPTED"];
@@ -24,17 +31,6 @@ const STATUS_LABELS: Record<FindingStatus, string> = {
   ACCEPTED: "Accepted",
 };
 const SEVERITIES = ["All", "CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
-const FRAMEWORKS = [
-  "All",
-  "GDPR 2016/679",
-  "NIS2 Directive",
-  "EU AI Act 2024",
-  "ISO/IEC 27001:2022",
-  "NIST CSF 2.0",
-  "CSA CCM v4",
-  "Cyber Essentials v3.1",
-  "EU Cybersecurity Act",
-] as const;
 const ENTITIES = ["All", "DE", "UK", "AU", "TH", "ES", "US"] as const;
 const OWNER_OPTIONS = [
   "Unassigned",
@@ -47,17 +43,6 @@ const OWNER_OPTIONS = [
   "Security Lead AU",
   "Security Lead TH",
 ];
-
-const FRAMEWORK_ID_MAP: Record<string, string> = {
-  "GDPR 2016/679": "gdpr-2016-679",
-  "NIS2 Directive": "nis2-2022-2555",
-  "EU AI Act 2024": "eu-ai-act-2024",
-  "ISO/IEC 27001:2022": "iso27001-2022",
-  "NIST CSF 2.0": "nist-csf-2.0",
-  "CSA CCM v4": "csa-ccm-v4",
-  "Cyber Essentials v3.1": "cyber-essentials-v3.1",
-  "EU Cybersecurity Act": "eu-cybersecurity-act",
-};
 
 function severityBadgeClass(severity: string): string {
   switch (severity) {
@@ -115,6 +100,7 @@ function progressPercent(f: RemediationFinding): number {
 }
 
 export function RemediationTracker() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { orgId } = useOrgContext();
   const [findings, setFindings] = useState<RemediationFinding[]>([]);
@@ -123,7 +109,7 @@ export function RemediationTracker() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [severityFilter, setSeverityFilter] = useState<string>("All");
-  const [frameworkFilter, setFrameworkFilter] = useState<string>("All");
+  const [frameworkFilter, setFrameworkFilter] = useState<FrameworkFilterOption>("All");
   const [entityFilter, setEntityFilter] = useState<string>("All");
   const [selectedFinding, setSelectedFinding] = useState<RemediationFinding | null>(null);
   const [detailOwner, setDetailOwner] = useState("");
@@ -152,6 +138,10 @@ export function RemediationTracker() {
     loadFindings();
   }, [loadFindings]);
 
+  const bumpComplianceCaches = useCallback(() => {
+    invalidateComplianceData(queryClient, orgId);
+  }, [queryClient, orgId]);
+
   const filteredBySearch = useMemo(() => {
     let list = findings;
     if (statusFilter !== "All") {
@@ -161,7 +151,7 @@ export function RemediationTracker() {
       list = list.filter((f) => f.severity === severityFilter);
     }
     if (frameworkFilter !== "All") {
-      const fid = FRAMEWORK_ID_MAP[frameworkFilter] ?? frameworkFilter;
+      const fid = frameworkIdFromFilterLabel(frameworkFilter) ?? frameworkFilter;
       list = list.filter((f) => f.framework_id === fid);
     }
     if (entityFilter !== "All") {
@@ -224,6 +214,7 @@ export function RemediationTracker() {
       if (!data.id || data.status === toStatus) return;
       try {
         const updated = await updateFinding(data.id, { status: toStatus });
+        bumpComplianceCaches();
         setFindings((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
         if (selectedFinding?.id === updated.id) {
           setSelectedFinding(updated);
@@ -233,7 +224,7 @@ export function RemediationTracker() {
         setError(err instanceof Error ? err : new Error(String(err)));
       }
     },
-    [selectedFinding]
+    [selectedFinding, bumpComplianceCaches]
   );
 
   const openDetail = (f: RemediationFinding) => {
@@ -260,6 +251,7 @@ export function RemediationTracker() {
         completed_actions: detailCompletedActions,
       };
       const updated = await updateFinding(selectedFinding.id, body);
+      bumpComplianceCaches();
       setFindings((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
       setSelectedFinding(updated);
       setDetailStatus(updated.status as FindingStatus);
@@ -278,6 +270,7 @@ export function RemediationTracker() {
     setSaving(true);
     try {
       const updated = await updateFinding(selectedFinding.id, { status: "REMEDIATED" });
+      bumpComplianceCaches();
       setFindings((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
       setSelectedFinding(updated);
       setDetailStatus("REMEDIATED");
@@ -294,6 +287,7 @@ export function RemediationTracker() {
     const newNotes = [...(selectedFinding.notes || []), { text: detailNotes.trim(), timestamp }];
     try {
       const updated = await updateFinding(selectedFinding.id, { notes: newNotes });
+      bumpComplianceCaches();
       setFindings((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
       setSelectedFinding(updated);
       setDetailNotes("");
@@ -419,10 +413,10 @@ export function RemediationTracker() {
         <span className="font-data text-xs uppercase tracking-wider text-cortex-muted">Framework</span>
         <select
           value={frameworkFilter}
-          onChange={(e) => setFrameworkFilter(e.target.value)}
+          onChange={(e) => setFrameworkFilter(e.target.value as FrameworkFilterOption)}
           className="rounded border border-cortex-border bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text"
         >
-          {FRAMEWORKS.map((f) => (
+          {FRAMEWORK_FILTER_OPTIONS.map((f) => (
             <option key={f} value={f}>
               {f}
             </option>

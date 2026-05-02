@@ -1,5 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 
+import { ALL_FRAMEWORK_IDS as ALL_FRAMEWORK_IDS_BUNDLE } from "../lib/frameworkRegistry";
 import { clearCortexBrowserSession } from "../lib/cortexSession";
 
 // In dev use relative URLs so Vite proxy (→ localhost:8000) is used; avoids CORS and connection to wrong host.
@@ -13,8 +15,8 @@ function getApiOrigin(): string {
 
 /** Default demo tenant — prefer ``useOrgContext().orgId`` for API calls after login. */
 export const DEFAULT_ORG_ID = "demo-org-001";
-export const ALL_FRAMEWORK_IDS =
-  "iso27001-2022,gdpr-2016-679,nis2-2022-2555,nist-csf-2.0,csa-ccm-v4,cyber-essentials-v3.1,eu-ai-act-2024,eu-cybersecurity-act";
+/** Re-export bundle string from ``frameworkRegistry`` (single source for ids + labels). */
+export const ALL_FRAMEWORK_IDS = ALL_FRAMEWORK_IDS_BUNDLE;
 
 export const getToken = (): string | null =>
   localStorage.getItem("cortex_token");
@@ -74,7 +76,7 @@ export const organisationsApi = {
 export const assessmentsApi = {
   getReviewQueue: () =>
     fetchApi("/api/v1/assessments/review-queue"),
-  /** Acknowledges run; open SSE via buildStreamUrl + EventSource. */
+  /** Acknowledges run; open SSE via buildStreamUrl + ``fetchEventSource`` (Bearer header). */
   run: (body: { org_id: string; frameworks: string[] }) =>
     postApi<{ status: string; org_id: string; framework_ids: string[] }>(
       "/api/v1/assessments/run",
@@ -86,6 +88,67 @@ export const findingsApi = {
   list: () => fetchApi("/api/v1/findings"),
   update: (id: string, body: object) =>
     patchApi(`/api/v1/findings/${encodeURIComponent(id)}`, body),
+};
+
+/** Transilience Shasta cloud CSPM — Postgres-backed via API (not Shasta SQLite). */
+export interface ShastaScanRunRow {
+  id: string;
+  org_id: string;
+  cloud: string;
+  engine_scan_id: string | null;
+  findings_count: number;
+  status: string;
+  created_by: string | null;
+  started_at: string;
+  completed_at: string | null;
+  error_message?: string | null;
+}
+
+export interface ShastaCloudFindingRow {
+  id: number;
+  scan_run_id: string;
+  org_id: string;
+  finding_key: string;
+  title: string | null;
+  severity_normalized: string | null;
+  cloud_provider: string | null;
+  region: string | null;
+  check_id: string | null;
+  resource_id: string | null;
+  created_at: string;
+}
+
+export const shastaCloudApi = {
+  contract: () => fetchApi<Record<string, unknown>>("/api/v1/shasta/contract"),
+  runScan: (body: { cloud: "aws" | "azure"; org_id: string }) =>
+    postApi<{
+      scan_run_id: string;
+      status: "running";
+      org_id: string;
+      delivery?: "redis" | "in_process";
+    }>("/api/v1/shasta/scans", body),
+  getScan: (orgId: string, scanRunId: string) =>
+    fetchApi<ShastaScanRunRow>(
+      `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}?org_id=${encodeURIComponent(orgId)}`
+    ),
+  listScans: (orgId: string) =>
+    fetchApi<ShastaScanRunRow[]>(
+      `/api/v1/shasta/scans?org_id=${encodeURIComponent(orgId)}`
+    ),
+  listRecentFindings: (orgId: string, severity?: string) => {
+    const q = new URLSearchParams({ org_id: orgId });
+    if (severity?.trim()) q.set("severity", severity.trim());
+    return fetchApi<ShastaCloudFindingRow[]>(`/api/v1/shasta/findings?${q.toString()}`);
+  },
+  listFindingsForScan: (orgId: string, scanRunId: string, limit = 500) => {
+    const q = new URLSearchParams({
+      org_id: orgId,
+      limit: String(limit),
+    });
+    return fetchApi<ShastaCloudFindingRow[]>(
+      `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}/findings?${q.toString()}`
+    );
+  },
 };
 
 export const reportsApi = {
@@ -192,6 +255,7 @@ const DEFAULT_STREAM_FRAMEWORKS = [
   "eu-cybersecurity-act",
 ] as const;
 
+/** SSE URL for assessment stream — no JWT in query (use ``Authorization`` via ``fetchEventSource``). */
 export function buildStreamUrl(
   orgId: string = DEFAULT_ORG_ID,
   frameworkIds: readonly string[] | string = DEFAULT_STREAM_FRAMEWORKS
@@ -203,8 +267,6 @@ export function buildStreamUrl(
       ? frameworkIds
       : frameworkIds.join(",");
   url.searchParams.set("frameworks", fw);
-  const token = getToken();
-  if (token) url.searchParams.set("token", token);
   return url.toString();
 }
 
@@ -394,6 +456,8 @@ export async function overrideControl(
   });
 }
 
+export const reviewQueueQueryKey = (orgId: string) => ["reviewQueue", orgId] as const;
+
 export function useReviewQueue(orgId?: string | null): {
   items: ReviewQueueItem[] | null;
   reviewed: ReviewedItem[] | null;
@@ -401,28 +465,26 @@ export function useReviewQueue(orgId?: string | null): {
   isLoading: boolean;
   error: Error | null;
 } {
-  const [items, setItems] = useState<ReviewQueueItem[] | null>(null);
-  const [reviewed, setReviewed] = useState<ReviewedItem[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const oid = orgId ?? "";
+  const q = useQuery({
+    queryKey: reviewQueueQueryKey(oid),
+    queryFn: () => fetchReviewQueueApi(orgId ?? undefined),
+  });
 
   const refetch = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await fetchReviewQueueApi(orgId ?? undefined);
-      setItems(data.items);
-      setReviewed(data.reviewed);
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error(String(e)));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [orgId]);
+    await q.refetch();
+  }, [q]);
 
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
-
-  return { items, reviewed, refetch, isLoading, error };
+  return {
+    items: q.data?.items ?? null,
+    reviewed: q.data?.reviewed ?? null,
+    refetch,
+    isLoading: q.isPending,
+    error:
+      q.error instanceof Error
+        ? q.error
+        : q.error != null
+          ? new Error(String(q.error))
+          : null,
+  };
 }

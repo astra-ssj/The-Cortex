@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["api*", "compliance*", "core*", "ontology*"]
+include = ["api*", "compliance*", "core*", "ontology*", "workers*"]
 
 [project]
 name = "cortex"
@@ -54,8 +54,17 @@ aws = [
     "boto3>=1.34",
     "cryptography>=46.0.6",
 ]
+# Transilience Shasta (cloud CSPM). NOT the unrelated PyPI package `shasta` (PaSh shell AST).
+# Install: pip install -e ".[shasta-scan]"  (requires git/network).
+shasta-scan = [
+    "shasta @ git+https://github.com/transilienceai/shasta.git",
+]
 dev-aws = [
     "moto[aws]>=5.0",
+]
+# Redis-backed Shasta scan worker (optional; API uses in-process BackgroundTasks when unset).
+redis-queue = [
+    "redis[hiredis]>=5",
 ]
 
 [tool.pytest.ini_options]
@@ -76,7 +85,7 @@ warn_unused_ignores = true
 
 # Connectors return third-party SDK objects (boto3.Session, Azure clients); avoid noisy Any warnings
 [[tool.mypy.overrides]]
-module = ["app.connectors.aws.*", "app.connectors.azure.*"]
+module = ["app.connectors.aws.*", "app.connectors.azure.*", "app.connectors.shasta.*"]
 warn_return_any = false
 
 [tool.bandit]

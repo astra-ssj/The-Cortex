@@ -48,6 +48,11 @@ const GLOSSARY: { term: string; definition: string }[] = [
     definition:
       "Breach notification to supervisory authority within 72 hours of becoming aware. Applies when breach risks individuals' rights.",
   },
+  {
+    term: "Shasta",
+    definition:
+      "Cloud security posture engine used by CORTEX for CSPM-style scans (AWS/Azure). Findings are normalized and stored in Postgres with framework control tags (for example CIS, SOC 2) — not in Shasta SQLite as the system of record.",
+  },
 ];
 
 const SECTIONS: HelpSection[] = [
@@ -102,6 +107,31 @@ const SECTIONS: HelpSection[] = [
         subtitle: "Framework Cards",
         body:
           "Each card shows score, status (PARTIAL / NON_COMPLIANT / COMPLIANT), risk level, and trend (↑ improving, ↓ declining).",
+      },
+    ],
+  },
+  {
+    id: "cloud-scans",
+    title: "Cloud scans (Shasta)",
+    blocks: [
+      {
+        subtitle: "What Cloud scans does",
+        body: "",
+      },
+      {
+        subtitle: "Runs & status",
+        body:
+          "Start an AWS or Azure scan from this page (requires cloud connectors configured under Integrations). The API returns immediately while the scan runs in the background — poll for status until completed or failed. Expand a row to load findings for that run.",
+      },
+      {
+        subtitle: "Evidence in CORTEX",
+        body:
+          "Each finding is stored with severity, resource, remediation text, and framework_control tags from Shasta (for example CIS / SOC 2). Raw scanner payload is retained for audit. This is scan-derived evidence in Postgres, distinct from document-based or connector Evidence entities elsewhere.",
+      },
+      {
+        subtitle: "Operators",
+        body:
+          "Machine-readable install contract: GET /api/v1/shasta/contract on the API. Optional Redis queue: when REDIS_URL is set, jobs may show delivery: redis — run the worker process described in CORTEX_SETUP.md.",
       },
     ],
   },
@@ -202,6 +232,7 @@ const SECTIONS: HelpSection[] = [
         body: [
           "D → Dashboard",
           "G → Group",
+          "C → Cloud scans",
           "I → Intelligence",
           "A → AI Systems",
           "R → Review Queue",

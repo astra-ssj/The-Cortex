@@ -69,6 +69,13 @@ FIRST_ID=$(printf '%s' "$RQ" | (command -v jq >/dev/null 2>&1 && jq -r '.items[0
 code_z=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/api/v1/system/ztaip-status" "${AUTH[@]}") || die "curl ztaip-status failed"
 [[ "$code_z" == "200" ]] || die "/api/v1/system/ztaip-status expected 200, got $code_z"
 
+code_shasta_contract=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/api/v1/shasta/contract") || die "curl shasta/contract failed"
+[[ "$code_shasta_contract" == "200" ]] || die "/api/v1/shasta/contract expected 200, got $code_shasta_contract"
+
+code_shasta_scans=$(curl -sS -o /dev/null -w "%{http_code}" \
+  "$BASE/api/v1/shasta/scans?org_id=demo-org-001" "${AUTH[@]}") || die "curl shasta/scans failed"
+[[ "$code_shasta_scans" == "200" ]] || die "/api/v1/shasta/scans expected 200, got $code_shasta_scans"
+
 ap_tmp=$(mktemp)
 code_ap=$(curl -sS -o "$ap_tmp" -w "%{http_code}" -X POST "$BASE/api/v1/assessments/controls/${FIRST_ID}/approve" \
   "${AUTH[@]}" \
@@ -86,4 +93,4 @@ rid=$(curl -sS -D - -o /dev/null "$BASE/health" -H "X-Request-ID: smoke-test-rid
 [[ -n "$rid" ]] || die "missing X-Request-ID response header on /health"
 [[ "$rid" == "smoke-test-rid" ]] || die "X-Request-ID not echoed (got '$rid')"
 
-echo "Smoke OK: health → ready → system/ready → login → frameworks → review-queue → ztaip-status → approve → X-Request-ID"
+echo "Smoke OK: health → ready → system/ready → login → frameworks → review-queue → ztaip-status → shasta contract + list → approve → X-Request-ID"

@@ -22,6 +22,7 @@ services:
       - ./migrations/004_assessment_results_status_risk.sql:/docker-entrypoint-initdb.d/06_assessment_results_status_risk.sql:ro
       - ./services/graphjin/migrations/005_assessment_results_fix.sql:/docker-entrypoint-initdb.d/07_assessment_results_fix.sql:ro
       - ./migrations/006_human_review_queue.sql:/docker-entrypoint-initdb.d/08_human_review_queue.sql:ro
+      - ./migrations/009_shasta_cloud.sql:/docker-entrypoint-initdb.d/09_shasta_cloud.sql:ro
       - ./services/graphjin/migrations:/graphjin/migrations:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
@@ -59,6 +60,9 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cortex}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
+      # When set (e.g. redis://redis:6379/0 with profile ``queue``), Shasta scans enqueue to Redis instead of in-process BackgroundTasks.
+      REDIS_URL: ${REDIS_URL:-}
+      SHASTA_REDIS_URL: ${SHASTA_REDIS_URL:-}
       # Local/demo only — override in production (see README security defaults).
       CORTEX_LEGACY_DEMO_PASSWORD: ${CORTEX_LEGACY_DEMO_PASSWORD:-admin}
       COMPLIANCE_ENGINE_STUB_PASSWORD: ${COMPLIANCE_ENGINE_STUB_PASSWORD:-demo}
@@ -66,6 +70,31 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  # Optional: durable Shasta jobs — ``docker compose --profile queue up -d`` and set REDIS_URL=redis://redis:6379/0 (and run shasta-worker).
+  redis:
+    profiles:
+      - queue
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_queue_data:/data
+
+  shasta-worker:
+    profiles:
+      - queue
+    build: .
+    command: ["python", "workers/shasta_worker.py"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cortex}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      PYTHONPATH: /app:/app/services/compliance-engine
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
 
   seed:
     image: python:3.12-slim
@@ -82,3 +111,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_queue_data:

@@ -52,6 +52,7 @@ def _get_boto_session(
     region: str,
     role_arn: str | None = None,
     external_id: str | None = None,
+    session_token: str | None = None,
 ) -> Any:
     """Return boto3 session; if role_arn set, assume role and return session with assumed credentials."""
     try:
@@ -61,11 +62,14 @@ def _get_boto_session(
         raise ImportError("boto3 required: pip install boto3") from e
 
     config = Config(region_name=region)
-    session = boto3.Session(
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=secret_access_key,
-        region_name=region,
-    )
+    base_kw: dict[str, Any] = {
+        "aws_access_key_id": access_key_id,
+        "aws_secret_access_key": secret_access_key,
+        "region_name": region,
+    }
+    if session_token:
+        base_kw["aws_session_token"] = session_token
+    session = boto3.Session(**base_kw)
     if not role_arn:
         return session
 
@@ -94,6 +98,7 @@ class AWSConnector:
         region: str,
         role_arn: str | None = None,
         external_id: str | None = None,
+        session_token: str | None = None,
     ) -> None:
         self.account_id = account_id
         self.access_key_id = access_key_id
@@ -101,6 +106,7 @@ class AWSConnector:
         self.region = region
         self.role_arn = role_arn
         self.external_id = external_id
+        self.session_token = session_token
         self._session: Any = None
 
     def _get_session(self) -> Any:
@@ -112,6 +118,7 @@ class AWSConnector:
             self.region,
             role_arn=self.role_arn,
             external_id=self.external_id,
+            session_token=self.session_token,
         )
         return self._session
 
@@ -605,6 +612,7 @@ def create_connector_from_store() -> AWSConnector | None:
         region=creds.get("region", "us-east-1"),
         role_arn=creds.get("role_arn"),
         external_id=creds.get("external_id"),
+        session_token=creds.get("session_token"),
     )
 
 
@@ -615,16 +623,17 @@ def store_connector_credentials(
     region: str,
     role_arn: str | None = None,
     external_id: str | None = None,
+    session_token: str | None = None,
 ) -> None:
     """Encrypt and store credentials for sync."""
-    store_credentials(
-        CONNECTOR_ID,
-        {
-            "account_id": account_id,
-            "access_key_id": access_key_id,
-            "secret_access_key": secret_access_key,
-            "region": region,
-            "role_arn": role_arn,
-            "external_id": external_id,
-        },
-    )
+    payload: dict[str, Any] = {
+        "account_id": account_id,
+        "access_key_id": access_key_id,
+        "secret_access_key": secret_access_key,
+        "region": region,
+        "role_arn": role_arn,
+        "external_id": external_id,
+    }
+    if session_token:
+        payload["session_token"] = session_token
+    store_credentials(CONNECTOR_ID, payload)

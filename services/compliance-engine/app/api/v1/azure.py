@@ -24,6 +24,7 @@ class AzureConnectBody(BaseModel):
     client_id: str = Field(..., description="Service principal client ID")
     client_secret: str = Field(..., description="Service principal secret")
     subscription_id: str = Field(..., description="Azure subscription ID")
+    region: str = Field("eastus", description="Primary Azure region for scans (e.g. eastus)")
 
 
 def _sse(event: str, data: dict) -> str:
@@ -47,6 +48,7 @@ async def azure_connect(body: AzureConnectBody) -> dict:
         client_id=body.client_id,
         client_secret=body.client_secret,
         subscription_id=body.subscription_id,
+        region=body.region,
     )
     try:
         await connector.connect()
@@ -63,6 +65,7 @@ async def azure_connect(body: AzureConnectBody) -> dict:
         body.client_id,
         body.client_secret,
         body.subscription_id,
+        region=body.region,
     )
     systems = await connector.discover_systems()
     controls = await connector.discover_controls()
@@ -132,4 +135,24 @@ async def azure_sync() -> StreamingResponse:
         _run_sync_stream(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.get("/shasta-contract")
+async def azure_shasta_contract() -> dict:
+    """Shasta import contract for Azure credential flow."""
+    from app.connectors.shasta.shasta_adapter import shasta_contract_payload
+
+    return shasta_contract_payload("azure")
+
+
+@router.post("/shasta-scan")
+async def azure_shasta_scan_removed() -> dict:
+    """Removed: use POST /api/v1/shasta/scans with JWT and org_id."""
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "Use POST /api/v1/shasta/scans with Authorization Bearer token and body "
+            '{"cloud":"azure","org_id":"..."}.'
+        ),
     )

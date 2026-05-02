@@ -7,6 +7,24 @@ export interface LoginProps {
   onSuccess: (token: string, user: object) => void;
 }
 
+/** FastAPI may return ``detail`` as a string, object array (validation), or nested dict. */
+function formatAuthErrorDetail(raw: unknown): string {
+  if (raw == null) return "Login failed";
+  if (typeof raw === "string") return raw;
+  if (Array.isArray(raw)) {
+    const parts = raw.map((x) =>
+      typeof x === "object" && x !== null && "msg" in x
+        ? String((x as { msg?: string }).msg)
+        : JSON.stringify(x),
+    );
+    return parts.filter(Boolean).join("; ") || "Login failed";
+  }
+  if (typeof raw === "object" && raw !== null && "detail" in raw) {
+    return formatAuthErrorDetail((raw as { detail: unknown }).detail);
+  }
+  return String(raw);
+}
+
 export default function Login({ onSuccess }: LoginProps) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -31,7 +49,12 @@ export default function Login({ onSuccess }: LoginProps) {
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        throw new Error((e as { detail?: string }).detail || "Invalid credentials");
+        const msg = formatAuthErrorDetail(
+          (e as { detail?: unknown }).detail ?? (e as { message?: string }).message,
+        );
+        throw new Error(
+          msg || (res.status === 401 ? "Invalid email or password" : `HTTP ${res.status}`),
+        );
       }
       const data = (await res.json()) as {
         access_token: string;
@@ -79,7 +102,13 @@ export default function Login({ onSuccess }: LoginProps) {
 
       onSuccess(data.access_token, mergedUser);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Login failed");
+      if (e instanceof TypeError && /fetch|Load failed|NetworkError/i.test(e.message)) {
+        setError(
+          "Cannot reach the API. Start the backend (e.g. uvicorn on :8000) and use Vite dev so /api is proxied, or set the app to the same host as the API.",
+        );
+      } else {
+        setError(e instanceof Error ? e.message : "Login failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -171,7 +200,7 @@ export default function Login({ onSuccess }: LoginProps) {
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            placeholder="admin@astralabs.com or admin"
+            placeholder="ciso@astralabs.com or admin"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="username"
@@ -262,6 +291,24 @@ export default function Login({ onSuccess }: LoginProps) {
           <Link to="/register" style={{ color: "#2dd4bf", textDecoration: "none" }}>
             Prefer link? Register here →
           </Link>
+        </p>
+
+        <p
+          style={{
+            marginTop: 16,
+            paddingTop: 14,
+            borderTop: "1px solid #141e30",
+            color: "#64748b",
+            fontSize: 10,
+            lineHeight: 1.5,
+            fontFamily: "'DM Mono', monospace",
+          }}
+        >
+          Demo without legacy env: <strong style={{ color: "#94a3b8" }}>ciso@astralabs.com</strong> /{" "}
+          <strong style={{ color: "#94a3b8" }}>cortex-ciso-2026</strong>. With Docker Compose,{" "}
+          <strong style={{ color: "#94a3b8" }}>admin</strong> / <strong style={{ color: "#94a3b8" }}>admin</strong>{" "}
+          also works (legacy demo password). Plain uvicorn: set{" "}
+          <code style={{ color: "#64748b" }}>CORTEX_LEGACY_DEMO_PASSWORD=admin</code> or use the CISO demo above.
         </p>
       </div>
     </div>

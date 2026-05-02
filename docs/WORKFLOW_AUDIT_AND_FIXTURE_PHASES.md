@@ -35,20 +35,20 @@ End-to-end flows from **login → authenticated navigation → logout**, coverin
 
 | Capability | Behaviour |
 |------------|-----------|
-| **Run Assessment** | Calls `startStream(orgId, ALL_FRAMEWORK_IDS.split(",")))`, navigates to `/dashboard`; SSE via `buildStreamUrl` (token often passed as **query param** — exposure in logs/history). |
+| **Run Assessment** | Calls `startStream(orgId, ALL_FRAMEWORK_IDS.split(",")))`, navigates to `/dashboard`; SSE uses `fetchEventSource` + **`Authorization: Bearer`** — JWT **not** embedded in the stream URL. |
 | **Demo toggle** | Hidden when tenant is demo org only; flips demo vs “live” view for **client-selected** org scope. |
-| **Keyboard shortcuts** | `d`, `g`, `i`, `a`, `r`, `h` (help); no visible cheatsheet except Help panel. |
+| **Keyboard shortcuts** | `d`, `g`, `c` (cloud scans), `i`, `a`, `r`, `h` (help); cheatsheet in Help panel. |
 | **Help** | Overlay (`HelpPanel`). |
 
 ### Gaps (chrome)
 
-1. **SSE URL token** — Passing JWT in query string is convenient but **weaker for secrecy** (proxy logs, Referer). Prefer **Authorization** header if EventSource limitations addressed (polyfill / fetch stream).
+1. ~~**SSE URL token**~~ — Addressed: **`@microsoft/fetch-event-source`** sends Bearer header; query token deprecated for the SPA stream client.
 2. **Nav active state** — `/frameworks/gdpr-…` may not highlight **Frameworks** as active (pathname exact match).
-3. **Responsive nav** — Ten items + pipes + CTA: likely awkward on **narrow viewports** (no collapse/menu).
+3. **Responsive nav** — Many nav items + pipes + CTA: likely awkward on **narrow viewports** (no collapse/menu).
 
 ### Improvements (chrome)
 
-- Document shortcut keys in header or first-run tooltip.
+- Optional: shortcut cheatsheet in header or first-run tooltip (Help panel lists keys).
 - Parent-route highlighting for nested paths (`/frameworks/:id`).
 - Collapsible nav or grouped sections for enterprise density.
 
@@ -222,16 +222,16 @@ Phases bundle **workflow fixes** with earlier **B→A engineering** items. Execu
 - Framework detail: **back links → `/frameworks`**; **dark shell styling** aligned with CORTEX tokens.
 - Nav **active state**: **Frameworks** highlights on `/frameworks/:id`.
 
-### Phase F2 — Trust & clarity UX
+### Phase F2 — Trust & clarity UX ✅ (implemented)
 
-- Header: **organisation id / name** (from JWT user payload) + optional **environment** badge (dev/staging).
-- Intelligence / AI Systems: **Demo vs Live** labelling.
-- Review Queue: **reviewer** attribution end-to-end.
+- Header: **effective org id**, **demo vs live** strip (`demoMode` + `cortex_company` when not demo), optional **`VITE_CORTEX_DEPLOY_LABEL`** / dev badge (`frontend/src/App.tsx`).
+- Intelligence / AI Systems: **Illustrative** banners + tab **`(demo)`** markers on simulator, signals, regulation, vault (`frontend/src/pages/Intelligence.tsx`); AI Systems static inventory disclaimer (`frontend/src/pages/AISystems.tsx`).
+- Review Queue: **audit trail** note attributing actions to the signed-in user in UI; **`approve_control` / `override_control`** persist **`acted_by`** from JWT-derived actor (`api/assessments.py`, `_review_actor_id`).
 
-### Phase F3 — Data model consistency (frontend)
+### Phase F3 — Data model consistency (frontend) ✅ (implemented)
 
-- Shared **framework registry** module (id ↔ label) for Review + Remediation + filters.
-- TanStack Query **invalidation** after assessment complete, approve/override, finding update.
+- Shared **`frontend/src/lib/frameworkRegistry.ts`**: canonical ids, **`ALL_FRAMEWORK_IDS`** bundle string, filter labels, **`frameworkIdFromFilterLabel`** — consumed by **Human Review**, **Remediation**, and re-exported from **`api/client`**.
+- Review queue on **`useQuery`** with **`reviewQueueQueryKey`**; **`invalidateComplianceData`** (``complianceStore``) invalidates posture, ZTAIP, and review queue after: SSE **`run_done`** / stream error, **approve/override**, **finding** mutations, onboarding assessment **`onComplete`**.
 
 ### Phase F4 — Engineering “A” tier (from prior audit)
 

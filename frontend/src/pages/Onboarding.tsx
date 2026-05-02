@@ -1,9 +1,11 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import AssessmentStream from "../components/AssessmentStream";
 import { LogoFull } from "../components/Logo";
 import { putOnboardingStep } from "../api/client";
+import { invalidateComplianceData } from "../store/complianceStore";
 
 type StructureType = "single" | "multi";
 
@@ -63,6 +65,7 @@ function frameworkLabel(id: string): string {
 }
 
 export default function Onboarding() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -197,6 +200,7 @@ export default function Onboarding() {
                 /* Assessment endpoint may be unavailable — non-blocking */
               });
 
+              invalidateComplianceData(queryClient, orgId);
               navigate("/dashboard", { replace: true });
             })();
           }}

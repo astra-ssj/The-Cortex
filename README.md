@@ -36,6 +36,13 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 - Three-step setup wizard
 - Demo mode toggle for comparing tenant vs AstraLabs reference data
 
+### Cloud security (Shasta CSPM)
+
+- **Cloud scans** UI (`/cloud-scans`) — async AWS/Azure scans; Postgres is the source of truth for runs and findings (migration `009_shasta_cloud.sql`).
+- **API:** `POST /api/v1/shasta/scans`, list/detail scan endpoints, findings — see [`api/shasta_cloud.py`](api/shasta_cloud.py). Contract: `GET /api/v1/shasta/contract`.
+- **Optional Redis:** Set `REDIS_URL` or `SHASTA_REDIS_URL` and run `workers/shasta_worker.py`, or `docker compose --profile queue` — details in [`CORTEX_SETUP.md`](CORTEX_SETUP.md).
+- **Assessment SSE:** Browser uses `Authorization: Bearer` for the stream (no JWT in the URL). Help panel → **Cloud scans (Shasta)** for operator notes.
+
 ## Tech Stack
 
 | Layer       | Technology                                              |
@@ -93,6 +100,8 @@ bash scripts/smoke_happy_path.sh
 # Start frontend
 cd frontend && npm install && npm run dev
 ```
+
+Optional: set **`VITE_CORTEX_DEPLOY_LABEL`** (for example `staging`) in `frontend/.env.local` to show a deployment badge in the header; without it, dev builds show **DEV** and production builds hide the badge unless the variable is set.
 
 Open http://localhost:3000
 
@@ -162,6 +171,7 @@ Notable routes:
 | Auth | `POST /auth/token`, `POST /auth/register`, `GET /auth/me`, `PUT /auth/onboarding/step` |
 | Organisations | `GET /organisations/{org_id}`, `GET /organisations/{org_id}/posture` |
 | Assessments | Stream and summary endpoints under `api/assessments.py` patterns |
+| Shasta cloud | `POST /shasta/scans`, `GET /shasta/scans`, `GET /shasta/scans/{id}`, findings routes — see `api/shasta_cloud.py` |
 
 See `.cursorrules` for non‑negotiable ZTAIP conventions when extending the codebase.
 

@@ -36,6 +36,21 @@ from api.schemas import (
 
 logger = structlog.get_logger()
 
+
+def _review_actor_id(current_user: dict[str, Any]) -> str:
+    """Human-review audit label: prefer email, then name, then JWT subject (bounded length)."""
+    email = str(current_user.get("email") or "").strip()
+    if email:
+        return email[:500]
+    name = str(current_user.get("name") or "").strip()
+    if name:
+        return name[:500]
+    uid = current_user.get("user_id") or current_user.get("sub")
+    if uid:
+        return str(uid)[:500]
+    return "reviewer"
+
+
 router = APIRouter(prefix="/api/v1", tags=["frameworks", "assessments"])
 
 
@@ -488,6 +503,7 @@ async def approve_control(
     if not notes:
         raise HTTPException(status_code=400, detail="notes is required")
     org_scope = str(current_user.get("org_id") or DEMO_ORG_ID).strip()
+    actor = _review_actor_id(current_user)
 
     if await _human_review_db_ready(session):
         row = (
@@ -524,14 +540,20 @@ async def approve_control(
                 "framework": row["framework"],
                 "control_id": row["control_id"],
                 "action": "approved",
-                "acted_by": "CISO",
+                "acted_by": actor,
                 "acted_at": acted_at,
                 "original_confidence": row["confidence"],
                 "final_decision": row["assessment"],
                 "audit_ref": audit_ref,
             },
         )
-        logger.info("human_review_approve", control_id=control_id, notes=notes[:200], audit_ref=audit_ref)
+        logger.info(
+            "human_review_approve",
+            control_id=control_id,
+            notes=notes[:200],
+            audit_ref=audit_ref,
+            actor=actor,
+        )
         return {"status": "approved", "control_id": control_id, "audit_ref": audit_ref}
 
     _ensure_review_queue_seed_memory()
@@ -545,7 +567,7 @@ async def approve_control(
         "framework": item["framework"],
         "control_id": item["control_id"],
         "action": "approved",
-        "acted_by": "CISO",
+        "acted_by": actor,
         "acted_at": acted_at,
         "original_confidence": item["confidence"],
         "final_decision": item["assessment"],
@@ -575,6 +597,7 @@ async def override_control(
     if body.assessment not in ("COMPLIANT", "PARTIAL", "NON_COMPLIANT"):
         raise HTTPException(status_code=400, detail="assessment must be COMPLIANT, PARTIAL, or NON_COMPLIANT")
     org_scope = str(current_user.get("org_id") or DEMO_ORG_ID).strip()
+    actor = _review_actor_id(current_user)
 
     if await _human_review_db_ready(session):
         row = (
@@ -611,7 +634,7 @@ async def override_control(
                 "framework": row["framework"],
                 "control_id": row["control_id"],
                 "action": "overridden",
-                "acted_by": "CISO",
+                "acted_by": actor,
                 "acted_at": acted_at,
                 "original_confidence": row["confidence"],
                 "final_decision": body.assessment,
@@ -624,6 +647,7 @@ async def override_control(
             final_decision=body.assessment,
             justification_len=len(justification),
             audit_ref=audit_ref,
+            actor=actor,
         )
         return {"status": "overridden", "control_id": control_id, "audit_ref": audit_ref}
 
@@ -638,7 +662,7 @@ async def override_control(
         "framework": item["framework"],
         "control_id": item["control_id"],
         "action": "overridden",
-        "acted_by": "CISO",
+        "acted_by": actor,
         "acted_at": acted_at,
         "original_confidence": item["confidence"],
         "final_decision": body.assessment,

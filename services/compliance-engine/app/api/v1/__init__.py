@@ -14,7 +14,10 @@ from app.api.v1.endpoints import reports
 from app.api.v1.endpoints import groups
 from app.api.v1.endpoints import integrations
 from app.api.v1.endpoints import skills
+from app.api.v1 import aws as aws_routes
+from app.api.v1 import azure as azure_routes
 from app.api.v1 import ingest as ingest_routes
+from app.api.v1 import shasta as shasta_routes
 
 router.include_router(
     auth.router, prefix="/auth", tags=["auth"])
@@ -35,3 +38,6 @@ router.include_router(
 router.include_router(
     skills.router, prefix="/skills", tags=["skills"])
 router.include_router(ingest_routes.router)
+router.include_router(aws_routes.router)
+router.include_router(azure_routes.router)
+router.include_router(shasta_routes.router)

@@ -317,6 +317,23 @@ export default function AISystems() {
 
       <div
         style={{
+          marginBottom: 20,
+          padding: "12px 14px",
+          borderRadius: 8,
+          border: "1px solid #334155",
+          background: "#1e293b",
+          fontSize: 12,
+          color: "#94a3b8",
+          lineHeight: 1.5,
+        }}
+      >
+        <span style={{ color: "#fbbf24", fontWeight: 700 }}>Illustrative</span> — The inventory below is{" "}
+        <strong style={{ color: "#e2e8f4" }}>static demo content</strong> for UX review. A governed AI register will
+        persist per organisation via API in a future release.
+      </div>
+
+      <div
+        style={{
           padding: 18,
           borderRadius: 12,
           background: "linear-gradient(135deg, #450a0a 0%, #1c1410 100%)",

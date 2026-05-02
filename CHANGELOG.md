@@ -6,9 +6,21 @@ Release lines **v0.1.0–v0.7.x** below reflect repository tags and merge histor
 
 ## [Unreleased]
 
+### Added
+
+- **Shasta cloud CSPM:** Async scans (`POST /api/v1/shasta/scans`), Postgres SoT (`shasta_scan_runs`, `shasta_cloud_findings`, migration `009_shasta_cloud`), normalized findings with `framework_controls` JSONB, `GET /api/v1/shasta/contract`, optional **`REDIS_URL` / `SHASTA_REDIS_URL`** job queue (`core/shasta_queue.py`, `workers/shasta_worker.py`), **`docker compose --profile queue`**, and **`Cloud scans`** UI (`/cloud-scans`, nav **Powered by Shasta**).
+- **SSE assessment stream:** `@microsoft/fetch-event-source` + **`Authorization: Bearer`** — JWT no longer appended to the stream URL in the SPA (see `frontend/src/store/complianceStore.ts`, `buildStreamUrl` in `frontend/src/api/client.ts`).
+- **Tests & scripts:** `tests/test_api_shasta_cloud.py`, `tests/test_shasta_adapter.py`, `scripts/verify_shasta_stack.sh`, `scripts/shasta_uvicorn_e2e.sh`, `scripts/smoke_shasta_http.sh`; CI verifies Shasta migration after schema apply.
+- **Help & docs:** Help panel section **Cloud scans (Shasta)**, glossary **Shasta**, keyboard **`C` → Cloud scans**; README and workflow audit updated for Shasta, Redis queue pointer, and SSE behavior.
+
 ### Fixed
 
 - **Phase F1 (session & nav):** `clearCortexBrowserSession()` on logout and API **401**; removed duplicate `components/Login.tsx`; login **`<form>`** + a11y live region; framework detail **dark theme** + back to `/frameworks`; **Frameworks** nav active on framework detail route.
+
+### Changed
+
+- **Phase F3 (frontend data consistency):** Shared **`frameworkRegistry`** for Review / Remediation filters + **`ALL_FRAMEWORK_IDS`** source of truth; review queue **`useQuery`** + **`invalidateComplianceData`** after SSE assessment completion, approve/override, remediation updates, and onboarding run complete.
+- **Phase F2 (trust & clarity):** Header trust strip (org, demo vs live, optional deploy badge via **`VITE_CORTEX_DEPLOY_LABEL`**); Intelligence / AI Systems **illustrative** labelling; Human Review **audit attribution** UI; approve/override **`acted_by`** from authenticated user (`api/assessments.py`).
 
 ### Added
 

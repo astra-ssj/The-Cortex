@@ -4,22 +4,20 @@
  * with Approve / Override actions. Logged to audit fabric.
  */
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useReviewQueue, approveControl, overrideControl } from "./api/client";
+import { getUser, useReviewQueue, approveControl, overrideControl } from "./api/client";
 import { useOrgContext } from "./hooks/useOrgContext";
+import {
+  FRAMEWORK_FILTER_OPTIONS,
+  type FrameworkFilterOption,
+} from "./lib/frameworkRegistry";
+import { invalidateComplianceData } from "./store/complianceStore";
 import { Skeleton, TableRowSkeleton } from "./components/Skeleton";
 import { ReviewQueueEmpty } from "./components/EmptyState";
 
 const SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM"] as const;
-const FRAMEWORKS = [
-  "All",
-  "GDPR 2016/679",
-  "NIS2 Directive",
-  "EU AI Act 2024",
-  "ISO/IEC 27001:2022",
-  "Cyber Essentials v3.1",
-] as const;
 const SORT_OPTIONS = [
   { value: "confidence", label: "Confidence (lowest first)" },
   { value: "severity", label: "Severity" },
@@ -27,7 +25,7 @@ const SORT_OPTIONS = [
 ] as const;
 
 type SeverityFilter = (typeof SEVERITIES)[number] | "All";
-type FrameworkFilter = (typeof FRAMEWORKS)[number];
+type FrameworkFilter = FrameworkFilterOption;
 type SortKey = (typeof SORT_OPTIONS)[number]["value"];
 
 function severityBadgeClass(severity: string): string {
@@ -51,10 +49,19 @@ function truncate(s: string, len: number): string {
   return s.length <= len ? s : s.slice(0, len - 3) + "…";
 }
 
+/** Display label for audit attribution note — backend resolves actor from JWT / profile. */
+function reviewerAuditLabel(): string {
+  const u = getUser() as { email?: string; name?: string; username?: string } | null;
+  if (!u || typeof u !== "object") return "your signed-in account";
+  const label = u.email ?? u.name ?? u.username;
+  return typeof label === "string" && label.trim() ? label.trim() : "your signed-in account";
+}
+
 export function HumanReview() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { orgId } = useOrgContext();
-  const { items: rawItems, reviewed, refetch, isLoading, error } = useReviewQueue(orgId);
+  const { items: rawItems, reviewed, isLoading, error } = useReviewQueue(orgId);
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("All");
   const [frameworkFilter, setFrameworkFilter] = useState<FrameworkFilter>("All");
   const [sortBy, setSortBy] = useState<SortKey>("confidence");
@@ -197,9 +204,9 @@ export function HumanReview() {
     setSubmitting(id);
     try {
       await approveControl(id, notes);
+      invalidateComplianceData(queryClient, orgId);
       setApproveNotes((prev) => ({ ...prev, [id]: "" }));
       setExpandedApproveId(null);
-      refetch();
     } finally {
       setSubmitting(null);
     }
@@ -211,9 +218,9 @@ export function HumanReview() {
     setSubmitting(id);
     try {
       await overrideControl(id, payload.assessment, payload.justification);
+      invalidateComplianceData(queryClient, orgId);
       setOverridePayload((prev) => ({ ...prev, [id]: { assessment: "PARTIAL", justification: "" } }));
       setExpandedOverrideId(null);
-      refetch();
     } finally {
       setSubmitting(null);
     }
@@ -239,6 +246,11 @@ export function HumanReview() {
         </div>
       </div>
 
+      <div className="rounded-lg border border-cortex-border/70 bg-cortex-surface/40 px-3 py-2 font-ui text-xs text-cortex-muted">
+        <span className="font-medium text-cortex-text/90">Audit trail:</span> Approvals and overrides are attributed to{" "}
+        <strong className="text-cortex-text">{reviewerAuditLabel()}</strong> in review history.
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-4 rounded-xl border border-cortex-border bg-cortex-panel p-4">
         <span className="font-data text-xs uppercase tracking-wider text-cortex-muted">Filter by severity</span>
@@ -260,7 +272,7 @@ export function HumanReview() {
           onChange={(e) => setFrameworkFilter(e.target.value as FrameworkFilter)}
           className="rounded border border-cortex-border bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text"
         >
-          {FRAMEWORKS.map((f) => (
+          {FRAMEWORK_FILTER_OPTIONS.map((f) => (
             <option key={f} value={f}>
               {f}
             </option>

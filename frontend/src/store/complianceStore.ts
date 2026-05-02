@@ -3,12 +3,16 @@
  * Uses API client and TanStack Query; stream state is local.
  */
 
-import { useQuery } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import type { AssessmentEvent, CompliancePosture, ZTAIPStatus } from "../types/compliance";
+import { fetchEventSource } from "@microsoft/fetch-event-source";
 import {
   buildStreamUrl,
+  getToken,
   organisationsApi,
+  reviewQueueQueryKey,
   ztaipApi,
 } from "../api/client";
 
@@ -152,6 +156,16 @@ export const postureQueryKey = (orgId: string) => ["posture", orgId] as const;
 export const ztaipStatusQueryKey = ["ztaipStatus"] as const;
 export const orgProfileQueryKey = (orgId: string) => ["orgProfile", orgId] as const;
 
+/** Refresh posture, ZTAIP, and review queue after SSE assessment runs or related mutations. */
+export function invalidateComplianceData(queryClient: QueryClient, orgId: string | null | undefined): void {
+  void queryClient.invalidateQueries({ queryKey: ztaipStatusQueryKey });
+  const id = orgId?.trim();
+  if (id) {
+    void queryClient.invalidateQueries({ queryKey: postureQueryKey(id) });
+    void queryClient.invalidateQueries({ queryKey: reviewQueueQueryKey(id) });
+  }
+}
+
 /** API returns camelCase (serialize_by_alias=True). Support both for robustness. */
 function mapPostureResponse(raw: Record<string, unknown>): CompliancePosture {
   const frameworks = (raw.frameworks as Record<string, unknown>[] | undefined) ?? [];
@@ -226,43 +240,71 @@ export function useOrgProfile(_orgId: string | null) {
 }
 
 export function useAssessmentStream() {
+  const queryClient = useQueryClient();
   const [events, setEvents] = useState<AssessmentEvent[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const startStream = useCallback((organizationId: string, frameworkIds: string[]) => {
-    eventSourceRef.current?.close();
-    eventSourceRef.current = null;
-    setEvents([]);
-    setIsStreaming(true);
-    const url = buildStreamUrl(organizationId, frameworkIds);
-    const es = new EventSource(url);
-    es.onmessage = (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data) as AssessmentEvent;
-        if (data && typeof data === "object" && "kind" in data) {
-          setEvents((prev) => [...prev, data]);
+  const startStream = useCallback(
+    (organizationId: string, frameworkIds: string[]) => {
+      abortRef.current?.abort();
+      const ac = new AbortController();
+      abortRef.current = ac;
+      setEvents([]);
+      setIsStreaming(true);
+      const url = buildStreamUrl(organizationId, frameworkIds);
+      const token = getToken();
+      void (async () => {
+        try {
+          await fetchEventSource(url, {
+            signal: ac.signal,
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            onmessage(ev) {
+              if (ev.event === "run_done") {
+                invalidateComplianceData(queryClient, organizationId);
+                setIsStreaming(false);
+                abortRef.current = null;
+                ac.abort();
+                return;
+              }
+              if (!ev.data?.trim()) return;
+              try {
+                const data = JSON.parse(ev.data) as AssessmentEvent;
+                if (data?.kind === "run_done") {
+                  invalidateComplianceData(queryClient, organizationId);
+                  setIsStreaming(false);
+                  abortRef.current = null;
+                  ac.abort();
+                  return;
+                }
+                if (data && typeof data === "object" && "kind" in data) {
+                  setEvents((prev) => [...prev, data]);
+                }
+              } catch {
+                // ignore parse errors
+              }
+            },
+            onerror(err) {
+              if (ac.signal.aborted) return;
+              invalidateComplianceData(queryClient, organizationId);
+              setIsStreaming(false);
+              abortRef.current = null;
+              throw err;
+            },
+          });
+        } catch {
+          invalidateComplianceData(queryClient, organizationId);
+          setIsStreaming(false);
+          abortRef.current = null;
         }
-      } catch {
-        // ignore parse errors
-      }
-    };
-    es.addEventListener("run_done", () => {
-      setIsStreaming(false);
-      eventSourceRef.current = null;
-      es.close();
-    });
-    es.onerror = () => {
-      setIsStreaming(false);
-      eventSourceRef.current = null;
-      es.close();
-    };
-    eventSourceRef.current = es;
-  }, []);
+      })();
+    },
+    [queryClient]
+  );
 
   const stopStream = useCallback(() => {
-    eventSourceRef.current?.close();
-    eventSourceRef.current = null;
+    abortRef.current?.abort();
+    abortRef.current = null;
     setIsStreaming(false);
   }, []);
 

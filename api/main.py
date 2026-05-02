@@ -24,6 +24,7 @@ from api.limits import limiter
 from api.findings import router as findings_router
 from api.groups import router as groups_router
 from api.organisations import router as organisations_router
+from api.shasta_cloud import router as shasta_cloud_router
 from api.system import router as system_router
 from db.session import database_ready
 
@@ -34,11 +35,19 @@ if _compliance_engine.exists() and str(_compliance_engine) not in sys.path:
 try:
     from app.api.v1 import router as v1_router
     _has_v1 = True
-except ImportError:
+    _v1_import_error: str | None = None
+except ImportError as _v1_import_err:
     v1_router = None
     _has_v1 = False
+    _v1_import_error = str(_v1_import_err)
 
 logger = structlog.get_logger()
+if not _has_v1:
+    logger.warning(
+        "compliance_engine_v1_import_failed",
+        detail=_v1_import_error,
+        hint="Fix the venv (e.g. pip install -e . from repo root); Shasta extra does not load until import succeeds.",
+    )
 
 
 @asynccontextmanager
@@ -62,7 +71,7 @@ async def lifespan(app: FastAPI):
             logger.warning("grc_skills_load_failed", error=str(e))
 
     yield
-    # Shutdown: nothing to close for in-memory registry.
+    # Shasta optional Redis queue: see core/shasta_queue.py + workers/shasta_worker.py (no API pool here).
 
 
 app = FastAPI(
@@ -134,6 +143,7 @@ app.add_middleware(RequestIDMiddleware)
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessments_router)
+app.include_router(shasta_cloud_router)
 app.include_router(findings_router, prefix="/api/v1/findings")
 app.include_router(groups_router)
 # Prefer root api.organisations (DB-backed posture) over compliance-engine stub when both register /api/v1/organisations.
