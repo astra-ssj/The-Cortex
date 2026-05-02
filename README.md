@@ -169,6 +169,7 @@ See `.cursorrules` for non‑negotiable ZTAIP conventions when extending the cod
 
 ## Development notes
 
+- **Workflow audit & fixture phases** (login → nine primary nav areas → gaps → phased fixes): [`docs/WORKFLOW_AUDIT_AND_FIXTURE_PHASES.md`](docs/WORKFLOW_AUDIT_AND_FIXTURE_PHASES.md).
 - **Python:** `pip install -e ".[dev]"` (requires Python **≥ 3.12**).
 - **Tests:** `pytest tests/ -v`
 - **Frontend audit:** After `npm install`, run `npm audit --audit-level=high`. There is no committed lockfile by default; generate `package-lock.json` locally if you want reproducible audits.

@@ -8,6 +8,7 @@ Release lines **v0.1.0–v0.7.x** below reflect repository tags and merge histor
 
 ### Added
 
+- `docs/WORKFLOW_AUDIT_AND_FIXTURE_PHASES.md`: end-to-end workflow audit (nine nav tabs, excluding Roadmap), gaps, and **Phase F1–F6** fixture plan.
 - `NOTICE` file for Apache-style attribution; SPDX **Apache-2.0** declared in `pyproject.toml`.
 - Frontend **Vitest** smoke test for default framework id bundle; CI runs **`npm run lint`** and **`npm run test`**.
 - CI **Bandit** scope expanded to `api`, `core`, `compliance`, `db`, `ontology`, and compliance-engine app; **Ruff** includes `compliance`, `db`, `ontology`, `tests`.
