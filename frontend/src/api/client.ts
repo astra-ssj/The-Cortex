@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 
+import { clearCortexBrowserSession } from "../lib/cortexSession";
+
 // In dev use relative URLs so Vite proxy (→ localhost:8000) is used; avoids CORS and connection to wrong host.
 const API_BASE = import.meta.env.DEV ? "" : "http://localhost:8000";
 
@@ -38,8 +40,7 @@ export async function fetchApi<T = unknown>(
   });
   if (!res.ok) {
     if (res.status === 401) {
-      localStorage.removeItem("cortex_token");
-      localStorage.removeItem("cortex_user");
+      clearCortexBrowserSession();
       window.dispatchEvent(new CustomEvent("cortex:auth-expired"));
     }
     const err = await res.json().catch(() => ({}));

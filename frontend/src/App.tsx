@@ -28,6 +28,7 @@ import { useAssessmentStream } from "./store/complianceStore";
 import Intelligence from "./pages/Intelligence";
 import AISystems from "./pages/AISystems";
 import { HelpPanel } from "./components/HelpPanel";
+import { clearCortexBrowserSession } from "./lib/cortexSession";
 
 function LiveClock() {
   const [time, setTime] = useState(new Date());
@@ -54,6 +55,14 @@ const NAV_ITEMS = [
   { label: "Integrations", path: "/integrations" },
   { label: "Roadmap", path: "/roadmap" },
 ];
+
+/** Highlight Frameworks when viewing `/frameworks/:id` as well as the list route. */
+function isPrimaryNavActive(navPath: string, pathname: string): boolean {
+  if (navPath === "/frameworks") {
+    return pathname === "/frameworks" || pathname.startsWith("/frameworks/");
+  }
+  return pathname === navPath;
+}
 
 function HeaderShell({
   user,
@@ -151,7 +160,9 @@ function HeaderShell({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-          {NAV_ITEMS.map((item, i) => (
+          {NAV_ITEMS.map((item, i) => {
+            const active = isPrimaryNavActive(item.path, location.pathname);
+            return (
             <span key={item.path} style={{ display: "flex", alignItems: "center" }}>
               {i > 0 && (
                 <span style={{ color: "#2d3a52", margin: "0 6px", fontSize: 12 }}>|</span>
@@ -164,15 +175,16 @@ function HeaderShell({
                   fontSize: 12,
                   letterSpacing: 0,
                   textDecoration: "none",
-                  fontWeight: location.pathname === item.path ? "bold" : "normal",
-                  color: location.pathname === item.path ? "#e2e8f4" : "#4a5a72",
-                  background: location.pathname === item.path ? "#141e30" : "transparent",
+                  fontWeight: active ? "bold" : "normal",
+                  color: active ? "#e2e8f4" : "#4a5a72",
+                  background: active ? "#141e30" : "transparent",
                 }}
               >
                 {item.label}
               </Link>
             </span>
-          ))}
+            );
+          })}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button
@@ -231,11 +243,7 @@ function MainChrome({ onOpenHelp }: { onOpenHelp: () => void }) {
   }, []);
 
   const onLogout = () => {
-    localStorage.removeItem("cortex_token");
-    localStorage.removeItem("cortex_user");
-    localStorage.removeItem("cortex_org_id");
-    localStorage.removeItem("cortex_demo_mode");
-    localStorage.removeItem("cortex_jurisdiction");
+    clearCortexBrowserSession();
     setUser(null);
     navigate("/login", { replace: true });
   };

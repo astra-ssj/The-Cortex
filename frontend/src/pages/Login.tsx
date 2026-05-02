@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LogoIcon } from "../components/Logo";
 import { setStoredOrgId } from "../hooks/useOrgContext";
@@ -15,7 +15,8 @@ export default function Login({ onSuccess }: LoginProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: FormEvent) => {
+    e?.preventDefault();
     setLoading(true);
     setError("");
     try {
@@ -140,8 +141,11 @@ export default function Login({ onSuccess }: LoginProps) {
           </span>
         </div>
 
+        <form onSubmit={handleSubmit} noValidate>
         {error && (
           <div
+            role="alert"
+            aria-live="polite"
             style={{
               background: "rgba(239, 68, 68, 0.15)",
               border: "1px solid rgba(239, 68, 68, 0.4)",
@@ -209,8 +213,7 @@ export default function Login({ onSuccess }: LoginProps) {
         </div>
 
         <button
-          type="button"
-          onClick={handleSubmit}
+          type="submit"
           disabled={loading}
           style={{
             width: "100%",
@@ -227,6 +230,7 @@ export default function Login({ onSuccess }: LoginProps) {
         >
           {loading ? "Signing in..." : "Sign In"}
         </button>
+        </form>
 
         <div style={{ marginTop: 18, marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1, height: 1, background: "#1e2e48" }} />

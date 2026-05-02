@@ -214,12 +214,13 @@ End-to-end flows from **login → authenticated navigation → logout**, coverin
 
 Phases bundle **workflow fixes** with earlier **B→A engineering** items. Execute in order; each phase should leave CI green.
 
-### Phase F1 — Session & navigation correctness
+### Phase F1 — Session & navigation correctness ✅ (implemented)
 
-- Unified **logout** clearing all session-related localStorage keys.
-- Single **Login** implementation path.
-- Framework detail: **back link** + **dark theme alignment** (or scoped light mode with explicit toggle).
-- Nav **active state** for `/frameworks/:id`.
+- Unified **logout** and **401** handling via `clearCortexBrowserSession()` (`frontend/src/lib/cortexSession.ts`) — clears token, user, org, demo flag, jurisdiction, onboarding, company.
+- Single **Login** path: **`pages/Login.tsx` only**; removed unused duplicate `components/Login.tsx`.
+- Login uses **`<form onSubmit>`**, submit button `type="submit"`, **`role="alert"`** + **`aria-live="polite"`** on errors.
+- Framework detail: **back links → `/frameworks`**; **dark shell styling** aligned with CORTEX tokens.
+- Nav **active state**: **Frameworks** highlights on `/frameworks/:id`.
 
 ### Phase F2 — Trust & clarity UX
 

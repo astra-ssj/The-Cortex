@@ -8,7 +8,7 @@ export function FrameworkDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-slate-500">Loading framework…</p>
+        <p className="text-sm text-cortex-muted">Loading framework…</p>
       </div>
     );
   }
@@ -18,18 +18,23 @@ export function FrameworkDetailPage() {
       error instanceof Error &&
       (error.message.includes("Invalid or expired token") || error.message.includes("Not authenticated"));
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-        <p className="font-medium">Failed to load framework</p>
-        <p className="mt-1 text-sm">{error instanceof Error ? error.message : "Not found"}</p>
+      <div className="rounded-lg border border-red-900/60 bg-red-950/40 p-4 text-red-200">
+        <p className="font-medium text-red-100">Failed to load framework</p>
+        <p className="mt-1 text-sm text-red-300/90">{error instanceof Error ? error.message : "Not found"}</p>
         {isAuthError ? (
-          <p className="mt-2 text-sm text-red-700">Your session may have expired. You should be redirected to sign in.</p>
+          <p className="mt-2 text-sm text-red-300/80">Your session may have expired. Sign in again.</p>
         ) : (
-          <p className="mt-2 text-sm text-red-700">
-            Make sure the API is running. From repo root with Python venv active:{" "}
-            <code className="rounded bg-red-100 px-1">./scripts/run-api.sh</code>
+          <p className="mt-2 text-sm text-red-300/80">
+            Make sure the API is running. From repo root:{" "}
+            <code className="rounded bg-red-950/80 px-1.5 py-0.5 font-mono text-xs text-red-200">
+              ./scripts/run-api.sh
+            </code>
           </p>
         )}
-        <Link to="/" className="mt-3 inline-block text-sm font-medium text-red-700 hover:underline">
+        <Link
+          to="/frameworks"
+          className="mt-3 inline-block text-sm font-medium text-red-300 hover:text-red-100 hover:underline"
+        >
           ← Back to frameworks
         </Link>
       </div>
@@ -37,36 +42,43 @@ export function FrameworkDetailPage() {
   }
 
   return (
-    <div>
-      <Link to="/" className="mb-4 inline-block text-sm font-medium text-slate-600 hover:text-slate-800">
+    <div className="text-cortex-text">
+      <Link
+        to="/frameworks"
+        className="mb-4 inline-block text-sm font-medium text-cortex-muted hover:text-cortex-text"
+      >
         ← Back to frameworks
       </Link>
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold text-slate-800">{framework.name}</h2>
-        <p className="mt-1 text-slate-500">
+        <h2 className="text-2xl font-semibold tracking-tight text-[#f1f5f9]" style={{ fontFamily: "'Syne', sans-serif" }}>
+          {framework.name}
+        </h2>
+        <p className="mt-1 text-sm text-cortex-muted">
           v{framework.version} · {framework.jurisdiction}
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {framework.purpose_tags.map((tag) => (
             <span
               key={tag}
-              className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+              className="rounded-md border border-cortex-border bg-cortex-panel px-2 py-0.5 text-xs text-cortex-muted"
             >
               {tag}
             </span>
           ))}
         </div>
       </div>
-      <h3 className="mb-3 font-semibold text-slate-800">Controls ({framework.controls.length})</h3>
+      <h3 className="mb-3 text-base font-semibold text-[#e2e8f4]">
+        Controls ({framework.controls.length})
+      </h3>
       <ul className="space-y-3">
         {framework.controls.map((c) => (
           <li
             key={c.id}
-            className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+            className="rounded-lg border border-cortex-border bg-[#0d1526] p-4 shadow-sm transition-colors hover:border-[#1e2e48]"
           >
-            <p className="font-medium text-slate-800">{c.name}</p>
-            {c.domain && <p className="text-sm text-slate-500">{c.domain}</p>}
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="font-medium text-[#e2e8f4]">{c.name}</p>
+            {c.domain && <p className="text-sm text-cortex-muted">{c.domain}</p>}
+            <p className="mt-2 text-sm text-cortex-muted">
               {c.requirements.length} requirement{c.requirements.length !== 1 ? "s" : ""}
             </p>
           </li>

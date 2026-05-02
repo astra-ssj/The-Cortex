@@ -6,6 +6,10 @@ Release lines **v0.1.0–v0.7.x** below reflect repository tags and merge histor
 
 ## [Unreleased]
 
+### Fixed
+
+- **Phase F1 (session & nav):** `clearCortexBrowserSession()` on logout and API **401**; removed duplicate `components/Login.tsx`; login **`<form>`** + a11y live region; framework detail **dark theme** + back to `/frameworks`; **Frameworks** nav active on framework detail route.
+
 ### Added
 
 - `docs/WORKFLOW_AUDIT_AND_FIXTURE_PHASES.md`: end-to-end workflow audit (nine nav tabs, excluding Roadmap), gaps, and **Phase F1–F6** fixture plan.
