@@ -133,6 +133,11 @@ const SECTIONS: HelpSection[] = [
         body:
           "Machine-readable install contract: GET /api/v1/shasta/contract on the API. Optional Redis queue: when REDIS_URL is set, jobs may show delivery: redis — run the worker process described in CORTEX_SETUP.md.",
       },
+      {
+        subtitle: "Compliance evidence map",
+        body:
+          "When you expand Findings for a run, the Compliance evidence map section loads GET /api/v1/shasta/scans/{run_id}/evidence-map — a finding → framework-control graph from stored framework_controls (source labelled Shasta). Same JSON can power a future canvas view.",
+      },
     ],
   },
   {

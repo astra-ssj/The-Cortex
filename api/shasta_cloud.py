@@ -21,6 +21,7 @@ from core.shasta_queue import enqueue_shasta_scan_job, redis_url_configured
 from db.session import async_session_factory
 from core.security import get_current_user
 from core.tenant import resolve_scoped_org_id
+from core.shasta_evidence_map import EvidenceMapOut, build_evidence_map_from_findings
 
 logger = structlog.get_logger()
 
@@ -525,6 +526,65 @@ async def list_findings_for_scan(
             d["framework_controls"] = dict(d["framework_controls"])
         out.append(d)
     return out
+
+
+@router.get("/scans/{scan_run_id}/evidence-map", response_model=EvidenceMapOut)
+async def get_evidence_map_for_scan(
+    scan_run_id: str,
+    org_id: str = Query(..., description="Organisation id (must own the scan)"),
+    limit: int = Query(2000, ge=1, le=5000),
+    session: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> EvidenceMapOut:
+    """Graph of findings → framework control refs for this run (UI / future canvas).
+
+    ``source`` is always ``shasta``; edges encode Shasta-supplied ``framework_controls`` tags only.
+    """
+    effective = resolve_scoped_org_id(current_user, org_id.strip())
+    scan_row = await session.execute(
+        text(
+            """
+            SELECT status, cloud
+            FROM shasta_scan_runs
+            WHERE id = CAST(:sid AS uuid) AND org_id = :org_id
+            """
+        ),
+        {"sid": scan_run_id, "org_id": effective},
+    )
+    sr = scan_row.mappings().first()
+    if sr is None:
+        raise HTTPException(status_code=404, detail="Scan run not found for this organisation")
+    scan_status = str(sr["status"])
+    cloud_val = sr.get("cloud")
+    cloud_out = str(cloud_val) if cloud_val is not None else None
+
+    result = await session.execute(
+        text(
+            """
+            SELECT id, finding_key, title, severity_normalized, check_id, resource_id,
+                   framework_controls
+            FROM shasta_cloud_findings
+            WHERE scan_run_id = CAST(:sid AS uuid) AND org_id = :org_id
+            ORDER BY id
+            LIMIT :limit
+            """
+        ),
+        {"sid": scan_run_id, "org_id": effective, "limit": limit},
+    )
+    rows: list[dict[str, Any]] = []
+    for row in result.mappings().all():
+        d = dict(row)
+        if d.get("framework_controls") is not None and hasattr(d["framework_controls"], "keys"):
+            d["framework_controls"] = dict(d["framework_controls"])
+        rows.append(d)
+
+    return build_evidence_map_from_findings(
+        scan_run_id=scan_run_id,
+        org_id=effective,
+        scan_status=scan_status,
+        cloud=cloud_out,
+        finding_rows=rows,
+    )
 
 
 @router.get("/findings")

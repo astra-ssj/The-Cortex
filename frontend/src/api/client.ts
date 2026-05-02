@@ -118,6 +118,24 @@ export interface ShastaCloudFindingRow {
   created_at: string;
 }
 
+/** GET /shasta/scans/{id}/evidence-map — finding ↔ framework-control graph. */
+export interface ShastaEvidenceMapSummary {
+  findings: number;
+  control_nodes: number;
+  edges: number;
+}
+
+export interface ShastaEvidenceMapOut {
+  source: "shasta";
+  scan_run_id: string;
+  org_id: string;
+  scan_status: string;
+  cloud: string | null;
+  summary: ShastaEvidenceMapSummary;
+  nodes: Array<Record<string, unknown>>;
+  edges: Array<Record<string, unknown>>;
+}
+
 export const shastaCloudApi = {
   contract: () => fetchApi<Record<string, unknown>>("/api/v1/shasta/contract"),
   runScan: (body: { cloud: "aws" | "azure"; org_id: string }) =>
@@ -147,6 +165,12 @@ export const shastaCloudApi = {
     });
     return fetchApi<ShastaCloudFindingRow[]>(
       `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}/findings?${q.toString()}`
+    );
+  },
+  getEvidenceMap: (orgId: string, scanRunId: string) => {
+    const q = new URLSearchParams({ org_id: orgId });
+    return fetchApi<ShastaEvidenceMapOut>(
+      `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}/evidence-map?${q.toString()}`
     );
   },
 };

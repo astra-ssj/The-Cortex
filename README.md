@@ -42,6 +42,7 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 - **API:** `POST /api/v1/shasta/scans`, list/detail scan endpoints, findings — see [`api/shasta_cloud.py`](api/shasta_cloud.py). Contract: `GET /api/v1/shasta/contract`.
 - **Optional Redis:** Set `REDIS_URL` or `SHASTA_REDIS_URL` and run `workers/shasta_worker.py`, or `docker compose --profile queue` — details in [`CORTEX_SETUP.md`](CORTEX_SETUP.md).
 - **Assessment SSE:** Browser uses `Authorization: Bearer` for the stream (no JWT in the URL). Help panel → **Cloud scans (Shasta)** for operator notes.
+- **Evidence map (MVP):** `GET /api/v1/shasta/scans/{scan_run_id}/evidence-map` returns finding ↔ control nodes and edges; **Cloud scans** shows a table when Findings for a run is expanded.
 
 ## Tech Stack
 
