@@ -469,15 +469,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                           rel="noopener noreferrer"
                           style={{ color: "#2dd4bf", fontSize: 13 }}
                         >
-                          Report an issue →
-                        </a>
-                        <a
-                          href="https://github.com/AstraLabs-AI/The-Cortex/issues/new"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: "#2dd4bf", fontSize: 13 }}
-                        >
-                          Request a feature →
+                          Report an issue or idea →
                         </a>
                       </div>
                     </>

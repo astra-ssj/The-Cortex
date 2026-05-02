@@ -88,6 +88,9 @@ cd The-Cortex
 # Start backend (Postgres + API; GraphJin is opt-in — see below)
 POSTGRES_PASSWORD=cortex-dev docker compose up -d
 
+# After editing backend Python (api/, core/, db/), rebuild the API image or changes won't run:
+#   docker compose up -d --build api
+
 # Verify API health and DB readiness
 curl -s http://localhost:8000/health
 curl -s http://localhost:8000/ready

@@ -26,7 +26,7 @@ from api.groups import router as groups_router
 from api.organisations import router as organisations_router
 from api.shasta_cloud import router as shasta_cloud_router
 from api.system import router as system_router
-from db.session import database_ready
+from db.session import database_ready, ensure_org_onboarding_schema
 
 # Compliance-engine app (document ingestion at services/compliance-engine/app/).
 _compliance_engine = Path(__file__).resolve().parent.parent / "services" / "compliance-engine"
@@ -54,6 +54,8 @@ if not _has_v1:
 async def lifespan(app: FastAPI):
     # Ensure compliance registry is loaded (side effect of import).
     import compliance  # noqa: F401
+
+    await ensure_org_onboarding_schema()
 
     if _has_v1:
         try:

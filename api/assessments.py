@@ -383,6 +383,15 @@ def _iso_ts(val: Any) -> str:
     return str(val)
 
 
+def _utc_datetime_for_asyncpg(val: Any) -> datetime:
+    """asyncpg rejects ISO strings for timestamptz binds; use timezone-aware datetime."""
+    if isinstance(val, datetime):
+        return val if val.tzinfo is not None else val.replace(tzinfo=timezone.utc)
+    if isinstance(val, str):
+        return datetime.fromisoformat(val.replace("Z", "+00:00"))
+    raise TypeError(f"expected datetime or ISO string, got {type(val)}")
+
+
 async def _fetch_pending_db(session: AsyncSession, org_id: str) -> list[dict[str, Any]]:
     r = await session.execute(
         text(
@@ -435,7 +444,7 @@ async def _ensure_demo_pending_seed_db(session: AsyncSession, org_id: str) -> No
                     id, org_id, framework, control_id, name, assessment, confidence, severity, reference, date_flagged
                 ) VALUES (
                     :id, :org_id, :framework, :control_id, :name, :assessment, :confidence, :severity, :reference,
-                    CAST(:date_flagged AS timestamptz)
+                    :date_flagged
                 )
                 """
             ),
@@ -449,7 +458,7 @@ async def _ensure_demo_pending_seed_db(session: AsyncSession, org_id: str) -> No
                 "confidence": item["confidence"],
                 "severity": item["severity"],
                 "reference": item["reference"],
-                "date_flagged": item["date_flagged"],
+                "date_flagged": _utc_datetime_for_asyncpg(item["date_flagged"]),
             },
         )
 
@@ -520,8 +529,8 @@ async def approve_control(
         ).mappings().first()
         if row is None:
             raise HTTPException(status_code=404, detail=f"Control not in queue: {control_id}")
-        acted_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        audit_ref = f"audit-{control_id}-approve-{acted_at[:10]}"
+        acted_at = datetime.now(timezone.utc)
+        audit_ref = f"audit-{control_id}-approve-{acted_at.date().isoformat()}"
         await session.execute(
             text(
                 """
@@ -529,7 +538,7 @@ async def approve_control(
                     org_id, item_id, framework, control_id, action, acted_by, acted_at,
                     original_confidence, final_decision, audit_ref
                 ) VALUES (
-                    :org_id, :item_id, :framework, :control_id, :action, :acted_by, CAST(:acted_at AS timestamptz),
+                    :org_id, :item_id, :framework, :control_id, :action, :acted_by, :acted_at,
                     :original_confidence, :final_decision, :audit_ref
                 )
                 """
@@ -614,8 +623,8 @@ async def override_control(
         ).mappings().first()
         if row is None:
             raise HTTPException(status_code=404, detail=f"Control not in queue: {control_id}")
-        acted_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        audit_ref = f"audit-{control_id}-override-{acted_at[:10]}"
+        acted_at = datetime.now(timezone.utc)
+        audit_ref = f"audit-{control_id}-override-{acted_at.date().isoformat()}"
         await session.execute(
             text(
                 """
@@ -623,7 +632,7 @@ async def override_control(
                     org_id, item_id, framework, control_id, action, acted_by, acted_at,
                     original_confidence, final_decision, audit_ref
                 ) VALUES (
-                    :org_id, :item_id, :framework, :control_id, :action, :acted_by, CAST(:acted_at AS timestamptz),
+                    :org_id, :item_id, :framework, :control_id, :action, :acted_by, :acted_at,
                     :original_confidence, :final_decision, :audit_ref
                 )
                 """

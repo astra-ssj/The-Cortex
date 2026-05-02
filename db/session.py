@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from typing import AsyncGenerator
 
+import structlog
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
@@ -19,6 +20,8 @@ async_session_factory = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
 )
 
+logger = structlog.get_logger()
+
 
 async def database_ready() -> bool:
     """True if Postgres accepts connections (for readiness probes)."""
@@ -28,6 +31,27 @@ async def database_ready() -> bool:
         return True
     except Exception:
         return False
+
+
+# Mirrors services/graphjin/migrations/004_multi_tenancy.sql — heals DBs created before that migration.
+_ORG_ONBOARDING_ALTER_STATEMENTS: tuple[str, ...] = (
+    "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS onboarding_complete BOOLEAN DEFAULT FALSE",
+    "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS onboarding_step INTEGER DEFAULT 0",
+    "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS entity_structure TEXT DEFAULT 'single'",
+    "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS selected_frameworks TEXT[] DEFAULT '{}'",
+    "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT FALSE",
+    "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS created_by TEXT DEFAULT 'system'",
+)
+
+
+async def ensure_org_onboarding_schema() -> None:
+    """Apply onboarding columns if missing (idempotent). Logs and continues if DB is unreachable."""
+    try:
+        async with engine.begin() as conn:
+            for stmt in _ORG_ONBOARDING_ALTER_STATEMENTS:
+                await conn.execute(text(stmt))
+    except Exception as e:
+        logger.warning("org_onboarding_schema_guard_failed", error=str(e))
 
 
 class Base(DeclarativeBase):

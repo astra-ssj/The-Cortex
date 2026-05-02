@@ -11,28 +11,18 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
-from sqlalchemy import Boolean, Column, Integer, MetaData, String, Table, bindparam, func, text, update
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db, get_db_login_session
 from api.limits import limiter
 from core.security import DEMO_USERS, create_access_token, get_current_user, hash_password, verify_password
+from db.session import ensure_org_onboarding_schema
 
 logger = structlog.get_logger()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-_orgs = Table(
-    "organizations",
-    MetaData(),
-    Column("id", String, primary_key=True),
-    Column("onboarding_step", Integer),
-    Column("entity_structure", String),
-    Column("selected_frameworks", ARRAY(String)),
-    Column("onboarding_complete", Boolean),
-)
 
 # Optional legacy demo login (plaintext compare). Disabled unless password is set via env (avoids hardcoded credentials).
 _LEGACY_DEMO_USER = os.getenv("CORTEX_LEGACY_DEMO_USER", "admin").strip()
@@ -80,7 +70,8 @@ async def _try_load_db_user(session: AsyncSession, email: str) -> dict[str, Any]
         )
         row = res.mappings().one_or_none()
         return dict(row) if row else None
-    except SQLAlchemyError as e:
+    except Exception as e:
+        # Connection refused (asyncpg OSError) is not wrapped as SQLAlchemyError on all paths.
         await session.rollback()
         logger.warning("auth_db_user_lookup_skipped", error=str(e))
         return None
@@ -318,31 +309,44 @@ async def update_onboarding_step(
     if step == 3:
         updates["onboarding_complete"] = True
 
-    values_clause: dict[str, Any] = {"updated_at": func.now()}
+    # Raw SQL: SQLAlchemy Core update() + bindparam mix asyncpg poorly for TEXT[] / timestamptz.
+    set_parts: list[str] = ["updated_at = NOW()"]
     params: dict[str, Any] = {"org_id": org_id}
     if "onboarding_step" in updates:
-        values_clause["onboarding_step"] = bindparam("onboarding_step")
+        set_parts.append("onboarding_step = :onboarding_step")
         params["onboarding_step"] = updates["onboarding_step"]
     if "entity_structure" in updates:
-        values_clause["entity_structure"] = bindparam("entity_structure")
+        set_parts.append("entity_structure = :entity_structure")
         params["entity_structure"] = updates["entity_structure"]
     if "selected_frameworks" in updates:
-        values_clause["selected_frameworks"] = bindparam("selected_frameworks")
+        set_parts.append("selected_frameworks = :selected_frameworks")
         params["selected_frameworks"] = updates["selected_frameworks"]
     if "onboarding_complete" in updates:
-        values_clause["onboarding_complete"] = bindparam("onboarding_complete")
+        set_parts.append("onboarding_complete = :onboarding_complete")
         params["onboarding_complete"] = updates["onboarding_complete"]
-    if len(values_clause) <= 1:
+    if len(set_parts) <= 1:
         raise HTTPException(status_code=400, detail="No onboarding fields to update")
-    stmt = update(_orgs).where(_orgs.c.id == bindparam("org_id")).values(**values_clause)
+    sql = "UPDATE organizations SET " + ", ".join(set_parts) + " WHERE id = :org_id"
+
+    async def _execute_update() -> None:
+        await session.execute(text(sql), params)
+
     try:
-        await session.execute(stmt, params)
-    except SQLAlchemyError as e:
+        await _execute_update()
+    except SQLAlchemyError as first:
         await session.rollback()
-        raise HTTPException(
-            status_code=503,
-            detail="Onboarding update unavailable — database unreachable or schema mismatch",
-        ) from e
+        # Lifespan may have run before Postgres was ready; or schema drift vs older volumes.
+        logger.warning("onboarding_update_retry_schema", org_id=org_id, error=str(first))
+        await ensure_org_onboarding_schema()
+        try:
+            await _execute_update()
+        except SQLAlchemyError as e:
+            await session.rollback()
+            logger.warning("onboarding_update_db_failed", org_id=org_id, error=str(e))
+            raise HTTPException(
+                status_code=503,
+                detail="Onboarding update unavailable — database unreachable or schema mismatch",
+            ) from e
 
     return {"step": step, "org_id": org_id, "updated": updates}
 

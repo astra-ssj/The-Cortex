@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { LogoIcon } from "../components/Logo";
 import { setStoredOrgId } from "../hooks/useOrgContext";
 
@@ -286,12 +286,6 @@ export default function Login({ onSuccess }: LoginProps) {
         >
           Create free account →
         </button>
-
-        <p style={{ marginTop: 12, color: "#4a5a72", fontSize: 11, textAlign: "center" }}>
-          <Link to="/register" style={{ color: "#2dd4bf", textDecoration: "none" }}>
-            Prefer link? Register here →
-          </Link>
-        </p>
 
         <p
           style={{

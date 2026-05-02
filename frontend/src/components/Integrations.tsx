@@ -657,9 +657,9 @@ function SetupPanel({
                   >
                     {step.description}
                   </p>
-                  {step.docs_url && (
+                  {step.docs_url?.trim() ? (
                     <a
-                      href={step.docs_url}
+                      href={step.docs_url.trim()}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
@@ -671,7 +671,7 @@ function SetupPanel({
                     >
                       View docs →
                     </a>
-                  )}
+                  ) : null}
                 </div>
               </div>
             ))}
