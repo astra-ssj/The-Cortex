@@ -21,6 +21,7 @@ from core.shasta_queue import enqueue_shasta_scan_job, redis_url_configured
 from db.session import async_session_factory
 from core.security import get_current_user
 from core.tenant import resolve_scoped_org_id
+from core.shasta_evidence_links import sync_evidence_control_links_for_run
 from core.shasta_evidence_map import EvidenceMapOut, build_evidence_map_from_findings
 
 logger = structlog.get_logger()
@@ -191,6 +192,7 @@ async def _finalize_scan_success(
         },
     )
     await _bulk_insert_findings(session, run_uuid, org_id, normalized)
+    await sync_evidence_control_links_for_run(session, run_uuid=run_uuid, org_id=org_id)
     audit_fabric.log(
         "shasta_findings_persist_done",
         entity_type="evidence",
@@ -322,6 +324,7 @@ async def _persist_normalized_batch(
         },
     )
     await _bulk_insert_findings(session, run_uuid, org_id, normalized)
+    await sync_evidence_control_links_for_run(session, run_uuid=run_uuid, org_id=org_id)
     audit_fabric.log(
         "shasta_findings_persist_done",
         entity_type="evidence",
@@ -587,6 +590,40 @@ async def get_evidence_map_for_scan(
     )
 
 
+@router.get("/scans/{scan_run_id}/evidence-links")
+async def list_evidence_control_links_for_scan(
+    scan_run_id: str,
+    org_id: str = Query(..., description="Organisation id (must own the scan)"),
+    limit: int = Query(5000, ge=1, le=20000),
+    session: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> list[dict[str, Any]]:
+    """Append-only rows in ``shasta_evidence_control_links`` (audit / GRC joins)."""
+    effective = resolve_scoped_org_id(current_user, org_id.strip())
+    chk = await session.execute(
+        text(
+            "SELECT 1 FROM shasta_scan_runs WHERE id = CAST(:sid AS uuid) AND org_id = :org_id"
+        ),
+        {"sid": scan_run_id, "org_id": effective},
+    )
+    if chk.first() is None:
+        raise HTTPException(status_code=404, detail="Scan run not found for this organisation")
+    result = await session.execute(
+        text(
+            """
+            SELECT id, scan_run_id::text, org_id, finding_id, framework_family, control_ref,
+                   source_engine, created_at
+            FROM shasta_evidence_control_links
+            WHERE scan_run_id = CAST(:sid AS uuid) AND org_id = :org_id
+            ORDER BY id
+            LIMIT :limit
+            """
+        ),
+        {"sid": scan_run_id, "org_id": effective, "limit": limit},
+    )
+    return [dict(r) for r in result.mappings().all()]
+
+
 @router.get("/findings")
 async def list_recent_cloud_findings(
     org_id: str = Query(..., description="Organisation id"),
@@ -598,25 +635,39 @@ async def list_recent_cloud_findings(
     """Latest cloud findings across scans for an organisation."""
     effective = resolve_scoped_org_id(current_user, org_id.strip())
     params: dict[str, Any] = {"org_id": effective, "limit": limit}
-    sev_clause = ""
     if severity and severity.strip():
-        sev_clause = " AND severity_normalized = :sev"
         params["sev"] = severity.strip()
-    result = await session.execute(
-        text(
-            f"""
-            SELECT f.id, f.scan_run_id::text, f.org_id, f.finding_key, f.external_id,
-                   f.cloud_provider, f.account_scope, f.region, f.check_id, f.title,
-                   f.severity_normalized, f.compliance_status, f.resource_type, f.resource_id,
-                   f.framework_controls, f.remediation, f.collected_at, f.created_at
-            FROM shasta_cloud_findings f
-            WHERE f.org_id = :org_id {sev_clause}
-            ORDER BY f.created_at DESC
-            LIMIT :limit
-            """
-        ),
-        params,
-    )
+        result = await session.execute(
+            text(
+                """
+                SELECT f.id, f.scan_run_id::text, f.org_id, f.finding_key, f.external_id,
+                       f.cloud_provider, f.account_scope, f.region, f.check_id, f.title,
+                       f.severity_normalized, f.compliance_status, f.resource_type, f.resource_id,
+                       f.framework_controls, f.remediation, f.collected_at, f.created_at
+                FROM shasta_cloud_findings f
+                WHERE f.org_id = :org_id AND severity_normalized = :sev
+                ORDER BY f.created_at DESC
+                LIMIT :limit
+                """
+            ),
+            params,
+        )
+    else:
+        result = await session.execute(
+            text(
+                """
+                SELECT f.id, f.scan_run_id::text, f.org_id, f.finding_key, f.external_id,
+                       f.cloud_provider, f.account_scope, f.region, f.check_id, f.title,
+                       f.severity_normalized, f.compliance_status, f.resource_type, f.resource_id,
+                       f.framework_controls, f.remediation, f.collected_at, f.created_at
+                FROM shasta_cloud_findings f
+                WHERE f.org_id = :org_id
+                ORDER BY f.created_at DESC
+                LIMIT :limit
+                """
+            ),
+            params,
+        )
     out = []
     for row in result.mappings().all():
         d = dict(row)

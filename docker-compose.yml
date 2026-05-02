@@ -23,6 +23,7 @@ services:
       - ./services/graphjin/migrations/005_assessment_results_fix.sql:/docker-entrypoint-initdb.d/07_assessment_results_fix.sql:ro
       - ./migrations/006_human_review_queue.sql:/docker-entrypoint-initdb.d/08_human_review_queue.sql:ro
       - ./migrations/009_shasta_cloud.sql:/docker-entrypoint-initdb.d/09_shasta_cloud.sql:ro
+      - ./migrations/010_shasta_evidence_control_links.sql:/docker-entrypoint-initdb.d/10_shasta_evidence_links.sql:ro
       - ./services/graphjin/migrations:/graphjin/migrations:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]

@@ -242,8 +242,36 @@ export function ComplianceDashboard() {
   const { data: frameworks, isLoading, error } = useFrameworks();
   const { data: posture, isLoading: postureLoading } = useCompliancePosture(orgId);
   const { data: ztaip } = useZtaipStatus();
-  const { events, isStreaming, startStream, stopStream } = useAssessmentStream();
+  const { events, isStreaming, streamError, clearStreamError, startStream, stopStream } =
+    useAssessmentStream();
   const streamPanelRef = useRef<HTMLDivElement | null>(null);
+
+  const streamPhase = streamError
+    ? "error"
+    : !isStreaming && events.length === 0
+      ? "idle"
+      : isStreaming && events.length === 0
+        ? "connecting"
+        : isStreaming
+          ? "streaming"
+          : "complete";
+
+  function streamPhaseHintText(): string {
+    switch (streamPhase) {
+      case "idle":
+        return "Opens a live SSE connection to the assessment engine; posture and review queue refresh when the run completes.";
+      case "connecting":
+        return "Connecting to the assessment stream…";
+      case "streaming":
+        return "Receiving assessment events…";
+      case "complete":
+        return "Last run finished — scroll the log below.";
+      case "error":
+        return "Stream failed — confirm the API is up and you are signed in.";
+      default:
+        return "";
+    }
+  }
 
   const postureByFrameworkId = posture
     ? new Map(posture.frameworks.map((f) => [f.frameworkId, f]))
@@ -613,6 +641,22 @@ export function ComplianceDashboard() {
         <p className="mt-1 text-sm" style={{ color: tokens.textMuted }}>
           Stream assessment for {orgId} — all 8 frameworks
         </p>
+        <p className="mt-2 text-xs leading-relaxed" style={{ color: tokens.textDim }}>
+          {streamPhaseHintText()}
+        </p>
+        {streamError && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p style={{ color: tokens.red, fontSize: 13, margin: 0 }}>{streamError}</p>
+            <button
+              type="button"
+              onClick={() => clearStreamError()}
+              className="rounded border px-2 py-1 text-xs"
+              style={{ borderColor: tokens.border, color: tokens.textMuted, background: "transparent" }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         <div className="mt-3 flex gap-2">
           <button
             type="button"

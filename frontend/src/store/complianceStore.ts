@@ -243,10 +243,12 @@ export function useAssessmentStream() {
   const queryClient = useQueryClient();
   const [events, setEvents] = useState<AssessmentEvent[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [streamError, setStreamError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const startStream = useCallback(
     (organizationId: string, frameworkIds: string[]) => {
+      setStreamError(null);
       abortRef.current?.abort();
       const ac = new AbortController();
       abortRef.current = ac;
@@ -286,13 +288,15 @@ export function useAssessmentStream() {
             },
             onerror(err) {
               if (ac.signal.aborted) return;
+              setStreamError(err instanceof Error ? err.message : String(err));
               invalidateComplianceData(queryClient, organizationId);
               setIsStreaming(false);
               abortRef.current = null;
               throw err;
             },
           });
-        } catch {
+        } catch (e) {
+          setStreamError(e instanceof Error ? e.message : String(e));
           invalidateComplianceData(queryClient, organizationId);
           setIsStreaming(false);
           abortRef.current = null;
@@ -308,5 +312,7 @@ export function useAssessmentStream() {
     setIsStreaming(false);
   }, []);
 
-  return { events, isStreaming, startStream, stopStream };
+  const clearStreamError = useCallback(() => setStreamError(null), []);
+
+  return { events, isStreaming, streamError, clearStreamError, startStream, stopStream };
 }

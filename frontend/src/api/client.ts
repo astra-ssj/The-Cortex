@@ -136,6 +136,18 @@ export interface ShastaEvidenceMapOut {
   edges: Array<Record<string, unknown>>;
 }
 
+/** GET …/evidence-links — append-only rows derived from ``framework_controls``. */
+export interface ShastaEvidenceLinkRow {
+  id: number;
+  scan_run_id: string;
+  org_id: string;
+  finding_id: number;
+  framework_family: string;
+  control_ref: string;
+  source_engine: string;
+  created_at: string;
+}
+
 export const shastaCloudApi = {
   contract: () => fetchApi<Record<string, unknown>>("/api/v1/shasta/contract"),
   runScan: (body: { cloud: "aws" | "azure"; org_id: string }) =>
@@ -171,6 +183,12 @@ export const shastaCloudApi = {
     const q = new URLSearchParams({ org_id: orgId });
     return fetchApi<ShastaEvidenceMapOut>(
       `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}/evidence-map?${q.toString()}`
+    );
+  },
+  getEvidenceLinks: (orgId: string, scanRunId: string, limit = 5000) => {
+    const q = new URLSearchParams({ org_id: orgId, limit: String(limit) });
+    return fetchApi<ShastaEvidenceLinkRow[]>(
+      `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}/evidence-links?${q.toString()}`
     );
   },
 };

@@ -27,6 +27,7 @@ REL_SQL_FILES=(
   services/graphjin/migrations/005_assessment_results_fix.sql
   migrations/006_human_review_queue.sql
   migrations/009_shasta_cloud.sql
+  migrations/010_shasta_evidence_control_links.sql
 )
 
 cleanup() {
@@ -79,12 +80,15 @@ apply_schema() {
 probe_shasta_tables() {
   local sq="SELECT 1 FROM shasta_scan_runs LIMIT 0;"
   local sq2="SELECT 1 FROM shasta_cloud_findings LIMIT 0;"
+  local sq3="SELECT 1 FROM shasta_evidence_control_links LIMIT 0;"
   if command -v psql >/dev/null 2>&1; then
     psql -v ON_ERROR_STOP=1 -c "$sq"
     psql -v ON_ERROR_STOP=1 -c "$sq2"
+    psql -v ON_ERROR_STOP=1 -c "$sq3"
   else
     docker exec "$CONTAINER" psql -U cortex -d cortex -v ON_ERROR_STOP=1 -c "$sq"
     docker exec "$CONTAINER" psql -U cortex -d cortex -v ON_ERROR_STOP=1 -c "$sq2"
+    docker exec "$CONTAINER" psql -U cortex -d cortex -v ON_ERROR_STOP=1 -c "$sq3"
   fi
 }
 
@@ -98,7 +102,7 @@ if [[ ! -x "$PY" ]]; then
   PY="python3"
 fi
 
-echo "verify_shasta_stack: pytest tests/test_api_shasta_cloud.py ..."
-"$PY" -m pytest tests/test_api_shasta_cloud.py -v --tb=short
+echo "verify_shasta_stack: pytest Shasta + evidence link tests ..."
+"$PY" -m pytest tests/test_api_shasta_cloud.py tests/test_shasta_evidence_links.py -v --tb=short
 
 echo "verify_shasta_stack: OK"

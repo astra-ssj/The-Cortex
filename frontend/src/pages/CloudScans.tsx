@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOrgContext } from "../hooks/useOrgContext";
 import { shastaCloudApi, type ShastaEvidenceMapOut, type ShastaScanRunRow } from "../api/client";
+import { ShastaEvidenceMapFlow } from "../components/ShastaEvidenceMapFlow";
 import { SHASTA_EVIDENCE_MAP_SAMPLE } from "../lib/shastaEvidenceMapMock";
 import { buildEvidenceMapRows } from "../lib/shastaEvidenceMapRows";
 
@@ -18,7 +19,12 @@ function ComplianceEvidenceMapBlock({
   isSample?: boolean;
   marginTop?: number;
 }) {
+  const [mapView, setMapView] = useState<"table" | "graph">("table");
   const rows = useMemo(() => (mapOut ? buildEvidenceMapRows(mapOut) : []), [mapOut]);
+
+  useEffect(() => {
+    setMapView("table");
+  }, [mapOut?.scan_run_id]);
 
   return (
     <div
@@ -101,13 +107,54 @@ function ComplianceEvidenceMapBlock({
               {mapOut.summary.edges} links
             </span>
           </div>
+          {mapOut.summary.edges > 0 && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setMapView("table")}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  border: "1px solid #334155",
+                  background: mapView === "table" ? "#1e293b" : "transparent",
+                  color: mapView === "table" ? "#e2e8f4" : "#64748b",
+                  cursor: "pointer",
+                }}
+              >
+                Table
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapView("graph")}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  border: "1px solid #334155",
+                  background: mapView === "graph" ? "#1e293b" : "transparent",
+                  color: mapView === "graph" ? "#e2e8f4" : "#64748b",
+                  cursor: "pointer",
+                }}
+              >
+                Graph
+              </button>
+            </div>
+          )}
           {mapOut.summary.edges === 0 && (
             <p style={{ color: "#64748b", fontSize: 13, marginBottom: 12 }}>
               No framework control tags on these rows yet — mappings appear when Shasta populates{" "}
               <code style={{ fontSize: 11 }}>framework_controls</code>.
             </p>
           )}
-          {rows.length > 0 && (
+          {mapOut.summary.edges > 0 && mapView === "graph" && (
+            <div style={{ marginBottom: 16 }}>
+              <ShastaEvidenceMapFlow data={mapOut} />
+            </div>
+          )}
+          {mapView === "table" && rows.length > 0 && (
             <div style={{ overflowX: "auto", border: "1px solid #141e30", borderRadius: 8 }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <thead>
@@ -152,6 +199,9 @@ function ComplianceEvidenceMapBlock({
                 </tbody>
               </table>
             </div>
+          )}
+          {mapView === "table" && rows.length === 0 && mapOut.summary.findings > 0 && (
+            <p style={{ color: "#64748b", fontSize: 13 }}>No rows to display.</p>
           )}
         </>
       )}
@@ -304,7 +354,9 @@ export default function CloudScans() {
           }}
         >
           Deterministic CSPM via Transilience Shasta; findings persist to Postgres per organisation.
-          Store AWS/Azure connector credentials under Integrations first.
+          Store AWS/Azure connector credentials under Integrations first. Use{" "}
+          <strong style={{ color: "#94a3b8" }}>Preview sample evidence map</strong> to demo the UI
+          without cloud findings.
         </p>
       </header>
 

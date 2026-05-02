@@ -1,0 +1,94 @@
+# CORTEX — Release QA & security checklist
+
+Run before tagging a release or merging main-facing work. Commands assume repo root and match CI intent.
+
+## 1. Environment
+
+| Requirement | Notes |
+|-------------|--------|
+| Python 3.12 | Matches `pyproject.toml` |
+| Node 20 | Matches CI |
+| Postgres 16 | Local Docker Compose or CI service container |
+| `PYTHONPATH` | `.:services/compliance-engine` for API / pytest |
+
+Apply schema (includes Shasta **009** + evidence links **010**):
+
+```bash
+export PGHOST=localhost PGPORT=5432 PGUSER=cortex PGDATABASE=cortex PGPASSWORD=...
+bash scripts/apply_cortex_schema.sh
+```
+
+Fresh DB volume (Compose): init scripts apply **001–010** in order.
+
+## 2. Automated tests (same spine as CI)
+
+**Frontend**
+
+```bash
+cd frontend
+npm ci   # or npm install
+npx tsc --noEmit
+npm run lint
+npm run test
+npm run build
+npm audit --audit-level=high
+```
+
+**Backend**
+
+```bash
+python -m pip install -e ".[dev]"
+ruff check api core compliance db ontology services/compliance-engine/app tests --ignore E501
+bandit -r api core compliance db ontology services/compliance-engine/app -ll --skip B101
+pytest -q --tb=short
+```
+
+**Security audits (CI `security` job)**
+
+```bash
+pip install pip-audit && pip-audit
+cd frontend && npm audit --audit-level=high
+```
+
+## 3. Smoke scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/smoke_happy_path.sh` | Health → login → frameworks → review (needs API + DB) |
+| `scripts/verify_shasta_stack.sh` | Ephemeral Postgres :5433, schema, Shasta pytest + evidence-links unit tests |
+| `scripts/shasta_uvicorn_e2e.sh` | Manual lifecycle against real uvicorn (optional; respects HTTP 501 if Shasta missing) |
+
+Example after `docker compose up -d` with API on :8000:
+
+```bash
+bash scripts/smoke_happy_path.sh
+```
+
+## 4. Manual UX (5 minutes)
+
+1. Login → **Dashboard** → **Start stream** — confirm phase hint, log lines, no persistent error after dismiss.
+2. **Cloud scans** → **Preview sample evidence map** — table + **Graph** toggle; amber sample banner.
+3. With API + scan data — expand **Findings**, confirm evidence map + links (`GET …/evidence-links` optional in DevTools).
+
+## 5. Schema verification (Shasta)
+
+After migrate:
+
+```sql
+SELECT 1 FROM shasta_scan_runs LIMIT 0;
+SELECT 1 FROM shasta_cloud_findings LIMIT 0;
+SELECT 1 FROM shasta_evidence_control_links LIMIT 0;
+```
+
+## 6. API contracts (spot-check)
+
+- `GET /api/v1/shasta/contract` — public, JSON.
+- `GET /api/v1/shasta/scans/{id}/evidence-map?org_id=` — graph JSON (`source: shasta`).
+- `GET /api/v1/shasta/scans/{id}/evidence-links?org_id=` — append-only link rows.
+
+## 7. Done criteria
+
+- [ ] CI-equivalent commands pass locally or on PR.
+- [ ] No blocking `npm audit` / `pip-audit` issues above configured thresholds.
+- [ ] Smoke script passes against running stack (or documented exception).
+- [ ] Manual UX spot-check complete.
