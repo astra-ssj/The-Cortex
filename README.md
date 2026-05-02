@@ -186,4 +186,10 @@ See `.cursorrules` for non‑negotiable ZTAIP conventions when extending the cod
 
 ## License & contributing
 
-See repository license. Contribution guidelines follow `.cursorrules` (structlog, no naked LLM calls, SovereignModel patterns for new domain entities, append-only audit assumptions).
+Open source under the **Apache License 2.0** — see [`LICENSE`](LICENSE) and attributions in [`NOTICE`](NOTICE).
+
+Enterprise features, commercial licensing, or support may be offered separately; the Apache-licensed core remains usable without those terms.
+
+Contribution guidelines: [`CONTRIBUTING.md`](CONTRIBUTING.md) and `.cursorrules` (structlog, no naked LLM calls, SovereignModel patterns for new domain entities, append-only audit assumptions).
+
+CI runs Ruff, Bandit (Python), ESLint, Vitest, `tsc`, build, and **blocking** dependency audits (`pip-audit`, `npm audit`) on main/PRs.

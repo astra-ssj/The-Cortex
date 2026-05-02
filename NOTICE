@@ -1,0 +1,11 @@
+CORTEX
+Copyright 2026 AstraLabs-AI
+
+This product includes software developed as part of the CORTEX project
+(https://github.com/AstraLabs-AI/The-Cortex).
+
+Third-party open source libraries are subject to their respective licenses
+as declared in pyproject.toml and frontend/package.json.
+
+Bundled skill content under services/skills/ may include additional
+attribution or license terms per subdirectory where noted.

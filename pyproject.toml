@@ -11,6 +11,7 @@ name = "cortex"
 version = "0.1.0"
 description = "CORTEX — enterprise organizational intelligence (ZTAIP)"
 readme = "CORTEX_SETUP.md"
+license = "Apache-2.0"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",
@@ -23,7 +24,7 @@ dependencies = [
     "pypdf>=4",
     "python-docx>=1.0",
     "python-multipart>=0.0.22",
-    "python-jose[cryptography]==3.3.0",
+    "python-jose[cryptography]>=3.4.0",
     "passlib[bcrypt]==1.7.4",
     "cryptography>=46.0.6",
     # Security: minimum versions to avoid known CVEs in transitive deps (pip-audit)

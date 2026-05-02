@@ -8,12 +8,17 @@ Release lines **v0.1.0–v0.7.x** below reflect repository tags and merge histor
 
 ### Added
 
+- `NOTICE` file for Apache-style attribution; SPDX **Apache-2.0** declared in `pyproject.toml`.
+- Frontend **Vitest** smoke test for default framework id bundle; CI runs **`npm run lint`** and **`npm run test`**.
+- CI **Bandit** scope expanded to `api`, `core`, `compliance`, `db`, `ontology`, and compliance-engine app; **Ruff** includes `compliance`, `db`, `ontology`, `tests`.
+- CI **pip-audit** and **npm audit** run as **blocking** checks (security job).
 - `scripts/smoke_happy_path.sh`: HTTP smoke for health → readiness → login → frameworks → human-review approve → ZTAIP status → `X-Request-ID` propagation.
 - CI job **Backend — HTTP smoke** runs the script against Uvicorn + Postgres.
 - `RequestIDMiddleware`: echoes or generates **`X-Request-ID`** on API responses.
 
 ### Changed
 
+- **License**: MIT → **Apache License 2.0** (see `LICENSE`).
 - Docker Compose: **GraphJin** starts only with **`docker compose --profile graphql`** (port 8080 off by default).
 
 ## [0.7.4] — 2026-05-01

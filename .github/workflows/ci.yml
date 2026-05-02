@@ -28,11 +28,17 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
 
+      - name: ESLint
+        run: npm run lint
+
+      - name: Unit tests (Vitest)
+        run: npm run test
+
       - name: Build
         run: npm run build
 
       - name: npm audit
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=high
 
   backend:
     name: Backend — Lint + SAST
@@ -63,7 +69,7 @@ jobs:
         run: |
           set -e
           paths=""
-          for d in services/compliance-engine/app api core; do
+          for d in api core compliance db ontology services/compliance-engine/app tests; do
             if [ -d "$d" ]; then
               paths="$paths $d"
             fi
@@ -76,11 +82,7 @@ jobs:
 
       - name: Bandit SAST
         run: |
-          if [ ! -d services/compliance-engine/app ]; then
-            echo "Bandit: scan path not found, skipping"
-            exit 0
-          fi
-          bandit -r services/compliance-engine/app/ -ll --skip B101
+          bandit -r api core compliance db ontology services/compliance-engine/app -ll --skip B101
 
   backend-tests:
     name: Backend — Pytest (Postgres)
@@ -196,12 +198,9 @@ jobs:
 
       - name: Python dependency audit
         run: |
-          pip install pip-audit
-          if [ -f pyproject.toml ]; then
-            pip install -e "." 2>/dev/null || true
-          fi
-          pip-audit || true
-        continue-on-error: true
+          python -m pip install --upgrade pip pip-audit
+          pip install -e "."
+          pip-audit
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -212,5 +211,4 @@ jobs:
         run: |
           cd frontend
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
-          npm audit --audit-level=high || true
-        continue-on-error: true
+          npm audit --audit-level=high

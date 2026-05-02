@@ -34,6 +34,7 @@ We respond within 48 hours and patch critical issues within 7 days.
 | SQL injection        | Parameterised queries only   |
 | Evidence integrity   | SHA-256 hash chain           |
 | Tenant isolation     | `org_id` scoping on all queries |
+| Supply chain (CI)    | `pip-audit` and `npm audit` (high severity threshold for npm) on push/PR to `main` |
 
 ## Known Development Limitations
 
