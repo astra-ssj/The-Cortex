@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import AssessmentStream from "../components/AssessmentStream";
 import { LogoFull } from "../components/Logo";
-import { putOnboardingStep } from "../api/client";
+import { assessmentsApi, putOnboardingStep } from "../api/client";
 import { invalidateComplianceData } from "../store/complianceStore";
 
 type StructureType = "single" | "multi";
@@ -77,15 +77,29 @@ export default function Onboarding() {
   });
   const [busy, setBusy] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [assessmentRunAccepted, setAssessmentRunAccepted] = useState(true);
   const [error, setError] = useState("");
+
+  const orgId = localStorage.getItem("cortex_org_id") ?? "demo-org-001";
 
   const totalControls = useMemo(
     () => frameworks.reduce((sum, id) => sum + (FRAMEWORK_CARDS.find((f) => f.id === id)?.control_count ?? 0), 0),
     [frameworks]
   );
 
-  function handleRunAssessment() {
-    setStreaming(true);
+  async function handleRunAssessment() {
+    setBusy(true);
+    setError("");
+    try {
+      await assessmentsApi.run({ org_id: orgId, frameworks });
+      setAssessmentRunAccepted(true);
+      setStreaming(true);
+    } catch {
+      setAssessmentRunAccepted(false);
+      setStreaming(true);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleSkip() {
@@ -168,8 +182,9 @@ export default function Onboarding() {
       {streaming ? (
         <AssessmentStream
           orgName={localStorage.getItem("cortex_company") ?? "Your Organisation"}
-          orgId={localStorage.getItem("cortex_org_id") ?? "demo-org-001"}
+          orgId={orgId}
           frameworks={frameworks}
+          runAccepted={assessmentRunAccepted}
           onComplete={() => {
             void (async () => {
               try {
@@ -186,19 +201,6 @@ export default function Onboarding() {
                 /* non-blocking */
               }
               localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
-
-              const token = localStorage.getItem("cortex_token");
-              const orgId = localStorage.getItem("cortex_org_id") ?? "demo-org-001";
-              void fetch("/api/v1/assessments/run", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ org_id: orgId, frameworks }),
-              }).catch(() => {
-                /* Assessment endpoint may be unavailable — non-blocking */
-              });
 
               invalidateComplianceData(queryClient, orgId);
               navigate("/dashboard", { replace: true });

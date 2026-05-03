@@ -128,25 +128,17 @@ export function useAssessmentStream() {
             signal: ac.signal,
             headers: token ? { Authorization: `Bearer ${token}` } : {},
             onmessage(ev) {
-              if (ev.event === "run_done") {
-                invalidateComplianceData(queryClient, organizationId);
-                setIsStreaming(false);
-                abortRef.current = null;
-                ac.abort();
-                return;
-              }
               if (!ev.data?.trim()) return;
               try {
                 const data = JSON.parse(ev.data) as AssessmentEvent;
-                if (data?.kind === "run_done") {
-                  invalidateComplianceData(queryClient, organizationId);
-                  setIsStreaming(false);
-                  abortRef.current = null;
-                  ac.abort();
-                  return;
-                }
                 if (data && typeof data === "object" && "kind" in data) {
                   setEvents((prev) => [...prev, data]);
+                  if (data.kind === "run_done") {
+                    invalidateComplianceData(queryClient, organizationId);
+                    setIsStreaming(false);
+                    abortRef.current = null;
+                    ac.abort();
+                  }
                 }
               } catch {
                 // ignore parse errors

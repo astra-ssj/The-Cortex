@@ -7,6 +7,8 @@ import {
 } from "../store/complianceStore";
 import { useReviewQueue } from "../api/client";
 import { isPrimaryNavActive } from "../lib/navActive";
+import { showNavSoonForPath } from "../lib/featureFlags";
+import { Badge } from "./ui/Badge";
 
 const SIDEBAR_W = 220;
 
@@ -19,6 +21,7 @@ type NavItem = {
   path: string;
   icon: string;
   badge?: "findings" | "review";
+  soon?: boolean;
 };
 
 const POSTURE: NavItem[] = [
@@ -31,14 +34,14 @@ const POSTURE: NavItem[] = [
 const GOVERNANCE: NavItem[] = [
   { label: "Review Queue", path: "/review-queue", icon: "⇌", badge: "review" },
   { label: "Audit Report", path: "/audit-report", icon: "⊡" },
-  { label: "AI Systems", path: "/ai-systems", icon: "◈" },
-  { label: "Intelligence", path: "/intelligence", icon: "◎" },
+  { label: "AI Systems", path: "/ai-systems", icon: "◈", soon: showNavSoonForPath("/ai-systems") },
+  { label: "Intelligence", path: "/intelligence", icon: "◎", soon: showNavSoonForPath("/intelligence") },
 ];
 
 const OPERATIONS: NavItem[] = [
   { label: "Cloud Scans", path: "/cloud-scans", icon: "☁" },
   { label: "Integrations", path: "/integrations", icon: "⚡" },
-  { label: "Roadmap", path: "/roadmap", icon: "▸" },
+  { label: "Roadmap", path: "/roadmap", icon: "▸", soon: showNavSoonForPath("/roadmap") },
 ];
 
 function userInitials(user: Record<string, unknown> | null): string {
@@ -241,6 +244,11 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
                 {item.icon}
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>{item.label}</span>
+              {item.soon ? (
+                <Badge variant="neutral" size="xs">
+                  Soon
+                </Badge>
+              ) : null}
               {badgeCount != null && badgeCount > 0 ? (
                 <span
                   style={{

@@ -1,229 +1,203 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { AssessmentEvent } from "../types/compliance";
+import { frameworkLabelFromId } from "../lib/frameworkRegistry";
+import { useAssessmentStream } from "../store/complianceStore";
 
 export interface AssessmentStreamProps {
   orgName: string;
   orgId: string;
   frameworks: string[];
+  /** POST /assessments/run succeeded — connect SSE. If false, show honest fallback only. */
+  runAccepted: boolean;
   onComplete: () => void;
 }
 
 type LineCls = "ok" | "warn" | "crit" | "info";
 
-const FW_META: Record<
-  string,
-  {
-    name: string;
-    short: string;
-    score: number;
-    color: string;
-    lines: Array<{ delay: number; cls: LineCls; text: string }>;
-  }
-> = {
-  "gdpr-2016-679": {
-    name: "GDPR 2016/679",
-    short: "GDPR",
-    score: 58,
-    color: "var(--fw-gdpr)",
-    lines: [
-      { delay: 0, cls: "ok", text: "[GDPR] Art.5   — Data processing principles ......... COMPLIANT    [conf: 0.91]" },
-      { delay: 300, cls: "ok", text: "[GDPR] Art.6   — Lawful basis for processing ........ COMPLIANT    [conf: 0.88]" },
-      { delay: 600, cls: "warn", text: "[GDPR] Art.32  — Security of processing ............. PARTIAL      [conf: 0.69] → review" },
-      { delay: 900, cls: "crit", text: "[GDPR] Art.33  — 72-hour breach notification ........ NON_COMPLIANT [conf: 0.58] → review ⚠" },
-      { delay: 1200, cls: "warn", text: "[GDPR] Art.44  — International transfers ............ PARTIAL      [conf: 0.71] → review" },
-    ],
-  },
-  "nis2-2022-2555": {
-    name: "NIS2 Directive",
-    short: "NIS2",
-    score: 44,
-    color: "var(--fw-nis2)",
-    lines: [
-      { delay: 0, cls: "warn", text: "[NIS2] Art.21(1) — Risk management measures ......... PARTIAL      [conf: 0.67]" },
-      { delay: 300, cls: "crit", text: "[NIS2] Art.23(4)(a) — 24h CSIRT notification ........ NON_COMPLIANT [conf: 0.61] → review ⚠" },
-      { delay: 600, cls: "crit", text: "[NIS2] Art.21(2)(d) — Supply chain security ......... NON_COMPLIANT [conf: 0.64] → review ⚠" },
-      { delay: 900, cls: "warn", text: "[NIS2] Art.21(2)(e) — Network security measures ..... PARTIAL      [conf: 0.72]" },
-    ],
-  },
-  "iso27001-2022": {
-    name: "ISO/IEC 27001:2022",
-    short: "ISO 27001",
-    score: 62,
-    color: "var(--fw-iso)",
-    lines: [
-      { delay: 0, cls: "ok", text: "[ISO]  A.5.1   — Information security policies ...... COMPLIANT    [conf: 0.94]" },
-      { delay: 300, cls: "ok", text: "[ISO]  A.5.15  — Access control policy .............. COMPLIANT    [conf: 0.91]" },
-      { delay: 600, cls: "ok", text: "[ISO]  A.6.1   — Screening .......................... COMPLIANT    [conf: 0.89]" },
-      { delay: 900, cls: "warn", text: "[ISO]  A.8.8   — Management of vulnerabilities ....... PARTIAL      [conf: 0.68] → review" },
-      { delay: 1200, cls: "warn", text: "[ISO]  A.5.23  — Cloud information security ......... PARTIAL      [conf: 0.71] → review" },
-    ],
-  },
-  "eu-ai-act-2024": {
-    name: "EU AI Act 2024",
-    short: "EU AI Act",
-    score: 41,
-    color: "var(--fw-nis2)",
-    lines: [
-      { delay: 0, cls: "crit", text: "[EUAI] Art.9   — Risk management system ............. NON_COMPLIANT [conf: 0.55] → review ⚠" },
-      { delay: 300, cls: "crit", text: "[EUAI] Art.14  — Human oversight mechanism .......... NON_COMPLIANT [conf: 0.52] → review ⚠" },
-      { delay: 600, cls: "warn", text: "[EUAI] Art.13  — Transparency obligations ........... PARTIAL      [conf: 0.66]" },
-      { delay: 900, cls: "warn", text: "[EUAI] Art.17  — Quality management system .......... PARTIAL      [conf: 0.68]" },
-    ],
-  },
-  "nist-csf-2.0": {
-    name: "NIST CSF 2.0",
-    short: "NIST CSF",
-    score: 67,
-    color: "var(--fw-nist)",
-    lines: [
-      { delay: 0, cls: "ok", text: "[NIST] ID.AM-1 — Asset inventory .................... COMPLIANT    [conf: 0.93]" },
-      { delay: 300, cls: "ok", text: "[NIST] PR.AC-1 — Identity management ............... COMPLIANT    [conf: 0.87]" },
-      { delay: 600, cls: "ok", text: "[NIST] DE.CM-1 — Network monitoring ................ COMPLIANT    [conf: 0.85]" },
-      { delay: 900, cls: "warn", text: "[NIST] RS.RP-1 — Response plan ..................... PARTIAL      [conf: 0.70]" },
-    ],
-  },
-  "cyber-essentials-v3.1": {
-    name: "Cyber Essentials v3.1",
-    short: "Cyber Ess.",
-    score: 78,
-    color: "var(--fw-ce)",
-    lines: [
-      { delay: 0, cls: "ok", text: "[CE]   Firewalls and internet gateways .............. PARTIAL      [conf: 0.81]" },
-      { delay: 300, cls: "ok", text: "[CE]   Secure configuration ........................ COMPLIANT    [conf: 0.86]" },
-      { delay: 600, cls: "ok", text: "[CE]   Access control .............................. COMPLIANT    [conf: 0.91]" },
-      { delay: 900, cls: "ok", text: "[CE]   Malware protection ......................... COMPLIANT    [conf: 0.88]" },
-    ],
-  },
-  "csa-ccm-v4": {
-    name: "CSA CCM v4.0",
-    short: "CSA CCM",
-    score: 61,
-    color: "var(--fw-ccm)",
-    lines: [
-      { delay: 0, cls: "ok", text: "[CSA]  AIS-01  — Application security .............. COMPLIANT    [conf: 0.84]" },
-      { delay: 300, cls: "warn", text: "[CSA]  IVS-04  — Network security .................. PARTIAL      [conf: 0.69]" },
-      { delay: 600, cls: "warn", text: "[CSA]  DSP-07  — Data classification ............... PARTIAL      [conf: 0.71]" },
-    ],
-  },
-  "eu-cybersecurity-act": {
-    name: "EU Cybersecurity Act",
-    short: "EU Cyber",
-    score: 55,
-    color: "var(--fw-soc2)",
-    lines: [
-      { delay: 0, cls: "ok", text: "[EUCA] Art.46  — Certification schemes ............. PARTIAL      [conf: 0.73]" },
-      { delay: 300, cls: "warn", text: "[EUCA] Art.49  — Assurance levels .................. PARTIAL      [conf: 0.67]" },
-    ],
-  },
-};
-
-function buildTimeline(frameworks: string[], orgName: string, orgId: string) {
-  const timeline: Array<{
-    time: number;
-    cls: LineCls;
-    text: string;
-    fwId?: string;
-  }> = [];
-
-  timeline.push(
-    { time: 100, cls: "info", text: `[ZTAIP] Initialising assessment engine v2.4.1` },
-    { time: 400, cls: "info", text: `[ZTAIP] Connected to ${orgName} · ${orgId}` },
-    { time: 700, cls: "info", text: `[ZTAIP] Loading ${frameworks.length} frameworks` },
-  );
-
-  const fw_budget = (8000 - 700 - 800) / Math.max(frameworks.length, 1);
-
-  frameworks.forEach((fwId, fwIdx) => {
-    const meta = FW_META[fwId];
-    if (!meta) return;
-
-    const fwStart = 700 + fwIdx * fw_budget;
-
-    timeline.push({
-      time: fwStart,
-      cls: "info",
-      text: `[ZTAIP] Assessing ${meta.name}...`,
-    });
-
-    meta.lines.forEach((line) => {
-      timeline.push({
-        time: fwStart + 200 + line.delay,
-        cls: line.cls,
-        text: line.text,
-      });
-    });
-
-    timeline.push({
-      time: fwStart + fw_budget - 100,
-      cls: "ok",
-      text: `[ZTAIP] ${meta.short} complete → score: ${meta.score}%`,
-      fwId,
-    });
-  });
-
-  const footerStart = 8000 - 800;
-  const reviewCount =
-    frameworks.filter((id) => (FW_META[id]?.score ?? 100) < 65).length * 2;
-
-  timeline.push(
-    { time: footerStart, cls: "info", text: `[ZTAIP] Assessment complete · all frameworks processed` },
-    { time: footerStart + 200, cls: "warn", text: `[ZTAIP] ${reviewCount} items queued for human review` },
-    { time: footerStart + 400, cls: "ok", text: `[ZTAIP] Audit fabric updated · findings logged` },
-    { time: footerStart + 600, cls: "info", text: `[ZTAIP] Redirecting to dashboard...` },
-  );
-
-  return timeline;
+function lineClassForEvent(ev: AssessmentEvent): LineCls {
+  if (ev.kind === "error") return "crit";
+  if (ev.kind === "control_result" && ev.status === "error") return "crit";
+  if (ev.kind === "run_start" || ev.kind === "framework_start" || ev.kind === "run_done") return "info";
+  return "ok";
 }
 
-export default function AssessmentStream({ orgName, orgId, frameworks, onComplete }: AssessmentStreamProps) {
-  const [lines, setLines] = useState<Array<{ cls: LineCls; text: string; id: number }>>([]);
-  const [scores, setScores] = useState<Record<string, number>>({});
-  const [overallScore, setOverallScore] = useState(0);
-  const [done, setDone] = useState(false);
+function formatEventLine(ev: AssessmentEvent): string | null {
+  switch (ev.kind) {
+    case "run_start":
+      return `[ZTAIP] Run started · ${ev.frameworkIds.length} framework(s) · ${ev.runId.slice(0, 8)}…`;
+    case "framework_start":
+      return `[ZTAIP] Assessing ${ev.frameworkName}…`;
+    case "control_context":
+      return null;
+    case "control_result": {
+      const skill = ev.skill_name ? ` · ${ev.skill_name}` : "";
+      return `[${ev.frameworkId}] ${ev.controlName} — ${ev.status}${skill}`;
+    }
+    case "framework_done":
+      return `[ZTAIP] ${frameworkLabelFromId(ev.frameworkId)} — complete`;
+    case "run_done":
+      return `[ZTAIP] Assessment run finished · ${ev.runId.slice(0, 8)}…`;
+    case "error":
+      return `[ERROR] ${ev.controlId ?? "run"} — ${ev.message}`;
+    default:
+      return null;
+  }
+}
+
+export default function AssessmentStream({
+  orgName,
+  orgId,
+  frameworks,
+  runAccepted,
+  onComplete,
+}: AssessmentStreamProps) {
+  const { events, isStreaming, streamError, startStream, stopStream } = useAssessmentStream();
   const bodyRef = useRef<HTMLDivElement>(null);
-  const lineId = useRef(0);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
-
-  const frameworksWithMeta = frameworks.filter((id): id is string => Boolean(FW_META[id]));
+  const completedRef = useRef(false);
+  const [showWaitingPrompt, setShowWaitingPrompt] = useState(false);
 
   useEffect(() => {
-    const timeline = buildTimeline(frameworks, orgName, orgId);
-    const timers: ReturnType<typeof setTimeout>[] = [];
+    if (!runAccepted) return;
+    startStream(orgId, frameworks);
+    return () => stopStream();
+  }, [runAccepted, orgId, frameworks, startStream, stopStream]);
 
-    timeline.forEach((event) => {
-      const t = setTimeout(() => {
-        const id = lineId.current++;
-        setLines((prev) => [...prev, { cls: event.cls, text: event.text, id }]);
-        if (bodyRef.current) {
-          bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
-        }
-        if (event.fwId) {
-          const score = FW_META[event.fwId]?.score ?? 0;
-          setScores((prev) => ({ ...prev, [event.fwId!]: score }));
-        }
-      }, event.time);
-      timers.push(t);
-    });
+  useEffect(() => {
+    if (!runAccepted) return;
+    const t = window.setTimeout(() => setShowWaitingPrompt(true), 3000);
+    return () => window.clearTimeout(t);
+  }, [runAccepted]);
 
-    const avgTimer = setTimeout(() => {
-      const known = frameworks.filter((id) => FW_META[id]);
-      const avg = Math.round(
-        known.reduce((sum, id) => sum + (FW_META[id]?.score ?? 0), 0) / Math.max(known.length, 1),
-      );
-      setOverallScore(avg);
-    }, 7400);
-    timers.push(avgTimer);
+  useEffect(() => {
+    if (events.length > 0) setShowWaitingPrompt(false);
+  }, [events.length]);
 
-    const doneTimer = setTimeout(() => {
-      setDone(true);
-      setTimeout(() => {
-        onCompleteRef.current();
-      }, 600);
-    }, 8200);
-    timers.push(doneTimer);
+  useEffect(() => {
+    if (bodyRef.current) {
+      bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+    }
+  }, [events]);
 
-    return () => timers.forEach(clearTimeout);
-  }, [frameworks, orgName, orgId]);
+  useEffect(() => {
+    if (completedRef.current) return;
+    if (!events.some((e) => e.kind === "run_done")) return;
+    completedRef.current = true;
+    const t = window.setTimeout(() => onCompleteRef.current(), 600);
+    return () => window.clearTimeout(t);
+  }, [events]);
+
+  const lines = useMemo(() => {
+    const out: Array<{ id: string; cls: LineCls; text: string }> = [];
+    let n = 0;
+    for (const ev of events) {
+      const text = formatEventLine(ev);
+      if (!text) continue;
+      out.push({
+        id: `${n++}-${ev.kind}`,
+        cls: lineClassForEvent(ev),
+        text,
+      });
+    }
+    return out;
+  }, [events]);
+
+  const fwMetrics = useMemo(() => {
+    const m: Record<string, { label: string; controls: number; done: boolean }> = {};
+    for (const fid of frameworks) {
+      m[fid] = { label: frameworkLabelFromId(fid), controls: 0, done: false };
+    }
+    for (const ev of events) {
+      if (ev.kind === "framework_start") {
+        m[ev.frameworkId] = {
+          label: ev.frameworkName,
+          controls: m[ev.frameworkId]?.controls ?? 0,
+          done: false,
+        };
+      }
+      if (ev.kind === "control_result") {
+        const cur = m[ev.frameworkId] ?? { label: frameworkLabelFromId(ev.frameworkId), controls: 0, done: false };
+        m[ev.frameworkId] = { ...cur, controls: cur.controls + 1 };
+      }
+      if (ev.kind === "framework_done") {
+        const cur = m[ev.frameworkId] ?? { label: frameworkLabelFromId(ev.frameworkId), controls: 0, done: false };
+        m[ev.frameworkId] = { ...cur, done: true };
+      }
+    }
+    return m;
+  }, [events, frameworks]);
+
+  const totalControlsAssessed = useMemo(
+    () => events.filter((e): e is Extract<AssessmentEvent, { kind: "control_result" }> => e.kind === "control_result").length,
+    [events],
+  );
+
+  if (!runAccepted || streamError) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "var(--bg)",
+          display: "flex",
+          flexDirection: "column",
+          zIndex: 1000,
+        }}
+      >
+        <header
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 28px",
+            height: "52px",
+            background: "var(--sidebar)",
+            borderBottom: "1px solid var(--border-subtle)",
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontFamily: "var(--font-sans)", fontWeight: 800, fontSize: 15, color: "var(--text)" }}>CORTEX</span>
+        </header>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 32,
+            textAlign: "center",
+            gap: 20,
+          }}
+        >
+          <p style={{ fontFamily: "var(--font-sans)", fontSize: 15, color: "var(--text-secondary)", maxWidth: 440, lineHeight: 1.6 }}>
+            Your first assessment is running in the background. Results will appear on your dashboard shortly.
+          </p>
+          <button
+            type="button"
+            onClick={() => onCompleteRef.current()}
+            style={{
+              padding: "12px 22px",
+              borderRadius: 10,
+              border: "none",
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--cyan) 60%, black), var(--cyan))",
+              color: "var(--bg)",
+              fontFamily: "var(--font-sans)",
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: "pointer",
+            }}
+          >
+            Go to Dashboard
+          </button>
+          {streamError ? (
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)" }}>{streamError}</p>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -234,8 +208,6 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
         display: "flex",
         flexDirection: "column",
         zIndex: 1000,
-        opacity: done ? 0 : 1,
-        transition: "opacity 0.6s ease",
       }}
     >
       <div
@@ -331,7 +303,7 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
               letterSpacing: "1px",
             }}
           >
-            ZTAIP — AI Assessment Engine
+            ZTAIP — AI Assessment Engine {isStreaming ? "· LIVE" : ""}
           </div>
           <div
             ref={bodyRef}
@@ -344,6 +316,11 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
               lineHeight: "1.9",
             }}
           >
+            {showWaitingPrompt && lines.length === 0 ? (
+              <div style={{ color: "var(--text-tertiary)", marginBottom: 12 }}>
+                Waiting for assessment to start…
+              </div>
+            ) : null}
             {lines.map((line) => (
               <div
                 key={line.id}
@@ -356,7 +333,9 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
                         ? "var(--red)"
                         : line.cls === "warn"
                           ? "var(--amber)"
-                          : "var(--cyan)",
+                          : line.cls === "info"
+                            ? "var(--cyan)"
+                            : "var(--cyan)",
                 }}
               >
                 {line.text}
@@ -385,16 +364,17 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
               marginBottom: "16px",
             }}
           >
-            FRAMEWORK POSTURE
+            FRAMEWORK ACTIVITY
           </div>
 
-          {frameworksWithMeta.map((fwId) => {
-            const meta = FW_META[fwId];
-            if (!meta) return null;
-            const score = scores[fwId] ?? 0;
-            const pct = score;
-            const color =
-              score >= 70 ? "var(--green)" : score >= 50 ? "var(--amber)" : score > 0 ? "var(--red)" : "var(--text-quiet)";
+          {frameworks.map((fwId) => {
+            const meta = fwMetrics[fwId] ?? {
+              label: frameworkLabelFromId(fwId),
+              controls: 0,
+              done: false,
+            };
+            const pct = meta.done ? 100 : Math.min(96, meta.controls > 0 ? 12 + meta.controls * 3 : 0);
+            const color = meta.done ? "var(--green)" : meta.controls > 0 ? "var(--cyan)" : "var(--text-quiet)";
 
             return (
               <div
@@ -402,7 +382,7 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
                 style={{
                   background: "var(--card)",
                   border:
-                    score > 0
+                    meta.controls > 0 || meta.done
                       ? `1px solid color-mix(in srgb, ${color} 27%, transparent)`
                       : "1px solid var(--border-subtle)",
                   borderRadius: "8px",
@@ -420,20 +400,19 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text)" }}>{meta.name}</div>
+                    <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text)" }}>{meta.label}</div>
                   </div>
                   <div
                     style={{
                       fontFamily: "var(--font-sans)",
-                      fontWeight: 800,
-                      fontSize: "20px",
-                      color: score > 0 ? color : "var(--text-quiet)",
-                      transition: "color 0.5s ease",
-                      minWidth: "48px",
+                      fontWeight: 700,
+                      fontSize: "13px",
+                      color: "var(--text-secondary)",
+                      minWidth: "52px",
                       textAlign: "right",
                     }}
                   >
-                    {score > 0 ? `${score}%` : "—"}
+                    {meta.controls > 0 ? `${meta.controls} ctrl` : meta.done ? "Done" : "—"}
                   </div>
                 </div>
 
@@ -449,24 +428,24 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
                   />
                 </div>
 
-                {score > 0 ? (
+                {meta.done ? (
                   <div
                     style={{
                       marginTop: "6px",
                       fontSize: "10px",
-                      color,
+                      color: "var(--green)",
                       fontFamily: "var(--font-mono)",
                       letterSpacing: "0.5px",
                     }}
                   >
-                    {score >= 70 ? "● PARTIAL" : score >= 50 ? "● PARTIAL — HIGH" : "● NON-COMPLIANT — CRITICAL"}
+                    ● Framework stream complete
                   </div>
                 ) : null}
               </div>
             );
           })}
 
-          {overallScore > 0 ? (
+          {totalControlsAssessed > 0 ? (
             <div
               style={{
                 background: "var(--card)",
@@ -487,28 +466,13 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
                   marginBottom: "8px",
                 }}
               >
-                OVERALL POSTURE
+                RUN PROGRESS
               </div>
-              <div
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontWeight: 800,
-                  fontSize: "40px",
-                  color:
-                    overallScore >= 70 ? "var(--green)" : overallScore >= 50 ? "var(--amber)" : "var(--red)",
-                }}
-              >
-                {overallScore}%
+              <div style={{ fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: "28px", color: "var(--cyan)" }}>
+                {totalControlsAssessed}
               </div>
-              <div
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-tertiary)",
-                  marginTop: "4px",
-                  fontFamily: "var(--font-mono)",
-                }}
-              >
-                Assessment complete
+              <div style={{ fontSize: "11px", color: "var(--text-tertiary)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>
+                controls assessed (live stream)
               </div>
             </div>
           ) : null}
