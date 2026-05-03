@@ -93,6 +93,7 @@ export function useZtaipStatus() {
     queryKey: ztaipStatusQueryKey,
     queryFn: () => ztaipApi.getStatus() as Promise<ZTAIPStatus>,
     staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 }
 

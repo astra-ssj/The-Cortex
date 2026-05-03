@@ -8,11 +8,8 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { getToken, getUser, ALL_FRAMEWORK_IDS } from "./api/client";
-import { LogoFull } from "./components/Logo";
+import { getToken, getUser } from "./api/client";
 import Login from "./pages/Login";
-import { DemoToggle } from "./components/DemoToggle";
-import { useOrgContext } from "./hooks/useOrgContext";
 import Register from "./pages/Register";
 import Onboarding from "./pages/Onboarding";
 import { ComplianceDashboard } from "./ComplianceDashboard";
@@ -23,201 +20,17 @@ import { AuditReport } from "./components/AuditReport";
 import { Integrations } from "./components/Integrations";
 import { ProjectTracker } from "./ProjectTracker";
 import { FrameworkDetailPage } from "./FrameworkDetailPage";
-import { useAssessmentStream } from "./store/complianceStore";
 import Intelligence from "./pages/Intelligence";
 import CloudScans from "./pages/CloudScans";
 import AISystems from "./pages/AISystems";
 import { HelpPanel } from "./components/HelpPanel";
 import { clearCortexBrowserSession } from "./lib/cortexSession";
-import { PrimaryNav } from "./components/PrimaryNav";
+import { Sidebar, SIDEBAR_WIDTH_PX } from "./components/Sidebar";
+import { TopBar } from "./components/TopBar";
+import Settings from "./pages/Settings";
 
-/** Optional production/staging label from env; falls back to DEV when running Vite dev server. */
-function DeployEnvBadge() {
-  const custom = import.meta.env.VITE_CORTEX_DEPLOY_LABEL?.trim();
-  const label = custom || (import.meta.env.DEV ? "DEV" : "");
-  if (!label) return null;
-  const isDev = !custom && import.meta.env.DEV;
-  return (
-    <span
-      title={isDev ? "Development build" : "Deployment label from VITE_CORTEX_DEPLOY_LABEL"}
-      style={{
-        marginLeft: 6,
-        padding: "2px 8px",
-        borderRadius: "var(--radius-sm)",
-        fontSize: "var(--text-micro)",
-        fontWeight: 700,
-        letterSpacing: "0.06em",
-        background: isDev ? "var(--amber-soft)" : "var(--blue-soft)",
-        border: `1px solid ${isDev ? "color-mix(in srgb, var(--amber) 45%, transparent)" : "color-mix(in srgb, var(--blue) 35%, transparent)"}`,
-        color: isDev ? "var(--amber)" : "var(--text)",
-      }}
-    >
-      {label.toUpperCase()}
-    </span>
-  );
-}
-
-function HeaderTrustStrip({ orgId, demoMode }: { orgId: string; demoMode: boolean }) {
-  const company =
-    typeof window !== "undefined" ? (localStorage.getItem("cortex_company") ?? "").trim() : "";
-  const showCompany = Boolean(company) && !demoMode;
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-2)",
-        flexWrap: "wrap",
-        maxWidth: "min(420px, 42vw)",
-      }}
-      title="Effective organisation scope for API requests (Demo toggle may show reference tenant while JWT stays yours)."
-    >
-      <span className="cortex-text-mono" style={{ fontSize: "var(--text-micro)", color: "var(--dim)" }}>
-        Org <span style={{ color: "var(--muted)" }}>{orgId}</span>
-      </span>
-      {demoMode && (
-        <span
-          style={{
-            padding: "2px 8px",
-            borderRadius: "var(--radius-sm)",
-            fontSize: "var(--text-micro)",
-            fontWeight: 700,
-            letterSpacing: "0.04em",
-            background: "var(--amber-soft)",
-            border: "1px solid color-mix(in srgb, var(--amber) 35%, transparent)",
-            color: "var(--amber)",
-          }}
-        >
-          DEMO DATA VIEW
-        </span>
-      )}
-      {showCompany && (
-        <span
-          style={{
-            fontSize: "var(--text-micro)",
-            color: "var(--dim)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            maxWidth: 160,
-          }}
-          title={company}
-        >
-          {company}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function LiveClock() {
-  const [time, setTime] = useState(new Date());
-  useEffect(() => {
-    const t = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <span className="cortex-text-mono" style={{ color: "var(--text-quiet)", fontSize: "13px" }}>
-      {time.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-    </span>
-  );
-}
-
-function HeaderShell({
-  user,
-  onLogout,
-  onOpenHelp,
-}: {
-  user: { name?: string; username?: string; [key: string]: unknown } | null;
-  onLogout: () => void;
-  onOpenHelp: () => void;
-}) {
-  const navigate = useNavigate();
-  const { orgId, demoMode } = useOrgContext();
-  const { isStreaming, startStream } = useAssessmentStream();
-
-  const handleRunAssessment = () => {
-    startStream(orgId, ALL_FRAMEWORK_IDS.split(","));
-    navigate("/dashboard");
-  };
-
-  return (
-    <>
-      <header className="cortex-header" aria-label="Application header">
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", minWidth: 0 }}>
-          <LogoFull size="md" />
-          <span style={{ color: "var(--sep)" }} aria-hidden>
-            ·
-          </span>
-          <div className="cortex-monitor-live flex items-center gap-1.5" title="Live monitoring status">
-            <span className="cortex-monitor-dot" aria-hidden />
-            <span style={{ color: "var(--green)", fontSize: "11px", fontWeight: 700 }}>MONITORING</span>
-          </div>
-          <span style={{ color: "var(--sep)" }} aria-hidden>
-            ·
-          </span>
-          <LiveClock />
-          <span style={{ color: "var(--sep)" }} aria-hidden>
-            ·
-          </span>
-          <HeaderTrustStrip orgId={orgId} demoMode={demoMode} />
-          <DeployEnvBadge />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
-          <DemoToggle />
-          {user && (
-            <span className="cortex-text-caption" style={{ color: "var(--text-quiet)" }}>
-              {(user as { name?: string }).name ??
-                (user as { username?: string }).username ??
-                (user as { email?: string }).email ??
-                "User"}
-            </span>
-          )}
-          <button type="button" onClick={onLogout} className="cortex-btn-ghost">
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <nav className="cortex-nav" aria-label="Primary">
-        <div className="cortex-nav-primary">
-          <PrimaryNav />
-        </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            flexShrink: 0,
-            paddingLeft: "var(--space-2)",
-            borderLeft: "1px solid var(--border)",
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleRunAssessment}
-            disabled={isStreaming}
-            className="cortex-btn-primary"
-          >
-            {isStreaming ? "Streaming…" : "Run Assessment"}
-          </button>
-          <button
-            type="button"
-            onClick={onOpenHelp}
-            className="cortex-btn-icon"
-            aria-label="Open help panel"
-            title="Help (keyboard shortcut H)"
-          >
-            ?
-          </button>
-        </div>
-      </nav>
-    </>
-  );
-}
-
-function MainChrome({ onOpenHelp }: { onOpenHelp: () => void }) {
-  const [user, setUser] = useState(() => getUser());
+function MainChrome() {
+  const [user, setUser] = useState(() => getUser() as Record<string, unknown> | null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -234,13 +47,22 @@ function MainChrome({ onOpenHelp }: { onOpenHelp: () => void }) {
     navigate("/login", { replace: true });
   };
 
+  const mainPad = { padding: "0 28px 40px", minHeight: "100vh" as const };
+
   return (
     <div className="cortex-app">
       <a href="#main-content" className="cortex-skip-link">
         Skip to main content
       </a>
-      <HeaderShell user={user} onLogout={onLogout} onOpenHelp={onOpenHelp} />
-      <main id="main-content" tabIndex={-1} aria-label="Main content">
+      <Sidebar user={user} onLogout={onLogout} />
+      <main
+        id="main-content"
+        tabIndex={-1}
+        aria-label="Main content"
+        className="cortex-main-chrome"
+        style={{ marginLeft: SIDEBAR_WIDTH_PX, ...mainPad }}
+      >
+        <TopBar />
         <Outlet />
       </main>
     </div>
@@ -343,6 +165,9 @@ function AppRoutes() {
         case "r":
           navigate("/review-queue");
           break;
+        case "s":
+          navigate("/settings");
+          break;
         case "h":
           setHelpOpen(true);
           break;
@@ -362,7 +187,7 @@ function AppRoutes() {
         <Route path="/register" element={<Register />} />
         <Route element={<AuthGate />}>
           <Route path="/onboarding" element={<Onboarding />} />
-          <Route element={<MainChrome onOpenHelp={() => setHelpOpen(true)} />}>
+          <Route element={<MainChrome />}>
             <Route path="/dashboard" element={<ComplianceDashboard />} />
             <Route path="/group" element={<GroupDashboard />} />
             <Route path="/frameworks" element={<ComplianceDashboard />} />
@@ -375,6 +200,7 @@ function AppRoutes() {
             <Route path="/cloud-scans" element={<CloudScans />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/evidence" element={<RemediationTracker />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Route>
