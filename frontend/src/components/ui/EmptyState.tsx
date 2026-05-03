@@ -97,7 +97,7 @@ export function DashboardEmpty({
   onViewFrameworks,
   orgName = "Your Organisation",
 }: {
-  onRunAssessment: () => void;
+  onRunAssessment?: () => void;
   onViewFrameworks?: () => void;
   orgName?: string;
 }) {

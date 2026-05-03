@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useRef, useEffect, useMemo, useState } from "react";
 import { ALL_FRAMEWORK_IDS } from "./api/client";
 import { useOrgContext } from "./hooks/useOrgContext";
+import { useRole } from "./hooks/useRole";
 import { useFrameworks } from "./hooks/useFrameworks";
 import {
   useAssessmentStream,
@@ -26,6 +27,8 @@ import {
 export function ComplianceDashboard() {
   const navigate = useNavigate();
   const { orgId, demoMode } = useOrgContext();
+  const { can } = useRole();
+  const canRunAssessment = can("canRunAssessment");
   const { data: frameworks, isLoading, error } = useFrameworks();
   const { data: posture, isLoading: postureLoading } = useCompliancePosture(orgId);
   const { data: ztaip } = useZtaipStatus();
@@ -212,7 +215,9 @@ export function ComplianceDashboard() {
         <div className="rounded-[10px] border" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
           <DashboardEmpty
             orgName={posture?.organisationName ?? "Your Organisation"}
-            onRunAssessment={() => navigate("/onboarding")}
+            onRunAssessment={
+              canRunAssessment ? () => navigate("/onboarding") : undefined
+            }
             onViewFrameworks={() => navigate("/frameworks")}
           />
         </div>
@@ -337,7 +342,8 @@ export function ComplianceDashboard() {
               type="button"
               variant="primary"
               size="sm"
-              disabled={isStreaming}
+              disabled={isStreaming || !canRunAssessment}
+              title={!canRunAssessment ? "Admin or Analyst required" : undefined}
               onClick={() => startStream(orgId, ALL_FRAMEWORK_IDS.split(","))}
             >
               {isStreaming ? "Streaming…" : "Run assessment"}

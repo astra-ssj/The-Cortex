@@ -15,6 +15,7 @@ import {
   type UpdateFindingBody,
 } from "./api/client";
 import { useOrgContext } from "./hooks/useOrgContext";
+import { useRole } from "./hooks/useRole";
 import {
   FRAMEWORK_FILTER_OPTIONS,
   frameworkIdFromFilterLabel,
@@ -103,6 +104,8 @@ export function RemediationTracker() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { orgId } = useOrgContext();
+  const { can } = useRole();
+  const canEditFindings = can("canEditFindings");
   const [findings, setFindings] = useState<RemediationFinding[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -204,6 +207,7 @@ export function RemediationTracker() {
   const handleDrop = useCallback(
     async (e: React.DragEvent, toStatus: FindingStatus) => {
       e.preventDefault();
+      if (!canEditFindings) return;
       setDraggedId(null);
       let data: { id: string; status: string };
       try {
@@ -224,7 +228,7 @@ export function RemediationTracker() {
         setError(err instanceof Error ? err : new Error(String(err)));
       }
     },
-    [selectedFinding, bumpComplianceCaches]
+    [selectedFinding, bumpComplianceCaches, canEditFindings]
   );
 
   const openDetail = (f: RemediationFinding) => {
@@ -337,7 +341,9 @@ export function RemediationTracker() {
         >
           <RemediationEmpty
             onViewFindings={() => navigate("/review-queue")}
-            onRunAssessment={() => navigate("/onboarding")}
+            onRunAssessment={
+              can("canRunAssessment") ? () => navigate("/onboarding") : undefined
+            }
           />
         </div>
       </div>
@@ -454,10 +460,10 @@ export function RemediationTracker() {
               {findingsByStatus[status].map((f) => (
                 <div
                   key={f.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, f)}
+                  draggable={canEditFindings}
+                  onDragStart={canEditFindings ? (e) => handleDragStart(e, f) : undefined}
                   onClick={() => openDetail(f)}
-                  className={`cursor-grab rounded-lg border border-cortex-border bg-cortex-surface p-3 transition hover:border-cortex-border active:cursor-grabbing ${draggedId === f.id ? "opacity-50" : ""}`}
+                  className={`${canEditFindings ? "cursor-grab active:cursor-grabbing" : "cursor-default"} rounded-lg border border-cortex-border bg-cortex-surface p-3 transition hover:border-cortex-border ${draggedId === f.id ? "opacity-50" : ""}`}
                 >
                   <span className={`rounded border px-2 py-0.5 font-data text-xs ${severityBadgeClass(f.severity)}`}>
                     {f.severity}
@@ -577,6 +583,7 @@ export function RemediationTracker() {
                       <input
                         type="checkbox"
                         checked={detailCompletedActions.includes(i)}
+                        disabled={!canEditFindings}
                         onChange={() => toggleActionComplete(i)}
                         className="mt-1 rounded border-cortex-border"
                       />
@@ -595,6 +602,7 @@ export function RemediationTracker() {
                     <label className="block font-ui text-xs text-cortex-muted">Owner</label>
                     <select
                       value={detailOwner}
+                      disabled={!canEditFindings}
                       onChange={(e) => setDetailOwner(e.target.value)}
                       className="mt-1 w-full rounded border border-cortex-border bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text"
                     >
@@ -610,6 +618,7 @@ export function RemediationTracker() {
                     <input
                       type="date"
                       value={detailDueDate}
+                      disabled={!canEditFindings}
                       onChange={(e) => setDetailDueDate(e.target.value)}
                       className="mt-1 w-full rounded border border-cortex-border bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text"
                     />
@@ -618,6 +627,7 @@ export function RemediationTracker() {
                     <label className="block font-ui text-xs text-cortex-muted">Priority</label>
                     <select
                       value={detailPriority}
+                      disabled={!canEditFindings}
                       onChange={(e) => setDetailPriority(e.target.value as "P0" | "P1" | "P2")}
                       className="mt-1 w-full rounded border border-cortex-border bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text"
                     >
@@ -635,15 +645,17 @@ export function RemediationTracker() {
                   <input
                     type="text"
                     value={detailNotes}
+                    disabled={!canEditFindings}
                     onChange={(e) => setDetailNotes(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
+                    onKeyDown={(e) => e.key === "Enter" && canEditFindings && handleAddNote()}
                     placeholder="Add a note"
                     className="flex-1 rounded border border-cortex-border bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text placeholder:text-cortex-muted"
                   />
                   <button
                     type="button"
+                    disabled={!canEditFindings}
                     onClick={handleAddNote}
-                    className="rounded bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text hover:bg-cortex-border"
+                    className="rounded bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text hover:bg-cortex-border disabled:opacity-50"
                   >
                     Add Note
                   </button>
@@ -662,6 +674,7 @@ export function RemediationTracker() {
                 <div className="mt-2 flex flex-wrap gap-2">
                   <select
                     value={detailStatus}
+                    disabled={!canEditFindings}
                     onChange={(e) => setDetailStatus(e.target.value as FindingStatus)}
                     className="rounded border border-cortex-border bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text"
                   >
@@ -674,7 +687,7 @@ export function RemediationTracker() {
                   <button
                     type="button"
                     onClick={handleSaveChanges}
-                    disabled={saving}
+                    disabled={!canEditFindings || saving}
                     className="rounded bg-cortex-blue px-4 py-2 font-ui text-sm font-medium text-white hover:bg-cortex-blue/90 disabled:opacity-50"
                   >
                     Save Changes
@@ -682,7 +695,7 @@ export function RemediationTracker() {
                   <button
                     type="button"
                     onClick={handleMarkRemediated}
-                    disabled={saving || detailStatus === "REMEDIATED"}
+                    disabled={!canEditFindings || saving || detailStatus === "REMEDIATED"}
                     className="rounded bg-cortex-green px-4 py-2 font-ui text-sm font-medium text-white hover:bg-cortex-green/90 disabled:opacity-50"
                   >
                     Mark Remediated
