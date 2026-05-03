@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { useRef, useEffect, useMemo, useState } from "react";
-import { ALL_FRAMEWORK_IDS } from "./api/client";
 import { useOrgContext } from "./hooks/useOrgContext";
 import { useRole } from "./hooks/useRole";
 import { useFrameworks } from "./hooks/useFrameworks";
@@ -15,6 +14,7 @@ import { TrustChip } from "./components/ui/TrustChip";
 import { Button, Card, Table, Tooltip } from "./components/ui";
 import { FrameworkComplianceTable } from "./components/FrameworkComplianceTable";
 import { CompliancePostureStatCards } from "./components/CompliancePostureStatCards";
+import { RunAssessmentModal } from "./components/RunAssessmentModal";
 import {
   eventDisplay,
   FRAMEWORK_TABLE_COLUMNS,
@@ -37,6 +37,7 @@ export function ComplianceDashboard() {
   const streamPanelRef = useRef<HTMLDivElement | null>(null);
   const [sortKey, setSortKey] = useState<FrameworkSortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [runModalOpen, setRunModalOpen] = useState(false);
 
   const streamPhase = streamError
     ? "error"
@@ -225,8 +226,22 @@ export function ComplianceDashboard() {
     );
   }
 
+  const modalFrameworks =
+    frameworks?.map((f) => ({ id: f.id, name: f.name })) ?? null;
+
   return (
     <div className="cortex-page-stack" style={{ background: "var(--shell)", color: "var(--text)" }}>
+      <RunAssessmentModal
+        open={runModalOpen}
+        onClose={() => {
+          setRunModalOpen(false);
+        }}
+        frameworks={modalFrameworks}
+        disabled={isStreaming || !canRunAssessment}
+        onConfirm={(ids) => {
+          startStream(orgId, ids);
+        }}
+      />
       <header>
         <h1 className="cortex-text-page-title">Compliance overview</h1>
         <p className="cortex-text-caption mt-2 max-w-2xl">
@@ -324,7 +339,7 @@ export function ComplianceDashboard() {
             Run assessment
           </h2>
           <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-            Stream assessment for {orgId} — all 8 frameworks
+            Stream assessment for {orgId}. Choose which frameworks to include when you start a run.
           </p>
           <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--text-quiet)" }}>
             {streamHint[streamPhase] ?? ""}
@@ -344,7 +359,9 @@ export function ComplianceDashboard() {
               size="sm"
               disabled={isStreaming || !canRunAssessment}
               title={!canRunAssessment ? "Admin or Analyst required" : undefined}
-              onClick={() => startStream(orgId, ALL_FRAMEWORK_IDS.split(","))}
+              onClick={() => {
+                setRunModalOpen(true);
+              }}
             >
               {isStreaming ? "Streaming…" : "Run assessment"}
             </Button>

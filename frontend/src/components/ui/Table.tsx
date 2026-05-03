@@ -5,6 +5,8 @@ export interface TableColumn {
   label: string;
   width?: string;
   align?: "left" | "center" | "right";
+  /** When false, column header is not a sort control. Defaults to true. */
+  sortable?: boolean;
 }
 
 export interface TableProps extends HTMLAttributes<HTMLDivElement> {
@@ -53,7 +55,7 @@ function TableHeader({
       <tr className="border-b border-cortex-border">
         {columns.map((col) => {
           const active = sortKey === col.key;
-          const sortable = onSort !== undefined;
+          const colSortable = onSort !== undefined && col.sortable !== false;
           return (
             <th
               key={col.key}
@@ -61,7 +63,7 @@ function TableHeader({
               style={col.width !== undefined ? { width: col.width } : undefined}
               className={`${alignClass(col.align)} px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide text-cortex-text-sec`}
             >
-              {sortable ? (
+              {colSortable ? (
                 <button
                   type="button"
                   className={`inline-flex items-center gap-1 rounded-[var(--radius-sm)] font-semibold uppercase tracking-wide text-cortex-text-sec transition-colors hover:text-cortex-text focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] ${active ? "text-cortex-text" : ""}`}

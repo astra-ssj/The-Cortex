@@ -1,10 +1,10 @@
 import { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ALL_FRAMEWORK_IDS } from "../api/client";
 import { DemoToggle } from "./DemoToggle";
+import { RunAssessmentModal } from "./RunAssessmentModal";
 import { useOrgContext } from "../hooks/useOrgContext";
 import { useRole } from "../hooks/useRole";
-import { useFramework } from "../hooks/useFrameworks";
+import { useFramework, useFrameworks } from "../hooks/useFrameworks";
 import { useAssessmentStream, useCompliancePosture } from "../store/complianceStore";
 import { Button } from "./ui/Button";
 
@@ -56,8 +56,10 @@ export function TopBar() {
   const { orgId, demoMode } = useOrgContext();
   const { can } = useRole();
   const { data: posture } = useCompliancePosture(orgId);
+  const { data: frameworks } = useFrameworks();
   const { isStreaming, startStream } = useAssessmentStream();
   const canRunAssessment = can("canRunAssessment");
+  const [runModalOpen, setRunModalOpen] = useState(false);
 
   const frameworkId =
     pathname.startsWith("/frameworks/") && pathname !== "/frameworks"
@@ -80,12 +82,23 @@ export function TopBar() {
     return `${orgName} · ${nFw} frameworks · Last assessed ${last}${demo}`;
   }, [demoMode, posture?.frameworks?.length, posture?.lastAssessed, posture?.organisationName, posture?.updatedAt]);
 
-  const handleRunAssessment = () => {
-    startStream(orgId, ALL_FRAMEWORK_IDS.split(","));
-    navigate("/dashboard");
-  };
+  const modalFrameworks =
+    frameworks?.map((f) => ({ id: f.id, name: f.name })) ?? null;
 
   return (
+    <>
+      <RunAssessmentModal
+        open={runModalOpen}
+        onClose={() => {
+          setRunModalOpen(false);
+        }}
+        frameworks={modalFrameworks}
+        disabled={isStreaming || !canRunAssessment}
+        onConfirm={(ids) => {
+          startStream(orgId, ids);
+          navigate("/dashboard");
+        }}
+      />
     <header
       style={{
         display: "flex",
@@ -139,11 +152,14 @@ export function TopBar() {
           size="md"
           disabled={isStreaming || !canRunAssessment}
           title={!canRunAssessment ? "Admin or Analyst required" : undefined}
-          onClick={handleRunAssessment}
+          onClick={() => {
+            setRunModalOpen(true);
+          }}
         >
           {isStreaming ? "Streaming…" : "Run Assessment"}
         </Button>
       </div>
     </header>
+    </>
   );
 }
