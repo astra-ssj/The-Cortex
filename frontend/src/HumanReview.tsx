@@ -9,6 +9,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUser, useReviewQueue, approveControl, overrideControl } from "./api/client";
 import { useOrgContext } from "./hooks/useOrgContext";
+import { useRole } from "./hooks/useRole";
 import {
   FRAMEWORK_FILTER_OPTIONS,
   type FrameworkFilterOption,
@@ -61,6 +62,9 @@ export function HumanReview() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { orgId } = useOrgContext();
+  const { can } = useRole();
+  const showApprove = can("canApproveReview");
+  const showOverride = can("canOverrideControl");
   const { items: rawItems, reviewed, isLoading, error } = useReviewQueue(orgId);
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("All");
   const [frameworkFilter, setFrameworkFilter] = useState<FrameworkFilter>("All");
@@ -192,7 +196,11 @@ export function HumanReview() {
             borderRadius: "10px",
           }}
         >
-          <ReviewQueueEmpty onRunAssessment={() => navigate("/onboarding")} />
+          <ReviewQueueEmpty
+            onRunAssessment={
+              can("canRunAssessment") ? () => navigate("/onboarding") : undefined
+            }
+          />
         </div>
       </div>
     );
@@ -338,7 +346,7 @@ export function HumanReview() {
                     <td className="px-4 py-3 font-data text-xs text-cortex-muted">{row.reference}</td>
                     <td className="px-4 py-3 font-data text-xs text-cortex-muted">{row.dateFlagged}</td>
                     <td className="px-4 py-3 text-right">
-                      {expandedApproveId === row.id ? (
+                      {expandedApproveId === row.id && showApprove ? (
                         <div className="inline-block rounded-lg border border-cortex-border bg-cortex-surface p-3 text-left">
                           <label className="block font-ui text-xs text-cortex-muted">Assessor Notes (required)</label>
                           <input
@@ -366,7 +374,7 @@ export function HumanReview() {
                             </button>
                           </div>
                         </div>
-                      ) : expandedOverrideId === row.id ? (
+                      ) : expandedOverrideId === row.id && showOverride ? (
                         <div className="inline-block rounded-lg border border-cortex-border bg-cortex-surface p-3 text-left">
                           <p className="font-ui text-xs text-cortex-muted">Current AI assessment: {row.assessment}</p>
                           <label className="mt-2 block font-ui text-xs text-cortex-muted">Your Assessment</label>
@@ -428,23 +436,29 @@ export function HumanReview() {
                             </button>
                           </div>
                         </div>
-                      ) : (
+                      ) : showApprove || showOverride ? (
                         <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedApproveId(row.id)}
-                            className="rounded bg-cortex-green/20 px-3 py-1.5 font-ui text-sm font-medium text-cortex-green hover:bg-cortex-green/30"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setExpandedOverrideId(row.id)}
-                            className="rounded bg-cortex-amber/20 px-3 py-1.5 font-ui text-sm font-medium text-cortex-amber hover:bg-cortex-amber/30"
-                          >
-                            Override
-                          </button>
+                          {showApprove ? (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedApproveId(row.id)}
+                              className="rounded bg-cortex-green/20 px-3 py-1.5 font-ui text-sm font-medium text-cortex-green hover:bg-cortex-green/30"
+                            >
+                              Approve
+                            </button>
+                          ) : null}
+                          {showOverride ? (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedOverrideId(row.id)}
+                              className="rounded bg-cortex-amber/20 px-3 py-1.5 font-ui text-sm font-medium text-cortex-amber hover:bg-cortex-amber/30"
+                            >
+                              Override
+                            </button>
+                          ) : null}
                         </div>
+                      ) : (
+                        <span className="font-ui text-xs text-cortex-muted">View only</span>
                       )}
                     </td>
                   </tr>

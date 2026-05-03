@@ -3,10 +3,13 @@
  * API client reads token via getToken() for Authorization header and SSE URL.
  */
 
+import type { Role } from "./lib/roles";
+
 export interface AuthUser {
   name: string;
   email: string;
-  role: "ciso" | "dpo" | "auditor";
+  /** RBAC — mirrors JWT/session when backend adds claims; useRole normalizes unknown values to admin. */
+  role?: Role | string;
   entity: string;
 }
 

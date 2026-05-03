@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ALL_FRAMEWORK_IDS } from "../api/client";
 import { DemoToggle } from "./DemoToggle";
 import { useOrgContext } from "../hooks/useOrgContext";
+import { useRole } from "../hooks/useRole";
 import { useFramework } from "../hooks/useFrameworks";
 import { useAssessmentStream, useCompliancePosture } from "../store/complianceStore";
 import { Button } from "./ui/Button";
@@ -53,8 +54,10 @@ export function TopBar() {
   const params = useParams();
   const navigate = useNavigate();
   const { orgId, demoMode } = useOrgContext();
+  const { can } = useRole();
   const { data: posture } = useCompliancePosture(orgId);
   const { isStreaming, startStream } = useAssessmentStream();
+  const canRunAssessment = can("canRunAssessment");
 
   const frameworkId =
     pathname.startsWith("/frameworks/") && pathname !== "/frameworks"
@@ -128,13 +131,14 @@ export function TopBar() {
           flexWrap: "wrap",
         }}
       >
-        <DemoToggle />
+        {can("canToggleDemo") ? <DemoToggle /> : null}
         <LiveClock />
         <Button
           type="button"
           variant="primary"
           size="md"
-          disabled={isStreaming}
+          disabled={isStreaming || !canRunAssessment}
+          title={!canRunAssessment ? "Admin or Analyst required" : undefined}
           onClick={handleRunAssessment}
         >
           {isStreaming ? "Streaming…" : "Run Assessment"}

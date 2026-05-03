@@ -4,6 +4,7 @@ import {
   type IntegrationSummary,
   type IntegrationDetail,
 } from "../api/client";
+import { useRole } from "../hooks/useRole";
 
 const CARD_BG = "var(--card)";
 const CARD_BORDER = "var(--border)";
@@ -76,6 +77,8 @@ const COMING_SOON_ITEMS = [
 ];
 
 export function Integrations() {
+  const { can } = useRole();
+  const canManageIntegrations = can("canManageIntegrations");
   const [list, setList] = useState<IntegrationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [panelIntegration, setPanelIntegration] = useState<IntegrationDetail | null>(null);
@@ -430,6 +433,7 @@ export function Integrations() {
           onCredentialsChange={setCredentials}
           onTestConnection={handleTestConnection}
           onSaveCredentials={handleSaveCredentials}
+          canManageIntegrations={canManageIntegrations}
         />
       )}
 
@@ -468,6 +472,7 @@ function SetupPanel({
   onCredentialsChange,
   onTestConnection,
   onSaveCredentials,
+  canManageIntegrations,
 }: {
   integration: IntegrationDetail;
   onClose: () => void;
@@ -477,6 +482,7 @@ function SetupPanel({
   onCredentialsChange: (c: Record<string, string>) => void;
   onTestConnection: () => void;
   onSaveCredentials: () => void;
+  canManageIntegrations: boolean;
 }) {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
 
@@ -484,9 +490,15 @@ function SetupPanel({
     setShowSecrets((s) => ({ ...s, [key]: !s[key] }));
   };
 
+  useEffect(() => {
+    if (!canManageIntegrations && activeTab === "credentials") {
+      onTabChange("guide");
+    }
+  }, [canManageIntegrations, activeTab, onTabChange]);
+
   const tabs: { key: TabKey; label: string }[] = [
     { key: "guide", label: "Setup Guide" },
-    { key: "credentials", label: "Credentials" },
+    ...(canManageIntegrations ? [{ key: "credentials" as const, label: "Credentials" }] : []),
     { key: "preview", label: "Data Preview" },
   ];
 

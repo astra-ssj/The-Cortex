@@ -9,6 +9,8 @@ import { useReviewQueue } from "../api/client";
 import { isPrimaryNavActive } from "../lib/navActive";
 import { showNavSoonForPath } from "../lib/featureFlags";
 import { Badge } from "./ui/Badge";
+import { useRole } from "../hooks/useRole";
+import { ROLE_LABELS } from "../lib/roles";
 
 const SIDEBAR_W = 220;
 
@@ -69,12 +71,6 @@ function userDisplayName(user: Record<string, unknown> | null): string {
       (user.email as string | undefined) ??
       "User",
   );
-}
-
-function userRole(user: Record<string, unknown> | null): string {
-  if (!user) return "";
-  const r = user.role;
-  return typeof r === "string" && r.trim() ? r : "Member";
 }
 
 function DeployEnvBadge() {
@@ -285,6 +281,7 @@ export function Sidebar({
   onLogout: () => void;
 }) {
   const { pathname } = useLocation();
+  const { role, can } = useRole();
   const settingsActive = pathname === "/settings";
 
   return (
@@ -364,30 +361,32 @@ export function Sidebar({
             gap: 2,
           }}
         >
-          <NavLink
-            to="/settings"
-            end
-            aria-current={settingsActive ? "page" : undefined}
-            className="cortex-sidebar-link"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "8px 10px",
-              borderRadius: 6,
-              textDecoration: "none",
-              fontSize: "13px",
-              fontWeight: settingsActive ? 600 : 500,
-              color: settingsActive ? "var(--text)" : "var(--text-secondary)",
-              background: settingsActive ? "var(--card)" : "transparent",
-              borderLeft: settingsActive ? "2px solid var(--blue)" : "2px solid transparent",
-            }}
-          >
-            <span style={{ width: 22, textAlign: "center" }} aria-hidden>
-              ⚙
-            </span>
-            Settings
-          </NavLink>
+          {can("canAccessSettings") ? (
+            <NavLink
+              to="/settings"
+              end
+              aria-current={settingsActive ? "page" : undefined}
+              className="cortex-sidebar-link"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 10px",
+                borderRadius: 6,
+                textDecoration: "none",
+                fontSize: "13px",
+                fontWeight: settingsActive ? 600 : 500,
+                color: settingsActive ? "var(--text)" : "var(--text-secondary)",
+                background: settingsActive ? "var(--card)" : "transparent",
+                borderLeft: settingsActive ? "2px solid var(--blue)" : "2px solid transparent",
+              }}
+            >
+              <span style={{ width: 22, textAlign: "center" }} aria-hidden>
+                ⚙
+              </span>
+              Settings
+            </NavLink>
+          ) : null}
           <a
             href={DOCS_URL}
             target="_blank"
@@ -451,8 +450,10 @@ export function Sidebar({
             >
               {userDisplayName(user)}
             </div>
-            <div style={{ fontSize: "11px", color: "var(--text-tertiary)", marginTop: 2 }}>
-              {userRole(user)}
+            <div style={{ marginTop: 6 }}>
+              <Badge variant="neutral" size="xs">
+                {ROLE_LABELS[role]}
+              </Badge>
             </div>
           </div>
           </div>

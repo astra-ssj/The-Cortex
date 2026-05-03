@@ -16,6 +16,7 @@ import {
 } from "../api/client";
 import { Breadcrumb } from "../components/ui/Breadcrumb";
 import { useOrgContext } from "../hooks/useOrgContext";
+import { useRole } from "../hooks/useRole";
 import { invalidateComplianceData } from "../store/complianceStore";
 
 const STATUSES: FindingStatus[] = ["OPEN", "IN_PROGRESS", "REMEDIATED", "ACCEPTED"];
@@ -80,6 +81,8 @@ export default function FindingDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { orgId } = useOrgContext();
+  const { can } = useRole();
+  const canEditFindings = can("canEditFindings");
 
   const [owner, setOwner] = useState("");
   const [status, setStatus] = useState<FindingStatus>("OPEN");
@@ -312,7 +315,7 @@ export default function FindingDetail() {
                 </label>
                 <select
                   value={owner}
-                  disabled={patchMutation.isPending}
+                  disabled={!canEditFindings || patchMutation.isPending}
                   onChange={(e) => {
                     const next = e.target.value;
                     setOwner(next);
@@ -333,7 +336,7 @@ export default function FindingDetail() {
                 </label>
                 <select
                   value={status}
-                  disabled={patchMutation.isPending}
+                  disabled={!canEditFindings || patchMutation.isPending}
                   onChange={(e) => {
                     const next = e.target.value as FindingStatus;
                     setStatus(next);
@@ -354,7 +357,7 @@ export default function FindingDetail() {
                 </label>
                 <select
                   value={priority}
-                  disabled={patchMutation.isPending}
+                  disabled={!canEditFindings || patchMutation.isPending}
                   onChange={(e) => {
                     const next = e.target.value as "P0" | "P1" | "P2";
                     setPriority(next);
@@ -374,7 +377,7 @@ export default function FindingDetail() {
                 <input
                   type="date"
                   value={dueDate}
-                  disabled={patchMutation.isPending}
+                  disabled={!canEditFindings || patchMutation.isPending}
                   onChange={(e) => setDueDate(e.target.value)}
                   onBlur={() => {
                     if (dueDate !== (finding.due_date || "")) {
