@@ -9,18 +9,18 @@ import { AnimatedNumber } from "./AnimatedScore";
 
 // ─── CORTEX dark theme (match ComplianceDashboard) ─────────────────────────
 const tokens = {
-  bg: "#05080f",
-  surface: "#090e1a",
-  panel: "#0c1220",
-  card: "#0d1526",
-  border: "#141e30",
-  text: "#e2e8f4",
-  muted: "#94a3b8",
-  dim: "#4a5a72",
-  green: "#10b981",
-  amber: "#f59e0b",
-  red: "#ef4444",
-  blue: "#3b82f6",
+  bg: "var(--bg)",
+  surface: "var(--surface)",
+  panel: "var(--card)",
+  card: "var(--card)",
+  border: "var(--border)",
+  text: "var(--text)",
+  muted: "var(--text-secondary)",
+  dim: "var(--text-quiet)",
+  green: "var(--green)",
+  amber: "var(--amber)",
+  red: "var(--red)",
+  blue: "var(--blue)",
 } as const;
 
 function scoreColor(score: number): string {
@@ -53,11 +53,11 @@ function riskBorderColor(risk: string): string {
 function typeBadgeStyle(type: string): { bg: string; color: string } {
   switch (type) {
     case "ESSENTIAL":
-      return { bg: "rgba(239, 68, 68, 0.2)", color: "#fca5a5" };
+      return { bg: "color-mix(in srgb, var(--red) 20%, transparent)", color: "var(--tone-critical-fg)" };
     case "IMPORTANT":
-      return { bg: "rgba(245, 158, 11, 0.2)", color: "#fcd34d" };
+      return { bg: "color-mix(in srgb, var(--amber) 20%, transparent)", color: "var(--tone-high-fg)" };
     case "STANDARD":
-      return { bg: "rgba(59, 130, 246, 0.2)", color: "#93c5fd" };
+      return { bg: "color-mix(in srgb, var(--blue) 20%, transparent)", color: "var(--tone-medium-fg)" };
     default:
       return { bg: tokens.border, color: tokens.muted };
   }
@@ -66,13 +66,13 @@ function typeBadgeStyle(type: string): { bg: string; color: string } {
 function riskBadgeStyle(risk: string): { bg: string; color: string } {
   switch (risk) {
     case "CRITICAL":
-      return { bg: "#7f1d1d", color: "#fca5a5" };
+      return { bg: "var(--tone-critical-bg)", color: "var(--tone-critical-fg)" };
     case "HIGH":
-      return { bg: "#78350f", color: "#fcd34d" };
+      return { bg: "var(--tone-high-bg)", color: "var(--tone-high-fg)" };
     case "MEDIUM":
-      return { bg: "#1e3a5f", color: "#93c5fd" };
+      return { bg: "var(--tone-medium-bg)", color: "var(--tone-medium-fg)" };
     case "LOW":
-      return { bg: "#14532d", color: "#86efac" };
+      return { bg: "var(--tone-low-bg)", color: "var(--tone-low-fg)" };
     default:
       return { bg: tokens.border, color: tokens.muted };
   }
@@ -124,7 +124,7 @@ function EntityCard({
         transition: "box-shadow 0.2s, border-color 0.2s",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+        e.currentTarget.style.boxShadow = "var(--shadow-drop-md)";
         e.currentTarget.style.borderColor = borderColor;
       }}
       onMouseLeave={(e) => {
@@ -722,7 +722,7 @@ export function GroupDashboard() {
                               height: 20,
                               borderRadius: 4,
                               background: bg,
-                              color: score >= 50 ? "#05080f" : "#fff",
+                              color: score >= 50 ? "var(--bg)" : "var(--text)",
                               fontWeight: "bold",
                               fontSize: 10,
                               lineHeight: "20px",

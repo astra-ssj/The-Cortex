@@ -270,7 +270,7 @@ export function AuditReport() {
                 alignItems: "flex-start",
                 marginBottom: "32px",
                 paddingBottom: "24px",
-                borderBottom: "2px solid #2dd4bf40",
+                borderBottom: "2px solid color-mix(in srgb, var(--cyan) 25%, transparent)",
               }}
             >
               <div
@@ -281,11 +281,11 @@ export function AuditReport() {
                   gap: "18px",
                   padding: "16px 24px",
                   borderRadius: "12px",
-                  background: "linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 58, 138, 0.12) 100%)",
-                  border: "1px solid rgba(45, 212, 191, 0.25)",
+                  background: "linear-gradient(135deg, color-mix(in srgb, var(--surface) 90%, transparent) 0%, color-mix(in srgb, var(--blue) 12%, transparent) 100%)",
+                  border: "1px solid color-mix(in srgb, var(--cyan) 25%, transparent)",
                 }}
               >
-                {/* Radar Arc C — light-optimised for white PDF */}
+                {/* Radar Arc — report logo */}
                 <svg
                   className="report-logo-svg"
                   width="52"
@@ -296,14 +296,14 @@ export function AuditReport() {
                 >
                   <path
                     d="M 13 40 A 27 27 0 1 1 67 40"
-                    stroke="#0e7490"
+                    stroke="var(--report-arc-a)"
                     strokeWidth="3"
                     fill="none"
                     strokeLinecap="round"
                   />
                   <path
                     d="M 21 40 A 19 19 0 1 1 59 40"
-                    stroke="#0891b2"
+                    stroke="var(--report-arc-b)"
                     strokeWidth="2.5"
                     fill="none"
                     strokeLinecap="round"
@@ -311,7 +311,7 @@ export function AuditReport() {
                   />
                   <path
                     d="M 29 40 A 11 11 0 1 1 51 40"
-                    stroke="#06b6d4"
+                    stroke="var(--report-arc-c)"
                     strokeWidth="2"
                     fill="none"
                     strokeLinecap="round"
@@ -319,36 +319,36 @@ export function AuditReport() {
                   />
                   <path
                     d="M 35 40 A 5 5 0 1 1 45 40"
-                    stroke="#22d3ee"
+                    stroke="var(--report-arc-d)"
                     strokeWidth="1.5"
                     fill="none"
                     strokeLinecap="round"
                     opacity="0.3"
                   />
-                  <circle cx="40" cy="40" r="4" fill="#0e7490" />
+                  <circle cx="40" cy="40" r="4" fill="var(--report-arc-a)" />
                   <line
                     x1="40"
                     y1="40"
                     x2="65"
                     y2="31"
-                    stroke="#0891b2"
+                    stroke="var(--report-arc-b)"
                     strokeWidth="1"
                     opacity="0.4"
                     strokeLinecap="round"
                   />
-                  <circle cx="65" cy="31" r="1.5" fill="#0891b2" opacity="0.5" />
-                  <circle cx="13" cy="40" r="2.5" fill="#0e7490" opacity="0.4" />
-                  <circle cx="67" cy="40" r="2.5" fill="#0e7490" opacity="0.4" />
+                  <circle cx="65" cy="31" r="1.5" fill="var(--report-arc-b)" opacity="0.5" />
+                  <circle cx="13" cy="40" r="2.5" fill="var(--report-arc-a)" opacity="0.4" />
+                  <circle cx="67" cy="40" r="2.5" fill="var(--report-arc-a)" opacity="0.4" />
                 </svg>
                 <div>
                   <div
                     className="report-logo-wordmark"
                     style={{
-                      fontFamily: "'Syne', 'DM Sans', sans-serif",
+                      fontFamily: "var(--font-sans)",
                       fontWeight: 800,
                       fontSize: "22px",
                       letterSpacing: "5px",
-                      color: "#e2e8f4",
+                      color: "var(--text)",
                       lineHeight: 1,
                     }}
                   >
@@ -357,10 +357,10 @@ export function AuditReport() {
                   <div
                     className="report-logo-tagline subtitle"
                     style={{
-                      fontFamily: "'DM Mono', monospace",
+                      fontFamily: "var(--font-mono)",
                       fontSize: "10px",
                       letterSpacing: "3px",
-                      color: "#2dd4bf",
+                      color: "var(--cyan)",
                       marginTop: "4px",
                       textTransform: "uppercase",
                     }}
@@ -377,12 +377,12 @@ export function AuditReport() {
                     display: "inline-block",
                     padding: "4px 12px",
                     background: "transparent",
-                    border: "1px solid #dc2626",
+                    border: "1px solid var(--red)",
                     borderRadius: "4px",
-                    fontFamily: "'DM Mono', monospace",
+                    fontFamily: "var(--font-mono)",
                     fontSize: "10px",
                     letterSpacing: "2px",
-                    color: "#dc2626",
+                    color: "var(--red)",
                     marginBottom: "8px",
                   }}
                 >
@@ -390,9 +390,9 @@ export function AuditReport() {
                 </div>
                 <div
                   style={{
-                    fontFamily: "'DM Mono', monospace",
+                    fontFamily: "var(--font-mono)",
                     fontSize: "11px",
-                    color: "#4a5a72",
+                    color: "var(--text-quiet)",
                     lineHeight: 1.6,
                   }}
                 >
@@ -556,7 +556,7 @@ export function AuditReport() {
               style={{
                 marginTop: "48px",
                 paddingTop: "20px",
-                borderTop: "1px solid #1e2e48",
+                borderTop: "1px solid var(--border-subtle)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -580,14 +580,14 @@ export function AuditReport() {
                 >
                   <path
                     d="M 13 40 A 27 27 0 1 1 67 40"
-                    stroke="#0e7490"
+                    stroke="var(--report-arc-a)"
                     strokeWidth="4"
                     fill="none"
                     strokeLinecap="round"
                   />
                   <path
                     d="M 23 40 A 17 17 0 1 1 57 40"
-                    stroke="#0891b2"
+                    stroke="var(--report-arc-b)"
                     strokeWidth="3"
                     fill="none"
                     strokeLinecap="round"
@@ -595,20 +595,20 @@ export function AuditReport() {
                   />
                   <path
                     d="M 33 40 A 7 7 0 1 1 47 40"
-                    stroke="#06b6d4"
+                    stroke="var(--report-arc-c)"
                     strokeWidth="2"
                     fill="none"
                     strokeLinecap="round"
                     opacity="0.35"
                   />
-                  <circle cx="40" cy="40" r="5" fill="#0e7490" />
+                  <circle cx="40" cy="40" r="5" fill="var(--report-arc-a)" />
                 </svg>
                 <span
                   style={{
-                    fontFamily: "'DM Mono', monospace",
+                    fontFamily: "var(--font-mono)",
                     fontSize: "11px",
                     letterSpacing: "2px",
-                    color: "#4a5a72",
+                    color: "var(--text-quiet)",
                     fontWeight: 600,
                   }}
                 >
@@ -618,9 +618,9 @@ export function AuditReport() {
 
               <div
                 style={{
-                  fontFamily: "'DM Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                   fontSize: "10px",
-                  color: "#4a5a72",
+                  color: "var(--text-quiet)",
                   textAlign: "center",
                   letterSpacing: "1px",
                 }}
@@ -631,9 +631,9 @@ export function AuditReport() {
 
               <div
                 style={{
-                  fontFamily: "'DM Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                   fontSize: "10px",
-                  color: "#4a5a72",
+                  color: "var(--text-quiet)",
                   letterSpacing: "1px",
                 }}
               >

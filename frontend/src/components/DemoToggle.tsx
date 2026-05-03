@@ -16,16 +16,16 @@ export function DemoToggle() {
         gap: 8,
         padding: "4px 8px",
         borderRadius: 8,
-        background: "#141e30",
-        border: "1px solid #1e2e48",
+        background: "var(--elevated)",
+        border: "1px solid var(--border)",
       }}
       title={demoMode ? "Showing AstraLabs demo data" : "Showing your live data"}
     >
       <span
         style={{
-          color: demoMode ? "#f59e0b" : "#64748b",
+          color: demoMode ? "var(--amber)" : "var(--text-tertiary)",
           fontSize: 10,
-          fontFamily: "'Space Mono', 'DM Mono', monospace",
+          fontFamily: "var(--font-mono)",
           letterSpacing: 0.7,
         }}
       >
@@ -42,7 +42,7 @@ export function DemoToggle() {
           borderRadius: 11,
           border: "none",
           cursor: "pointer",
-          background: demoMode ? "#f59e0b" : "#2dd4bf",
+          background: demoMode ? "var(--amber)" : "var(--cyan)",
           position: "relative",
           padding: 0,
           flexShrink: 0,
@@ -56,17 +56,17 @@ export function DemoToggle() {
             width: 16,
             height: 16,
             borderRadius: "50%",
-            background: "#fff",
+            background: "var(--text)",
             transition: "left 0.15s ease",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
+            boxShadow: "var(--shadow-knob)",
           }}
         />
       </button>
       <span
         style={{
-          color: demoMode ? "#64748b" : "#2dd4bf",
+          color: demoMode ? "var(--text-tertiary)" : "var(--cyan)",
           fontSize: 10,
-          fontFamily: "'Space Mono', 'DM Mono', monospace",
+          fontFamily: "var(--font-mono)",
           letterSpacing: 0.7,
         }}
       >
@@ -79,8 +79,8 @@ export function DemoToggle() {
           letterSpacing: 1,
           padding: "2px 8px",
           borderRadius: 4,
-          color: demoMode ? "#451a03" : "#e2e8f4",
-          background: demoMode ? "#fbbf24" : "#0e7490",
+          color: demoMode ? "var(--bg)" : "var(--text)",
+          background: demoMode ? "var(--amber)" : "var(--cyan)",
         }}
       >
         {demoMode ? "DEMO DATA" : "LIVE"}

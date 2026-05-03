@@ -15,16 +15,16 @@ const findingStyle: CSSProperties = {
   fontSize: 11,
   padding: "8px 12px",
   borderRadius: 8,
-  border: "1px solid #334155",
-  background: "#0f172a",
-  color: "#e2e8f4",
+  border: "1px solid var(--border)",
+  background: "var(--surface)",
+  color: "var(--text)",
   maxWidth: 280,
 };
 
 const controlStyle: CSSProperties = {
   ...findingStyle,
-  borderColor: "rgba(94, 234, 212, 0.35)",
-  color: "#99f6e4",
+  borderColor: "color-mix(in srgb, var(--cyan) 35%, transparent)",
+  color: "var(--cyan)",
 };
 
 function FlowCanvas({ data }: { data: ShastaEvidenceMapOut }) {
@@ -53,7 +53,7 @@ function FlowCanvas({ data }: { data: ShastaEvidenceMapOut }) {
         id: String(e.id ?? `edge-${i}`),
         source: String(e.source),
         target: String(e.target),
-        style: { stroke: "#64748b", strokeWidth: 1.5 },
+        style: { stroke: "var(--text-tertiary)", strokeWidth: 1.5 },
       }));
     return { nodes: ns, edges: es };
   }, [data]);
@@ -64,9 +64,9 @@ function FlowCanvas({ data }: { data: ShastaEvidenceMapOut }) {
         height: 440,
         width: "100%",
         borderRadius: 8,
-        border: "1px solid #141e30",
+        border: "1px solid var(--border)",
         overflow: "hidden",
-        background: "#090e1a",
+        background: "var(--surface)",
       }}
     >
       <ReactFlow
@@ -79,9 +79,12 @@ function FlowCanvas({ data }: { data: ShastaEvidenceMapOut }) {
         nodesConnectable={false}
         elementsSelectable={false}
       >
-        <Background color="#1e293b" gap={16} />
+        <Background color="var(--border-subtle)" gap={16} />
         <Controls />
-        <MiniMap style={{ background: "#0f172a" }} maskColor="rgba(15, 23, 42, 0.85)" />
+        <MiniMap
+          style={{ background: "var(--surface)" }}
+          maskColor="color-mix(in srgb, var(--elevated) 85%, transparent)"
+        />
       </ReactFlow>
     </div>
   );

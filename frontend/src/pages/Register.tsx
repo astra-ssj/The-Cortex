@@ -146,44 +146,44 @@ export default function Register() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#05080f",
+        background: "var(--bg)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 16,
-        fontFamily: "DM Sans, sans-serif",
+        fontFamily: "var(--font-sans)",
       }}
     >
       <div
         style={{
           width: "100%",
           maxWidth: 480,
-          background: "#090e1a",
-          border: "1px solid #141e30",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
           borderRadius: 12,
           padding: 30,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          boxShadow: "var(--shadow-drop-lg)",
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 20 }}>
           <LogoIcon size={48} glow />
           <span
             style={{
-              fontFamily: "'Syne', 'DM Sans', sans-serif",
+              fontFamily: "var(--font-sans)",
               fontWeight: 700,
               fontSize: 24,
               letterSpacing: "6px",
-              color: "#e2e8f4",
+              color: "var(--text)",
             }}
           >
             CORTEX
           </span>
           <span
             style={{
-              fontFamily: "'Space Mono', 'DM Mono', monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: 11,
               letterSpacing: "2px",
-              color: "#2dd4bf",
+              color: "var(--cyan)",
             }}
           >
             Zero Trust AI Platform
@@ -193,9 +193,9 @@ export default function Register() {
         {bannerError && (
           <div
             style={{
-              background: "rgba(239, 68, 68, 0.15)",
-              border: "1px solid rgba(239, 68, 68, 0.4)",
-              color: "#fca5a5",
+              background: "var(--red-soft)",
+              border: "1px solid color-mix(in srgb, var(--red) 40%, transparent)",
+              color: "var(--tone-critical-fg)",
               padding: "10px 14px",
               borderRadius: 8,
               fontSize: 13,
@@ -278,9 +278,9 @@ export default function Register() {
           {loading ? "Creating account..." : "Create Account →"}
         </button>
 
-        <p style={{ marginTop: 16, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+        <p style={{ marginTop: 16, textAlign: "center", color: "var(--text-secondary)", fontSize: 13 }}>
           Already have an account?{" "}
-          <Link to="/login" style={{ color: "#2dd4bf", textDecoration: "none" }}>
+          <Link to="/login" style={{ color: "var(--cyan)", textDecoration: "none" }}>
             Sign in →
           </Link>
         </p>
@@ -303,7 +303,7 @@ function Field({
       <label style={labelStyle}>{label}</label>
       {children}
       {error ? (
-        <div style={{ color: "#ef4444", fontSize: 11, marginTop: 4 }}>{error}</div>
+        <div style={{ color: "var(--red)", fontSize: 11, marginTop: 4 }}>{error}</div>
       ) : null}
     </div>
   );
@@ -311,19 +311,19 @@ function Field({
 
 const labelStyle: CSSProperties = {
   display: "block",
-  color: "#94a3b8",
+  color: "var(--text-secondary)",
   fontSize: 12,
   marginBottom: 6,
-  fontFamily: "'DM Mono', monospace",
+  fontFamily: "var(--font-mono)",
 };
 
 const inputStyle: CSSProperties = {
   width: "100%",
   padding: "10px 12px",
   borderRadius: 8,
-  border: "1px solid #141e30",
-  background: "#0c1220",
-  color: "#e2e8f4",
+  border: "1px solid var(--border)",
+  background: "var(--card)",
+  color: "var(--text)",
   fontSize: 14,
   boxSizing: "border-box",
 };
@@ -333,9 +333,11 @@ function submitStyle(disabled: boolean): CSSProperties {
     width: "100%",
     padding: "12px 16px",
     borderRadius: 8,
-    background: disabled ? "#1e2e48" : "linear-gradient(135deg, #2563eb, #3b82f6)",
+    background: disabled
+      ? "var(--elevated)"
+      : "linear-gradient(135deg, color-mix(in srgb, var(--blue) 90%, black), var(--blue))",
     border: "none",
-    color: "#fff",
+    color: "var(--text)",
     fontSize: 14,
     fontWeight: "bold",
     cursor: disabled ? "not-allowed" : "pointer",

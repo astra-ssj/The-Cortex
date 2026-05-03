@@ -32,7 +32,7 @@ function ComplianceEvidenceMapBlock({
       style={{
         marginTop,
         paddingTop: marginTop > 0 ? 22 : 0,
-        borderTop: marginTop > 0 ? "1px solid #1e293b" : undefined,
+        borderTop: marginTop > 0 ? "1px solid var(--border)" : undefined,
       }}
     >
       {isSample && (
@@ -42,14 +42,14 @@ function ComplianceEvidenceMapBlock({
             marginBottom: 14,
             padding: "10px 14px",
             borderRadius: 8,
-            border: "1px solid rgba(251, 191, 36, 0.45)",
-            background: "rgba(251, 191, 36, 0.08)",
+            border: "1px solid color-mix(in srgb, var(--amber) 45%, transparent)",
+            background: "color-mix(in srgb, var(--amber) 8%, transparent)",
             fontSize: 12,
-            color: "#fcd34d",
+            color: "var(--amber)",
             lineHeight: 1.5,
           }}
         >
-          <strong style={{ color: "#fde68a" }}>Sample data.</strong> Illustrative finding → control mapping
+          <strong style={{ color: "var(--amber)" }}>Sample data.</strong> Illustrative finding → control mapping
           only — not loaded from your organisation or live cloud scans. Toggle off anytime.
         </div>
       )}
@@ -61,12 +61,12 @@ function ComplianceEvidenceMapBlock({
         style={{ marginBottom: 14, maxWidth: 720, lineHeight: 1.55, color: "var(--dim)" }}
       >
         Each finding links to framework control references supplied by Shasta (
-        <code style={{ fontSize: 11, color: "#5eead4" }}>framework_controls</code>
+        <code style={{ fontSize: 11, color: "var(--cyan)" }}>framework_controls</code>
         ). Source is always this engine — not merged with other connector evidence types.
       </p>
-      {!isSample && loading && <p style={{ color: "#64748b", fontSize: 13 }}>Loading evidence map…</p>}
+      {!isSample && loading && <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>Loading evidence map…</p>}
       {!isSample && error && (
-        <p style={{ color: "#f87171", fontSize: 13 }}>{error.message}</p>
+        <p style={{ color: "var(--red)", fontSize: 13 }}>{error.message}</p>
       )}
       {mapOut && (
         <>
@@ -78,7 +78,7 @@ function ComplianceEvidenceMapBlock({
               gap: 10,
               alignItems: "center",
               fontSize: 12,
-              color: "#94a3b8",
+              color: "var(--text-secondary)",
             }}
           >
             <TrustChip label="Source" variant="source">
@@ -135,7 +135,7 @@ function ComplianceEvidenceMapBlock({
             </div>
           )}
           {mapOut.summary.edges === 0 && (
-            <p style={{ color: "#64748b", fontSize: 13, marginBottom: 12 }}>
+            <p style={{ color: "var(--text-tertiary)", fontSize: 13, marginBottom: 12 }}>
               No framework control tags on these rows yet — mappings appear when Shasta populates{" "}
               <code style={{ fontSize: 11 }}>framework_controls</code>.
             </p>
@@ -165,7 +165,7 @@ function ComplianceEvidenceMapBlock({
                       </td>
                       <td>
                         {controls.length === 0 ? (
-                          <span style={{ color: "#64748b" }}>—</span>
+                          <span style={{ color: "var(--text-tertiary)" }}>—</span>
                         ) : (
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                             {controls.map((c) => (
@@ -175,9 +175,9 @@ function ComplianceEvidenceMapBlock({
                                   fontSize: 11,
                                   padding: "4px 8px",
                                   borderRadius: 6,
-                                  background: "rgba(94, 234, 212, 0.08)",
-                                  border: "1px solid rgba(94, 234, 212, 0.25)",
-                                  color: "#99f6e4",
+                                  background: "color-mix(in srgb, var(--cyan) 8%, transparent)",
+                                  border: "1px solid color-mix(in srgb, var(--cyan) 25%, transparent)",
+                                  color: "var(--cyan)",
                                 }}
                               >
                                 {String(c.label ?? c.id)}
@@ -193,7 +193,7 @@ function ComplianceEvidenceMapBlock({
             </div>
           )}
           {mapView === "table" && rows.length === 0 && mapOut.summary.findings > 0 && (
-            <p style={{ color: "#64748b", fontSize: 13 }}>No rows to display.</p>
+            <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>No rows to display.</p>
           )}
         </>
       )}
@@ -321,7 +321,7 @@ export default function CloudScans() {
         >
           Deterministic CSPM via Transilience Shasta; findings persist to Postgres per organisation.
           Store AWS/Azure connector credentials under Integrations first. Use{" "}
-          <strong style={{ color: "#94a3b8" }}>Preview sample evidence map</strong> to demo the UI
+          <strong style={{ color: "var(--text-secondary)" }}>Preview sample evidence map</strong> to demo the UI
           without cloud findings.
         </p>
       </header>
@@ -341,9 +341,9 @@ export default function CloudScans() {
           style={{
             padding: "10px 18px",
             borderRadius: "var(--radius-md)",
-            border: "1px solid #1e3a5f",
+            border: "1px solid color-mix(in srgb, var(--blue) 30%, transparent)",
             background: "var(--card)",
-            color: "#93c5fd",
+            color: "var(--blue)",
             cursor: runMutation.isPending ? "wait" : "pointer",
             fontWeight: 600,
             fontSize: "var(--text-caption)",
@@ -358,9 +358,9 @@ export default function CloudScans() {
           style={{
             padding: "10px 18px",
             borderRadius: "var(--radius-md)",
-            border: "1px solid #14532d",
+            border: "1px solid color-mix(in srgb, var(--green) 30%, transparent)",
             background: "var(--card)",
-            color: "#86efac",
+            color: "var(--green)",
             cursor: runMutation.isPending ? "wait" : "pointer",
             fontWeight: 600,
             fontSize: "var(--text-caption)",
@@ -375,9 +375,9 @@ export default function CloudScans() {
           style={{
             padding: "10px 18px",
             borderRadius: "var(--radius-md)",
-            border: "1px solid #854d0e",
-            background: sampleEvidenceMapOpen ? "#422006" : "var(--card)",
-            color: "#fcd34d",
+            border: "1px solid color-mix(in srgb, var(--amber) 50%, transparent)",
+            background: sampleEvidenceMapOpen ? "color-mix(in srgb, var(--amber) 12%, transparent)" : "var(--card)",
+            color: "var(--amber)",
             cursor: "pointer",
             fontWeight: 600,
             fontSize: "var(--text-caption)",
@@ -388,14 +388,14 @@ export default function CloudScans() {
       </div>
 
       {runMutation.isError && (
-        <p style={{ color: "#f87171", fontSize: 13, marginBottom: 16 }}>
+        <p style={{ color: "var(--red)", fontSize: 13, marginBottom: 16 }}>
           {(runMutation.error as Error).message}
         </p>
       )}
       {runMutation.isSuccess && (
-        <p style={{ color: "#86efac", fontSize: 13, marginBottom: 8 }}>
+        <p style={{ color: "var(--green)", fontSize: 13, marginBottom: 8 }}>
           Scan queued ({runMutation.data.scan_run_id}); status updates while{" "}
-          <span className="cortex-scan-pulse" style={{ color: "#38bdf8" }}>
+          <span className="cortex-scan-pulse" style={{ color: "var(--blue)" }}>
             running
           </span>
           .
@@ -407,10 +407,10 @@ export default function CloudScans() {
             marginBottom: 16,
             padding: "10px 14px",
             borderRadius: 8,
-            border: "1px solid #334155",
-            background: "#0f172a",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
             fontSize: 13,
-            color: scanNotice.startsWith("Scan failed") ? "#f87171" : "#86efac",
+            color: scanNotice.startsWith("Scan failed") ? "var(--red)" : "var(--green)",
             maxWidth: 720,
           }}
         >
@@ -425,7 +425,7 @@ export default function CloudScans() {
               fontSize: "var(--text-micro)",
               cursor: "pointer",
               borderRadius: "var(--radius-sm)",
-              border: "1px solid #475569",
+              border: "1px solid var(--border)",
               background: "transparent",
               color: "var(--muted)",
             }}
@@ -435,7 +435,7 @@ export default function CloudScans() {
         </div>
       )}
       {runningAny && (
-        <p style={{ color: "#64748b", fontSize: 12, marginBottom: 16 }}>
+        <p style={{ color: "var(--text-tertiary)", fontSize: 12, marginBottom: 16 }}>
           Polling scan status every few seconds…
         </p>
       )}
@@ -457,14 +457,14 @@ export default function CloudScans() {
         <h2 id="recent-scans-heading" className="cortex-text-section" style={{ marginBottom: "var(--space-3)" }}>
           Recent scans
         </h2>
-        {scansQuery.isLoading && <p style={{ color: "#64748b" }}>Loading…</p>}
+        {scansQuery.isLoading && <p style={{ color: "var(--text-tertiary)" }}>Loading…</p>}
         {scansQuery.isError && (
-          <p style={{ color: "#f87171", fontSize: 13 }}>
+          <p style={{ color: "var(--red)", fontSize: 13 }}>
             {(scansQuery.error as Error).message}
           </p>
         )}
         {scansQuery.data && scansQuery.data.length === 0 && (
-          <p style={{ color: "#64748b", fontSize: 13 }}>No scans yet for this organisation.</p>
+          <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>No scans yet for this organisation.</p>
         )}
         {scansQuery.data && scansQuery.data.length > 0 && (
           <div className="cortex-table-wrap">
@@ -491,7 +491,7 @@ export default function CloudScans() {
                     <tr
                       key={row.id}
                       style={{
-                        background: active ? "rgba(56, 189, 248, 0.06)" : undefined,
+                        background: active ? "color-mix(in srgb, var(--blue) 6%, transparent)" : undefined,
                       }}
                     >
                       <td style={{ fontFamily: "var(--font-mono)", color: "var(--muted)" }}>
@@ -500,7 +500,7 @@ export default function CloudScans() {
                       <td>{row.cloud}</td>
                       <td>
                         {row.status === "running" ? (
-                          <span style={{ color: "#38bdf8", fontWeight: 600 }}>
+                          <span style={{ color: "var(--blue)", fontWeight: 600 }}>
                             <span className="cortex-scan-pulse" aria-hidden>
                               ●
                             </span>{" "}
@@ -533,10 +533,10 @@ export default function CloudScans() {
                             padding: "4px 10px",
                             fontSize: 11,
                             borderRadius: 6,
-                            border: "1px solid #334155",
+                            border: "1px solid var(--border)",
                             background:
-                              detailScanId === row.id ? "#1e293b" : "transparent",
-                            color: "#93c5fd",
+                              detailScanId === row.id ? "var(--surface)" : "transparent",
+                            color: "var(--blue)",
                             cursor: "pointer",
                           }}
                         >
@@ -546,7 +546,7 @@ export default function CloudScans() {
                       <td
                         style={{
                           maxWidth: 220,
-                          color: row.error_message ? "#f87171" : "var(--dim)",
+                          color: row.error_message ? "var(--red)" : "var(--dim)",
                           fontSize: "var(--text-micro)",
                         }}
                         title={row.error_message ?? undefined}
@@ -574,14 +574,14 @@ export default function CloudScans() {
               {detailScanId}
             </span>
           </h2>
-          {detailFindingsQuery.isLoading && <p style={{ color: "#64748b" }}>Loading…</p>}
+          {detailFindingsQuery.isLoading && <p style={{ color: "var(--text-tertiary)" }}>Loading…</p>}
           {detailFindingsQuery.isError && (
-            <p style={{ color: "#f87171", fontSize: 13 }}>
+            <p style={{ color: "var(--red)", fontSize: 13 }}>
               {(detailFindingsQuery.error as Error).message}
             </p>
           )}
           {detailFindingsQuery.data && detailFindingsQuery.data.length === 0 && (
-            <p style={{ color: "#64748b", fontSize: 13 }}>No findings for this run yet.</p>
+            <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>No findings for this run yet.</p>
           )}
           {detailFindingsQuery.data && detailFindingsQuery.data.length > 0 && (
             <div className="cortex-table-wrap">
@@ -625,14 +625,14 @@ export default function CloudScans() {
         <h2 id="latest-findings-heading" className="cortex-text-section" style={{ marginBottom: "var(--space-3)" }}>
           Latest stored findings
         </h2>
-        {findingsQuery.isLoading && <p style={{ color: "#64748b" }}>Loading…</p>}
+        {findingsQuery.isLoading && <p style={{ color: "var(--text-tertiary)" }}>Loading…</p>}
         {findingsQuery.isError && (
-          <p style={{ color: "#f87171", fontSize: 13 }}>
+          <p style={{ color: "var(--red)", fontSize: 13 }}>
             {(findingsQuery.error as Error).message}
           </p>
         )}
         {findingsQuery.data && findingsQuery.data.length === 0 && (
-          <p style={{ color: "#64748b", fontSize: 13 }}>No cloud findings stored yet.</p>
+          <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>No cloud findings stored yet.</p>
         )}
         {findingsQuery.data && findingsQuery.data.length > 0 && (
           <div className="cortex-table-wrap">

@@ -5,12 +5,12 @@ import {
   type IntegrationDetail,
 } from "../api/client";
 
-const CARD_BG = "#0d1526";
-const CARD_BORDER = "#141e30";
-const PANEL_BG = "#090e1a";
-const TEXT_PRIMARY = "#e2e8f4";
-const TEXT_MUTED = "#94a3b8";
-const TEXT_GREY = "#4a5a72";
+const CARD_BG = "var(--card)";
+const CARD_BORDER = "var(--border)";
+const PANEL_BG = "var(--surface)";
+const TEXT_PRIMARY = "var(--text)";
+const TEXT_MUTED = "var(--text-secondary)";
+const TEXT_GREY = "var(--text-quiet)";
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "connected") {
@@ -21,7 +21,7 @@ function StatusBadge({ status }: { status: string }) {
           alignItems: "center",
           gap: 6,
           fontSize: 11,
-          color: "#10b981",
+          color: "var(--green)",
           fontWeight: 600,
         }}
       >
@@ -30,7 +30,7 @@ function StatusBadge({ status }: { status: string }) {
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: "#10b981",
+            background: "var(--green)",
           }}
         />
         Connected
@@ -168,9 +168,9 @@ export function Integrations() {
               borderRadius: 20,
               fontSize: 12,
               fontWeight: 600,
-              background: "rgba(16, 185, 129, 0.15)",
-              color: "#10b981",
-              border: "1px solid rgba(16, 185, 129, 0.3)",
+              background: "var(--green-soft)",
+              color: "var(--green)",
+              border: "1px solid color-mix(in srgb, var(--green) 30%, transparent)",
             }}
           >
             Connected: {connectedCount}
@@ -181,9 +181,9 @@ export function Integrations() {
               borderRadius: 20,
               fontSize: 12,
               fontWeight: 600,
-              background: "rgba(59, 130, 246, 0.15)",
-              color: "#3b82f6",
-              border: "1px solid rgba(59, 130, 246, 0.3)",
+              background: "var(--blue-soft)",
+              color: "var(--blue)",
+              border: "1px solid color-mix(in srgb, var(--blue) 30%, transparent)",
             }}
           >
             Available: {availableCount}
@@ -194,7 +194,7 @@ export function Integrations() {
               borderRadius: 20,
               fontSize: 12,
               fontWeight: 600,
-              background: "rgba(74, 90, 114, 0.2)",
+              background: "color-mix(in srgb, var(--text-quiet) 20%, transparent)",
               color: TEXT_GREY,
               border: `1px solid ${CARD_BORDER}`,
             }}
@@ -243,7 +243,7 @@ export function Integrations() {
                       height: 40,
                       borderRadius: 8,
                       background: integration.color,
-                      color: "#fff",
+                      color: "var(--text)",
                       fontSize: 12,
                       fontWeight: 700,
                       display: "flex",
@@ -261,7 +261,7 @@ export function Integrations() {
                       style={{
                         fontSize: 11,
                         color: TEXT_GREY,
-                        background: "rgba(74, 90, 114, 0.2)",
+                        background: "color-mix(in srgb, var(--text-quiet) 20%, transparent)",
                         padding: "2px 8px",
                         borderRadius: 4,
                       }}
@@ -311,7 +311,7 @@ export function Integrations() {
                           style={{
                             fontSize: 10,
                             color: TEXT_GREY,
-                            background: "rgba(74, 90, 114, 0.2)",
+                            background: "color-mix(in srgb, var(--text-quiet) 20%, transparent)",
                             padding: "2px 6px",
                             borderRadius: 4,
                           }}
@@ -344,9 +344,9 @@ export function Integrations() {
                       style={{
                         padding: "6px 14px",
                         borderRadius: 6,
-                        border: "1px solid #3b82f6",
+                        border: "1px solid var(--blue)",
                         background: "transparent",
-                        color: "#3b82f6",
+                        color: "var(--blue)",
                         fontSize: 12,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -441,12 +441,12 @@ export function Integrations() {
             bottom: 24,
             right: 24,
             padding: "10px 18px",
-            background: "#1e2e48",
+            background: "var(--elevated)",
             border: `1px solid ${CARD_BORDER}`,
             borderRadius: 8,
             color: TEXT_PRIMARY,
             fontSize: 13,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            boxShadow: "var(--shadow-drop-md)",
             zIndex: 1000,
           }}
         >
@@ -503,7 +503,7 @@ function SetupPanel({
         zIndex: 200,
         display: "flex",
         flexDirection: "column",
-        boxShadow: "-4px 0 24px rgba(0,0,0,0.3)",
+        boxShadow: "var(--shadow-panel-left)",
       }}
     >
       {/* Panel header */}
@@ -523,7 +523,7 @@ function SetupPanel({
               height: 36,
               borderRadius: 8,
               background: integration.color,
-              color: "#fff",
+              color: "var(--text)",
               fontSize: 11,
               fontWeight: 700,
               display: "flex",
@@ -576,11 +576,11 @@ function SetupPanel({
               padding: "12px 16px",
               fontSize: 13,
               fontWeight: 600,
-              color: activeTab === key ? "#3b82f6" : TEXT_GREY,
+              color: activeTab === key ? "var(--blue)" : TEXT_GREY,
               background: "none",
               border: "none",
               borderBottom:
-                activeTab === key ? "2px solid #3b82f6" : "2px solid transparent",
+                activeTab === key ? "2px solid var(--blue)" : "2px solid transparent",
               cursor: "pointer",
               marginBottom: -1,
             }}
@@ -596,13 +596,13 @@ function SetupPanel({
           <div>
             <div
               style={{
-                background: "rgba(245, 158, 11, 0.12)",
-                border: "1px solid rgba(245, 158, 11, 0.4)",
+                background: "var(--amber-soft)",
+                border: "1px solid color-mix(in srgb, var(--amber) 40%, transparent)",
                 borderRadius: 8,
                 padding: 12,
                 marginBottom: 20,
                 fontSize: 12,
-                color: "#e2e8f4",
+                color: "var(--text)",
                 lineHeight: 1.5,
               }}
             >
@@ -624,8 +624,8 @@ function SetupPanel({
                     width: 28,
                     height: 28,
                     borderRadius: "50%",
-                    background: "#3b82f6",
-                    color: "#fff",
+                    background: "var(--blue)",
+                    color: "var(--text)",
                     fontSize: 12,
                     fontWeight: 700,
                     display: "flex",
@@ -664,7 +664,7 @@ function SetupPanel({
                       rel="noopener noreferrer"
                       style={{
                         fontSize: 12,
-                        color: "#3b82f6",
+                        color: "var(--blue)",
                         marginTop: 4,
                         display: "inline-block",
                       }}
@@ -682,13 +682,13 @@ function SetupPanel({
           <div>
             <div
               style={{
-                background: "rgba(245, 158, 11, 0.12)",
-                border: "1px solid rgba(245, 158, 11, 0.4)",
+                background: "var(--amber-soft)",
+                border: "1px solid color-mix(in srgb, var(--amber) 40%, transparent)",
                 borderRadius: 8,
                 padding: 12,
                 marginBottom: 20,
                 fontSize: 12,
-                color: "#e2e8f4",
+                color: "var(--text)",
                 lineHeight: 1.5,
               }}
             >
@@ -789,9 +789,9 @@ function SetupPanel({
                 style={{
                   padding: "10px 18px",
                   borderRadius: 6,
-                  border: "1px solid #3b82f6",
+                  border: "1px solid var(--blue)",
                   background: "transparent",
-                  color: "#3b82f6",
+                  color: "var(--blue)",
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: "pointer",
@@ -806,8 +806,8 @@ function SetupPanel({
                   padding: "10px 18px",
                   borderRadius: 6,
                   border: "none",
-                  background: "#10b981",
-                  color: "#fff",
+                  background: "var(--green)",
+                  color: "var(--text)",
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: "pointer",
@@ -844,7 +844,7 @@ function SetupPanel({
                     color: TEXT_PRIMARY,
                   }}
                 >
-                  <span style={{ color: "#10b981", fontSize: 14 }}>✓</span>
+                  <span style={{ color: "var(--green)", fontSize: 14 }}>✓</span>
                   {item}
                 </li>
               ))}

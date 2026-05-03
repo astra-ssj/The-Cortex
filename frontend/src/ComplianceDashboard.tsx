@@ -16,19 +16,19 @@ import { DashboardEmpty, FrameworksEmpty } from "./components/EmptyState";
 import { AnimatedNumber, AnimatedScoreRing } from "./components/AnimatedScore";
 import { TrustChip } from "./components/ui/TrustChip";
 
-/** Hex literals kept for SVG strokes and computed badge hues; surfaces use CSS variables. */
+/** Token references — values resolve from :root in index.css */
 const tokens = {
-  border: "#141e30",
-  borderLit: "#1e2e48",
-  textPrimary: "#e2e8f4",
-  textMuted: "#94a3b8",
-  textDim: "#4a5a72",
-  green: "#10b981",
-  amber: "#f59e0b",
-  red: "#ef4444",
-  blue: "#3b82f6",
-  cardHoverBg: "#111827",
-  card: "#0d1526",
+  border: "var(--border)",
+  borderLit: "var(--border)",
+  textPrimary: "var(--text)",
+  textMuted: "var(--text-secondary)",
+  textDim: "var(--text-quiet)",
+  green: "var(--green)",
+  amber: "var(--amber)",
+  red: "var(--red)",
+  blue: "var(--blue)",
+  cardHoverBg: "var(--card-hover)",
+  card: "var(--card)",
 } as const;
 
 function scoreRingColor(score: number): string {
@@ -40,13 +40,13 @@ function scoreRingColor(score: number): string {
 function riskBadgeStyle(risk: string): { background: string; color: string } {
   switch (risk) {
     case "CRITICAL":
-      return { background: "#7f1d1d", color: "#fca5a5" };
+      return { background: "var(--tone-critical-bg)", color: "var(--tone-critical-fg)" };
     case "HIGH":
-      return { background: "#78350f", color: "#fcd34d" };
+      return { background: "var(--tone-high-bg)", color: "var(--tone-high-fg)" };
     case "MEDIUM":
-      return { background: "#1e3a5f", color: "#93c5fd" };
+      return { background: "var(--tone-medium-bg)", color: "var(--tone-medium-fg)" };
     case "LOW":
-      return { background: "#14532d", color: "#86efac" };
+      return { background: "var(--tone-low-bg)", color: "var(--tone-low-fg)" };
     default:
       return { background: tokens.border, color: tokens.textMuted };
   }
@@ -332,8 +332,8 @@ export function ComplianceDashboard() {
         className="rounded-lg border p-4"
         style={{
           borderColor: tokens.red,
-          background: "#1c1917",
-          color: "#fca5a5",
+          background: "var(--tone-error-box-bg)",
+          color: "var(--tone-critical-fg)",
         }}
       >
         <p className="font-medium">Failed to load frameworks</p>
@@ -389,7 +389,7 @@ export function ComplianceDashboard() {
               borderColor: tokens.border,
               color: tokens.textDim,
               fontSize: "12px",
-              fontFamily: '"DM Mono", monospace',
+              fontFamily: "var(--font-mono)",
             }}
           >
             <span className="font-medium" style={{ color: tokens.textMuted }}>
@@ -521,7 +521,7 @@ export function ComplianceDashboard() {
                       marginTop: 8,
                       border: "none",
                       background: "transparent",
-                      color: "#2dd4bf",
+                      color: "var(--cyan)",
                       padding: 0,
                       cursor: "pointer",
                       fontSize: 12,
@@ -552,7 +552,7 @@ export function ComplianceDashboard() {
                   strokeWidth={5}
                   duration={1400}
                   delay={200}
-                  color="#f59e0b"
+                  color="var(--amber)"
                 />
               ) : (
                 <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>

@@ -47,9 +47,9 @@ function DeployEnvBadge() {
         fontSize: "var(--text-micro)",
         fontWeight: 700,
         letterSpacing: "0.06em",
-        background: isDev ? "rgba(245, 158, 11, 0.15)" : "rgba(59, 130, 246, 0.15)",
-        border: `1px solid ${isDev ? "rgba(245, 158, 11, 0.45)" : "rgba(59, 130, 246, 0.35)"}`,
-        color: isDev ? "#fbbf24" : "#93c5fd",
+        background: isDev ? "var(--amber-soft)" : "var(--blue-soft)",
+        border: `1px solid ${isDev ? "color-mix(in srgb, var(--amber) 45%, transparent)" : "color-mix(in srgb, var(--blue) 35%, transparent)"}`,
+        color: isDev ? "var(--amber)" : "var(--text)",
       }}
     >
       {label.toUpperCase()}
@@ -83,9 +83,9 @@ function HeaderTrustStrip({ orgId, demoMode }: { orgId: string; demoMode: boolea
             fontSize: "var(--text-micro)",
             fontWeight: 700,
             letterSpacing: "0.04em",
-            background: "rgba(245, 158, 11, 0.12)",
-            border: "1px solid rgba(245, 158, 11, 0.35)",
-            color: "#fbbf24",
+            background: "var(--amber-soft)",
+            border: "1px solid color-mix(in srgb, var(--amber) 35%, transparent)",
+            color: "var(--amber)",
           }}
         >
           DEMO DATA VIEW
@@ -117,7 +117,7 @@ function LiveClock() {
     return () => clearInterval(t);
   }, []);
   return (
-    <span className="cortex-text-mono" style={{ color: "#4a5a72", fontSize: "13px" }}>
+    <span className="cortex-text-mono" style={{ color: "var(--text-quiet)", fontSize: "13px" }}>
       {time.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
     </span>
   );
@@ -166,7 +166,7 @@ function HeaderShell({
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
           <DemoToggle />
           {user && (
-            <span className="cortex-text-caption" style={{ color: "#4a5a72" }}>
+            <span className="cortex-text-caption" style={{ color: "var(--text-quiet)" }}>
               {(user as { name?: string }).name ??
                 (user as { username?: string }).username ??
                 (user as { email?: string }).email ??

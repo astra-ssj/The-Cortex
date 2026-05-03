@@ -19,7 +19,7 @@ export function EmptyState({
   onCta,
   onCtaSecondary,
   badge,
-  badgeColor = "#2dd4bf",
+  badgeColor = "var(--cyan)",
 }: EmptyStateProps) {
   return (
     <div
@@ -39,12 +39,12 @@ export function EmptyState({
             display: "inline-block",
             padding: "3px 12px",
             borderRadius: "20px",
-            background: `${badgeColor}22`,
-            border: `1px solid ${badgeColor}44`,
+            background: `color-mix(in srgb, ${badgeColor} 13%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${badgeColor} 27%, transparent)`,
             color: badgeColor,
             fontSize: "10px",
             fontWeight: 700,
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
             letterSpacing: "2px",
             marginBottom: "20px",
           }}
@@ -66,7 +66,7 @@ export function EmptyState({
 
       <div
         style={{
-          fontFamily: "'Syne', sans-serif",
+          fontFamily: "var(--font-sans)",
           fontWeight: 700,
           fontSize: "18px",
           color: "var(--text)",
@@ -104,12 +104,12 @@ export function EmptyState({
               style={{
                 padding: "10px 24px",
                 borderRadius: "7px",
-                background: "linear-gradient(135deg, #0891b2, #2dd4bf)",
+                background: "linear-gradient(135deg, var(--cyan), color-mix(in srgb, var(--cyan) 75%, var(--blue)))",
                 border: "none",
-                color: "#000",
+                color: "var(--bg)",
                 fontSize: "13px",
                 fontWeight: 700,
-                fontFamily: "'Syne', sans-serif",
+                fontFamily: "var(--font-sans)",
                 letterSpacing: "1px",
                 cursor: "pointer",
                 transition: "opacity 0.2s",
@@ -166,7 +166,7 @@ export function DashboardEmpty({
   return (
     <EmptyState
       badge="NOT YET ASSESSED"
-      badgeColor="#f59e0b"
+      badgeColor="var(--amber)"
       icon="🎯"
       title={`${orgName} hasn't been assessed yet`}
       description="Run your first compliance assessment to see your posture score across all active frameworks. Takes under 2 minutes."
@@ -182,7 +182,7 @@ export function ReviewQueueEmpty({ onRunAssessment }: { onRunAssessment?: () => 
   return (
     <EmptyState
       badge="QUEUE CLEAR"
-      badgeColor="#10b981"
+      badgeColor="var(--green)"
       icon="✅"
       title="No items pending review"
       description="All AI assessments have confidence ≥ 0.75. Items appear here when ZTAIP is uncertain and requires human judgement under GDPR Art.22 and EU AI Act Art.14."
@@ -202,7 +202,7 @@ export function RemediationEmpty({
   return (
     <EmptyState
       badge="NO OPEN FINDINGS"
-      badgeColor="#10b981"
+      badgeColor="var(--green)"
       icon="🛡️"
       title="Nothing to remediate"
       description="No open compliance findings. Run an assessment to identify gaps and generate remediation actions automatically."
@@ -218,7 +218,7 @@ export function AuditReportEmpty({ onGenerate }: { onGenerate: () => void }) {
   return (
     <EmptyState
       badge="REPORT NOT GENERATED"
-      badgeColor="#3b82f6"
+      badgeColor="var(--blue)"
       icon="📄"
       title="Generate your board report"
       description="Select report type and entity, then click Generate. CORTEX produces a board-ready executive summary with framework scores, critical findings, and regulatory exposure in one click."
@@ -232,7 +232,7 @@ export function IntegrationsEmpty() {
   return (
     <EmptyState
       badge="NO INTEGRATIONS CONNECTED"
-      badgeColor="#f59e0b"
+      badgeColor="var(--amber)"
       icon="🔌"
       title="Connect your first integration"
       description="Connect Microsoft 365, GitHub, AWS or Azure to start receiving live control telemetry. Real signals replace mock data automatically."
@@ -251,7 +251,7 @@ export function AISystemsEmpty({
   return (
     <EmptyState
       badge="EU AI ACT — 94 DAYS"
-      badgeColor="#ef4444"
+      badgeColor="var(--red)"
       icon="🤖"
       title="No AI systems inventoried"
       description="Add your AI systems to assess EU AI Act compliance. High-risk system obligations apply from 2 August 2026. Classification is grounded in ISO 42001 Annex III."
@@ -273,7 +273,7 @@ export function GroupEmpty({
   return (
     <EmptyState
       badge="SINGLE ENTITY"
-      badgeColor="#3b82f6"
+      badgeColor="var(--blue)"
       icon="🌍"
       title="No group entities configured"
       description="Your organisation is set up as a single entity. To see the multi-entity group view, add entities during onboarding or contact support to upgrade your structure."
@@ -289,7 +289,7 @@ export function FrameworksEmpty({ onSelectFrameworks }: { onSelectFrameworks?: (
   return (
     <EmptyState
       badge="NO FRAMEWORKS ACTIVE"
-      badgeColor="#f59e0b"
+      badgeColor="var(--amber)"
       icon="📋"
       title="No frameworks selected"
       description="Select the compliance frameworks that apply to your organisation. CORTEX supports 8 frameworks across EU, UK, US, and international jurisdictions."

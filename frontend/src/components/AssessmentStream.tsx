@@ -23,7 +23,7 @@ const FW_META: Record<
     name: "GDPR 2016/679",
     short: "GDPR",
     score: 58,
-    color: "#f59e0b",
+    color: "var(--fw-gdpr)",
     lines: [
       { delay: 0, cls: "ok", text: "[GDPR] Art.5   — Data processing principles ......... COMPLIANT    [conf: 0.91]" },
       { delay: 300, cls: "ok", text: "[GDPR] Art.6   — Lawful basis for processing ........ COMPLIANT    [conf: 0.88]" },
@@ -36,7 +36,7 @@ const FW_META: Record<
     name: "NIS2 Directive",
     short: "NIS2",
     score: 44,
-    color: "#ef4444",
+    color: "var(--fw-nis2)",
     lines: [
       { delay: 0, cls: "warn", text: "[NIS2] Art.21(1) — Risk management measures ......... PARTIAL      [conf: 0.67]" },
       { delay: 300, cls: "crit", text: "[NIS2] Art.23(4)(a) — 24h CSIRT notification ........ NON_COMPLIANT [conf: 0.61] → review ⚠" },
@@ -48,7 +48,7 @@ const FW_META: Record<
     name: "ISO/IEC 27001:2022",
     short: "ISO 27001",
     score: 62,
-    color: "#f59e0b",
+    color: "var(--fw-iso)",
     lines: [
       { delay: 0, cls: "ok", text: "[ISO]  A.5.1   — Information security policies ...... COMPLIANT    [conf: 0.94]" },
       { delay: 300, cls: "ok", text: "[ISO]  A.5.15  — Access control policy .............. COMPLIANT    [conf: 0.91]" },
@@ -61,7 +61,7 @@ const FW_META: Record<
     name: "EU AI Act 2024",
     short: "EU AI Act",
     score: 41,
-    color: "#ef4444",
+    color: "var(--fw-nis2)",
     lines: [
       { delay: 0, cls: "crit", text: "[EUAI] Art.9   — Risk management system ............. NON_COMPLIANT [conf: 0.55] → review ⚠" },
       { delay: 300, cls: "crit", text: "[EUAI] Art.14  — Human oversight mechanism .......... NON_COMPLIANT [conf: 0.52] → review ⚠" },
@@ -73,7 +73,7 @@ const FW_META: Record<
     name: "NIST CSF 2.0",
     short: "NIST CSF",
     score: 67,
-    color: "#f59e0b",
+    color: "var(--fw-nist)",
     lines: [
       { delay: 0, cls: "ok", text: "[NIST] ID.AM-1 — Asset inventory .................... COMPLIANT    [conf: 0.93]" },
       { delay: 300, cls: "ok", text: "[NIST] PR.AC-1 — Identity management ............... COMPLIANT    [conf: 0.87]" },
@@ -85,7 +85,7 @@ const FW_META: Record<
     name: "Cyber Essentials v3.1",
     short: "Cyber Ess.",
     score: 78,
-    color: "#10b981",
+    color: "var(--fw-ce)",
     lines: [
       { delay: 0, cls: "ok", text: "[CE]   Firewalls and internet gateways .............. PARTIAL      [conf: 0.81]" },
       { delay: 300, cls: "ok", text: "[CE]   Secure configuration ........................ COMPLIANT    [conf: 0.86]" },
@@ -97,7 +97,7 @@ const FW_META: Record<
     name: "CSA CCM v4.0",
     short: "CSA CCM",
     score: 61,
-    color: "#f59e0b",
+    color: "var(--fw-ccm)",
     lines: [
       { delay: 0, cls: "ok", text: "[CSA]  AIS-01  — Application security .............. COMPLIANT    [conf: 0.84]" },
       { delay: 300, cls: "warn", text: "[CSA]  IVS-04  — Network security .................. PARTIAL      [conf: 0.69]" },
@@ -108,7 +108,7 @@ const FW_META: Record<
     name: "EU Cybersecurity Act",
     short: "EU Cyber",
     score: 55,
-    color: "#f59e0b",
+    color: "var(--fw-soc2)",
     lines: [
       { delay: 0, cls: "ok", text: "[EUCA] Art.46  — Certification schemes ............. PARTIAL      [conf: 0.73]" },
       { delay: 300, cls: "warn", text: "[EUCA] Art.49  — Assurance levels .................. PARTIAL      [conf: 0.67]" },
@@ -230,7 +230,7 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
       style={{
         position: "fixed",
         inset: 0,
-        background: "#04070d",
+        background: "var(--bg)",
         display: "flex",
         flexDirection: "column",
         zIndex: 1000,
@@ -245,17 +245,17 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
           justifyContent: "space-between",
           padding: "0 28px",
           height: "52px",
-          background: "#080e18",
-          borderBottom: "1px solid #131f32",
+          background: "var(--sidebar)",
+          borderBottom: "1px solid var(--border-subtle)",
           flexShrink: 0,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <svg width="26" height="26" viewBox="0 0 80 80" fill="none" style={{ filter: "drop-shadow(0 0 6px rgba(45,212,191,0.5))" }}>
-            <path d="M 13 40 A 27 27 0 1 1 67 40" stroke="#2dd4bf" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <svg width="26" height="26" viewBox="0 0 80 80" fill="none" style={{ filter: "var(--assessment-logo-glow)" }}>
+            <path d="M 13 40 A 27 27 0 1 1 67 40" stroke="var(--cyan)" strokeWidth="3" fill="none" strokeLinecap="round" />
             <path
               d="M 21 40 A 19 19 0 1 1 59 40"
-              stroke="#2dd4bf"
+              stroke="var(--cyan)"
               strokeWidth="2.5"
               fill="none"
               strokeLinecap="round"
@@ -263,23 +263,23 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
             />
             <path
               d="M 29 40 A 11 11 0 1 1 51 40"
-              stroke="#2dd4bf"
+              stroke="var(--cyan)"
               strokeWidth="2"
               fill="none"
               strokeLinecap="round"
               opacity="0.3"
             />
-            <circle cx="40" cy="40" r="4.5" fill="#2dd4bf" />
-            <circle cx="13" cy="40" r="3" fill="#2dd4bf" opacity="0.5" />
-            <circle cx="67" cy="40" r="3" fill="#2dd4bf" opacity="0.5" />
+            <circle cx="40" cy="40" r="4.5" fill="var(--cyan)" />
+            <circle cx="13" cy="40" r="3" fill="var(--cyan)" opacity="0.5" />
+            <circle cx="67" cy="40" r="3" fill="var(--cyan)" opacity="0.5" />
           </svg>
           <span
             style={{
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "var(--font-sans)",
               fontWeight: 800,
               fontSize: "15px",
               letterSpacing: "3px",
-              color: "#e2e8f4",
+              color: "var(--text)",
             }}
           >
             CORTEX
@@ -291,9 +291,9 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: "11px",
-            color: "#10b981",
+            color: "var(--green)",
             letterSpacing: "1px",
           }}
         >
@@ -302,8 +302,8 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
               width: "7px",
               height: "7px",
               borderRadius: "50%",
-              background: "#10b981",
-              boxShadow: "0 0 8px #10b981",
+              background: "var(--green)",
+              boxShadow: "0 0 8px var(--green)",
               animation: "pulse 2s infinite",
               display: "inline-block",
             }}
@@ -318,16 +318,16 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
             flex: "0 0 60%",
             display: "flex",
             flexDirection: "column",
-            borderRight: "1px solid #131f32",
+            borderRight: "1px solid var(--border-subtle)",
           }}
         >
           <div
             style={{
               padding: "12px 20px",
-              borderBottom: "1px solid #131f32",
-              fontFamily: "'Space Mono', monospace",
+              borderBottom: "1px solid var(--border-subtle)",
+              fontFamily: "var(--font-mono)",
               fontSize: "11px",
-              color: "#3a4a60",
+              color: "var(--text-quiet)",
               letterSpacing: "1px",
             }}
           >
@@ -339,7 +339,7 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
               flex: 1,
               overflowY: "auto",
               padding: "16px 20px",
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: "11px",
               lineHeight: "1.9",
             }}
@@ -350,7 +350,13 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
                 style={{
                   animation: "fadeIn 0.2s forwards",
                   color:
-                    line.cls === "ok" ? "#10b981" : line.cls === "crit" ? "#ef4444" : line.cls === "warn" ? "#f59e0b" : "#2dd4bf",
+                    line.cls === "ok"
+                      ? "var(--green)"
+                      : line.cls === "crit"
+                        ? "var(--red)"
+                        : line.cls === "warn"
+                          ? "var(--amber)"
+                          : "var(--cyan)",
                 }}
               >
                 {line.text}
@@ -361,7 +367,7 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
                 display: "inline-block",
                 width: "8px",
                 height: "14px",
-                background: "#2dd4bf",
+                background: "var(--cyan)",
                 animation: "blink 1s infinite",
                 verticalAlign: "middle",
               }}
@@ -372,9 +378,9 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
         <div style={{ flex: "0 0 40%", padding: "24px 20px", overflowY: "auto" }}>
           <div
             style={{
-              fontFamily: "'Space Mono', monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: "10px",
-              color: "#3a4a60",
+              color: "var(--text-quiet)",
               letterSpacing: "2px",
               marginBottom: "16px",
             }}
@@ -387,14 +393,18 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
             if (!meta) return null;
             const score = scores[fwId] ?? 0;
             const pct = score;
-            const color = score >= 70 ? "#10b981" : score >= 50 ? "#f59e0b" : score > 0 ? "#ef4444" : "#3a4a60";
+            const color =
+              score >= 70 ? "var(--green)" : score >= 50 ? "var(--amber)" : score > 0 ? "var(--red)" : "var(--text-quiet)";
 
             return (
               <div
                 key={fwId}
                 style={{
-                  background: "#0d1628",
-                  border: `1px solid ${score > 0 ? `${color}44` : "#131f32"}`,
+                  background: "var(--card)",
+                  border:
+                    score > 0
+                      ? `1px solid color-mix(in srgb, ${color} 27%, transparent)`
+                      : "1px solid var(--border-subtle)",
                   borderRadius: "8px",
                   padding: "14px 16px",
                   marginBottom: "10px",
@@ -410,14 +420,14 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: "12px", fontWeight: 600, color: "#e2e8f4" }}>{meta.name}</div>
+                    <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text)" }}>{meta.name}</div>
                   </div>
                   <div
                     style={{
-                      fontFamily: "'Syne', sans-serif",
+                      fontFamily: "var(--font-sans)",
                       fontWeight: 800,
                       fontSize: "20px",
-                      color: score > 0 ? color : "#3a4a60",
+                      color: score > 0 ? color : "var(--text-quiet)",
                       transition: "color 0.5s ease",
                       minWidth: "48px",
                       textAlign: "right",
@@ -427,7 +437,7 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
                   </div>
                 </div>
 
-                <div style={{ height: "3px", background: "#131f32", borderRadius: "2px", overflow: "hidden" }}>
+                <div style={{ height: "3px", background: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
                   <div
                     style={{
                       height: "100%",
@@ -445,7 +455,7 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
                       marginTop: "6px",
                       fontSize: "10px",
                       color,
-                      fontFamily: "'Space Mono', monospace",
+                      fontFamily: "var(--font-mono)",
                       letterSpacing: "0.5px",
                     }}
                   >
@@ -459,8 +469,8 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
           {overallScore > 0 ? (
             <div
               style={{
-                background: "#0d1628",
-                border: "1px solid #2dd4bf44",
+                background: "var(--card)",
+                border: "1px solid color-mix(in srgb, var(--cyan) 27%, transparent)",
                 borderRadius: "8px",
                 padding: "16px",
                 marginTop: "8px",
@@ -470,9 +480,9 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
             >
               <div
                 style={{
-                  fontFamily: "'Space Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                   fontSize: "10px",
-                  color: "#2dd4bf",
+                  color: "var(--cyan)",
                   letterSpacing: "2px",
                   marginBottom: "8px",
                 }}
@@ -481,10 +491,11 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
               </div>
               <div
                 style={{
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "var(--font-sans)",
                   fontWeight: 800,
                   fontSize: "40px",
-                  color: overallScore >= 70 ? "#10b981" : overallScore >= 50 ? "#f59e0b" : "#ef4444",
+                  color:
+                    overallScore >= 70 ? "var(--green)" : overallScore >= 50 ? "var(--amber)" : "var(--red)",
                 }}
               >
                 {overallScore}%
@@ -492,9 +503,9 @@ export default function AssessmentStream({ orgName, orgId, frameworks, onComplet
               <div
                 style={{
                   fontSize: "11px",
-                  color: "#8898aa",
+                  color: "var(--text-tertiary)",
                   marginTop: "4px",
-                  fontFamily: "'Space Mono', monospace",
+                  fontFamily: "var(--font-mono)",
                 }}
               >
                 Assessment complete

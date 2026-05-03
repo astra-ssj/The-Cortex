@@ -180,7 +180,7 @@ export function ReportSkeleton() {
             display: "flex",
             gap: "16px",
             padding: "7px 0",
-            borderBottom: "1px solid #0c1220",
+            borderBottom: "1px solid var(--card)",
           }}
         >
           <Skeleton width="160px" height="11px" />

@@ -150,16 +150,16 @@ const RAW_SEED: RawEvidenceRecord[] = [
 function typeBadgeStyle(t: EvidenceType): { bg: string; color: string } {
   switch (t) {
     case "ASSESSMENT":
-      return { bg: "#164e63", color: "#2dd4bf" };
+      return { bg: "color-mix(in srgb, var(--blue) 20%, transparent)", color: "var(--cyan)" };
     case "APPROVAL":
-      return { bg: "#14532d", color: "#4ade80" };
+      return { bg: "color-mix(in srgb, var(--green) 20%, transparent)", color: "var(--green)" };
     case "OVERRIDE":
-      return { bg: "#451a03", color: "#fbbf24" };
+      return { bg: "color-mix(in srgb, var(--amber) 15%, transparent)", color: "var(--amber)" };
     case "FINDING":
-      return { bg: "#450a0a", color: "#fca5a5" };
+      return { bg: "color-mix(in srgb, var(--red) 20%, transparent)", color: "var(--red)" };
     case "REPORT":
     default:
-      return { bg: "#1e3a5f", color: "#93c5fd" };
+      return { bg: "color-mix(in srgb, var(--blue) 15%, transparent)", color: "var(--blue)" };
   }
 }
 
@@ -323,11 +323,11 @@ export function EvidenceVault() {
       <section style={{ flex: "0 0 65%", minWidth: 0 }}>
         <h2
           style={{
-            fontFamily: '"Syne", sans-serif',
+            fontFamily: "var(--font-sans)",
             fontWeight: 700,
             fontSize: 18,
             margin: 0,
-            color: "#f8fafc",
+            color: "var(--text)",
           }}
         >
           Cryptographic Evidence Chain
@@ -337,24 +337,24 @@ export function EvidenceVault() {
         </p>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 16, marginBottom: 20 }}>
-          <span style={{ fontSize: 13, color: "#94a3b8" }}>
-            <strong style={{ color: "#f8fafc" }}>{chain.length}</strong> Records
+          <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+            <strong style={{ color: "var(--text)" }}>{chain.length}</strong> Records
           </span>
-          <span style={{ color: "#2d3a52" }}>|</span>
-          <span style={{ fontSize: 13, color: "#94a3b8" }}>
-            <strong style={{ color: "#4ade80" }}>{approvedCount}</strong> Approved
+          <span style={{ color: "var(--border)" }}>|</span>
+          <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+            <strong style={{ color: "var(--green)" }}>{approvedCount}</strong> Approved
           </span>
-          <span style={{ color: "#2d3a52" }}>|</span>
+          <span style={{ color: "var(--border)" }}>|</span>
           <span
             style={{
               fontSize: 13,
-              color: chainVerifyResult?.ok === false ? "#f87171" : "#4ade80",
+              color: chainVerifyResult?.ok === false ? "var(--red)" : "var(--green)",
             }}
           >
             Chain Intact {chainVerifyResult?.ok === false ? "✗" : "✓"}
           </span>
-          <span style={{ color: "#2d3a52" }}>|</span>
-          <span style={{ fontSize: 13, color: "#94a3b8" }}>
+          <span style={{ color: "var(--border)" }}>|</span>
+          <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
             Last: {loadingChain ? "…" : lastRecord ? formatShortTime(lastRecord.ts) : "—"}
           </span>
         </div>
@@ -376,7 +376,7 @@ export function EvidenceVault() {
                         top: 24,
                         bottom: 0,
                         width: 2,
-                        background: "linear-gradient(180deg, #2dd4bf44, #1e2e48)",
+                        background: "linear-gradient(180deg, color-mix(in srgb, var(--cyan) 27%, transparent), var(--border))",
                       }}
                     />
                   )}
@@ -388,16 +388,16 @@ export function EvidenceVault() {
                       width: 16,
                       height: 16,
                       borderRadius: "50%",
-                      background: "#0b1220",
-                      border: "3px solid #2dd4bf",
+                      background: "var(--surface)",
+                      border: "3px solid var(--cyan)",
                       zIndex: 1,
                     }}
                   />
                   <div
                     style={{
                       padding: 18,
-                      background: "#0b1220",
-                      border: "1px solid #141e30",
+                      background: "var(--surface)",
+                      border: "1px solid var(--border-subtle)",
                       borderRadius: 10,
                       marginLeft: 8,
                     }}
@@ -424,24 +424,24 @@ export function EvidenceVault() {
                         })}
                       </span>
                     </div>
-                    <h3 style={{ margin: "10px 0 6px", fontSize: 14, fontWeight: 600, color: "#f1f5f9" }}>{rec.title}</h3>
-                    <div style={{ fontSize: 13, color: "#cbd5e1", marginBottom: 8 }}>
+                    <h3 style={{ margin: "10px 0 6px", fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{rec.title}</h3>
+                    <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 8 }}>
                       Verdict: {rec.verdict}
                       {typeof rec.conf === "number" && (
-                        <span style={{ color: "#94a3b8" }}> [conf: {rec.conf.toFixed(2)}]</span>
+                        <span style={{ color: "var(--text-secondary)" }}> [conf: {rec.conf.toFixed(2)}]</span>
                       )}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--dim)", marginBottom: 12 }}>Entity: {rec.entity}</div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>SHA-256:</div>
-                    <div style={{ fontFamily: "DM Mono, monospace", fontSize: 11, color: "#2dd4bf", wordBreak: "break-all" }}>
+                    <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 4 }}>SHA-256:</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--cyan)", wordBreak: "break-all" }}>
                       {truncateHash(rec.hash)}
                     </div>
-                    <div style={{ fontSize: 11, color: "#64748b", marginTop: 10, marginBottom: 4 }}>Previous hash:</div>
-                    <div style={{ fontFamily: "DM Mono, monospace", fontSize: 11, color: "#64748b", wordBreak: "break-all" }}>
+                    <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 10, marginBottom: 4 }}>Previous hash:</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)", wordBreak: "break-all" }}>
                       {truncateHash(rec.prev_hash)}
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, flexWrap: "wrap", gap: 8 }}>
-                      <span style={{ fontSize: 12, color: "#94a3b8" }}>
+                      <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
                         Signed by:{" "}
                         {rec.actor.includes("admin@astralabs.com")
                           ? "CISO · admin@astralabs.com"
@@ -458,9 +458,9 @@ export function EvidenceVault() {
                         style={{
                           padding: "6px 12px",
                           borderRadius: 6,
-                          border: "1px solid #2dd4bf",
+                          border: "1px solid var(--cyan)",
                           background: "transparent",
-                          color: "#2dd4bf",
+                          color: "var(--cyan)",
                           fontSize: 11,
                           cursor: "pointer",
                         }}
@@ -481,8 +481,8 @@ export function EvidenceVault() {
           flex: "0 0 35%",
           maxWidth: 400,
           padding: 20,
-          background: "#0b1220",
-          border: "1px solid #141e30",
+          background: "var(--surface)",
+          border: "1px solid var(--border-subtle)",
           borderRadius: 12,
           position: "sticky",
           top: 24,
@@ -490,11 +490,11 @@ export function EvidenceVault() {
       >
         <h2
           style={{
-            fontFamily: '"Syne", sans-serif',
+            fontFamily: "var(--font-sans)",
             fontWeight: 700,
             fontSize: 17,
             margin: 0,
-            color: "#f8fafc",
+            color: "var(--text)",
           }}
         >
           Verify Evidence
@@ -503,7 +503,7 @@ export function EvidenceVault() {
           Select any record and verify its cryptographic integrity
         </p>
 
-        <label style={{ display: "block", marginTop: 16, fontSize: 11, color: "#64748b" }} htmlFor="ev-record-select">
+        <label style={{ display: "block", marginTop: 16, fontSize: 11, color: "var(--text-tertiary)" }} htmlFor="ev-record-select">
           Select record to verify
         </label>
         <select
@@ -520,9 +520,9 @@ export function EvidenceVault() {
             marginTop: 6,
             padding: "10px 12px",
             borderRadius: 8,
-            background: "#090e1a",
-            border: "1px solid #1e2e48",
-            color: "#e2e8f4",
+            background: "var(--bg)",
+            border: "1px solid var(--border-subtle)",
+            color: "var(--text)",
             fontSize: 13,
           }}
         >
@@ -538,10 +538,10 @@ export function EvidenceVault() {
         </select>
 
         {selected && (
-          <div style={{ marginTop: 16, padding: 14, background: "#090e1a", borderRadius: 8, border: "1px solid #141e30" }}>
-            <div style={{ fontSize: 12, color: "#94a3b8" }}>
+          <div style={{ marginTop: 16, padding: 14, background: "var(--bg)", borderRadius: 8, border: "1px solid var(--border-subtle)" }}>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
               <div>
-                <strong style={{ color: "#f8fafc" }}>{selected.type}</strong>
+                <strong style={{ color: "var(--text)" }}>{selected.type}</strong>
               </div>
               <div style={{ marginTop: 8 }}>{selected.title}</div>
               <div style={{ marginTop: 8, color: "var(--dim)" }}>{selected.entity}</div>
@@ -556,8 +556,8 @@ export function EvidenceVault() {
                 padding: "10px",
                 borderRadius: 8,
                 border: "none",
-                background: "linear-gradient(135deg, #2563eb, #3b82f6)",
-                color: "#fff",
+                background: "linear-gradient(135deg, color-mix(in srgb, var(--blue) 80%, black), var(--blue))",
+                color: "var(--bg)",
                 fontWeight: 600,
                 cursor: computeState === "computing" ? "wait" : "pointer",
               }}
@@ -565,16 +565,16 @@ export function EvidenceVault() {
               {computeState === "computing" ? "Computing SHA-256…" : "Compute Hash"}
             </button>
             {computeState === "computing" && (
-              <p style={{ fontSize: 12, color: "#93c5fd", marginTop: 10 }}>Computing SHA-256…</p>
+              <p style={{ fontSize: 12, color: "var(--blue)", marginTop: 10 }}>Computing SHA-256…</p>
             )}
             {computeState === "done" && computedHash && (
               <div style={{ marginTop: 14 }}>
-                <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>Computed:</div>
-                <div style={{ fontFamily: "DM Mono, monospace", fontSize: 10, color: "#2dd4bf", wordBreak: "break-all" }}>
+                <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 4 }}>Computed:</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--cyan)", wordBreak: "break-all" }}>
                   {computedHash}
                 </div>
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 10, marginBottom: 4 }}>Stored:</div>
-                <div style={{ fontFamily: "DM Mono, monospace", fontSize: 10, color: "#94a3b8", wordBreak: "break-all" }}>
+                <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 10, marginBottom: 4 }}>Stored:</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", wordBreak: "break-all" }}>
                   {selected.hash}
                 </div>
                 {computedHash === selected.hash ? (
@@ -584,28 +584,28 @@ export function EvidenceVault() {
                         display: "inline-block",
                         padding: "6px 12px",
                         borderRadius: 6,
-                        background: "#14532d",
-                        color: "#4ade80",
+                        background: "color-mix(in srgb, var(--green) 20%, transparent)",
+                        color: "var(--green)",
                         fontSize: 12,
                         fontWeight: 700,
                       }}
                     >
                       ✓ INTEGRITY VERIFIED
                     </span>
-                    <p style={{ fontSize: 12, color: "#cbd5e1", marginTop: 10, lineHeight: 1.5 }}>
+                    <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 10, lineHeight: 1.5 }}>
                       Hash matches stored value. This record has not been tampered with.
                     </p>
                   </div>
                 ) : (
-                  <p style={{ color: "#f87171", fontSize: 12, marginTop: 10 }}>Hash mismatch.</p>
+                  <p style={{ color: "var(--red)", fontSize: 12, marginTop: 10 }}>Hash mismatch.</p>
                 )}
               </div>
             )}
           </div>
         )}
 
-        <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #141e30" }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#f8fafc" }}>CHAIN INTEGRITY</div>
+        <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--border-subtle)" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>CHAIN INTEGRITY</div>
           <p style={{ fontSize: 12, color: "var(--dim)", marginTop: 6 }}>Full chain verification</p>
           <button
             type="button"
@@ -616,9 +616,9 @@ export function EvidenceVault() {
               width: "100%",
               padding: "10px",
               borderRadius: 8,
-              border: "1px solid #2dd4bf",
+              border: "1px solid var(--cyan)",
               background: "transparent",
-              color: "#2dd4bf",
+              color: "var(--cyan)",
               fontWeight: 600,
               cursor: !chain.length || verifyProgress !== null ? "not-allowed" : "pointer",
               opacity: !chain.length ? 0.5 : 1,
@@ -627,7 +627,7 @@ export function EvidenceVault() {
             Verify Entire Chain
           </button>
           {verifyProgress && (
-            <p style={{ fontSize: 12, color: "#93c5fd", marginTop: 10 }}>
+            <p style={{ fontSize: 12, color: "var(--blue)", marginTop: 10 }}>
               Verifying record {verifyProgress.current}/{verifyProgress.total}…
             </p>
           )}
@@ -640,29 +640,29 @@ export function EvidenceVault() {
                       display: "inline-block",
                       padding: "6px 12px",
                       borderRadius: 6,
-                      background: "#14532d",
-                      color: "#4ade80",
+                      background: "color-mix(in srgb, var(--green) 20%, transparent)",
+                      color: "var(--green)",
                       fontSize: 12,
                       fontWeight: 700,
                     }}
                   >
                     ✓ CHAIN INTACT
                   </span>
-                  <p style={{ fontSize: 12, color: "#cbd5e1", marginTop: 10, lineHeight: 1.5 }}>{chainVerifyResult.message}</p>
-                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 8 }}>Chain hash:</div>
-                  <div style={{ fontFamily: "DM Mono, monospace", fontSize: 10, color: "#2dd4bf", wordBreak: "break-all" }}>
+                  <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 10, lineHeight: 1.5 }}>{chainVerifyResult.message}</p>
+                  <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 8 }}>Chain hash:</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--cyan)", wordBreak: "break-all" }}>
                     {chainVerifyResult.finalHash}
                   </div>
                 </>
               ) : (
-                <p style={{ color: "#f87171", fontSize: 12 }}>{chainVerifyResult.message}</p>
+                <p style={{ color: "var(--red)", fontSize: 12 }}>{chainVerifyResult.message}</p>
               )}
             </div>
           )}
         </div>
 
-        <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #141e30" }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#f8fafc" }}>EXPORT</div>
+        <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--border-subtle)" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>EXPORT</div>
           <p style={{ fontSize: 12, color: "var(--dim)", marginTop: 6 }}>Export Evidence Package</p>
           <button
             type="button"
@@ -674,8 +674,8 @@ export function EvidenceVault() {
               padding: "10px",
               borderRadius: 8,
               border: "none",
-              background: "#141e30",
-              color: "#e2e8f4",
+              background: "var(--border)",
+              color: "var(--text)",
               fontWeight: 600,
               cursor: chain.length ? "pointer" : "not-allowed",
             }}
@@ -684,7 +684,7 @@ export function EvidenceVault() {
           </button>
         </div>
 
-        <p style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5, marginTop: 24 }}>
+        <p style={{ fontSize: 10, color: "var(--text-tertiary)", lineHeight: 1.5, marginTop: 24 }}>
           Evidence records are SHA-256 hashed and chain-linked. Suitable for NIS2 Art.20 management liability defence and GDPR
           Art.5(2) accountability documentation.
         </p>

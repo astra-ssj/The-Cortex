@@ -13,8 +13,8 @@ export default function Intelligence() {
     <div
       style={{
         minHeight: "calc(100vh - 120px)",
-        fontFamily: '"DM Sans", sans-serif',
-        color: "#e2e8f4",
+        fontFamily: "var(--font-sans)",
+        color: "var(--text)",
       }}
     >
       <header
@@ -26,25 +26,25 @@ export default function Intelligence() {
           flexWrap: "wrap",
           marginBottom: 20,
           paddingBottom: 16,
-          borderBottom: "1px solid #141e30",
+          borderBottom: "1px solid var(--border)",
         }}
       >
         <div>
           <h1
             style={{
-              fontFamily: '"Syne", sans-serif',
+              fontFamily: "var(--font-sans)",
               fontWeight: 700,
               fontSize: 24,
               margin: 0,
               letterSpacing: "-0.02em",
-              color: "#f1f5f9",
+              color: "var(--text)",
             }}
           >
             Intelligence
           </h1>
           <p
             style={{
-              fontFamily: '"Space Mono", monospace',
+              fontFamily: "var(--font-mono)",
               fontSize: 11,
               color: "var(--dim)",
               margin: "8px 0 0",
@@ -63,10 +63,10 @@ export default function Intelligence() {
               gap: 8,
               padding: "6px 14px",
               borderRadius: 999,
-              background: "#0f172a",
-              border: "1px solid #164e63",
+              background: "var(--surface)",
+              border: "1px solid color-mix(in srgb, var(--cyan) 45%, var(--border))",
               fontSize: 12,
-              color: "#2dd4bf",
+              color: "var(--cyan)",
             }}
           >
             <span
@@ -75,7 +75,7 @@ export default function Intelligence() {
                 width: 8,
                 height: 8,
                 borderRadius: "50%",
-                background: "#2dd4bf",
+                background: "var(--cyan)",
                 flexShrink: 0,
               }}
             />
@@ -88,10 +88,10 @@ export default function Intelligence() {
               gap: 8,
               padding: "6px 14px",
               borderRadius: 999,
-              background: "#0f172a",
-              border: "1px solid #78350f",
+              background: "var(--surface)",
+              border: "1px solid color-mix(in srgb, var(--amber) 50%, var(--border))",
               fontSize: 12,
-              color: "#fbbf24",
+              color: "var(--amber)",
             }}
           >
             <span
@@ -99,7 +99,7 @@ export default function Intelligence() {
                 width: 8,
                 height: 8,
                 borderRadius: "50%",
-                background: "#fbbf24",
+                background: "var(--amber)",
                 flexShrink: 0,
               }}
             />
@@ -112,10 +112,10 @@ export default function Intelligence() {
               gap: 8,
               padding: "6px 14px",
               borderRadius: 999,
-              background: "#0f172a",
-              border: "1px solid #1e40af",
+              background: "var(--surface)",
+              border: "1px solid color-mix(in srgb, var(--blue) 45%, var(--border))",
               fontSize: 12,
-              color: "#60a5fa",
+              color: "var(--blue)",
             }}
           >
             <span
@@ -123,7 +123,7 @@ export default function Intelligence() {
                 width: 8,
                 height: 8,
                 borderRadius: "50%",
-                background: "#3b82f6",
+                background: "var(--blue)",
                 flexShrink: 0,
               }}
             />
@@ -136,10 +136,10 @@ export default function Intelligence() {
               gap: 8,
               padding: "6px 14px",
               borderRadius: 999,
-              background: "#0f172a",
-              border: "1px solid #14532d",
+              background: "var(--surface)",
+              border: "1px solid color-mix(in srgb, var(--green) 45%, var(--border))",
               fontSize: 12,
-              color: "#4ade80",
+              color: "var(--green)",
             }}
           >
             <span
@@ -147,7 +147,7 @@ export default function Intelligence() {
                 width: 8,
                 height: 8,
                 borderRadius: "50%",
-                background: "#22c55e",
+                background: "var(--green)",
                 flexShrink: 0,
               }}
             />
@@ -161,16 +161,16 @@ export default function Intelligence() {
           marginBottom: 20,
           padding: "12px 14px",
           borderRadius: 8,
-          border: "1px solid #1e2e48",
-          background: "#0c1220",
+          border: "1px solid var(--border)",
+          background: "var(--card)",
           fontSize: 12,
-          color: "#94a3b8",
+          color: "var(--text-secondary)",
           lineHeight: 1.5,
         }}
       >
-        <span style={{ color: "#fbbf24", fontWeight: 700 }}>Illustrative</span> — Audit Simulator, Signals,
-        Regulation Intel, and Evidence Vault use <strong style={{ color: "#e2e8f4" }}>simulated / demo UX</strong>{" "}
-        for storytelling; they are not a substitute for production evidence stores unless wired to backend APIs.
+        <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — Audit Simulator, Signals,
+        Regulation Intel, and Evidence Vault use <strong style={{ color: "var(--text)" }}>simulated / demo UX</strong> for
+        storytelling; they are not a substitute for production evidence stores unless wired to backend APIs.
       </div>
 
       <div
@@ -179,7 +179,7 @@ export default function Intelligence() {
           display: "flex",
           gap: 28,
           marginBottom: 24,
-          borderBottom: "1px solid #141e30",
+          borderBottom: "1px solid var(--border)",
           flexWrap: "wrap",
         }}
       >
@@ -192,18 +192,17 @@ export default function Intelligence() {
             padding: "10px 0",
             marginBottom: -1,
             border: "none",
-            borderBottom:
-              tab === "simulator" ? "2px solid #2dd4bf" : "2px solid transparent",
+            borderBottom: tab === "simulator" ? "2px solid var(--cyan)" : "2px solid transparent",
             background: "transparent",
             cursor: "pointer",
             fontSize: 13,
             fontWeight: tab === "simulator" ? 600 : 400,
-            color: tab === "simulator" ? "#f8fafc" : "var(--dim)",
+            color: tab === "simulator" ? "var(--text)" : "var(--dim)",
             fontFamily: "inherit",
           }}
         >
           Audit Simulator{" "}
-          <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 600 }}>(demo)</span>
+          <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>(demo)</span>
         </button>
         <button
           type="button"
@@ -214,18 +213,17 @@ export default function Intelligence() {
             padding: "10px 0",
             marginBottom: -1,
             border: "none",
-            borderBottom:
-              tab === "signals" ? "2px solid #2dd4bf" : "2px solid transparent",
+            borderBottom: tab === "signals" ? "2px solid var(--cyan)" : "2px solid transparent",
             background: "transparent",
             cursor: "pointer",
             fontSize: 13,
             fontWeight: tab === "signals" ? 600 : 400,
-            color: tab === "signals" ? "#f8fafc" : "var(--dim)",
+            color: tab === "signals" ? "var(--text)" : "var(--dim)",
             fontFamily: "inherit",
           }}
         >
           Live Signals{" "}
-          <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 600 }}>(demo)</span>
+          <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>(demo)</span>
         </button>
         <button
           type="button"
@@ -236,18 +234,17 @@ export default function Intelligence() {
             padding: "10px 0",
             marginBottom: -1,
             border: "none",
-            borderBottom:
-              tab === "regulation" ? "2px solid #2dd4bf" : "2px solid transparent",
+            borderBottom: tab === "regulation" ? "2px solid var(--cyan)" : "2px solid transparent",
             background: "transparent",
             cursor: "pointer",
             fontSize: 13,
             fontWeight: tab === "regulation" ? 600 : 400,
-            color: tab === "regulation" ? "#f8fafc" : "var(--dim)",
+            color: tab === "regulation" ? "var(--text)" : "var(--dim)",
             fontFamily: "inherit",
           }}
         >
           Regulation Intel{" "}
-          <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 600 }}>(demo)</span>
+          <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>(demo)</span>
         </button>
         <button
           type="button"
@@ -258,17 +255,17 @@ export default function Intelligence() {
             padding: "10px 0",
             marginBottom: -1,
             border: "none",
-            borderBottom: tab === "vault" ? "2px solid #2dd4bf" : "2px solid transparent",
+            borderBottom: tab === "vault" ? "2px solid var(--cyan)" : "2px solid transparent",
             background: "transparent",
             cursor: "pointer",
             fontSize: 13,
             fontWeight: tab === "vault" ? 600 : 400,
-            color: tab === "vault" ? "#f8fafc" : "var(--dim)",
+            color: tab === "vault" ? "var(--text)" : "var(--dim)",
             fontFamily: "inherit",
           }}
         >
           Evidence Vault{" "}
-          <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 600 }}>(demo)</span>
+          <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>(demo)</span>
         </button>
       </div>
 
