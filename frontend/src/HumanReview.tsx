@@ -15,7 +15,7 @@ import {
 } from "./lib/frameworkRegistry";
 import { invalidateComplianceData } from "./store/complianceStore";
 import { Skeleton, TableRowSkeleton } from "./components/Skeleton";
-import { ReviewQueueEmpty } from "./components/EmptyState";
+import { ReviewQueueEmpty } from "./components/ui/EmptyState";
 
 const SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM"] as const;
 const SORT_OPTIONS = [

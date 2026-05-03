@@ -1,3 +1,7 @@
+import type { BadgeVariant } from "./Badge";
+import { Badge } from "./Badge";
+import { Button } from "./Button";
+
 interface EmptyStateProps {
   icon: string;
   title: string;
@@ -8,6 +12,23 @@ interface EmptyStateProps {
   onCtaSecondary?: () => void;
   badge?: string;
   badgeColor?: string;
+}
+
+function badgeVariantFromColor(badgeColor: string): BadgeVariant {
+  switch (badgeColor) {
+    case "var(--amber)":
+      return "warning";
+    case "var(--green)":
+      return "success";
+    case "var(--blue)":
+      return "info";
+    case "var(--red)":
+      return "danger";
+    case "var(--cyan)":
+      return "info";
+    default:
+      return "neutral";
+  }
 }
 
 export function EmptyState({
@@ -21,135 +42,52 @@ export function EmptyState({
   badge,
   badgeColor = "var(--cyan)",
 }: EmptyStateProps) {
+  const bv = badgeVariantFromColor(badgeColor);
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "64px 32px",
-        textAlign: "center",
-        minHeight: "360px",
-      }}
-    >
-      {badge && (
-        <div
-          style={{
-            display: "inline-block",
-            padding: "3px 12px",
-            borderRadius: "20px",
-            background: `color-mix(in srgb, ${badgeColor} 13%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${badgeColor} 27%, transparent)`,
-            color: badgeColor,
-            fontSize: "10px",
-            fontWeight: 700,
-            fontFamily: "var(--font-mono)",
-            letterSpacing: "2px",
-            marginBottom: "20px",
-          }}
-        >
+    <div className="flex min-h-[360px] flex-col items-center justify-center gap-[var(--space-5)] px-[var(--space-8)] py-[var(--space-8)] text-center">
+      {badge ? (
+        <Badge variant={bv} size="xs" className="font-mono tracking-[0.12em]">
           {badge}
-        </div>
-      )}
+        </Badge>
+      ) : null}
 
-      <div
-        style={{
-          fontSize: "48px",
-          marginBottom: "20px",
-          opacity: 0.7,
-          filter: "grayscale(20%)",
-        }}
-      >
-        {icon}
-      </div>
+      <div className="text-[48px] opacity-70 grayscale-[0.2]">{icon}</div>
 
-      <div
-        style={{
-          fontFamily: "var(--font-sans)",
-          fontWeight: 700,
-          fontSize: "18px",
-          color: "var(--text)",
-          marginBottom: "10px",
-          maxWidth: "360px",
-        }}
-      >
+      <div className="max-w-[360px] font-sans text-lg font-bold text-cortex-text">
         {title}
       </div>
 
-      <div
-        style={{
-          fontSize: "13px",
-          color: "var(--muted)",
-          lineHeight: 1.6,
-          maxWidth: "440px",
-          marginBottom: cta ? "28px" : "0",
-        }}
-      >
+      <div className="max-w-[440px] text-[13px] leading-relaxed text-cortex-text-sec">
         {description}
       </div>
 
-      {(cta || ctaSecondary) && (
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            alignItems: "center",
-          }}
-        >
-          {cta && (
-            <button
-              type="button"
+      {(cta ?? ctaSecondary) !== undefined ? (
+        <div className="mt-[var(--space-3)] flex flex-wrap items-center justify-center gap-3">
+          {cta ? (
+            <Button
+              variant="primary"
+              size="md"
+              disabled={onCta === undefined}
               onClick={onCta}
-              style={{
-                padding: "10px 24px",
-                borderRadius: "7px",
-                background: "linear-gradient(135deg, var(--cyan), color-mix(in srgb, var(--cyan) 75%, var(--blue)))",
-                border: "none",
-                color: "var(--bg)",
-                fontSize: "13px",
-                fontWeight: 700,
-                fontFamily: "var(--font-sans)",
-                letterSpacing: "1px",
-                cursor: "pointer",
-                transition: "opacity 0.2s",
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.opacity = "0.85";
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.opacity = "1";
-              }}
+              type="button"
             >
               {cta}
-            </button>
-          )}
-          {ctaSecondary && (
-            <button
-              type="button"
+            </Button>
+          ) : null}
+          {ctaSecondary ? (
+            <Button
+              variant="secondary"
+              size="md"
+              disabled={onCtaSecondary === undefined}
               onClick={onCtaSecondary}
-              style={{
-                padding: "9px 20px",
-                borderRadius: "7px",
-                background: "transparent",
-                border: "1px solid var(--border-l)",
-                color: "var(--muted)",
-                fontSize: "12px",
-                cursor: "pointer",
-                transition: "color 0.2s",
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.color = "var(--text)";
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.color = "var(--muted)";
-              }}
+              type="button"
             >
               {ctaSecondary}
-            </button>
-          )}
+            </Button>
+          ) : null}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -178,7 +116,11 @@ export function DashboardEmpty({
   );
 }
 
-export function ReviewQueueEmpty({ onRunAssessment }: { onRunAssessment?: () => void }) {
+export function ReviewQueueEmpty({
+  onRunAssessment,
+}: {
+  onRunAssessment?: () => void;
+}) {
   return (
     <EmptyState
       badge="QUEUE CLEAR"
@@ -285,7 +227,11 @@ export function GroupEmpty({
   );
 }
 
-export function FrameworksEmpty({ onSelectFrameworks }: { onSelectFrameworks?: () => void }) {
+export function FrameworksEmpty({
+  onSelectFrameworks,
+}: {
+  onSelectFrameworks?: () => void;
+}) {
   return (
     <EmptyState
       badge="NO FRAMEWORKS ACTIVE"

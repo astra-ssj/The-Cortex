@@ -74,20 +74,12 @@ export const organisationsApi = {
 };
 
 export const assessmentsApi = {
-  getReviewQueue: () =>
-    fetchApi("/api/v1/assessments/review-queue"),
   /** Acknowledges run; open SSE via buildStreamUrl + ``fetchEventSource`` (Bearer header). */
   run: (body: { org_id: string; frameworks: string[] }) =>
     postApi<{ status: string; org_id: string; framework_ids: string[] }>(
       "/api/v1/assessments/run",
       body
     ),
-};
-
-export const findingsApi = {
-  list: () => fetchApi("/api/v1/findings"),
-  update: (id: string, body: object) =>
-    patchApi(`/api/v1/findings/${encodeURIComponent(id)}`, body),
 };
 
 /** Transilience Shasta cloud CSPM — Postgres-backed via API (not Shasta SQLite). */
@@ -191,11 +183,6 @@ export const shastaCloudApi = {
       `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}/evidence-links?${q.toString()}`
     );
   },
-};
-
-export const reportsApi = {
-  getExecutiveSummary: () =>
-    fetchApi("/api/v1/reports/executive-summary"),
 };
 
 export const groupsApi = {

@@ -6,7 +6,7 @@ import {
   type RoadmapStory,
   type StoryStatus,
   type EpicStatus,
-} from "./store/complianceStore";
+} from "./lib/roadmapData";
 
 const TIMELINE_PHASES = [
   { phase: 2, label: "Phase 2", date: "Apr 2026" },
