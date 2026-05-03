@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { LogoIcon } from "../components/Logo";
 import { setStoredOrgId } from "../hooks/useOrgContext";
 
@@ -118,22 +118,22 @@ export default function Login({ onSuccess }: LoginProps) {
     <div
       style={{
         minHeight: "100vh",
-        background: "#05080f",
+        background: "var(--bg)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: "DM Sans, sans-serif",
+        fontFamily: "var(--font-sans)",
       }}
     >
       <div
         style={{
           width: "100%",
           maxWidth: 420,
-          background: "#090e1a",
-          border: "1px solid #141e30",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
           borderRadius: 12,
           padding: 32,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          boxShadow: "var(--shadow-drop-lg)",
         }}
       >
         <div
@@ -148,21 +148,21 @@ export default function Login({ onSuccess }: LoginProps) {
           <LogoIcon size={64} glow={true} />
           <span
             style={{
-              fontFamily: "'Syne', 'DM Sans', sans-serif",
+              fontFamily: "var(--font-sans)",
               fontWeight: 800,
               fontSize: 28,
               letterSpacing: "6px",
-              color: "#e2e8f4",
+              color: "var(--text)",
             }}
           >
             CORTEX
           </span>
           <span
             style={{
-              fontFamily: "'DM Mono', monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: 11,
               letterSpacing: "3px",
-              color: "#2dd4bf",
+              color: "var(--cyan)",
               textTransform: "uppercase",
             }}
           >
@@ -176,9 +176,9 @@ export default function Login({ onSuccess }: LoginProps) {
             role="alert"
             aria-live="polite"
             style={{
-              background: "rgba(239, 68, 68, 0.15)",
-              border: "1px solid rgba(239, 68, 68, 0.4)",
-              color: "#fca5a5",
+              background: "var(--red-soft)",
+              border: "1px solid color-mix(in srgb, var(--red) 40%, transparent)",
+              color: "var(--tone-critical-fg)",
               padding: "10px 14px",
               borderRadius: 8,
               fontSize: 13,
@@ -231,7 +231,7 @@ export default function Login({ onSuccess }: LoginProps) {
                 transform: "translateY(-50%)",
                 background: "none",
                 border: "none",
-                color: "#4a5a72",
+                color: "var(--text-quiet)",
                 fontSize: 12,
                 cursor: "pointer",
               }}
@@ -248,9 +248,11 @@ export default function Login({ onSuccess }: LoginProps) {
             width: "100%",
             padding: "12px 16px",
             borderRadius: 8,
-            background: loading ? "#1e2e48" : "linear-gradient(135deg, #2563eb, #3b82f6)",
+            background: loading
+              ? "var(--elevated)"
+              : "linear-gradient(135deg, color-mix(in srgb, var(--blue) 90%, black), var(--blue))",
             border: "none",
-            color: "#fff",
+            color: "var(--text)",
             fontSize: 14,
             fontWeight: "bold",
             cursor: loading ? "not-allowed" : "pointer",
@@ -262,12 +264,12 @@ export default function Login({ onSuccess }: LoginProps) {
         </form>
 
         <div style={{ marginTop: 18, marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ flex: 1, height: 1, background: "#1e2e48" }} />
-          <span style={{ color: "#64748b", fontSize: 11, fontFamily: "'DM Mono', monospace" }}>or</span>
-          <div style={{ flex: 1, height: 1, background: "#1e2e48" }} />
+          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+          <span style={{ color: "var(--text-tertiary)", fontSize: 11, fontFamily: "var(--font-mono)" }}>or</span>
+          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
         </div>
 
-        <p style={{ marginTop: 0, marginBottom: 10, color: "#4a5a72", fontSize: 11, textAlign: "center" }}>
+        <p style={{ marginTop: 0, marginBottom: 10, color: "var(--text-quiet)", fontSize: 11, textAlign: "center" }}>
           New to CORTEX?
         </p>
         <button
@@ -278,8 +280,8 @@ export default function Login({ onSuccess }: LoginProps) {
             padding: "10px 14px",
             borderRadius: 8,
             background: "transparent",
-            border: "1px solid #1e2e48",
-            color: "#94a3b8",
+            border: "1px solid var(--border)",
+            color: "var(--text-secondary)",
             fontSize: 13,
             cursor: "pointer",
           }}
@@ -287,28 +289,24 @@ export default function Login({ onSuccess }: LoginProps) {
           Create free account →
         </button>
 
-        <p style={{ marginTop: 12, color: "#4a5a72", fontSize: 11, textAlign: "center" }}>
-          <Link to="/register" style={{ color: "#2dd4bf", textDecoration: "none" }}>
-            Prefer link? Register here →
-          </Link>
-        </p>
-
         <p
           style={{
             marginTop: 16,
             paddingTop: 14,
-            borderTop: "1px solid #141e30",
-            color: "#64748b",
+            borderTop: "1px solid var(--border)",
+            color: "var(--text-tertiary)",
             fontSize: 10,
             lineHeight: 1.5,
-            fontFamily: "'DM Mono', monospace",
+            fontFamily: "var(--font-mono)",
           }}
         >
-          Demo without legacy env: <strong style={{ color: "#94a3b8" }}>ciso@astralabs.com</strong> /{" "}
-          <strong style={{ color: "#94a3b8" }}>cortex-ciso-2026</strong>. With Docker Compose,{" "}
-          <strong style={{ color: "#94a3b8" }}>admin</strong> / <strong style={{ color: "#94a3b8" }}>admin</strong>{" "}
-          also works (legacy demo password). Plain uvicorn: set{" "}
-          <code style={{ color: "#64748b" }}>CORTEX_LEGACY_DEMO_PASSWORD=admin</code> or use the CISO demo above.
+          Demo without legacy env: <strong style={{ color: "var(--text-secondary)" }}>ciso@astralabs.com</strong> /{" "}
+          <strong style={{ color: "var(--text-secondary)" }}>cortex-ciso-2026</strong>. With Docker Compose,{" "}
+          <strong style={{ color: "var(--text-secondary)" }}>admin</strong> /{" "}
+          <strong style={{ color: "var(--text-secondary)" }}>admin</strong> also works (legacy demo password). Plain
+          uvicorn: set{" "}
+          <code style={{ color: "var(--text-tertiary)" }}>CORTEX_LEGACY_DEMO_PASSWORD=admin</code> or use the CISO demo
+          above.
         </p>
       </div>
     </div>
@@ -317,7 +315,7 @@ export default function Login({ onSuccess }: LoginProps) {
 
 const labelStyle = {
   display: "block",
-  color: "#94a3b8",
+  color: "var(--text-secondary)",
   fontSize: 12,
   marginBottom: 6,
 } as const;
@@ -326,9 +324,9 @@ const inputStyle = {
   width: "100%",
   padding: "10px 12px",
   borderRadius: 8,
-  border: "1px solid #141e30",
-  background: "#0c1220",
-  color: "#e2e8f4",
+  border: "1px solid var(--border)",
+  background: "var(--card)",
+  color: "var(--text)",
   fontSize: 14,
   boxSizing: "border-box" as const,
 };

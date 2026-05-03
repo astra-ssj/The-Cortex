@@ -304,7 +304,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(5, 8, 15, 0.72)",
+          background: "var(--overlay-scrim)",
           border: "none",
           cursor: "pointer",
           zIndex: 1000,
@@ -320,15 +320,15 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
           right: 0,
           bottom: 0,
           width: "min(480px, 100vw)",
-          background: "#0b1220",
-          borderLeft: "1px solid #141e30",
-          boxShadow: "-12px 0 48px rgba(0,0,0,0.45)",
+          background: "var(--sidebar)",
+          borderLeft: "1px solid var(--border)",
+          boxShadow: "var(--shadow-panel-left)",
           zIndex: 1001,
           display: "flex",
           flexDirection: "column",
           transform: open ? "translateX(0)" : "translateX(100%)",
           transition: "transform 0.28s ease",
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: "var(--font-sans)",
         }}
       >
         <div
@@ -337,7 +337,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
             alignItems: "flex-start",
             justifyContent: "space-between",
             padding: "20px 20px 12px",
-            borderBottom: "1px solid #141e30",
+            borderBottom: "1px solid var(--border)",
           }}
         >
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -349,14 +349,14 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                   margin: 0,
                   fontSize: 16,
                   fontWeight: 700,
-                  color: "#e2e8f4",
-                  fontFamily: "'Syne', sans-serif",
+                  color: "var(--text)",
+                  fontFamily: "var(--font-sans)",
                   letterSpacing: "-0.02em",
                 }}
               >
                 Help & Documentation
               </h2>
-              <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748b" }}>CORTEX v0.7.0</p>
+              <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-tertiary)" }}>CORTEX v0.7.0</p>
             </div>
           </div>
           <button
@@ -364,9 +364,9 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
             onClick={onClose}
             aria-label="Close help"
             style={{
-              background: "#141e30",
-              border: "1px solid #1e2e48",
-              color: "#94a3b8",
+              background: "var(--elevated)",
+              border: "1px solid var(--border)",
+              color: "var(--text-secondary)",
               width: 36,
               height: 36,
               borderRadius: 8,
@@ -390,9 +390,9 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
               boxSizing: "border-box",
               padding: "10px 12px",
               borderRadius: 8,
-              border: "1px solid #1e2e48",
-              background: "#090e1a",
-              color: "#e2e8f4",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--text)",
               fontSize: 13,
             }}
           />
@@ -419,17 +419,17 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                   textAlign: "left",
                   padding: "12px 10px",
                   borderRadius: 8,
-                  border: "1px solid #141e30",
-                  background: expanded.has(section.id) ? "#141e30" : "#090e1a",
-                  color: "#e2e8f4",
+                  border: "1px solid var(--border)",
+                  background: expanded.has(section.id) ? "var(--elevated)" : "var(--surface)",
+                  color: "var(--text)",
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: "pointer",
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "var(--font-sans)",
                 }}
               >
                 <span>{section.title}</span>
-                <span style={{ color: "#64748b", fontWeight: 400 }}>
+                <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}>
                   {expanded.has(section.id) ? "−" : "+"}
                 </span>
               </button>
@@ -437,7 +437,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                 <div
                   style={{
                     padding: "12px 10px 8px",
-                    borderLeft: "2px solid #2dd4bf",
+                    borderLeft: "2px solid var(--cyan)",
                     marginLeft: 8,
                     marginTop: 6,
                   }}
@@ -447,11 +447,13 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                       {section.blocks.map((b, i) => (
                         <div key={i} style={{ marginBottom: 12 }}>
                           {b.subtitle && (
-                            <h3 style={{ margin: "0 0 6px", fontSize: 13, color: "#94a3b8" }}>
+                            <h3 style={{ margin: "0 0 6px", fontSize: 13, color: "var(--text-secondary)" }}>
                               {b.subtitle}
                             </h3>
                           )}
-                          <p style={{ margin: 0, fontSize: 13, color: "#cbd5e1", lineHeight: 1.55 }}>{b.body}</p>
+                          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.55 }}>
+                            {b.body}
+                          </p>
                         </div>
                       ))}
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -459,7 +461,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                           href="https://github.com/AstraLabs-AI/The-Cortex"
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ color: "#2dd4bf", fontSize: 13 }}
+                          style={{ color: "var(--cyan)", fontSize: 13 }}
                         >
                           View on GitHub →
                         </a>
@@ -467,17 +469,9 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                           href="https://github.com/AstraLabs-AI/The-Cortex/issues/new"
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ color: "#2dd4bf", fontSize: 13 }}
+                          style={{ color: "var(--cyan)", fontSize: 13 }}
                         >
-                          Report an issue →
-                        </a>
-                        <a
-                          href="https://github.com/AstraLabs-AI/The-Cortex/issues/new"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: "#2dd4bf", fontSize: 13 }}
-                        >
-                          Request a feature →
+                          Report an issue or idea →
                         </a>
                       </div>
                     </>
@@ -485,12 +479,12 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                     section.blocks.map((b, i) => (
                       <div key={i} style={{ marginBottom: 14 }}>
                         {b.subtitle && (
-                          <h3 style={{ margin: "0 0 6px", fontSize: 13, color: "#94a3b8", fontWeight: 600 }}>
+                          <h3 style={{ margin: "0 0 6px", fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>
                             {b.subtitle}
                           </h3>
                         )}
                         {b.body ? (
-                          <p style={{ margin: 0, fontSize: 13, color: "#cbd5e1", lineHeight: 1.55, whiteSpace: "pre-line" }}>
+                          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.55, whiteSpace: "pre-line" }}>
                             {b.body}
                           </p>
                         ) : null}

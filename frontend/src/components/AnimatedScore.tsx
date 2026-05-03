@@ -13,9 +13,9 @@ interface AnimatedScoreProps {
 }
 
 function scoreColor(score: number): string {
-  if (score >= 70) return "#10b981";
-  if (score >= 50) return "#f59e0b";
-  return "#ef4444";
+  if (score >= 70) return "var(--green)";
+  if (score >= 50) return "var(--amber)";
+  return "var(--red)";
 }
 
 export function AnimatedScoreRing({

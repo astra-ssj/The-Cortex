@@ -14,23 +14,21 @@ import type { AssessmentEvent, FrameworkPosture } from "./types/compliance";
 import { Skeleton, StatCardSkeleton, FrameworkCardSkeleton } from "./components/Skeleton";
 import { DashboardEmpty, FrameworksEmpty } from "./components/EmptyState";
 import { AnimatedNumber, AnimatedScoreRing } from "./components/AnimatedScore";
+import { TrustChip } from "./components/ui/TrustChip";
 
-// ─── CORTEX dark theme design tokens ───────────────────────────────────────
+/** Token references — values resolve from :root in index.css */
 const tokens = {
-  background: "#05080f",
-  surface: "#090e1a",
-  panel: "#0c1220",
-  card: "#0d1526",
-  border: "#141e30",
-  borderLit: "#1e2e48",
-  textPrimary: "#e2e8f4",
-  textMuted: "#94a3b8",
-  textDim: "#4a5a72",
-  green: "#10b981",
-  amber: "#f59e0b",
-  red: "#ef4444",
-  blue: "#3b82f6",
-  cardHoverBg: "#111827",
+  border: "var(--border)",
+  borderLit: "var(--border)",
+  textPrimary: "var(--text)",
+  textMuted: "var(--text-secondary)",
+  textDim: "var(--text-quiet)",
+  green: "var(--green)",
+  amber: "var(--amber)",
+  red: "var(--red)",
+  blue: "var(--blue)",
+  cardHoverBg: "var(--card-hover)",
+  card: "var(--card)",
 } as const;
 
 function scoreRingColor(score: number): string {
@@ -42,13 +40,13 @@ function scoreRingColor(score: number): string {
 function riskBadgeStyle(risk: string): { background: string; color: string } {
   switch (risk) {
     case "CRITICAL":
-      return { background: "#7f1d1d", color: "#fca5a5" };
+      return { background: "var(--tone-critical-bg)", color: "var(--tone-critical-fg)" };
     case "HIGH":
-      return { background: "#78350f", color: "#fcd34d" };
+      return { background: "var(--tone-high-bg)", color: "var(--tone-high-fg)" };
     case "MEDIUM":
-      return { background: "#1e3a5f", color: "#93c5fd" };
+      return { background: "var(--tone-medium-bg)", color: "var(--tone-medium-fg)" };
     case "LOW":
-      return { background: "#14532d", color: "#86efac" };
+      return { background: "var(--tone-low-bg)", color: "var(--tone-low-fg)" };
     default:
       return { background: tokens.border, color: tokens.textMuted };
   }
@@ -106,12 +104,12 @@ function FrameworkCard({
   return (
     <Link
       to={`/frameworks/${fw.id}`}
-      className="card-stagger block rounded-lg transition focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-offset-[#05080f] focus:ring-[#1e2e48]"
+      className="card-stagger cortex-card-link block rounded-[var(--radius-md)] transition"
       style={{
-        background: tokens.card,
-        border: "1px solid " + tokens.border,
-        padding: "20px",
-        color: tokens.textPrimary,
+        background: "var(--card)",
+        border: "1px solid var(--border)",
+        padding: "var(--space-5)",
+        color: "var(--text)",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = tokens.borderLit;
@@ -124,16 +122,10 @@ function FrameworkCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3
-            className="font-bold"
-            style={{ color: tokens.textPrimary, fontSize: "15px" }}
-          >
+          <h3 className="font-bold" style={{ color: "var(--text)", fontSize: "var(--text-body)" }}>
             {fw.name}
           </h3>
-          <p
-            className="mt-1"
-            style={{ color: tokens.textDim, fontSize: "12px" }}
-          >
+          <p className="cortex-text-caption mt-1" style={{ color: tokens.textDim }}>
             v{fw.version} · {postureEntry?.jurisdiction ?? fw.jurisdiction}
           </p>
         </div>
@@ -165,7 +157,7 @@ function FrameworkCard({
             </svg>
             <span
               className="absolute inset-0 flex items-center justify-center text-xs font-medium"
-              style={{ color: tokens.textPrimary }}
+              style={{ color: "var(--text)" }}
             >
               {score}%
             </span>
@@ -187,10 +179,7 @@ function FrameworkCard({
           </span>
         ))}
       </div>
-      <p
-        className="mt-3"
-        style={{ color: tokens.textMuted, fontSize: "13px" }}
-      >
+      <p className="cortex-text-body mt-3" style={{ color: "var(--muted)" }}>
         {fw.control_count} control{fw.control_count !== 1 ? "s" : ""}
         {typeof postureEntry?.gapCount === "number" && (
           <span style={{ color: tokens.textDim }}> · {postureEntry.gapCount} gaps</span>
@@ -285,10 +274,16 @@ export function ComplianceDashboard() {
 
   if (isLoading) {
     return (
-      <div style={{ padding: "28px", background: tokens.background, color: tokens.textPrimary }}>
+      <div
+        style={{ padding: "28px", background: "var(--shell)", color: "var(--text)" }}
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <h1 className="cortex-text-page-title">Compliance overview</h1>
+        <p className="cortex-text-caption mt-2">Loading posture and frameworks…</p>
         <div
           style={{
-            background: tokens.surface,
+            background: "var(--surface)",
             border: `1px solid ${tokens.border}`,
             borderRadius: "8px",
             padding: "10px 16px",
@@ -337,8 +332,8 @@ export function ComplianceDashboard() {
         className="rounded-lg border p-4"
         style={{
           borderColor: tokens.red,
-          background: "#1c1917",
-          color: "#fca5a5",
+          background: "var(--tone-error-box-bg)",
+          color: "var(--tone-critical-fg)",
         }}
       >
         <p className="font-medium">Failed to load frameworks</p>
@@ -348,7 +343,7 @@ export function ComplianceDashboard() {
         ) : (
           <p className="mt-2 text-sm">
             Make sure the API is running. From repo root with Python venv active:{" "}
-            <code className="rounded px-1" style={{ background: tokens.panel }}>./scripts/run-api.sh</code>
+            <code className="rounded px-1" style={{ background: "var(--panel)" }}>./scripts/run-api.sh</code>
           </p>
         )}
       </div>
@@ -357,10 +352,12 @@ export function ComplianceDashboard() {
 
   if (!frameworks?.length) {
     return (
-      <div style={{ padding: "28px", background: tokens.background, color: tokens.textPrimary }}>
+      <div style={{ padding: "28px", background: "var(--shell)", color: "var(--text)" }}>
+        <h1 className="cortex-text-page-title">Compliance overview</h1>
+        <p className="cortex-text-caption mt-2 mb-6">Select frameworks to begin posture tracking.</p>
         <div
           style={{
-            background: tokens.panel,
+            background: "var(--panel)",
             border: `1px solid ${tokens.border}`,
             borderRadius: "10px",
           }}
@@ -378,17 +375,21 @@ export function ComplianceDashboard() {
 
   if (!hasAssessedPosture && !isLoading && orgId && !postureLoading) {
     return (
-      <div style={{ padding: "28px", background: tokens.background, color: tokens.textPrimary }}>
+      <div style={{ padding: "28px", background: "var(--shell)", color: "var(--text)" }}>
+        <h1 className="cortex-text-page-title">Compliance overview</h1>
+        <p className="cortex-text-caption mt-2 mb-6">
+          Run an assessment to populate scores and gap counts for your organisation.
+        </p>
         {ztaip && (
           <div
             className="ztaip-bar rounded-lg border px-4 py-2"
             style={{
               marginBottom: "24px",
-              background: tokens.surface,
+              background: "var(--surface)",
               borderColor: tokens.border,
               color: tokens.textDim,
               fontSize: "12px",
-              fontFamily: '"DM Mono", monospace',
+              fontFamily: "var(--font-mono)",
             }}
           >
             <span className="font-medium" style={{ color: tokens.textMuted }}>
@@ -400,7 +401,7 @@ export function ComplianceDashboard() {
         )}
         <div
           style={{
-            background: tokens.panel,
+            background: "var(--panel)",
             border: `1px solid ${tokens.border}`,
             borderRadius: "10px",
           }}
@@ -420,15 +421,22 @@ export function ComplianceDashboard() {
   }
 
   return (
-    <div className="space-y-6" style={{ background: tokens.background, color: tokens.textPrimary }}>
+    <div className="cortex-page-stack" style={{ background: "var(--shell)", color: "var(--text)" }}>
+      <header>
+        <h1 className="cortex-text-page-title">Compliance overview</h1>
+        <p className="cortex-text-caption mt-2 max-w-2xl">
+          Framework posture, audit readiness, and assessment streams scoped to your organisation.
+        </p>
+      </header>
       {posture?.message ? (
         <div
           className="rounded-lg border px-4 py-3 text-sm"
           style={{
             borderColor: tokens.borderLit,
-            background: tokens.surface,
+            background: "var(--surface)",
             color: tokens.textMuted,
           }}
+          role="status"
         >
           {posture.message}
         </div>
@@ -438,68 +446,60 @@ export function ComplianceDashboard() {
         <div
           className="rounded-lg border px-4 py-2"
           style={{
-            background: tokens.surface,
+            background: "var(--surface)",
             borderColor: tokens.border,
             color: tokens.textDim,
-            fontSize: "12px",
-            fontFamily: '"DM Mono", monospace',
+            fontSize: "var(--text-caption)",
+            fontFamily: "var(--font-mono)",
           }}
         >
-          <span className="font-medium" style={{ color: tokens.textMuted }}>ZTAIP:</span>{" "}
-          audit events {ztaip.auditFabric.totalEvents} · circuit breakers {ztaip.circuitBreakersCount} · human review queue {ztaip.humanReviewQueueCount} · {ztaip.sovereigntyBroker}
+          <span className="font-medium" style={{ color: tokens.textMuted }}>
+            ZTAIP:
+          </span>{" "}
+          audit events {ztaip.auditFabric.totalEvents} · circuit breakers {ztaip.circuitBreakersCount} · human review
+          queue {ztaip.humanReviewQueueCount} · {ztaip.sovereigntyBroker}
         </div>
       )}
 
       {/* Org banner */}
       {posture && (
-        <div
+        <section
           className="rounded-lg border-b px-4 py-4"
           style={{
-            background: tokens.surface,
+            background: "var(--surface)",
             borderColor: tokens.border,
             borderBottomWidth: "1px",
           }}
+          aria-labelledby="org-snapshot-title"
         >
-          <h2 className="font-bold" style={{ color: tokens.textPrimary }}>
+          <h2 id="org-snapshot-title" className="cortex-text-section font-bold" style={{ color: "var(--text)" }}>
             {demoMode ? "AstraLabs Group" : posture.organisationName}
           </h2>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <span
-              className="rounded px-2 py-0.5"
-              style={{
-                background: tokens.border,
-                color: tokens.textMuted,
-                fontSize: "11px",
-              }}
-            >
-              {posture.frameworks.length} frameworks
-            </span>
-            <span
-              className="rounded px-2 py-0.5"
-              style={{
-                background: tokens.border,
-                color: tokens.textMuted,
-                fontSize: "11px",
-              }}
-            >
-              Updated {posture.updatedAt}
-            </span>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <TrustChip label="Coverage" variant="neutral">
+              {posture.frameworks.length} framework{posture.frameworks.length !== 1 ? "s" : ""}
+            </TrustChip>
+            <TrustChip label="Snapshot" variant="neutral">
+              {posture.updatedAt}
+            </TrustChip>
           </div>
-        </div>
+        </section>
       )}
 
       {/* Stats row: Overall Posture, Audit Readiness, Critical Gaps, Compliant X/8 */}
       {posture && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Posture summary">
           <div
             className="rounded-lg border p-5"
             style={{
-              background: tokens.panel,
+              background: "var(--panel)",
               borderColor: tokens.border,
-              padding: "20px 24px",
+              padding: "var(--space-5) var(--space-6)",
             }}
           >
-            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Overall Posture</p>
+            <h3 className="cortex-text-caption font-semibold uppercase tracking-wide" style={{ color: tokens.textDim }}>
+              Overall posture
+            </h3>
             <div className="mt-2 flex items-center gap-3">
               {typeof posture.overallScore === "number" && posture.overallScore > 0 ? (
                 <AnimatedScoreRing
@@ -521,7 +521,7 @@ export function ComplianceDashboard() {
                       marginTop: 8,
                       border: "none",
                       background: "transparent",
-                      color: "#2dd4bf",
+                      color: "var(--cyan)",
                       padding: 0,
                       cursor: "pointer",
                       fontSize: 12,
@@ -536,12 +536,14 @@ export function ComplianceDashboard() {
           <div
             className="rounded-lg border p-5"
             style={{
-              background: tokens.panel,
+              background: "var(--panel)",
               borderColor: tokens.border,
-              padding: "20px 24px",
+              padding: "var(--space-5) var(--space-6)",
             }}
           >
-            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Audit Readiness</p>
+            <h3 className="cortex-text-caption font-semibold uppercase tracking-wide" style={{ color: tokens.textDim }}>
+              Audit readiness
+            </h3>
             <div className="mt-2 flex items-center gap-3">
               {typeof posture.auditReadiness === "number" ? (
                 <AnimatedScoreRing
@@ -550,7 +552,7 @@ export function ComplianceDashboard() {
                   strokeWidth={5}
                   duration={1400}
                   delay={200}
-                  color="#f59e0b"
+                  color="var(--amber)"
                 />
               ) : (
                 <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>
@@ -560,13 +562,15 @@ export function ComplianceDashboard() {
           <div
             className="rounded-lg border p-5"
             style={{
-              background: tokens.panel,
+              background: "var(--panel)",
               borderColor: tokens.border,
-              padding: "20px 24px",
+              padding: "var(--space-5) var(--space-6)",
             }}
           >
-            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Critical Gaps</p>
-            <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
+            <h3 className="cortex-text-caption font-semibold uppercase tracking-wide" style={{ color: tokens.textDim }}>
+              Critical gaps
+            </h3>
+            <p className="font-bold" style={{ color: "var(--text)", fontSize: "24px" }}>
               {typeof posture.criticalGapsCount === "number" ? (
                 <AnimatedNumber
                   value={posture.criticalGapsCount}
@@ -587,13 +591,15 @@ export function ComplianceDashboard() {
           <div
             className="rounded-lg border p-5"
             style={{
-              background: tokens.panel,
+              background: "var(--panel)",
               borderColor: tokens.border,
-              padding: "20px 24px",
+              padding: "var(--space-5) var(--space-6)",
             }}
           >
-            <p style={{ color: tokens.textDim, fontSize: "12px" }}>Compliant Frameworks</p>
-            <p className="font-bold" style={{ color: tokens.textPrimary, fontSize: "24px" }}>
+            <h3 className="cortex-text-caption font-semibold uppercase tracking-wide" style={{ color: tokens.textDim }}>
+              Compliant frameworks
+            </h3>
+            <p className="font-bold" style={{ color: "var(--text)", fontSize: "24px" }}>
               <AnimatedNumber
                 value={posture.frameworks.filter((f) => f.status === "COMPLIANT").length}
                 duration={800}
@@ -602,18 +608,18 @@ export function ComplianceDashboard() {
                   fontSize: "28px",
                   fontWeight: 700,
                   fontFamily: "'Syne', sans-serif",
-                  color: tokens.textPrimary,
+                  color: "var(--text)",
                 }}
               />
               /{posture.frameworks.length}
             </p>
           </div>
-        </div>
+        </section>
       )}
 
       {/* Framework cards */}
-      <div>
-        <h2 className="mb-4 font-semibold" style={{ color: tokens.textPrimary, fontSize: "18px" }}>
+      <section aria-labelledby="fw-directory-heading">
+        <h2 id="fw-directory-heading" className="cortex-text-section mb-4">
           Compliance frameworks
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -625,17 +631,18 @@ export function ComplianceDashboard() {
             />
           ))}
         </div>
-      </div>
+      </section>
 
       {/* Run assessment + stream panel */}
-      <div
+      <section
         className="rounded-lg border p-4"
+        aria-labelledby="assessment-panel-heading"
         style={{
-          background: tokens.panel,
+          background: "var(--panel)",
           borderColor: tokens.border,
         }}
       >
-        <h2 className="font-semibold" style={{ color: tokens.textPrimary, fontSize: "18px" }}>
+        <h2 id="assessment-panel-heading" className="cortex-text-section">
           Run assessment
         </h2>
         <p className="mt-1 text-sm" style={{ color: tokens.textMuted }}>
@@ -689,14 +696,18 @@ export function ComplianceDashboard() {
             ref={streamPanelRef}
             className="mt-6 overflow-y-auto rounded-lg border"
             style={{
-              padding: "16px",
-              background: tokens.surface,
+              padding: "var(--space-4)",
+              background: "var(--surface)",
               borderColor: tokens.border,
-              fontFamily: '"DM Mono", monospace',
-              fontSize: "12px",
+              fontFamily: "var(--font-mono)",
+              fontSize: "var(--text-caption)",
               color: tokens.textDim,
               maxHeight: "400px",
             }}
+            aria-live={isStreaming ? "polite" : "off"}
+            tabIndex={0}
+            role="log"
+            aria-label="Assessment event stream"
           >
             {isStreaming && events.length === 0 && (
               <div style={{ color: tokens.textMuted, padding: "2px 0" }}>Connecting…</div>
@@ -718,7 +729,7 @@ export function ComplianceDashboard() {
                               ? tokens.blue
                               : tokens.textMuted,
                     padding: "2px 0",
-                    borderBottom: "1px solid " + tokens.panel,
+                    borderBottom: "1px solid var(--panel)",
                   }}
                 >
                   [{type}] {message}
@@ -727,7 +738,7 @@ export function ComplianceDashboard() {
             })}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

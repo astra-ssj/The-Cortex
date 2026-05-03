@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from contextlib import contextmanager
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -13,12 +14,31 @@ from compliance import FrameworkId
 from services.assessment_engine import run_assessment_stream
 
 
+@contextmanager
+def _stream_session_mocks(context_return: dict[str, str]) -> None:
+    """Patch org profile + DB persist so AsyncMock session is never executed against Postgres."""
+    org = MagicMock()
+    org.metadata_ = {"maturity_score": 0.5, "employees": 100}
+    org.industry = "Technology"
+    with patch("services.assessment_engine.get_org_profile", new_callable=AsyncMock) as m_org:
+        m_org.return_value = org
+        with patch(
+            "services.posture_calculator.PostureCalculator.save_assessment_result",
+            new_callable=AsyncMock,
+        ):
+            with patch(
+                "services.assessment_engine.get_context_for_control",
+                new_callable=AsyncMock,
+            ) as m_ctx:
+                m_ctx.return_value = context_return
+                yield
+
+
 def test_run_assessment_stream_yields_run_start_and_run_done() -> None:
     """Stream yields run_start and run_done with runId."""
     session = AsyncMock()
 
-    with patch("services.assessment_engine.get_context_for_control", new_callable=AsyncMock) as m_ctx:
-        m_ctx.return_value = {"org": "demo", "control": "test"}
+    with _stream_session_mocks({"org": "demo", "control": "test"}):
         events: list[dict] = []
 
         async def collect() -> None:
@@ -37,15 +57,14 @@ def test_run_assessment_stream_yields_run_start_and_run_done() -> None:
     assert run_done is not None
     assert run_start["runId"] == run_done["runId"]
     assert run_start["organizationId"] == "org-001"
-    assert "gdpr" in run_start["frameworkIds"]
+    assert FrameworkId.GDPR_2016_679.value in run_start["frameworkIds"]
 
 
 def test_run_assessment_stream_yields_framework_start_and_done() -> None:
     """Stream yields framework_start and framework_done per framework."""
     session = AsyncMock()
 
-    with patch("services.assessment_engine.get_context_for_control", new_callable=AsyncMock) as m_ctx:
-        m_ctx.return_value = {"context": "test"}
+    with _stream_session_mocks({"context": "test"}):
         events: list[dict] = []
 
         async def collect() -> None:
@@ -62,26 +81,31 @@ def test_run_assessment_stream_yields_framework_start_and_done() -> None:
     fw_dones = [e for e in events if e.get("kind") == "framework_done"]
     assert len(fw_starts) >= 1
     assert len(fw_dones) >= 1
-    assert fw_starts[0]["frameworkId"] == "nist_csf"
+    assert fw_starts[0]["frameworkId"] == FrameworkId.NIST_CSF_2_0.value
 
 
 def test_run_assessment_stream_unknown_framework_skipped() -> None:
     """Unknown framework id in list is skipped (get returns None)."""
     session = AsyncMock()
 
-    with patch("services.assessment_engine.get") as m_get:
-        m_get.return_value = None
-        events: list[dict] = []
+    org = MagicMock()
+    org.metadata_ = {}
+    org.industry = "Technology"
+    with patch("services.assessment_engine.get_org_profile", new_callable=AsyncMock) as m_org:
+        m_org.return_value = org
+        with patch("services.assessment_engine.get") as m_get:
+            m_get.return_value = None
+            events: list[dict] = []
 
-        async def collect() -> None:
-            async for evt in run_assessment_stream(
-                session,
-                "org-001",
-                [FrameworkId.GDPR_2016_679],
-            ):
-                events.append(evt)
+            async def collect() -> None:
+                async for evt in run_assessment_stream(
+                    session,
+                    "org-001",
+                    [FrameworkId.GDPR_2016_679],
+                ):
+                    events.append(evt)
 
-        asyncio.run(collect())
+            asyncio.run(collect())
 
     run_done = next((e for e in events if e.get("kind") == "run_done"), None)
     assert run_done is not None
@@ -91,8 +115,7 @@ def test_run_assessment_stream_emits_control_result() -> None:
     """Stream emits control_context and control_result when context is returned."""
     session = AsyncMock()
 
-    with patch("services.assessment_engine.get_context_for_control", new_callable=AsyncMock) as m_ctx:
-        m_ctx.return_value = {"prompt": "demo context"}
+    with _stream_session_mocks({"prompt": "demo context"}):
         events: list[dict] = []
 
         async def collect() -> None:

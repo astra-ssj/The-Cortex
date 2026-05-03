@@ -164,7 +164,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#05080f", color: "#e2e8f4", fontFamily: "DM Sans, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "var(--font-sans)" }}>
       {streaming ? (
         <AssessmentStream
           orgName={localStorage.getItem("cortex_company") ?? "Your Organisation"}
@@ -206,15 +206,15 @@ export default function Onboarding() {
           }}
         />
       ) : null}
-      <header style={{ background: "#090e1a", borderBottom: "1px solid #141e30", padding: "14px 24px 12px" }}>
+      <header style={{ background: "var(--surface)", borderBottom: "1px solid var(--border-subtle)", padding: "14px 24px 12px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <LogoFull size="md" />
-          <span style={{ color: "#94a3b8", fontFamily: "'Space Mono', 'DM Mono', monospace", fontSize: 12 }}>
+          <span style={{ color: "var(--text-secondary)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
             Step {step} of 3
           </span>
         </div>
-        <div style={{ width: "100%", height: 6, borderRadius: 999, background: "#1e293b", overflow: "hidden" }}>
-          <div style={{ width: `${(step / 3) * 100}%`, height: "100%", background: "#2dd4bf", transition: "width 0.25s ease" }} />
+        <div style={{ width: "100%", height: 6, borderRadius: 999, background: "var(--border)", overflow: "hidden" }}>
+          <div style={{ width: `${(step / 3) * 100}%`, height: "100%", background: "var(--cyan)", transition: "width 0.25s ease" }} />
         </div>
       </header>
 
@@ -231,11 +231,11 @@ export default function Onboarding() {
                     width: 10,
                     height: 10,
                     borderRadius: 999,
-                    background: active ? "#2dd4bf" : done ? "#10b981" : "#475569",
-                    boxShadow: active ? "0 0 8px rgba(45,212,191,0.6)" : "none",
+                    background: active ? "var(--cyan)" : done ? "var(--green)" : "var(--border)",
+                    boxShadow: active ? "0 0 8px color-mix(in srgb, var(--cyan) 60%, transparent)" : "none",
                   }}
                 />
-                <span style={{ color: active ? "#e2e8f4" : "#94a3b8", fontSize: 12 }}>{label}</span>
+                <span style={{ color: active ? "var(--text)" : "var(--text-secondary)", fontSize: 12 }}>{label}</span>
               </div>
             );
           })}
@@ -252,22 +252,22 @@ export default function Onboarding() {
               <button type="button" onClick={() => selectStructure("single")} style={optionCard(structure === "single")}> 
                 <div style={{ fontSize: 34, marginBottom: 6 }}>🏢</div>
                 <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Single Entity</div>
-                <div style={{ color: "#94a3b8", fontSize: 13 }}>One company, operating in one primary jurisdiction.</div>
-                <div style={{ color: "#64748b", fontSize: 12, marginTop: 8 }}>e.g. a startup or SMB</div>
+                <div style={{ color: "var(--text-secondary)", fontSize: 13 }}>One company, operating in one primary jurisdiction.</div>
+                <div style={{ color: "var(--text-tertiary)", fontSize: 12, marginTop: 8 }}>e.g. a startup or SMB</div>
               </button>
 
               <button type="button" onClick={() => selectStructure("multi")} style={optionCard(structure === "multi")}> 
                 <div style={{ fontSize: 34, marginBottom: 6 }}>🌍</div>
                 <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Multi-Entity Group</div>
-                <div style={{ color: "#94a3b8", fontSize: 13 }}>Multiple entities across different countries.</div>
-                <div style={{ color: "#64748b", fontSize: 12, marginTop: 8 }}>e.g. international group with EU, UK, APAC offices</div>
+                <div style={{ color: "var(--text-secondary)", fontSize: 13 }}>Multiple entities across different countries.</div>
+                <div style={{ color: "var(--text-tertiary)", fontSize: 12, marginTop: 8 }}>e.g. international group with EU, UK, APAC offices</div>
               </button>
             </div>
 
             {structure === "multi" && (
-              <div style={{ marginTop: 18, background: "#090e1a", border: "1px solid #141e30", borderRadius: 10, padding: 14 }}>
+              <div style={{ marginTop: 18, background: "var(--surface)", border: "1px solid var(--border-subtle)", borderRadius: 10, padding: 14 }}>
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>Add your entities</div>
-                <div style={{ color: "#94a3b8", fontSize: 12, marginBottom: 12 }}>Add at least 2 entities</div>
+                <div style={{ color: "var(--text-secondary)", fontSize: 12, marginBottom: 12 }}>Add at least 2 entities</div>
 
                 {entities.map((entity, index) => (
                   <div key={index} style={{ display: "grid", gridTemplateColumns: "70px 1fr 130px 1fr 34px", gap: 8, marginBottom: 8 }}>
@@ -299,7 +299,7 @@ export default function Onboarding() {
                     <button
                       type="button"
                       onClick={() => setEntities((prev) => prev.filter((_, idx) => idx !== index))}
-                      style={{ ...inputStyle, padding: 0, color: "#94a3b8", cursor: "pointer" }}
+                      style={{ ...inputStyle, padding: 0, color: "var(--text-secondary)", cursor: "pointer" }}
                     >
                       ✕
                     </button>
@@ -309,7 +309,7 @@ export default function Onboarding() {
                 <button
                   type="button"
                   onClick={() => setEntities((prev) => [...prev, { flag: "🇪🇺", name: "", jurisdiction: "EU", role: "" }])}
-                  style={{ ...ghostStyle, border: "1px dashed #2dd4bf", color: "#2dd4bf" }}
+                  style={{ ...ghostStyle, border: "1px dashed var(--cyan)", color: "var(--cyan)" }}
                 >
                   ＋ Add another entity
                 </button>
@@ -328,7 +328,7 @@ export default function Onboarding() {
           <section>
             <h1 style={h1Style}>Which regulations apply to you?</h1>
             <p style={subStyle}>Pre-selected based on your jurisdiction. Adjust as needed.</p>
-            <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 12 }}>{frameworks.length} frameworks selected</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 12 }}>{frameworks.length} frameworks selected</p>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
               {FRAMEWORK_CARDS.map((framework) => {
@@ -346,20 +346,20 @@ export default function Onboarding() {
                     }}
                     style={{
                       textAlign: "left",
-                      border: checked ? "1px solid #2dd4bf" : "1px solid #1e293b",
-                      background: checked ? "rgba(45, 212, 191, 0.08)" : "#090e1a",
+                      border: checked ? "1px solid var(--cyan)" : "1px solid var(--border)",
+                      background: checked ? "color-mix(in srgb, var(--cyan) 8%, transparent)" : "var(--surface)",
                       borderRadius: 10,
                       padding: 14,
-                      color: "#e2e8f4",
+                      color: "var(--text)",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                      <span style={{ color: checked ? "#2dd4bf" : "#64748b" }}>{checked ? "☑" : "☐"}</span>
+                      <span style={{ color: checked ? "var(--cyan)" : "var(--text-tertiary)" }}>{checked ? "☑" : "☐"}</span>
                       <span style={{ fontWeight: 700, fontSize: 14 }}>{framework.title}</span>
                     </div>
-                    <div style={{ color: "#94a3b8", fontSize: 12 }}>{framework.subtitle}</div>
-                    <div style={{ color: "#64748b", fontSize: 12 }}>{framework.control_count} controls</div>
-                    <div style={{ color: "#94a3b8", fontSize: 12 }}>{framework.description}</div>
+                    <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>{framework.subtitle}</div>
+                    <div style={{ color: "var(--text-tertiary)", fontSize: 12 }}>{framework.control_count} controls</div>
+                    <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>{framework.description}</div>
                   </button>
                 );
               })}
@@ -387,7 +387,7 @@ export default function Onboarding() {
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
               {frameworks.map((id) => (
-                <span key={id} style={{ fontSize: 12, background: "#0f172a", border: "1px solid #2dd4bf66", color: "#2dd4bf", borderRadius: 999, padding: "4px 10px" }}>
+                <span key={id} style={{ fontSize: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--cyan) 40%, transparent)", color: "var(--cyan)", borderRadius: 999, padding: "4px 10px" }}>
                   {frameworkLabel(id)}
                 </span>
               ))}
@@ -398,7 +398,7 @@ export default function Onboarding() {
             </button>
 
             <div style={{ marginTop: 12 }}>
-              <button type="button" disabled={busy || streaming} onClick={() => void handleSkip()} style={{ ...ghostStyle, color: "#94a3b8", fontSize: 12 }}>
+              <button type="button" disabled={busy || streaming} onClick={() => void handleSkip()} style={{ ...ghostStyle, color: "var(--text-secondary)", fontSize: 12 }}>
                 Skip for now →
               </button>
             </div>
@@ -411,8 +411,8 @@ export default function Onboarding() {
 
 function StatCard({ title, value }: { title: string; value: string }) {
   return (
-    <div style={{ background: "#090e1a", border: "1px solid #141e30", borderRadius: 10, padding: 12 }}>
-      <div style={{ fontSize: 12, color: "#94a3b8" }}>{title}</div>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border-subtle)", borderRadius: 10, padding: 12 }}>
+      <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{title}</div>
       <div style={{ marginTop: 4, fontSize: 22, fontWeight: 700 }}>{value}</div>
     </div>
   );
@@ -422,22 +422,22 @@ const h1Style: CSSProperties = {
   margin: 0,
   marginBottom: 6,
   fontSize: 28,
-  fontFamily: "'Syne', 'DM Sans', sans-serif",
+  fontFamily: "var(--font-sans)",
   letterSpacing: "0.2px",
 };
 
 const subStyle: CSSProperties = {
   marginTop: 0,
-  color: "#94a3b8",
+  color: "var(--text-secondary)",
   marginBottom: 16,
 };
 
 const inputStyle: CSSProperties = {
   width: "100%",
   borderRadius: 8,
-  border: "1px solid #1e293b",
-  background: "#0f172a",
-  color: "#e2e8f4",
+  border: "1px solid var(--border)",
+  background: "var(--card)",
+  color: "var(--text)",
   padding: "9px 10px",
   fontSize: 13,
 };
@@ -445,10 +445,10 @@ const inputStyle: CSSProperties = {
 function optionCard(active: boolean): CSSProperties {
   return {
     borderRadius: 10,
-    border: active ? "1px solid #2dd4bf" : "1px solid #1e293b",
-    background: "#090e1a",
-    color: "#e2e8f4",
-    boxShadow: active ? "0 0 14px rgba(45,212,191,0.18)" : "none",
+    border: active ? "1px solid var(--cyan)" : "1px solid var(--border)",
+    background: "var(--surface)",
+    color: "var(--text)",
+    boxShadow: active ? "0 0 14px color-mix(in srgb, var(--cyan) 18%, transparent)" : "none",
     padding: 16,
     textAlign: "left",
     cursor: "pointer",
@@ -460,8 +460,8 @@ function primaryStyle(disabled: boolean): CSSProperties {
     padding: "10px 16px",
     borderRadius: 8,
     border: "none",
-    color: "#fff",
-    background: "linear-gradient(135deg, #0d9488, #2dd4bf)",
+    color: "var(--bg)",
+    background: "linear-gradient(135deg, color-mix(in srgb, var(--cyan) 60%, black), var(--cyan))",
     cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.65 : 1,
     fontWeight: 700,
@@ -471,17 +471,17 @@ function primaryStyle(disabled: boolean): CSSProperties {
 const ghostStyle: CSSProperties = {
   padding: "10px 14px",
   borderRadius: 8,
-  border: "1px solid #334155",
+  border: "1px solid var(--border)",
   background: "transparent",
-  color: "#cbd5e1",
+  color: "var(--text-secondary)",
   cursor: "pointer",
 };
 
 const errorBanner: CSSProperties = {
   marginBottom: 14,
-  background: "rgba(239,68,68,0.15)",
-  border: "1px solid rgba(239,68,68,0.4)",
-  color: "#fca5a5",
+  background: "color-mix(in srgb, var(--red) 15%, transparent)",
+  border: "1px solid color-mix(in srgb, var(--red) 40%, transparent)",
+  color: "var(--red)",
   borderRadius: 8,
   padding: "10px 12px",
   fontSize: 13,
@@ -493,9 +493,9 @@ function runAssessmentStyle(disabled: boolean): CSSProperties {
     padding: "14px 18px",
     borderRadius: 10,
     border: "none",
-    background: "linear-gradient(135deg, #0d9488, #2dd4bf)",
-    color: "#06231e",
-    fontFamily: "'Syne', 'DM Sans', sans-serif",
+    background: "linear-gradient(135deg, color-mix(in srgb, var(--cyan) 60%, black), var(--cyan))",
+    color: "var(--bg)",
+    fontFamily: "var(--font-sans)",
     fontWeight: 700,
     fontSize: 15,
     letterSpacing: "2px",

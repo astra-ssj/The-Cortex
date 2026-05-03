@@ -1,10 +1,9 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect } from "react";
 import {
   BrowserRouter,
   Routes,
   Route,
   Navigate,
-  Link,
   Outlet,
   useLocation,
   useNavigate,
@@ -30,6 +29,7 @@ import CloudScans from "./pages/CloudScans";
 import AISystems from "./pages/AISystems";
 import { HelpPanel } from "./components/HelpPanel";
 import { clearCortexBrowserSession } from "./lib/cortexSession";
+import { PrimaryNav } from "./components/PrimaryNav";
 
 /** Optional production/staging label from env; falls back to DEV when running Vite dev server. */
 function DeployEnvBadge() {
@@ -43,13 +43,13 @@ function DeployEnvBadge() {
       style={{
         marginLeft: 6,
         padding: "2px 8px",
-        borderRadius: 4,
-        fontSize: 10,
+        borderRadius: "var(--radius-sm)",
+        fontSize: "var(--text-micro)",
         fontWeight: 700,
         letterSpacing: "0.06em",
-        background: isDev ? "rgba(245, 158, 11, 0.15)" : "rgba(59, 130, 246, 0.15)",
-        border: `1px solid ${isDev ? "rgba(245, 158, 11, 0.45)" : "rgba(59, 130, 246, 0.35)"}`,
-        color: isDev ? "#fbbf24" : "#93c5fd",
+        background: isDev ? "var(--amber-soft)" : "var(--blue-soft)",
+        border: `1px solid ${isDev ? "color-mix(in srgb, var(--amber) 45%, transparent)" : "color-mix(in srgb, var(--blue) 35%, transparent)"}`,
+        color: isDev ? "var(--amber)" : "var(--text)",
       }}
     >
       {label.toUpperCase()}
@@ -66,35 +66,26 @@ function HeaderTrustStrip({ orgId, demoMode }: { orgId: string; demoMode: boolea
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 8,
+        gap: "var(--space-2)",
         flexWrap: "wrap",
         maxWidth: "min(420px, 42vw)",
       }}
       title="Effective organisation scope for API requests (Demo toggle may show reference tenant while JWT stays yours)."
     >
-      <span
-        style={{
-          fontSize: 10,
-          color: "#64748b",
-          fontFamily: "'DM Mono', monospace",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        Org <span style={{ color: "#94a3b8" }}>{orgId}</span>
+      <span className="cortex-text-mono" style={{ fontSize: "var(--text-micro)", color: "var(--dim)" }}>
+        Org <span style={{ color: "var(--muted)" }}>{orgId}</span>
       </span>
       {demoMode && (
         <span
           style={{
             padding: "2px 8px",
-            borderRadius: 4,
-            fontSize: 10,
+            borderRadius: "var(--radius-sm)",
+            fontSize: "var(--text-micro)",
             fontWeight: 700,
             letterSpacing: "0.04em",
-            background: "rgba(245, 158, 11, 0.12)",
-            border: "1px solid rgba(245, 158, 11, 0.35)",
-            color: "#fbbf24",
+            background: "var(--amber-soft)",
+            border: "1px solid color-mix(in srgb, var(--amber) 35%, transparent)",
+            color: "var(--amber)",
           }}
         >
           DEMO DATA VIEW
@@ -103,8 +94,8 @@ function HeaderTrustStrip({ orgId, demoMode }: { orgId: string; demoMode: boolea
       {showCompany && (
         <span
           style={{
-            fontSize: 10,
-            color: "#64748b",
+            fontSize: "var(--text-micro)",
+            color: "var(--dim)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -126,40 +117,10 @@ function LiveClock() {
     return () => clearInterval(t);
   }, []);
   return (
-    <span style={{ color: "#4a5a72", fontSize: "13px", fontFamily: "DM Mono, monospace" }}>
+    <span className="cortex-text-mono" style={{ color: "var(--text-quiet)", fontSize: "13px" }}>
       {time.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
     </span>
   );
-}
-
-const NAV_ITEMS: { label: ReactNode; path: string }[] = [
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Group", path: "/group" },
-  { label: "Frameworks", path: "/frameworks" },
-  { label: "Intelligence", path: "/intelligence" },
-  { label: "AI Systems", path: "/ai-systems" },
-  { label: "Review Queue", path: "/review-queue" },
-  { label: "Remediation", path: "/evidence" },
-  { label: "Audit Report", path: "/audit-report" },
-  { label: "Integrations", path: "/integrations" },
-  {
-    label: (
-      <>
-        Cloud scans{" "}
-        <span style={{ fontSize: 10, fontWeight: 600, color: "#5eead4" }}>Powered by Shasta</span>
-      </>
-    ),
-    path: "/cloud-scans",
-  },
-  { label: "Roadmap", path: "/roadmap" },
-];
-
-/** Highlight Frameworks when viewing `/frameworks/:id` as well as the list route. */
-function isPrimaryNavActive(navPath: string, pathname: string): boolean {
-  if (navPath === "/frameworks") {
-    return pathname === "/frameworks" || pathname.startsWith("/frameworks/");
-  }
-  return pathname === navPath;
 }
 
 function HeaderShell({
@@ -171,7 +132,6 @@ function HeaderShell({
   onLogout: () => void;
   onOpenHelp: () => void;
 }) {
-  const location = useLocation();
   const navigate = useNavigate();
   const { orgId, demoMode } = useOrgContext();
   const { isStreaming, startStream } = useAssessmentStream();
@@ -183,145 +143,70 @@ function HeaderShell({
 
   return (
     <>
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 24px",
-          height: "40px",
-          background: "#090e1a",
-          borderBottom: "1px solid #141e30",
-          position: "sticky",
-          top: 0,
-          zIndex: 101,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+      <header className="cortex-header" aria-label="Application header">
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", minWidth: 0 }}>
           <LogoFull size="md" />
-          <span style={{ color: "#2d3a52", marginLeft: 4 }}>·</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "#10b981",
-                boxShadow: "0 0 6px #10b981",
-              }}
-            />
-            <span style={{ color: "#10b981", fontSize: 11, fontWeight: "bold" }}>MONITORING</span>
+          <span style={{ color: "var(--sep)" }} aria-hidden>
+            ·
+          </span>
+          <div className="cortex-monitor-live flex items-center gap-1.5" title="Live monitoring status">
+            <span className="cortex-monitor-dot" aria-hidden />
+            <span style={{ color: "var(--green)", fontSize: "11px", fontWeight: 700 }}>MONITORING</span>
           </div>
-          <span style={{ color: "#2d3a52", marginLeft: 4 }}>·</span>
+          <span style={{ color: "var(--sep)" }} aria-hidden>
+            ·
+          </span>
           <LiveClock />
-          <span style={{ color: "#2d3a52", marginLeft: 4 }}>·</span>
+          <span style={{ color: "var(--sep)" }} aria-hidden>
+            ·
+          </span>
           <HeaderTrustStrip orgId={orgId} demoMode={demoMode} />
           <DeployEnvBadge />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
           <DemoToggle />
           {user && (
-            <span style={{ color: "#4a5a72", fontSize: 12 }}>
+            <span className="cortex-text-caption" style={{ color: "var(--text-quiet)" }}>
               {(user as { name?: string }).name ??
                 (user as { username?: string }).username ??
                 (user as { email?: string }).email ??
                 "User"}
             </span>
           )}
-          <button
-            type="button"
-            onClick={onLogout}
-            style={{
-              padding: "4px 12px",
-              borderRadius: 6,
-              background: "#141e30",
-              border: "1px solid #1e2e48",
-              color: "#94a3b8",
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
+          <button type="button" onClick={onLogout} className="cortex-btn-ghost">
             Logout
           </button>
         </div>
       </header>
 
-      <nav
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 24px",
-          height: "44px",
-          background: "#0b1220",
-          borderBottom: "1px solid #141e30",
-          position: "sticky",
-          top: 40,
-          zIndex: 100,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-          {NAV_ITEMS.map((item, i) => {
-            const active = isPrimaryNavActive(item.path, location.pathname);
-            return (
-            <span key={item.path} style={{ display: "flex", alignItems: "center" }}>
-              {i > 0 && (
-                <span style={{ color: "#2d3a52", margin: "0 6px", fontSize: 12 }}>|</span>
-              )}
-              <Link
-                to={item.path}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 6,
-                  fontSize: 12,
-                  letterSpacing: 0,
-                  textDecoration: "none",
-                  fontWeight: active ? "bold" : "normal",
-                  color: active ? "#e2e8f4" : "#4a5a72",
-                  background: active ? "#141e30" : "transparent",
-                }}
-              >
-                {item.label}
-              </Link>
-            </span>
-            );
-          })}
+      <nav className="cortex-nav" aria-label="Primary">
+        <div className="cortex-nav-primary">
+          <PrimaryNav />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            flexShrink: 0,
+            paddingLeft: "var(--space-2)",
+            borderLeft: "1px solid var(--border)",
+          }}
+        >
           <button
             type="button"
             onClick={handleRunAssessment}
             disabled={isStreaming}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 6,
-              background: "linear-gradient(135deg, #2563eb, #3b82f6)",
-              border: "none",
-              color: "#fff",
-              fontSize: 12,
-              fontWeight: "bold",
-              cursor: isStreaming ? "not-allowed" : "pointer",
-              opacity: isStreaming ? 0.7 : 1,
-            }}
+            className="cortex-btn-primary"
           >
             {isStreaming ? "Streaming…" : "Run Assessment"}
           </button>
           <button
             type="button"
             onClick={onOpenHelp}
-            title="Help"
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              background: "var(--border)",
-              border: "1px solid var(--border-l)",
-              color: "var(--muted)",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-              fontFamily: "'Syne', sans-serif",
-            }}
+            className="cortex-btn-icon"
+            aria-label="Open help panel"
+            title="Help (keyboard shortcut H)"
           >
             ?
           </button>
@@ -350,16 +235,12 @@ function MainChrome({ onOpenHelp }: { onOpenHelp: () => void }) {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#05080f",
-        color: "#e2e8f4",
-        fontFamily: "DM Sans, sans-serif",
-      }}
-    >
+    <div className="cortex-app">
+      <a href="#main-content" className="cortex-skip-link">
+        Skip to main content
+      </a>
       <HeaderShell user={user} onLogout={onLogout} onOpenHelp={onOpenHelp} />
-      <main style={{ padding: "24px" }}>
+      <main id="main-content" tabIndex={-1} aria-label="Main content">
         <Outlet />
       </main>
     </div>

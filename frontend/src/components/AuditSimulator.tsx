@@ -457,11 +457,11 @@ function genericScenario(regulatorId: string, frameworkId: string, entityId: str
 function riskColor(risk: RiskLevel): string {
   switch (risk) {
     case "HIGH":
-      return "#ef4444";
+      return "var(--red)";
     case "MEDIUM":
-      return "#f59e0b";
+      return "var(--amber)";
     default:
-      return "#22c55e";
+      return "var(--green)";
   }
 }
 
@@ -551,8 +551,8 @@ export function AuditSimulator() {
   }, [auditType, entity, framework, regulator, result]);
 
   const panelStyle: CSSProperties = {
-    background: "#0b1220",
-    border: "1px solid #141e30",
+    background: "var(--surface)",
+    border: "1px solid var(--border-subtle)",
     borderRadius: 12,
     padding: 20,
   };
@@ -587,9 +587,9 @@ export function AuditSimulator() {
             marginBottom: 16,
             padding: "10px 12px",
             borderRadius: 8,
-            border: "1px solid #1e293b",
-            background: "#05080f",
-            color: "#e2e8f0",
+            border: "1px solid var(--border)",
+            background: "var(--bg)",
+            color: "var(--text)",
             fontSize: 13,
           }}
         >
@@ -612,9 +612,9 @@ export function AuditSimulator() {
             marginBottom: 16,
             padding: "10px 12px",
             borderRadius: 8,
-            border: "1px solid #1e293b",
-            background: "#05080f",
-            color: "#e2e8f0",
+            border: "1px solid var(--border)",
+            background: "var(--bg)",
+            color: "var(--text)",
             fontSize: 13,
           }}
         >
@@ -637,9 +637,9 @@ export function AuditSimulator() {
             marginBottom: 16,
             padding: "10px 12px",
             borderRadius: 8,
-            border: "1px solid #1e293b",
-            background: "#05080f",
-            color: "#e2e8f0",
+            border: "1px solid var(--border)",
+            background: "var(--bg)",
+            color: "var(--text)",
             fontSize: 13,
           }}
         >
@@ -667,7 +667,7 @@ export function AuditSimulator() {
                 gap: 10,
                 cursor: "pointer",
                 fontSize: 13,
-                color: "#cbd5e1",
+                color: "var(--text-secondary)",
               }}
             >
               <input
@@ -693,8 +693,10 @@ export function AuditSimulator() {
             cursor: loading ? "wait" : "pointer",
             fontWeight: 700,
             fontSize: 14,
-            color: "#042f2e",
-            background: loading ? "#134e4a" : "linear-gradient(135deg, #2dd4bf, #06b6d4)",
+            color: "var(--bg)",
+            background: loading
+              ? "color-mix(in srgb, var(--cyan) 30%, black)"
+              : "linear-gradient(135deg, var(--cyan), color-mix(in srgb, var(--cyan) 80%, black))",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -708,8 +710,8 @@ export function AuditSimulator() {
                 style={{
                   width: 18,
                   height: 18,
-                  border: "2px solid rgba(4,47,46,0.25)",
-                  borderTopColor: "#042f2e",
+                  border: "2px solid color-mix(in srgb, var(--bg) 25%, transparent)",
+                  borderTopColor: "var(--bg)",
                   borderRadius: "50%",
                   animation: "spin 0.8s linear infinite",
                 }}
@@ -740,7 +742,7 @@ export function AuditSimulator() {
             <div style={{ fontSize: 56, marginBottom: 16 }} aria-hidden>
               🔍
             </div>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#94a3b8", maxWidth: 360 }}>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "var(--text-secondary)", maxWidth: 360 }}>
               Configure and run a simulation to see what a regulator would find
             </p>
             <p style={{ margin: "12px 0 0", fontSize: 12, maxWidth: 380, lineHeight: 1.6 }}>
@@ -753,9 +755,9 @@ export function AuditSimulator() {
               <AnimatedSection delayMs={0}>
                 <div
                   style={{
-                    borderLeft: "4px solid #2dd4bf",
+                    borderLeft: "4px solid var(--cyan)",
                     paddingLeft: 16,
-                    background: "#070d18",
+                    background: "var(--bg)",
                     borderRadius: 8,
                     padding: 16,
                   }}
@@ -767,15 +769,15 @@ export function AuditSimulator() {
                         fontSize: 11,
                         padding: "4px 10px",
                         borderRadius: 999,
-                        background: "#164e63",
-                        color: "#a5f3fc",
+                        background: "color-mix(in srgb, var(--blue) 20%, transparent)",
+                        color: "var(--cyan)",
                       }}
                     >
                       {result.jurisdictionBadge}
                     </span>
                   </div>
-                  <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.65, color: "#cbd5e1" }}>
-                    <strong style={{ color: "#e2e8f0" }}>Enforcement personality — </strong>
+                  <p style={{ margin: "12px 0 0", fontSize: 13, lineHeight: 1.65, color: "var(--text-secondary)" }}>
+                    <strong style={{ color: "var(--text)" }}>Enforcement personality — </strong>
                     {result.enforcementPersonality}
                   </p>
                 </div>
@@ -790,8 +792,8 @@ export function AuditSimulator() {
                         fontSize: 11,
                         padding: "4px 10px",
                         borderRadius: 6,
-                        background: "#1e293b",
-                        color: "#94a3b8",
+                        background: "var(--border)",
+                        color: "var(--text-secondary)",
                       }}
                     >
                       Based on {result.enforcementDecisionCount} enforcement decisions
@@ -802,7 +804,7 @@ export function AuditSimulator() {
                   {result.questions.map((q, idx) => (
                     <AnimatedQuestion key={`${q.article}-${idx}`} delayMs={200 + idx * 100}>
                       <li style={{ listStylePosition: "outside" }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: "#f1f5f9", marginBottom: 6 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)", marginBottom: 6 }}>
                           {q.text}
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
@@ -811,8 +813,8 @@ export function AuditSimulator() {
                               fontSize: 11,
                               padding: "3px 8px",
                               borderRadius: 6,
-                              background: "#042f2e",
-                              color: "#5eead4",
+                              background: "color-mix(in srgb, var(--cyan) 15%, transparent)",
+                              color: "var(--cyan)",
                             }}
                           >
                             {q.article}
@@ -835,15 +837,15 @@ export function AuditSimulator() {
                   <h3 style={{ margin: "0 0 12px", fontSize: 15 }}>Weak Evidence Items</h3>
                   <div
                     style={{
-                      borderLeft: "4px solid #ef4444",
+                      borderLeft: "4px solid var(--red)",
                       padding: 16,
                       borderRadius: 8,
-                      background: "#070d18",
+                      background: "var(--bg)",
                     }}
                   >
                     <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 10 }}>
                       {result.evidenceWeaknesses.map((w) => (
-                        <li key={w} style={{ fontSize: 13, color: "#fecaca", lineHeight: 1.55 }}>
+                        <li key={w} style={{ fontSize: 13, color: "var(--red)", lineHeight: 1.55 }}>
                           ⚠ {w}
                         </li>
                       ))}
@@ -857,10 +859,10 @@ export function AuditSimulator() {
                   <h3 style={{ margin: "0 0 12px", fontSize: 15 }}>Estimated Exposure</h3>
                   <div
                     style={{
-                      borderLeft: "4px solid #f59e0b",
+                      borderLeft: "4px solid var(--amber)",
                       padding: 16,
                       borderRadius: 8,
-                      background: "#070d18",
+                      background: "var(--bg)",
                       overflowX: "auto",
                     }}
                   >
@@ -875,11 +877,11 @@ export function AuditSimulator() {
                       </thead>
                       <tbody>
                         {result.exposureRows.map((row) => (
-                          <tr key={row.framework} style={{ borderTop: "1px solid #1e293b" }}>
+                          <tr key={row.framework} style={{ borderTop: "1px solid var(--border)" }}>
                             <td style={{ padding: "10px 10px 10px 0", fontWeight: 600 }}>{row.framework}</td>
                             <td style={{ padding: "10px" }}>{row.maxFine}</td>
-                            <td style={{ padding: "10px", color: "#fcd34d" }}>{row.likelyFine}</td>
-                            <td style={{ padding: "10px", color: "#94a3b8", fontSize: 12 }}>{row.basis}</td>
+                            <td style={{ padding: "10px", color: "var(--amber)" }}>{row.likelyFine}</td>
+                            <td style={{ padding: "10px", color: "var(--text-secondary)", fontSize: 12 }}>{row.basis}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -893,17 +895,17 @@ export function AuditSimulator() {
                   <h3 style={{ margin: "0 0 12px", fontSize: 15 }}>Priority Actions Before Audit</h3>
                   <div
                     style={{
-                      borderLeft: "4px solid #22c55e",
+                      borderLeft: "4px solid var(--green)",
                       padding: 16,
                       borderRadius: 8,
-                      background: "#070d18",
+                      background: "var(--bg)",
                     }}
                   >
                     <ol style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 14 }}>
                       {result.priorityActions.map((a) => (
-                        <li key={a.action} style={{ fontSize: 13, lineHeight: 1.55, color: "#d1fae5" }}>
-                          <strong style={{ color: "#ecfdf5" }}>{a.action}</strong>
-                          <div style={{ marginTop: 6, fontSize: 12, color: "#86efac" }}>
+                        <li key={a.action} style={{ fontSize: 13, lineHeight: 1.55, color: "var(--green)" }}>
+                          <strong style={{ color: "var(--text)" }}>{a.action}</strong>
+                          <div style={{ marginTop: 6, fontSize: 12, color: "var(--green)" }}>
                             {a.article} · {a.effortDays} days · {a.ownerRole}
                           </div>
                         </li>
@@ -916,9 +918,9 @@ export function AuditSimulator() {
                         marginTop: 18,
                         padding: "10px 16px",
                         borderRadius: 8,
-                        border: "1px solid #166534",
-                        background: "#052e16",
-                        color: "#bbf7d0",
+                        border: "1px solid color-mix(in srgb, var(--green) 40%, transparent)",
+                        background: "color-mix(in srgb, var(--green) 15%, transparent)",
+                        color: "var(--green)",
                         fontWeight: 600,
                         cursor: "pointer",
                         fontSize: 13,

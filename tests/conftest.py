@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import os
+
+# Must run before api.main import so api.limits sees it (SlowAPI /auth/token 10/min).
+os.environ.setdefault("CORTEX_DISABLE_RATE_LIMIT", "1")
+
 import pytest
 from fastapi.testclient import TestClient
 

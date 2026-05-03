@@ -99,24 +99,24 @@ const SIGNAL_POOL: SignalTemplate[] = [
 ];
 
 const SOURCES = [
-  { name: "Microsoft 365", dot: "#2dd4bf", mock: true, count: 2 },
-  { name: "GitHub", dot: "#a855f7", mock: true, count: 1 },
-  { name: "AWS", dot: "#f97316", mock: true, count: 3 },
-  { name: "Azure", dot: "#3b82f6", mock: true, count: 1 },
-  { name: "Google Workspace", dot: "#22c55e", mock: true, count: 0 },
-  { name: "Slack", dot: "#e879f9", mock: true, count: 1 },
+  { name: "Microsoft 365", dot: "var(--cyan)", mock: true, count: 2 },
+  { name: "GitHub", dot: "var(--purple)", mock: true, count: 1 },
+  { name: "AWS", dot: "var(--amber)", mock: true, count: 3 },
+  { name: "Azure", dot: "var(--blue)", mock: true, count: 1 },
+  { name: "Google Workspace", dot: "var(--green)", mock: true, count: 0 },
+  { name: "Slack", dot: "var(--purple)", mock: true, count: 1 },
 ] as const;
 
 function severityColor(sev: Severity): string {
   switch (sev) {
     case "CRITICAL":
-      return "#ef4444";
+      return "var(--red)";
     case "HIGH":
-      return "#f59e0b";
+      return "var(--amber)";
     case "MEDIUM":
-      return "#3b82f6";
+      return "var(--blue)";
     default:
-      return "#2dd4bf";
+      return "var(--cyan)";
   }
 }
 
@@ -230,7 +230,7 @@ export function TelemetryFusion() {
 
   const scoreDelta = Math.round((score - sessionStartScore.current) * 10) / 10;
   const scoreColor =
-    score >= 70 ? "#22c55e" : score >= 50 ? "#fbbf24" : "#ef4444";
+    score >= 70 ? "var(--green)" : score >= 50 ? "var(--amber)" : "var(--red)";
 
   const thresholdLabel =
     incidentProgress >= 100
@@ -242,11 +242,17 @@ export function TelemetryFusion() {
           : "Monitoring";
 
   const thresholdTone =
-    incidentProgress >= 100 ? "#ef4444" : incidentProgress >= 80 ? "#ef4444" : incidentProgress >= 60 ? "#f59e0b" : "#64748b";
+    incidentProgress >= 100
+      ? "var(--red)"
+      : incidentProgress >= 80
+        ? "var(--red)"
+        : incidentProgress >= 60
+          ? "var(--amber)"
+          : "var(--text-tertiary)";
 
   const panel: CSSProperties = {
-    background: "#0b1220",
-    border: "1px solid #141e30",
+    background: "var(--surface)",
+    border: "1px solid var(--border-subtle)",
     borderRadius: 12,
     padding: 16,
   };
@@ -259,9 +265,9 @@ export function TelemetryFusion() {
             flexBasis: "100%",
             padding: "12px 16px",
             borderRadius: 10,
-            background: "linear-gradient(90deg, #450a0a, #7f1d1d)",
-            border: "1px solid #ef4444",
-            color: "#fecaca",
+            background: "linear-gradient(90deg, color-mix(in srgb, var(--red) 20%, black), color-mix(in srgb, var(--red) 40%, black))",
+            border: "1px solid var(--red)",
+            color: "var(--red)",
             fontSize: 13,
             fontWeight: 600,
             lineHeight: 1.45,
@@ -284,8 +290,8 @@ export function TelemetryFusion() {
               style={{
                 padding: "10px 12px",
                 borderRadius: 8,
-                background: "#070d18",
-                border: "1px solid #1e293b",
+                background: "var(--bg)",
+                border: "1px solid var(--border)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -313,8 +319,10 @@ export function TelemetryFusion() {
                     fontWeight: 700,
                     padding: "2px 8px",
                     borderRadius: 999,
-                    background: s.mock ? "#422006" : "#042f2e",
-                    color: s.mock ? "#fbbf24" : "#2dd4bf",
+                    background: s.mock
+                      ? "color-mix(in srgb, var(--amber) 15%, transparent)"
+                      : "color-mix(in srgb, var(--cyan) 15%, transparent)",
+                    color: s.mock ? "var(--amber)" : "var(--cyan)",
                   }}
                 >
                   {s.mock ? "MOCK" : "LIVE"}
@@ -340,9 +348,9 @@ export function TelemetryFusion() {
               style={{
                 padding: "6px 12px",
                 borderRadius: 8,
-                border: "1px solid #1e293b",
-                background: paused ? "#164e63" : "#1e293b",
-                color: "#e2e8f0",
+                border: "1px solid var(--border)",
+                background: paused ? "color-mix(in srgb, var(--blue) 20%, transparent)" : "var(--border)",
+                color: "var(--text)",
                 fontSize: 12,
                 cursor: "pointer",
                 fontWeight: 600,
@@ -354,10 +362,10 @@ export function TelemetryFusion() {
         </div>
         <div
           style={{
-            fontFamily: '"Space Mono", monospace',
+            fontFamily: "var(--font-mono)",
             fontSize: 11,
-            background: "#030712",
-            border: "1px solid #1e293b",
+            background: "var(--bg)",
+            border: "1px solid var(--border)",
             borderRadius: 8,
             padding: 12,
             minHeight: 320,
@@ -367,20 +375,20 @@ export function TelemetryFusion() {
           }}
         >
           {feed.length === 0 ? (
-            <div style={{ color: "#475569" }}>Awaiting signals…</div>
+            <div style={{ color: "var(--border)" }}>Awaiting signals…</div>
           ) : (
             feed.map((line) => (
               <div key={line.id} style={{ marginBottom: 10, wordBreak: "break-word" }}>
-                <span style={{ color: "#64748b" }}>
+                <span style={{ color: "var(--text-tertiary)" }}>
                   {new Date(line.ts).toISOString().replace("T", " ").slice(0, 19)}
                 </span>
-                <span style={{ color: "#94a3b8" }}> | </span>
-                <span style={{ color: "#cbd5e1" }}>{line.icon}</span>
-                <span style={{ color: "#cbd5e1" }}> {line.source}</span>
-                <span style={{ color: "#94a3b8" }}> | </span>
+                <span style={{ color: "var(--text-secondary)" }}> | </span>
+                <span style={{ color: "var(--text-secondary)" }}>{line.icon}</span>
+                <span style={{ color: "var(--text-secondary)" }}> {line.source}</span>
+                <span style={{ color: "var(--text-secondary)" }}> | </span>
                 <span style={{ color: severityColor(line.severity), fontWeight: 700 }}>{line.severity}</span>
-                <span style={{ color: "#94a3b8" }}> | </span>
-                <span style={{ color: "#e2e8f0" }}>{line.text}</span>
+                <span style={{ color: "var(--text-secondary)" }}> | </span>
+                <span style={{ color: "var(--text)" }}>{line.text}</span>
               </div>
             ))
           )}
@@ -394,8 +402,8 @@ export function TelemetryFusion() {
           style={{
             padding: 16,
             borderRadius: 10,
-            background: "#070d18",
-            border: "1px solid #1e293b",
+            background: "var(--bg)",
+            border: "1px solid var(--border)",
             marginBottom: 16,
             textAlign: "center",
           }}
@@ -412,7 +420,17 @@ export function TelemetryFusion() {
             >
               {score.toFixed(score % 1 === 0 ? 0 : 1)}%
             </span>
-            <span style={{ fontSize: 22, color: lastTrend === "down" ? "#ef4444" : lastTrend === "up" ? "#22c55e" : "#475569" }}>
+            <span
+              style={{
+                fontSize: 22,
+                color:
+                  lastTrend === "down"
+                    ? "var(--red)"
+                    : lastTrend === "up"
+                      ? "var(--green)"
+                      : "var(--border)",
+              }}
+            >
               {lastTrend === "down" ? "↓" : lastTrend === "up" ? "↑" : "→"}
             </span>
           </div>
@@ -421,7 +439,7 @@ export function TelemetryFusion() {
         <div
           style={{
             fontSize: 12,
-            color: "#cbd5e1",
+            color: "var(--text-secondary)",
             display: "grid",
             gap: 8,
             marginBottom: 16,
@@ -438,7 +456,7 @@ export function TelemetryFusion() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
             <span style={{ color: "var(--dim)" }}>Score change</span>
             <span style={{ textAlign: "right" }}>
-              <span style={{ color: scoreDelta <= 0 ? "#f87171" : "#4ade80", fontWeight: 600 }}>
+              <span style={{ color: scoreDelta <= 0 ? "var(--red)" : "var(--green)", fontWeight: 600 }}>
                 {scoreDelta >= 0 ? "+" : ""}
                 {scoreDelta}%
               </span>
@@ -447,7 +465,7 @@ export function TelemetryFusion() {
           </div>
         </div>
 
-        <h3 style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 700, color: "#94a3b8" }}>Affected controls</h3>
+        <h3 style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>Affected controls</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
           {controlHits.length === 0 ? (
             <div style={{ fontSize: 12, color: "var(--dim)" }}>No control impacts yet.</div>
@@ -460,8 +478,8 @@ export function TelemetryFusion() {
                   style={{
                     padding: 10,
                     borderRadius: 8,
-                    background: "#070d18",
-                    border: "1px solid #1e293b",
+                    background: "var(--bg)",
+                    border: "1px solid var(--border)",
                     fontSize: 11,
                   }}
                 >
@@ -472,13 +490,13 @@ export function TelemetryFusion() {
                         fontWeight: 700,
                         padding: "2px 6px",
                         borderRadius: 4,
-                        background: `${severityColor(c.severity)}22`,
+                        background: `color-mix(in srgb, ${severityColor(c.severity)} 13%, transparent)`,
                         color: severityColor(c.severity),
                       }}
                     >
                       {c.severity}
                     </span>
-                    <span style={{ fontWeight: 700, color: "#e2e8f0" }}>{c.control}</span>
+                    <span style={{ fontWeight: 700, color: "var(--text)" }}>{c.control}</span>
                     {isNew && (
                       <span
                         style={{
@@ -486,8 +504,8 @@ export function TelemetryFusion() {
                           fontWeight: 800,
                           padding: "2px 6px",
                           borderRadius: 4,
-                          background: "#164e63",
-                          color: "#5eead4",
+                          background: "color-mix(in srgb, var(--blue) 20%, transparent)",
+                          color: "var(--cyan)",
                         }}
                       >
                         NEW
@@ -497,7 +515,7 @@ export function TelemetryFusion() {
                   <div style={{ color: "var(--dim)" }}>
                     Source: {c.source}
                     <br />
-                    Article: <span style={{ color: "#5eead4" }}>{c.article}</span>
+                    Article: <span style={{ color: "var(--cyan)" }}>{c.article}</span>
                   </div>
                 </div>
               );
@@ -505,16 +523,16 @@ export function TelemetryFusion() {
           )}
         </div>
 
-        <h3 style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 700, color: "#94a3b8" }}>NIS2 Reportable Event Tracker</h3>
+        <h3 style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>NIS2 Reportable Event Tracker</h3>
         <div
           style={{
             padding: 12,
             borderRadius: 8,
-            background: "#070d18",
-            border: "1px solid #1e293b",
+            background: "var(--bg)",
+            border: "1px solid var(--border)",
           }}
         >
-          <div style={{ height: 10, borderRadius: 999, background: "#1e293b", overflow: "hidden", marginBottom: 10 }}>
+          <div style={{ height: 10, borderRadius: 999, background: "var(--border)", overflow: "hidden", marginBottom: 10 }}>
             <div
               style={{
                 height: "100%",
@@ -522,10 +540,10 @@ export function TelemetryFusion() {
                 borderRadius: 999,
                 background:
                   incidentProgress >= 80
-                    ? "linear-gradient(90deg,#dc2626,#f97316)"
+                    ? "linear-gradient(90deg, var(--red), var(--amber))"
                     : incidentProgress >= 60
-                      ? "linear-gradient(90deg,#d97706,#fbbf24)"
-                      : "linear-gradient(90deg,#0891b2,#2dd4bf)",
+                      ? "linear-gradient(90deg, color-mix(in srgb, var(--amber) 80%, black), var(--amber))"
+                      : "linear-gradient(90deg, color-mix(in srgb, var(--cyan) 60%, black), var(--cyan))",
                 transition: "width 0.45s ease",
               }}
             />

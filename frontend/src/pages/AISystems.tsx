@@ -33,9 +33,9 @@ function calendarDaysUntilDeadline(): number {
 }
 
 function countdownColor(days: number): string {
-  if (days > 120) return "#4ade80";
-  if (days >= 60) return "#fbbf24";
-  return "#f87171";
+  if (days > 120) return "var(--green)";
+  if (days >= 60) return "var(--amber)";
+  return "var(--red)";
 }
 
 const SYSTEMS: AISystem[] = [
@@ -245,10 +245,10 @@ const READINESS: Record<string, number> = {
 };
 
 function cardBorder(risk: RiskLabel): CSSProperties {
-  if (risk === "HIGH") return { borderLeft: "4px solid #ef4444" };
-  if (risk === "LIMITED") return { borderLeft: "4px solid #f59e0b" };
-  if (risk === "MINIMAL") return { borderLeft: "4px solid #22c55e" };
-  return { borderLeft: "4px dashed #64748b" };
+  if (risk === "HIGH") return { borderLeft: "4px solid var(--red)" };
+  if (risk === "LIMITED") return { borderLeft: "4px solid var(--amber)" };
+  if (risk === "MINIMAL") return { borderLeft: "4px solid var(--green)" };
+  return { borderLeft: "4px dashed var(--text-tertiary)" };
 }
 
 function statusLabel(s: SystemStatus): string {
@@ -269,12 +269,12 @@ function obligationRowStyle(
   daysLeft: number,
 ): { color: string; statusText: string } {
   const urgent = daysLeft < 90;
-  if (row.status === "IMPLEMENTED") return { color: "#4ade80", statusText: "✓ IMPLEMENTED" };
+  if (row.status === "IMPLEMENTED") return { color: "var(--green)", statusText: "✓ IMPLEMENTED" };
   if (row.status === "IN_PROGRESS")
-    return { color: urgent ? "#fbbf24" : "#94a3b8", statusText: "⚠ IN PROGRESS" };
+    return { color: urgent ? "var(--amber)" : "var(--text-secondary)", statusText: "⚠ IN PROGRESS" };
   if (row.article === "Article 43")
-    return { color: urgent ? "#f87171" : "#94a3b8", statusText: "✗ NOT STARTED" };
-  return { color: urgent ? "#f87171" : "#94a3b8", statusText: "✗ NOT IMPLEMENTED" };
+    return { color: urgent ? "var(--red)" : "var(--text-secondary)", statusText: "✗ NOT STARTED" };
+  return { color: urgent ? "var(--red)" : "var(--text-secondary)", statusText: "✗ NOT IMPLEMENTED" };
 }
 
 type TabKey = "inventory" | "classification" | "obligations";
@@ -297,15 +297,15 @@ export default function AISystems() {
   const selectedSystem = SYSTEMS.find((s) => s.id === selectedSystemId);
 
   return (
-    <div style={{ fontFamily: '"DM Sans", sans-serif', color: "#e2e8f4", minHeight: "calc(100vh - 120px)" }}>
+    <div style={{ fontFamily: "var(--font-sans)", color: "var(--text)", minHeight: "calc(100vh - 120px)" }}>
       <header style={{ marginBottom: 24 }}>
         <h1
           style={{
-            fontFamily: '"Syne", sans-serif',
+            fontFamily: "var(--font-sans)",
             fontWeight: 700,
             fontSize: 24,
             margin: 0,
-            color: "#f1f5f9",
+            color: "var(--text)",
           }}
         >
           AI Systems
@@ -320,15 +320,15 @@ export default function AISystems() {
           marginBottom: 20,
           padding: "12px 14px",
           borderRadius: 8,
-          border: "1px solid #334155",
-          background: "#1e293b",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
           fontSize: 12,
-          color: "#94a3b8",
+          color: "var(--text-secondary)",
           lineHeight: 1.5,
         }}
       >
-        <span style={{ color: "#fbbf24", fontWeight: 700 }}>Illustrative</span> — The inventory below is{" "}
-        <strong style={{ color: "#e2e8f4" }}>static demo content</strong> for UX review. A governed AI register will
+        <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — The inventory below is{" "}
+        <strong style={{ color: "var(--text)" }}>static demo content</strong> for UX review. A governed AI register will
         persist per organisation via API in a future release.
       </div>
 
@@ -336,13 +336,13 @@ export default function AISystems() {
         style={{
           padding: 18,
           borderRadius: 12,
-          background: "linear-gradient(135deg, #450a0a 0%, #1c1410 100%)",
-          border: "1px solid #b45309",
+          background: "linear-gradient(135deg, color-mix(in srgb, var(--red) 25%, black) 0%, var(--bg) 100%)",
+          border: "1px solid color-mix(in srgb, var(--amber) 50%, transparent)",
           marginBottom: 24,
         }}
       >
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#fecaca" }}>⚠ EU AI Act High-Risk Obligations</div>
-        <div style={{ fontSize: 13, color: "#fde68a", marginTop: 6 }}>Apply from 2 August 2026</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--red)" }}>⚠ EU AI Act High-Risk Obligations</div>
+        <div style={{ fontSize: 13, color: "var(--amber)", marginTop: 6 }}>Apply from 2 August 2026</div>
         <div style={{ fontSize: 16, fontWeight: 700, color: countdownStyle, marginTop: 10 }}>
           <AnimatedNumber
             value={daysLeft}
@@ -351,23 +351,23 @@ export default function AISystems() {
             style={{
               fontSize: "28px",
               fontWeight: 800,
-              fontFamily: "'Syne', sans-serif",
-              color: daysLeft < 90 ? "#ef4444" : "#f59e0b",
+              fontFamily: "var(--font-sans)",
+              color: daysLeft < 90 ? "var(--red)" : "var(--amber)",
             }}
           />{" "}
           days remaining
         </div>
-        <p style={{ fontSize: 13, color: "#cbd5e1", marginTop: 10, marginBottom: 0 }}>
+        <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 10, marginBottom: 0 }}>
           {systemsNeedingConformity} systems require conformity assessment before this deadline
         </p>
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 24 }}>
         {[
-          { label: "6 Systems Inventoried", color: "#e2e8f4" },
-          { label: "3 High Risk", color: "#f87171" },
-          { label: "2 Unclassified", color: "#94a3b8" },
-          { label: "1 Compliant", color: "#4ade80" },
+          { label: "6 Systems Inventoried", color: "var(--text)" },
+          { label: "3 High Risk", color: "var(--red)" },
+          { label: "2 Unclassified", color: "var(--text-secondary)" },
+          { label: "1 Compliant", color: "var(--green)" },
         ].map((p) => (
           <span
             key={p.label}
@@ -375,8 +375,8 @@ export default function AISystems() {
             style={{
               padding: "6px 14px",
               borderRadius: 999,
-              background: "#0f172a",
-              border: "1px solid #1e2e48",
+              background: "var(--card)",
+              border: "1px solid var(--border-subtle)",
               fontSize: 12,
               color: p.color,
             }}
@@ -392,7 +392,7 @@ export default function AISystems() {
           display: "flex",
           gap: 24,
           marginBottom: 24,
-          borderBottom: "1px solid #141e30",
+          borderBottom: "1px solid var(--border-subtle)",
         }}
       >
         {(
@@ -412,12 +412,12 @@ export default function AISystems() {
               padding: "10px 0",
               marginBottom: -1,
               border: "none",
-              borderBottom: tab === key ? "2px solid #2dd4bf" : "2px solid transparent",
+              borderBottom: tab === key ? "2px solid var(--cyan)" : "2px solid transparent",
               background: "transparent",
               cursor: "pointer",
               fontSize: 13,
               fontWeight: tab === key ? 600 : 400,
-              color: tab === key ? "#f8fafc" : "var(--dim)",
+              color: tab === key ? "var(--text)" : "var(--dim)",
               fontFamily: "inherit",
             }}
           >
@@ -450,8 +450,8 @@ export default function AISystems() {
                   className="card-stagger"
                   style={{
                     padding: 18,
-                    background: "#0b1220",
-                    border: "1px solid #141e30",
+                    background: "var(--surface)",
+                    border: "1px solid var(--border-subtle)",
                     borderRadius: 10,
                     ...cardBorder(sys.risk),
                   }}
@@ -466,47 +466,47 @@ export default function AISystems() {
                         borderRadius: 4,
                         background:
                           sys.risk === "HIGH"
-                            ? "#450a0a"
+                            ? "color-mix(in srgb, var(--red) 20%, transparent)"
                             : sys.risk === "LIMITED"
-                              ? "#422006"
+                              ? "color-mix(in srgb, var(--amber) 15%, transparent)"
                               : sys.risk === "MINIMAL"
-                                ? "#14532d"
-                                : "#1e293b",
+                                ? "color-mix(in srgb, var(--green) 20%, transparent)"
+                                : "var(--border)",
                         color:
                           sys.risk === "HIGH"
-                            ? "#fca5a5"
+                            ? "var(--red)"
                             : sys.risk === "LIMITED"
-                              ? "#fde68a"
+                              ? "var(--amber)"
                               : sys.risk === "MINIMAL"
-                                ? "#86efac"
-                                : "#94a3b8",
+                                ? "var(--green)"
+                                : "var(--text-secondary)",
                         fontSize: 10,
                         fontWeight: 700,
                       }}
                     >
                       {sys.risk === "UNCLASSIFIED" ? "UNCLASSIFIED" : `${sys.risk} RISK`}
                     </span>
-                    <span style={{ padding: "2px 8px", borderRadius: 4, background: "#141e30", color: "#94a3b8", fontSize: 10 }}>
+                    <span style={{ padding: "2px 8px", borderRadius: 4, background: "var(--border-subtle)", color: "var(--text-secondary)", fontSize: 10 }}>
                       [{sys.annex}]
                     </span>
                   </div>
-                  <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
                     <div>
-                      <strong style={{ color: "#64748b" }}>Deployed by:</strong> {sys.entity}
+                      <strong style={{ color: "var(--text-tertiary)" }}>Deployed by:</strong> {sys.entity}
                     </div>
                     <div>
-                      <strong style={{ color: "#64748b" }}>Provider:</strong> {sys.provider}
+                      <strong style={{ color: "var(--text-tertiary)" }}>Provider:</strong> {sys.provider}
                     </div>
                     <div>
-                      <strong style={{ color: "#64748b" }}>Use case:</strong> {sys.use_case}
+                      <strong style={{ color: "var(--text-tertiary)" }}>Use case:</strong> {sys.use_case}
                     </div>
                     <div>
-                      <strong style={{ color: "#64748b" }}>Data:</strong> {sys.data}
+                      <strong style={{ color: "var(--text-tertiary)" }}>Data:</strong> {sys.data}
                     </div>
                     <div style={{ marginTop: 10 }}>
-                      <strong style={{ color: "#64748b" }}>Conformity:</strong> {sys.conformity}
+                      <strong style={{ color: "var(--text-tertiary)" }}>Conformity:</strong> {sys.conformity}
                     </div>
-                    <div style={{ marginTop: 6, color: "#f8fafc" }}>Status: {statusLabel(sys.status)}</div>
+                    <div style={{ marginTop: 6, color: "var(--text)" }}>Status: {statusLabel(sys.status)}</div>
                   </div>
                   <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
                     <button
@@ -518,9 +518,9 @@ export default function AISystems() {
                       style={{
                         padding: "8px 12px",
                         borderRadius: 6,
-                        border: "1px solid #2dd4bf",
+                        border: "1px solid var(--cyan)",
                         background: "transparent",
-                        color: "#2dd4bf",
+                        color: "var(--cyan)",
                         fontSize: 11,
                         cursor: "pointer",
                       }}
@@ -536,9 +536,9 @@ export default function AISystems() {
                       style={{
                         padding: "8px 12px",
                         borderRadius: 6,
-                        border: "1px solid #3b82f6",
-                        background: "#1e3a5f",
-                        color: "#93c5fd",
+                        border: "1px solid var(--blue)",
+                        background: "color-mix(in srgb, var(--blue) 15%, transparent)",
+                        color: "var(--blue)",
                         fontSize: 11,
                         cursor: "pointer",
                       }}
@@ -553,13 +553,13 @@ export default function AISystems() {
 
       {tab === "classification" && (
         <div>
-          <h2 style={{ fontFamily: '"Syne", sans-serif', fontSize: 18, margin: "0 0 8px", color: "#f8fafc" }}>
+          <h2 style={{ fontFamily: "var(--font-sans)", fontSize: 18, margin: "0 0 8px", color: "var(--text)" }}>
             EU AI Act Risk Classification
           </h2>
           <p style={{ fontSize: 12, color: "var(--dim)", marginBottom: 16, maxWidth: 560 }}>
             Annex III classification with reasoning grounded in ISO 42001 and EU AI Act Article 6
           </p>
-          <label style={{ fontSize: 12, color: "#94a3b8" }} htmlFor="sys-class-select">
+          <label style={{ fontSize: 12, color: "var(--text-secondary)" }} htmlFor="sys-class-select">
             Select system
           </label>
           <select
@@ -573,9 +573,9 @@ export default function AISystems() {
               padding: "10px 14px",
               minWidth: 280,
               borderRadius: 8,
-              background: "#090e1a",
-              border: "1px solid #1e2e48",
-              color: "#e2e8f4",
+              background: "var(--bg)",
+              border: "1px solid var(--border-subtle)",
+              color: "var(--text)",
               fontSize: 13,
             }}
           >
@@ -590,16 +590,16 @@ export default function AISystems() {
             <div
               style={{
                 padding: 22,
-                background: "#0b1220",
-                border: "1px solid #1e2e48",
+                background: "var(--surface)",
+                border: "1px solid var(--border-subtle)",
                 borderRadius: 12,
                 maxWidth: 720,
               }}
             >
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#2dd4bf", letterSpacing: "0.06em" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--cyan)", letterSpacing: "0.06em" }}>
                 CLASSIFICATION RESULT
               </div>
-              <div style={{ marginTop: 14, fontSize: 14, color: "#f8fafc" }}>
+              <div style={{ marginTop: 14, fontSize: 14, color: "var(--text)" }}>
                 <strong>System:</strong> {selectedSystem.name}
               </div>
               <div style={{ marginTop: 8, fontSize: 14 }}>
@@ -611,30 +611,30 @@ export default function AISystems() {
               <div style={{ marginTop: 8, fontSize: 14 }}>
                 <strong>Confidence:</strong> {selectedClassification.confidence.toFixed(2)}
               </div>
-              <div style={{ marginTop: 18, fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>
+              <div style={{ marginTop: 18, fontSize: 11, color: "var(--text-tertiary)", textTransform: "uppercase" }}>
                 Classification reasoning
               </div>
-              <p style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.6, marginTop: 8 }}>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, marginTop: 8 }}>
                 {selectedClassification.reasoning}
               </p>
-              <div style={{ marginTop: 18, fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>
+              <div style={{ marginTop: 18, fontSize: 11, color: "var(--text-tertiary)", textTransform: "uppercase" }}>
                 ISO 42001 mapping
               </div>
-              <p style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.6, marginTop: 8 }}>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, marginTop: 8 }}>
                 {selectedClassification.isoMapping}
               </p>
-              <div style={{ marginTop: 18, fontSize: 11, color: "#64748b", textTransform: "uppercase" }}>
+              <div style={{ marginTop: 18, fontSize: 11, color: "var(--text-tertiary)", textTransform: "uppercase" }}>
                 Relevant articles
               </div>
-              <p style={{ fontSize: 13, color: "#94a3b8", marginTop: 8 }}>{selectedClassification.articles}</p>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 8 }}>{selectedClassification.articles}</p>
               <div
                 style={{
                   marginTop: 20,
                   padding: "10px 12px",
-                  background: "#164e63",
+                  background: "color-mix(in srgb, var(--blue) 20%, transparent)",
                   borderRadius: 8,
                   fontSize: 12,
-                  color: "#2dd4bf",
+                  color: "var(--cyan)",
                   fontWeight: 600,
                 }}
               >
@@ -647,7 +647,7 @@ export default function AISystems() {
 
       {tab === "obligations" && (
         <div>
-          <h2 style={{ fontFamily: '"Syne", sans-serif', fontSize: 18, margin: "0 0 8px", color: "#f8fafc" }}>
+          <h2 style={{ fontFamily: "var(--font-sans)", fontSize: 18, margin: "0 0 8px", color: "var(--text)" }}>
             Obligation Mapping
           </h2>
           <p style={{ fontSize: 12, color: "var(--dim)", marginBottom: 20, maxWidth: 520 }}>
@@ -659,19 +659,19 @@ export default function AISystems() {
             const readiness = READINESS[sid] ?? 0;
             return (
               <div key={sid} style={{ marginBottom: 32 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "#f8fafc", marginBottom: 12 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>
                   System: {sys.name}{" "}
-                  <span style={{ fontSize: 13, color: "#2dd4bf", fontWeight: 500 }}>
+                  <span style={{ fontSize: 13, color: "var(--cyan)", fontWeight: 500 }}>
                     · {readiness}% ready · {daysLeft} days to deadline
                   </span>
                 </div>
                 <div
                   style={{
                     padding: 18,
-                    background: "#0b1220",
-                    border: "1px solid #141e30",
+                    background: "var(--surface)",
+                    border: "1px solid var(--border-subtle)",
                     borderRadius: 10,
-                    borderLeft: "4px solid #ef4444",
+                    borderLeft: "4px solid var(--red)",
                   }}
                 >
                   {rows.map((row) => {
@@ -682,16 +682,16 @@ export default function AISystems() {
                         style={{
                           paddingBottom: 14,
                           marginBottom: 14,
-                          borderBottom: "1px solid #141e30",
+                          borderBottom: "1px solid var(--border-subtle)",
                         }}
                       >
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
                           {row.article} — {row.label}
                         </div>
                         <div style={{ fontSize: 12, marginTop: 6, color: st.color }}>
                           Status: {st.statusText}
                         </div>
-                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+                        <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 4 }}>
                           Due: 2 Aug 2026 · Effort: {row.effort}
                         </div>
                       </div>

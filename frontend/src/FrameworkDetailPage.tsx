@@ -50,7 +50,7 @@ export function FrameworkDetailPage() {
         ← Back to frameworks
       </Link>
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold tracking-tight text-[#f1f5f9]" style={{ fontFamily: "'Syne', sans-serif" }}>
+        <h2 className="text-2xl font-semibold tracking-tight text-cortex-text" style={{ fontFamily: "var(--font-sans)" }}>
           {framework.name}
         </h2>
         <p className="mt-1 text-sm text-cortex-muted">
@@ -67,16 +67,16 @@ export function FrameworkDetailPage() {
           ))}
         </div>
       </div>
-      <h3 className="mb-3 text-base font-semibold text-[#e2e8f4]">
+      <h3 className="mb-3 text-base font-semibold text-cortex-text">
         Controls ({framework.controls.length})
       </h3>
       <ul className="space-y-3">
         {framework.controls.map((c) => (
           <li
             key={c.id}
-            className="rounded-lg border border-cortex-border bg-[#0d1526] p-4 shadow-sm transition-colors hover:border-[#1e2e48]"
+            className="rounded-lg border border-cortex-border bg-cortex-card p-4 shadow-sm transition-colors hover:border-cortex-border"
           >
-            <p className="font-medium text-[#e2e8f4]">{c.name}</p>
+            <p className="font-medium text-cortex-text">{c.name}</p>
             {c.domain && <p className="text-sm text-cortex-muted">{c.domain}</p>}
             <p className="mt-2 text-sm text-cortex-muted">
               {c.requirements.length} requirement{c.requirements.length !== 1 ? "s" : ""}

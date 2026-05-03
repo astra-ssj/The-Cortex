@@ -5,6 +5,7 @@ import { shastaCloudApi, type ShastaEvidenceMapOut, type ShastaScanRunRow } from
 import { ShastaEvidenceMapFlow } from "../components/ShastaEvidenceMapFlow";
 import { SHASTA_EVIDENCE_MAP_SAMPLE } from "../lib/shastaEvidenceMapMock";
 import { buildEvidenceMapRows } from "../lib/shastaEvidenceMapRows";
+import { EngineBadge, TrustChip } from "../components/ui/TrustChip";
 
 function ComplianceEvidenceMapBlock({
   mapOut,
@@ -31,7 +32,7 @@ function ComplianceEvidenceMapBlock({
       style={{
         marginTop,
         paddingTop: marginTop > 0 ? 22 : 0,
-        borderTop: marginTop > 0 ? "1px solid #1e293b" : undefined,
+        borderTop: marginTop > 0 ? "1px solid var(--border)" : undefined,
       }}
     >
       {isSample && (
@@ -41,36 +42,31 @@ function ComplianceEvidenceMapBlock({
             marginBottom: 14,
             padding: "10px 14px",
             borderRadius: 8,
-            border: "1px solid rgba(251, 191, 36, 0.45)",
-            background: "rgba(251, 191, 36, 0.08)",
+            border: "1px solid color-mix(in srgb, var(--amber) 45%, transparent)",
+            background: "color-mix(in srgb, var(--amber) 8%, transparent)",
             fontSize: 12,
-            color: "#fcd34d",
+            color: "var(--amber)",
             lineHeight: 1.5,
           }}
         >
-          <strong style={{ color: "#fde68a" }}>Sample data.</strong> Illustrative finding → control mapping
+          <strong style={{ color: "var(--amber)" }}>Sample data.</strong> Illustrative finding → control mapping
           only — not loaded from your organisation or live cloud scans. Toggle off anytime.
         </div>
       )}
-      <h3
-        style={{
-          fontSize: 14,
-          color: "#94a3b8",
-          marginBottom: 8,
-          fontFamily: '"Syne", sans-serif',
-          fontWeight: 600,
-        }}
-      >
+      <h3 className="cortex-text-section" style={{ marginBottom: "var(--space-2)" }}>
         Compliance evidence map
       </h3>
-      <p style={{ fontSize: 12, color: "#64748b", marginBottom: 14, maxWidth: 720, lineHeight: 1.5 }}>
+      <p
+        className="cortex-text-caption"
+        style={{ marginBottom: 14, maxWidth: 720, lineHeight: 1.55, color: "var(--dim)" }}
+      >
         Each finding links to framework control references supplied by Shasta (
-        <code style={{ fontSize: 11, color: "#5eead4" }}>framework_controls</code>
+        <code style={{ fontSize: 11, color: "var(--cyan)" }}>framework_controls</code>
         ). Source is always this engine — not merged with other connector evidence types.
       </p>
-      {!isSample && loading && <p style={{ color: "#64748b", fontSize: 13 }}>Loading evidence map…</p>}
+      {!isSample && loading && <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>Loading evidence map…</p>}
       {!isSample && error && (
-        <p style={{ color: "#f87171", fontSize: 13 }}>{error.message}</p>
+        <p style={{ color: "var(--red)", fontSize: 13 }}>{error.message}</p>
       )}
       {mapOut && (
         <>
@@ -82,22 +78,15 @@ function ComplianceEvidenceMapBlock({
               gap: 10,
               alignItems: "center",
               fontSize: 12,
-              color: "#94a3b8",
+              color: "var(--text-secondary)",
             }}
           >
-            <span
-              style={{
-                padding: "4px 10px",
-                borderRadius: 6,
-                background: "#0f172a",
-                border: "1px solid #334155",
-              }}
-            >
-              Source: <strong style={{ color: "#e2e8f4" }}>Shasta</strong>
-              {isSample && (
-                <span style={{ color: "#94a3b8", fontWeight: 400 }}> · demo payload</span>
-              )}
-            </span>
+            <TrustChip label="Source" variant="source">
+              Shasta
+              {isSample ? (
+                <span style={{ color: "var(--muted)", fontWeight: 400 }}> · demo payload</span>
+              ) : null}
+            </TrustChip>
             <span>
               Scan: {mapOut.scan_status}
               {mapOut.cloud ? ` · ${mapOut.cloud}` : ""}
@@ -112,14 +101,15 @@ function ComplianceEvidenceMapBlock({
               <button
                 type="button"
                 onClick={() => setMapView("table")}
+                aria-pressed={mapView === "table"}
                 style={{
                   padding: "6px 12px",
-                  borderRadius: 6,
-                  fontSize: 12,
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "var(--text-caption)",
                   fontWeight: 600,
-                  border: "1px solid #334155",
-                  background: mapView === "table" ? "#1e293b" : "transparent",
-                  color: mapView === "table" ? "#e2e8f4" : "#64748b",
+                  border: "1px solid var(--border-l)",
+                  background: mapView === "table" ? "var(--panel-elevated)" : "transparent",
+                  color: mapView === "table" ? "var(--text)" : "var(--dim)",
                   cursor: "pointer",
                 }}
               >
@@ -128,14 +118,15 @@ function ComplianceEvidenceMapBlock({
               <button
                 type="button"
                 onClick={() => setMapView("graph")}
+                aria-pressed={mapView === "graph"}
                 style={{
                   padding: "6px 12px",
-                  borderRadius: 6,
-                  fontSize: 12,
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "var(--text-caption)",
                   fontWeight: 600,
-                  border: "1px solid #334155",
-                  background: mapView === "graph" ? "#1e293b" : "transparent",
-                  color: mapView === "graph" ? "#e2e8f4" : "#64748b",
+                  border: "1px solid var(--border-l)",
+                  background: mapView === "graph" ? "var(--panel-elevated)" : "transparent",
+                  color: mapView === "graph" ? "var(--text)" : "var(--dim)",
                   cursor: "pointer",
                 }}
               >
@@ -144,7 +135,7 @@ function ComplianceEvidenceMapBlock({
             </div>
           )}
           {mapOut.summary.edges === 0 && (
-            <p style={{ color: "#64748b", fontSize: 13, marginBottom: 12 }}>
+            <p style={{ color: "var(--text-tertiary)", fontSize: 13, marginBottom: 12 }}>
               No framework control tags on these rows yet — mappings appear when Shasta populates{" "}
               <code style={{ fontSize: 11 }}>framework_controls</code>.
             </p>
@@ -155,25 +146,26 @@ function ComplianceEvidenceMapBlock({
             </div>
           )}
           {mapView === "table" && rows.length > 0 && (
-            <div style={{ overflowX: "auto", border: "1px solid #141e30", borderRadius: 8 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <div className="cortex-table-wrap">
+              <table className="cortex-table">
+                <caption>Findings mapped to framework controls (Shasta engine)</caption>
                 <thead>
-                  <tr style={{ background: "#0f172a", textAlign: "left" }}>
-                    <th style={{ padding: 10 }}>Severity</th>
-                    <th style={{ padding: 10 }}>Finding</th>
-                    <th style={{ padding: 10 }}>Mapped controls</th>
+                  <tr>
+                    <th scope="col">Severity</th>
+                    <th scope="col">Finding</th>
+                    <th scope="col">Mapped controls</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map(({ fn, controls }) => (
-                    <tr key={fn.id} style={{ borderTop: "1px solid #141e30", verticalAlign: "top" }}>
-                      <td style={{ padding: 10, whiteSpace: "nowrap" }}>{fn.severity ?? "—"}</td>
-                      <td style={{ padding: 10, maxWidth: 300 }}>
-                        <div style={{ fontWeight: 600, color: "#e2e8f4" }}>{fn.label}</div>
+                    <tr key={fn.id} style={{ verticalAlign: "top" }}>
+                      <td style={{ whiteSpace: "nowrap" }}>{fn.severity ?? "—"}</td>
+                      <td style={{ maxWidth: 300 }}>
+                        <div style={{ fontWeight: 600, color: "var(--text)" }}>{fn.label}</div>
                       </td>
-                      <td style={{ padding: 10 }}>
+                      <td>
                         {controls.length === 0 ? (
-                          <span style={{ color: "#64748b" }}>—</span>
+                          <span style={{ color: "var(--text-tertiary)" }}>—</span>
                         ) : (
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                             {controls.map((c) => (
@@ -183,9 +175,9 @@ function ComplianceEvidenceMapBlock({
                                   fontSize: 11,
                                   padding: "4px 8px",
                                   borderRadius: 6,
-                                  background: "rgba(94, 234, 212, 0.08)",
-                                  border: "1px solid rgba(94, 234, 212, 0.25)",
-                                  color: "#99f6e4",
+                                  background: "color-mix(in srgb, var(--cyan) 8%, transparent)",
+                                  border: "1px solid color-mix(in srgb, var(--cyan) 25%, transparent)",
+                                  color: "var(--cyan)",
                                 }}
                               >
                                 {String(c.label ?? c.id)}
@@ -201,7 +193,7 @@ function ComplianceEvidenceMapBlock({
             </div>
           )}
           {mapView === "table" && rows.length === 0 && mapOut.summary.findings > 0 && (
-            <p style={{ color: "#64748b", fontSize: 13 }}>No rows to display.</p>
+            <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>No rows to display.</p>
           )}
         </>
       )}
@@ -296,83 +288,65 @@ export default function CloudScans() {
     <div
       style={{
         minHeight: "calc(100vh - 120px)",
-        fontFamily: '"DM Sans", sans-serif',
-        color: "#e2e8f4",
+        color: "var(--text)",
       }}
     >
-      <style>{`
-        @keyframes cortex-scan-pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.35; }
-        }
-        .cortex-scan-pulse {
-          animation: cortex-scan-pulse 1.2s ease-in-out infinite;
-        }
-      `}</style>
       <header
         style={{
-          marginBottom: 24,
-          paddingBottom: 16,
-          borderBottom: "1px solid #141e30",
+          marginBottom: "var(--space-6)",
+          paddingBottom: "var(--space-4)",
+          borderBottom: "1px solid var(--border)",
         }}
       >
         <h1
           style={{
-            fontFamily: '"Syne", sans-serif',
-            fontWeight: 700,
-            fontSize: 24,
             margin: 0,
-            color: "#f1f5f9",
             display: "flex",
             alignItems: "baseline",
             flexWrap: "wrap",
-            gap: "10px 14px",
+            gap: "var(--space-3) var(--space-4)",
           }}
         >
-          <span>Cloud scans</span>
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              fontFamily: '"Space Mono", monospace',
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              color: "#5eead4",
-            }}
-          >
-            Powered by Shasta
-          </span>
+          <span className="cortex-text-page-title">Cloud scans</span>
+          <EngineBadge name="Shasta" />
         </h1>
         <p
+          className="cortex-text-mono cortex-text-caption"
           style={{
-            fontFamily: '"Space Mono", monospace',
-            fontSize: 11,
-            color: "#64748b",
-            margin: "10px 0 0",
+            margin: "var(--space-3) 0 0",
             maxWidth: 560,
-            lineHeight: 1.5,
+            lineHeight: 1.55,
+            color: "var(--dim)",
           }}
         >
           Deterministic CSPM via Transilience Shasta; findings persist to Postgres per organisation.
           Store AWS/Azure connector credentials under Integrations first. Use{" "}
-          <strong style={{ color: "#94a3b8" }}>Preview sample evidence map</strong> to demo the UI
+          <strong style={{ color: "var(--text-secondary)" }}>Preview sample evidence map</strong> to demo the UI
           without cloud findings.
         </p>
       </header>
 
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "var(--space-3)",
+          flexWrap: "wrap",
+          marginBottom: "var(--space-6)",
+        }}
+      >
         <button
           type="button"
           disabled={runMutation.isPending}
           onClick={() => runMutation.mutate("aws")}
           style={{
             padding: "10px 18px",
-            borderRadius: 8,
-            border: "1px solid #1e3a5f",
-            background: "#0c1526",
-            color: "#93c5fd",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid color-mix(in srgb, var(--blue) 30%, transparent)",
+            background: "var(--card)",
+            color: "var(--blue)",
             cursor: runMutation.isPending ? "wait" : "pointer",
             fontWeight: 600,
+            fontSize: "var(--text-caption)",
           }}
         >
           Run AWS scan
@@ -383,12 +357,13 @@ export default function CloudScans() {
           onClick={() => runMutation.mutate("azure")}
           style={{
             padding: "10px 18px",
-            borderRadius: 8,
-            border: "1px solid #14532d",
-            background: "#0c1526",
-            color: "#86efac",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid color-mix(in srgb, var(--green) 30%, transparent)",
+            background: "var(--card)",
+            color: "var(--green)",
             cursor: runMutation.isPending ? "wait" : "pointer",
             fontWeight: 600,
+            fontSize: "var(--text-caption)",
           }}
         >
           Run Azure scan
@@ -396,14 +371,16 @@ export default function CloudScans() {
         <button
           type="button"
           onClick={() => setSampleEvidenceMapOpen((v) => !v)}
+          aria-expanded={sampleEvidenceMapOpen}
           style={{
             padding: "10px 18px",
-            borderRadius: 8,
-            border: "1px solid #854d0e",
-            background: sampleEvidenceMapOpen ? "#422006" : "#0c1526",
-            color: "#fcd34d",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid color-mix(in srgb, var(--amber) 50%, transparent)",
+            background: sampleEvidenceMapOpen ? "color-mix(in srgb, var(--amber) 12%, transparent)" : "var(--card)",
+            color: "var(--amber)",
             cursor: "pointer",
             fontWeight: 600,
+            fontSize: "var(--text-caption)",
           }}
         >
           {sampleEvidenceMapOpen ? "Hide sample evidence map" : "Preview sample evidence map"}
@@ -411,14 +388,14 @@ export default function CloudScans() {
       </div>
 
       {runMutation.isError && (
-        <p style={{ color: "#f87171", fontSize: 13, marginBottom: 16 }}>
+        <p style={{ color: "var(--red)", fontSize: 13, marginBottom: 16 }}>
           {(runMutation.error as Error).message}
         </p>
       )}
       {runMutation.isSuccess && (
-        <p style={{ color: "#86efac", fontSize: 13, marginBottom: 8 }}>
+        <p style={{ color: "var(--green)", fontSize: 13, marginBottom: 8 }}>
           Scan queued ({runMutation.data.scan_run_id}); status updates while{" "}
-          <span className="cortex-scan-pulse" style={{ color: "#38bdf8" }}>
+          <span className="cortex-scan-pulse" style={{ color: "var(--blue)" }}>
             running
           </span>
           .
@@ -430,10 +407,10 @@ export default function CloudScans() {
             marginBottom: 16,
             padding: "10px 14px",
             borderRadius: 8,
-            border: "1px solid #334155",
-            background: "#0f172a",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
             fontSize: 13,
-            color: scanNotice.startsWith("Scan failed") ? "#f87171" : "#86efac",
+            color: scanNotice.startsWith("Scan failed") ? "var(--red)" : "var(--green)",
             maxWidth: 720,
           }}
         >
@@ -441,15 +418,16 @@ export default function CloudScans() {
           <button
             type="button"
             onClick={() => setScanNotice(null)}
+            aria-label="Dismiss scan notice"
             style={{
               marginLeft: 12,
               padding: "2px 8px",
-              fontSize: 11,
+              fontSize: "var(--text-micro)",
               cursor: "pointer",
-              borderRadius: 4,
-              border: "1px solid #475569",
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--border)",
               background: "transparent",
-              color: "#94a3b8",
+              color: "var(--muted)",
             }}
           >
             Dismiss
@@ -457,13 +435,16 @@ export default function CloudScans() {
         </div>
       )}
       {runningAny && (
-        <p style={{ color: "#64748b", fontSize: 12, marginBottom: 16 }}>
+        <p style={{ color: "var(--text-tertiary)", fontSize: 12, marginBottom: 16 }}>
           Polling scan status every few seconds…
         </p>
       )}
 
       {sampleEvidenceMapOpen && (
-        <section style={{ marginBottom: 32 }}>
+        <section style={{ marginBottom: "var(--space-8)" }} aria-labelledby="sample-evidence-heading">
+          <h2 id="sample-evidence-heading" className="cortex-text-section" style={{ marginBottom: "var(--space-3)" }}>
+            Sample evidence map
+          </h2>
           <ComplianceEvidenceMapBlock
             mapOut={SHASTA_EVIDENCE_MAP_SAMPLE}
             isSample
@@ -472,30 +453,33 @@ export default function CloudScans() {
         </section>
       )}
 
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 14, color: "#94a3b8", marginBottom: 12 }}>Recent scans</h2>
-        {scansQuery.isLoading && <p style={{ color: "#64748b" }}>Loading…</p>}
+      <section style={{ marginBottom: "var(--space-8)" }} aria-labelledby="recent-scans-heading">
+        <h2 id="recent-scans-heading" className="cortex-text-section" style={{ marginBottom: "var(--space-3)" }}>
+          Recent scans
+        </h2>
+        {scansQuery.isLoading && <p style={{ color: "var(--text-tertiary)" }}>Loading…</p>}
         {scansQuery.isError && (
-          <p style={{ color: "#f87171", fontSize: 13 }}>
+          <p style={{ color: "var(--red)", fontSize: 13 }}>
             {(scansQuery.error as Error).message}
           </p>
         )}
         {scansQuery.data && scansQuery.data.length === 0 && (
-          <p style={{ color: "#64748b", fontSize: 13 }}>No scans yet for this organisation.</p>
+          <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>No scans yet for this organisation.</p>
         )}
         {scansQuery.data && scansQuery.data.length > 0 && (
-          <div style={{ overflowX: "auto", border: "1px solid #141e30", borderRadius: 8 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <div className="cortex-table-wrap">
+            <table className="cortex-table">
+              <caption>Cloud scan runs stored for this organisation (Shasta)</caption>
               <thead>
-                <tr style={{ background: "#0f172a", textAlign: "left" }}>
-                  <th style={{ padding: 10 }}>Started</th>
-                  <th style={{ padding: 10 }}>Cloud</th>
-                  <th style={{ padding: 10 }}>Status</th>
-                  <th style={{ padding: 10 }}>Findings</th>
-                  <th style={{ padding: 10 }}>Engine scan id</th>
-                  <th style={{ padding: 10 }}>Run id</th>
-                  <th style={{ padding: 10 }}>Actions</th>
-                  <th style={{ padding: 10 }}>Error</th>
+                <tr>
+                  <th scope="col">Started</th>
+                  <th scope="col">Cloud</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Findings</th>
+                  <th scope="col">Engine scan id</th>
+                  <th scope="col">Run id</th>
+                  <th scope="col">Actions</th>
+                  <th scope="col">Error</th>
                 </tr>
               </thead>
               <tbody>
@@ -507,17 +491,16 @@ export default function CloudScans() {
                     <tr
                       key={row.id}
                       style={{
-                        borderTop: "1px solid #141e30",
-                        background: active ? "rgba(56, 189, 248, 0.06)" : undefined,
+                        background: active ? "color-mix(in srgb, var(--blue) 6%, transparent)" : undefined,
                       }}
                     >
-                      <td style={{ padding: 10, fontFamily: "monospace", color: "#94a3b8" }}>
+                      <td style={{ fontFamily: "var(--font-mono)", color: "var(--muted)" }}>
                         {row.started_at}
                       </td>
-                      <td style={{ padding: 10 }}>{row.cloud}</td>
-                      <td style={{ padding: 10 }}>
+                      <td>{row.cloud}</td>
+                      <td>
                         {row.status === "running" ? (
-                          <span style={{ color: "#38bdf8", fontWeight: 600 }}>
+                          <span style={{ color: "var(--blue)", fontWeight: 600 }}>
                             <span className="cortex-scan-pulse" aria-hidden>
                               ●
                             </span>{" "}
@@ -527,10 +510,9 @@ export default function CloudScans() {
                           row.status
                         )}
                       </td>
-                      <td style={{ padding: 10 }}>{row.findings_count}</td>
+                      <td>{row.findings_count}</td>
                       <td
                         style={{
-                          padding: 10,
                           maxWidth: 180,
                           overflow: "hidden",
                           textOverflow: "ellipsis",
@@ -538,10 +520,10 @@ export default function CloudScans() {
                       >
                         {row.engine_scan_id ?? "—"}
                       </td>
-                      <td style={{ padding: 10, fontFamily: "monospace", fontSize: 11 }}>
+                      <td style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)" }}>
                         {row.id}
                       </td>
-                      <td style={{ padding: 10 }}>
+                      <td>
                         <button
                           type="button"
                           onClick={() =>
@@ -551,10 +533,10 @@ export default function CloudScans() {
                             padding: "4px 10px",
                             fontSize: 11,
                             borderRadius: 6,
-                            border: "1px solid #334155",
+                            border: "1px solid var(--border)",
                             background:
-                              detailScanId === row.id ? "#1e293b" : "transparent",
-                            color: "#93c5fd",
+                              detailScanId === row.id ? "var(--surface)" : "transparent",
+                            color: "var(--blue)",
                             cursor: "pointer",
                           }}
                         >
@@ -563,10 +545,9 @@ export default function CloudScans() {
                       </td>
                       <td
                         style={{
-                          padding: 10,
                           maxWidth: 220,
-                          color: row.error_message ? "#f87171" : "#64748b",
-                          fontSize: 11,
+                          color: row.error_message ? "var(--red)" : "var(--dim)",
+                          fontSize: "var(--text-micro)",
                         }}
                         title={row.error_message ?? undefined}
                       >
@@ -586,42 +567,43 @@ export default function CloudScans() {
       </section>
 
       {detailScanId && (
-        <section style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 14, color: "#94a3b8", marginBottom: 12 }}>
+        <section style={{ marginBottom: "var(--space-8)" }} aria-labelledby="detail-findings-heading">
+          <h2 id="detail-findings-heading" className="cortex-text-section" style={{ marginBottom: "var(--space-3)" }}>
             Findings for run{" "}
-            <span style={{ fontFamily: "monospace", fontSize: 12, color: "#64748b" }}>
+            <span className="cortex-text-mono" style={{ color: "var(--dim)", fontWeight: 400 }}>
               {detailScanId}
             </span>
           </h2>
-          {detailFindingsQuery.isLoading && <p style={{ color: "#64748b" }}>Loading…</p>}
+          {detailFindingsQuery.isLoading && <p style={{ color: "var(--text-tertiary)" }}>Loading…</p>}
           {detailFindingsQuery.isError && (
-            <p style={{ color: "#f87171", fontSize: 13 }}>
+            <p style={{ color: "var(--red)", fontSize: 13 }}>
               {(detailFindingsQuery.error as Error).message}
             </p>
           )}
           {detailFindingsQuery.data && detailFindingsQuery.data.length === 0 && (
-            <p style={{ color: "#64748b", fontSize: 13 }}>No findings for this run yet.</p>
+            <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>No findings for this run yet.</p>
           )}
           {detailFindingsQuery.data && detailFindingsQuery.data.length > 0 && (
-            <div style={{ overflowX: "auto", border: "1px solid #141e30", borderRadius: 8 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <div className="cortex-table-wrap">
+              <table className="cortex-table">
+                <caption>Findings persisted for the selected scan run</caption>
                 <thead>
-                  <tr style={{ background: "#0f172a", textAlign: "left" }}>
-                    <th style={{ padding: 10 }}>Severity</th>
-                    <th style={{ padding: 10 }}>Title</th>
-                    <th style={{ padding: 10 }}>Cloud</th>
-                    <th style={{ padding: 10 }}>Region</th>
-                    <th style={{ padding: 10 }}>Check</th>
+                  <tr>
+                    <th scope="col">Severity</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Cloud</th>
+                    <th scope="col">Region</th>
+                    <th scope="col">Check</th>
                   </tr>
                 </thead>
                 <tbody>
                   {detailFindingsQuery.data.map((f) => (
-                    <tr key={f.id} style={{ borderTop: "1px solid #141e30" }}>
-                      <td style={{ padding: 10 }}>{f.severity_normalized ?? "—"}</td>
-                      <td style={{ padding: 10, maxWidth: 280 }}>{f.title ?? "—"}</td>
-                      <td style={{ padding: 10 }}>{f.cloud_provider ?? "—"}</td>
-                      <td style={{ padding: 10 }}>{f.region ?? "—"}</td>
-                      <td style={{ padding: 10, fontFamily: "monospace", fontSize: 11 }}>
+                    <tr key={f.id}>
+                      <td>{f.severity_normalized ?? "—"}</td>
+                      <td style={{ maxWidth: 280 }}>{f.title ?? "—"}</td>
+                      <td>{f.cloud_provider ?? "—"}</td>
+                      <td>{f.region ?? "—"}</td>
+                      <td style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)" }}>
                         {f.check_id ?? "—"}
                       </td>
                     </tr>
@@ -639,37 +621,40 @@ export default function CloudScans() {
         </section>
       )}
 
-      <section>
-        <h2 style={{ fontSize: 14, color: "#94a3b8", marginBottom: 12 }}>Latest stored findings</h2>
-        {findingsQuery.isLoading && <p style={{ color: "#64748b" }}>Loading…</p>}
+      <section aria-labelledby="latest-findings-heading">
+        <h2 id="latest-findings-heading" className="cortex-text-section" style={{ marginBottom: "var(--space-3)" }}>
+          Latest stored findings
+        </h2>
+        {findingsQuery.isLoading && <p style={{ color: "var(--text-tertiary)" }}>Loading…</p>}
         {findingsQuery.isError && (
-          <p style={{ color: "#f87171", fontSize: 13 }}>
+          <p style={{ color: "var(--red)", fontSize: 13 }}>
             {(findingsQuery.error as Error).message}
           </p>
         )}
         {findingsQuery.data && findingsQuery.data.length === 0 && (
-          <p style={{ color: "#64748b", fontSize: 13 }}>No cloud findings stored yet.</p>
+          <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>No cloud findings stored yet.</p>
         )}
         {findingsQuery.data && findingsQuery.data.length > 0 && (
-          <div style={{ overflowX: "auto", border: "1px solid #141e30", borderRadius: 8 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <div className="cortex-table-wrap">
+            <table className="cortex-table">
+              <caption>Most recently stored findings across scans</caption>
               <thead>
-                <tr style={{ background: "#0f172a", textAlign: "left" }}>
-                  <th style={{ padding: 10 }}>Severity</th>
-                  <th style={{ padding: 10 }}>Title</th>
-                  <th style={{ padding: 10 }}>Cloud</th>
-                  <th style={{ padding: 10 }}>Region</th>
-                  <th style={{ padding: 10 }}>Check</th>
+                <tr>
+                  <th scope="col">Severity</th>
+                  <th scope="col">Title</th>
+                  <th scope="col">Cloud</th>
+                  <th scope="col">Region</th>
+                  <th scope="col">Check</th>
                 </tr>
               </thead>
               <tbody>
                 {findingsQuery.data.map((f) => (
-                  <tr key={f.id} style={{ borderTop: "1px solid #141e30" }}>
-                    <td style={{ padding: 10 }}>{f.severity_normalized ?? "—"}</td>
-                    <td style={{ padding: 10, maxWidth: 280 }}>{f.title ?? "—"}</td>
-                    <td style={{ padding: 10 }}>{f.cloud_provider ?? "—"}</td>
-                    <td style={{ padding: 10 }}>{f.region ?? "—"}</td>
-                    <td style={{ padding: 10, fontFamily: "monospace", fontSize: 11 }}>
+                  <tr key={f.id}>
+                    <td>{f.severity_normalized ?? "—"}</td>
+                    <td style={{ maxWidth: 280 }}>{f.title ?? "—"}</td>
+                    <td>{f.cloud_provider ?? "—"}</td>
+                    <td>{f.region ?? "—"}</td>
+                    <td style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)" }}>
                       {f.check_id ?? "—"}
                     </td>
                   </tr>

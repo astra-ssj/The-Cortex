@@ -15,7 +15,7 @@ export function LogoIcon({ size = 32, glow = true }: LogoIconProps) {
       style={
         glow
           ? {
-              filter: "drop-shadow(0 0 8px rgba(45,212,191,0.5))",
+              filter: "var(--logo-glow-filter)",
             }
           : undefined
       }
@@ -23,7 +23,7 @@ export function LogoIcon({ size = 32, glow = true }: LogoIconProps) {
       {/* Arc 1 — outermost */}
       <path
         d="M 13 40 A 27 27 0 1 1 67 40"
-        stroke="#2dd4bf"
+        stroke="var(--cyan)"
         strokeWidth="3"
         fill="none"
         strokeLinecap="round"
@@ -31,7 +31,7 @@ export function LogoIcon({ size = 32, glow = true }: LogoIconProps) {
       {/* Arc 2 */}
       <path
         d="M 21 40 A 19 19 0 1 1 59 40"
-        stroke="#2dd4bf"
+        stroke="var(--cyan)"
         strokeWidth="2.5"
         fill="none"
         strokeLinecap="round"
@@ -40,17 +40,17 @@ export function LogoIcon({ size = 32, glow = true }: LogoIconProps) {
       {/* Arc 3 */}
       <path
         d="M 29 40 A 11 11 0 1 1 51 40"
-        stroke="#2dd4bf"
+        stroke="var(--cyan)"
         strokeWidth="2"
         fill="none"
         strokeLinecap="round"
         opacity="0.3"
       />
       {/* Center dot */}
-      <circle cx="40" cy="40" r="4.5" fill="#2dd4bf" />
+      <circle cx="40" cy="40" r="4.5" fill="var(--cyan)" />
       {/* End cap dots */}
-      <circle cx="13" cy="40" r="3" fill="#2dd4bf" opacity="0.5" />
-      <circle cx="67" cy="40" r="3" fill="#2dd4bf" opacity="0.5" />
+      <circle cx="13" cy="40" r="3" fill="var(--cyan)" opacity="0.5" />
+      <circle cx="67" cy="40" r="3" fill="var(--cyan)" opacity="0.5" />
     </svg>
   );
 }
@@ -78,11 +78,11 @@ export function LogoFull({ size = "md" }: LogoFullProps) {
       <LogoIcon size={c.iconSize} glow={size !== "sm"} />
       <span
         style={{
-          fontFamily: "'Syne', 'DM Sans', sans-serif",
+          fontFamily: "var(--font-sans)",
           fontWeight: 800,
           fontSize: c.fontSize,
           letterSpacing: c.letterSpacing,
-          color: "#e2e8f4",
+          color: "var(--text)",
           lineHeight: 1,
         }}
       >
@@ -98,20 +98,20 @@ export function LogoFavicon() {
     <svg width="32" height="32" viewBox="0 0 80 80" fill="none">
       <path
         d="M 10 40 A 30 30 0 1 1 70 40"
-        stroke="#2dd4bf"
+        stroke="var(--cyan)"
         strokeWidth="5"
         fill="none"
         strokeLinecap="round"
       />
       <path
         d="M 24 40 A 16 16 0 1 1 56 40"
-        stroke="#2dd4bf"
+        stroke="var(--cyan)"
         strokeWidth="3.5"
         fill="none"
         strokeLinecap="round"
         opacity="0.5"
       />
-      <circle cx="40" cy="40" r="7" fill="#2dd4bf" />
+      <circle cx="40" cy="40" r="7" fill="var(--cyan)" />
     </svg>
   );
 }

@@ -183,9 +183,9 @@ function entityFlag(name: string): string {
 }
 
 function impactBorder(impact: ImpactLevel): string {
-  if (impact === "HIGH") return "#ef4444";
-  if (impact === "MEDIUM") return "#f59e0b";
-  return "#3b82f6";
+  if (impact === "HIGH") return "var(--red)";
+  if (impact === "MEDIUM") return "var(--amber)";
+  return "var(--blue)";
 }
 
 function isWithinSevenDays(dateIso: string): boolean {
@@ -235,18 +235,18 @@ export function RegulationIntel() {
           flex: "0 0 35%",
           maxWidth: 380,
           padding: 20,
-          background: "#0b1220",
-          border: "1px solid #141e30",
+          background: "var(--surface)",
+          border: "1px solid var(--border-subtle)",
           borderRadius: 12,
         }}
       >
         <h2
           style={{
-            fontFamily: '"Syne", sans-serif',
+            fontFamily: "var(--font-sans)",
             fontWeight: 700,
             fontSize: 18,
             margin: 0,
-            color: "#f8fafc",
+            color: "var(--text)",
           }}
         >
           Regulatory Intelligence
@@ -263,7 +263,7 @@ export function RegulationIntel() {
         </p>
 
         <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>
+          <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>
             Framework
           </div>
           {FRAMEWORK_OPTIONS.map((opt) => (
@@ -276,7 +276,7 @@ export function RegulationIntel() {
                 marginBottom: 8,
                 cursor: "pointer",
                 fontSize: 13,
-                color: "#e2e8f4",
+                color: "var(--text)",
               }}
             >
               <input
@@ -290,7 +290,7 @@ export function RegulationIntel() {
         </div>
 
         <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>
+          <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>
             Impact
           </div>
           {(
@@ -309,7 +309,7 @@ export function RegulationIntel() {
                 marginBottom: 8,
                 cursor: "pointer",
                 fontSize: 13,
-                color: "#e2e8f4",
+                color: "var(--text)",
               }}
             >
               <input
@@ -333,13 +333,13 @@ export function RegulationIntel() {
               key={s.l}
               style={{
                 padding: 12,
-                background: "#090e1a",
+                background: "var(--bg)",
                 borderRadius: 8,
-                border: "1px solid #1e2e48",
+                border: "1px solid var(--border-subtle)",
                 textAlign: "center",
               }}
             >
-              <div style={{ fontSize: 20, fontWeight: 700, color: "#f8fafc" }}>{s.n}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>{s.n}</div>
               <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 4 }}>{s.l}</div>
             </div>
           ))}
@@ -349,22 +349,22 @@ export function RegulationIntel() {
           style={{
             marginTop: 20,
             padding: 14,
-            background: "#1a1510",
-            border: "1px solid #78350f",
+            background: "color-mix(in srgb, var(--amber) 6%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--amber) 50%, transparent)",
             borderRadius: 10,
           }}
         >
-          <div style={{ fontSize: 11, color: "#fbbf24", fontWeight: 600 }}>NEXT EXPECTED</div>
-          <div style={{ fontSize: 13, color: "#fef3c7", marginTop: 6 }}>NIS2 transposition deadline</div>
-          <div style={{ fontSize: 12, color: "#cbd5e1", marginTop: 4 }}>Germany · BSI implementing act</div>
+          <div style={{ fontSize: 11, color: "var(--amber)", fontWeight: 600 }}>NEXT EXPECTED</div>
+          <div style={{ fontSize: 13, color: "var(--text)", marginTop: 6 }}>NIS2 transposition deadline</div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>Germany · BSI implementing act</div>
           <span
             style={{
               display: "inline-block",
               marginTop: 10,
               padding: "4px 10px",
               borderRadius: 999,
-              background: "#451a03",
-              color: "#fbbf24",
+              background: "color-mix(in srgb, var(--amber) 15%, transparent)",
+              color: "var(--amber)",
               fontSize: 11,
               fontWeight: 600,
             }}
@@ -379,11 +379,11 @@ export function RegulationIntel() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
           <h2
             style={{
-              fontFamily: '"Syne", sans-serif',
+              fontFamily: "var(--font-sans)",
               fontWeight: 700,
               fontSize: 18,
               margin: 0,
-              color: "#f8fafc",
+              color: "var(--text)",
             }}
           >
             Regulatory Change Events
@@ -399,8 +399,8 @@ export function RegulationIntel() {
                 key={ev.id}
                 style={{
                   padding: 18,
-                  background: "#0b1220",
-                  border: "1px solid #141e30",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border-subtle)",
                   borderLeft: `4px solid ${impactBorder(ev.impact)}`,
                   borderRadius: 10,
                 }}
@@ -411,8 +411,8 @@ export function RegulationIntel() {
                       style={{
                         padding: "2px 8px",
                         borderRadius: 4,
-                        background: "#164e63",
-                        color: "#2dd4bf",
+                        background: "color-mix(in srgb, var(--blue) 20%, transparent)",
+                        color: "var(--cyan)",
                         fontSize: 10,
                         fontWeight: 700,
                       }}
@@ -425,8 +425,8 @@ export function RegulationIntel() {
                       style={{
                         padding: "2px 8px",
                         borderRadius: 4,
-                        background: "#450a0a",
-                        color: "#fca5a5",
+                        background: "color-mix(in srgb, var(--red) 20%, transparent)",
+                        color: "var(--red)",
                         fontSize: 10,
                         fontWeight: 700,
                       }}
@@ -435,43 +435,43 @@ export function RegulationIntel() {
                     </span>
                   )}
                 </div>
-                <h3 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 600, color: "#f1f5f9" }}>
+                <h3 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 600, color: "var(--text)" }}>
                   {ev.title}
                 </h3>
                 <div style={{ fontSize: 12, color: "var(--dim)", marginBottom: 12 }}>
                   Published: {ev.date} · {ev.source}
                 </div>
-                <p style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.55, margin: "0 0 14px", fontStyle: "italic" }}>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.55, margin: "0 0 14px", fontStyle: "italic" }}>
                   &ldquo;{ev.summary}&rdquo;
                 </p>
-                <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>AFFECTED CONTROLS ({ev.controls.length}):</div>
+                <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6 }}>AFFECTED CONTROLS ({ev.controls.length}):</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
                   {ev.controls.map((c) => (
                     <span
                       key={c}
                       style={{
                         padding: "4px 8px",
-                        background: "#141e30",
+                        background: "var(--border-subtle)",
                         borderRadius: 4,
                         fontSize: 11,
-                        fontFamily: "DM Mono, monospace",
-                        color: "#94a3b8",
+                        fontFamily: "var(--font-mono)",
+                        color: "var(--text-secondary)",
                       }}
                     >
                       {c}
                     </span>
                   ))}
                 </div>
-                <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>AFFECTED ENTITIES ({ev.entities.length}):</div>
+                <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6 }}>AFFECTED ENTITIES ({ev.entities.length}):</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
                   {ev.entities.map((e) => (
-                    <span key={e} style={{ fontSize: 13, color: "#e2e8f4" }}>
+                    <span key={e} style={{ fontSize: 13, color: "var(--text)" }}>
                       {entityFlag(e)} {e}
                     </span>
                   ))}
                 </div>
-                <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>REQUIRED ACTION:</div>
-                <p style={{ fontSize: 13, color: "#f8fafc", margin: "0 0 16px", lineHeight: 1.5 }}>
+                <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6 }}>REQUIRED ACTION:</div>
+                <p style={{ fontSize: 13, color: "var(--text)", margin: "0 0 16px", lineHeight: 1.5 }}>
                   &ldquo;{ev.action}&rdquo;
                 </p>
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -481,9 +481,9 @@ export function RegulationIntel() {
                     style={{
                       padding: "8px 14px",
                       borderRadius: 6,
-                      border: "1px solid #2dd4bf",
+                      border: "1px solid var(--cyan)",
                       background: "transparent",
-                      color: "#2dd4bf",
+                      color: "var(--cyan)",
                       fontSize: 12,
                       cursor: "pointer",
                     }}
@@ -498,9 +498,9 @@ export function RegulationIntel() {
                     style={{
                       padding: "8px 14px",
                       borderRadius: 6,
-                      border: "1px solid #3b82f6",
-                      background: "#1e3a5f",
-                      color: "#93c5fd",
+                      border: "1px solid var(--blue)",
+                      background: "color-mix(in srgb, var(--blue) 15%, transparent)",
+                      color: "var(--blue)",
                       fontSize: 12,
                       cursor: "pointer",
                     }}
@@ -521,7 +521,7 @@ export function RegulationIntel() {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.65)",
+            background: "color-mix(in srgb, var(--bg) 65%, transparent)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -535,22 +535,22 @@ export function RegulationIntel() {
             style={{
               maxWidth: 480,
               width: "100%",
-              background: "#0b1220",
-              border: "1px solid #1e2e48",
+              background: "var(--surface)",
+              border: "1px solid var(--border-subtle)",
               borderRadius: 12,
               padding: 20,
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 16, color: "#f8fafc" }}>Affected controls</h3>
+              <h3 style={{ margin: 0, fontSize: 16, color: "var(--text)" }}>Affected controls</h3>
               <button
                 type="button"
                 onClick={() => setControlsModal(null)}
                 style={{
                   background: "transparent",
                   border: "none",
-                  color: "#94a3b8",
+                  color: "var(--text-secondary)",
                   cursor: "pointer",
                   fontSize: 18,
                 }}
@@ -564,13 +564,13 @@ export function RegulationIntel() {
                   key={cid}
                   style={{
                     padding: "10px 0",
-                    borderBottom: "1px solid #141e30",
+                    borderBottom: "1px solid var(--border-subtle)",
                     fontSize: 13,
-                    color: "#cbd5e1",
+                    color: "var(--text-secondary)",
                   }}
                 >
-                  <span style={{ fontFamily: "DM Mono, monospace", color: "#2dd4bf" }}>{cid}</span>
-                  <div style={{ marginTop: 4, color: "#94a3b8" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", color: "var(--cyan)" }}>{cid}</span>
+                  <div style={{ marginTop: 4, color: "var(--text-secondary)" }}>
                     {CONTROL_DESCRIPTIONS[cid] ?? "Mapped obligation in your entity control set."}
                   </div>
                 </li>
@@ -587,13 +587,13 @@ export function RegulationIntel() {
             bottom: 24,
             right: 24,
             padding: "10px 18px",
-            background: "#1e2e48",
-            border: "1px solid #2dd4bf",
+            background: "var(--surface)",
+            border: "1px solid var(--cyan)",
             borderRadius: 8,
-            color: "#e2e8f4",
+            color: "var(--text)",
             fontSize: 13,
             zIndex: 1500,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            boxShadow: "var(--shadow-drop-md)",
           }}
         >
           {toast}
