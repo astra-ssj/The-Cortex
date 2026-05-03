@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { ComingSoon } from "./components/ui/ComingSoon";
 import {
   ROADMAP_EPICS,
   getRoadmapSummary,
@@ -7,6 +8,7 @@ import {
   type StoryStatus,
   type EpicStatus,
 } from "./lib/roadmapData";
+import { isFeatureEnabled } from "./lib/featureFlags";
 
 const TIMELINE_PHASES = [
   { phase: 2, label: "Phase 2", date: "Apr 2026" },
@@ -86,6 +88,16 @@ export function ProjectTracker() {
   const summary = useMemo(() => getRoadmapSummary(), []);
   const [expandedEpicIds, setExpandedEpicIds] = useState<Set<string>>(new Set());
   const [modalStory, setModalStory] = useState<StoryModalStory>(null);
+
+  if (!isFeatureEnabled("projectTracker")) {
+    return (
+      <ComingSoon
+        feature="Roadmap & Project Tracker"
+        description="Track remediation epics, sprint progress, and compliance programme milestones."
+        eta="Q4 2026"
+      />
+    );
+  }
 
   const toggleEpic = (id: string) => {
     setExpandedEpicIds((prev) => {

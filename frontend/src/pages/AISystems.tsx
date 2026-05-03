@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { ComingSoon } from "../components/ui/ComingSoon";
 import { AISystemCardSkeleton } from "../components/Skeleton";
 import { AnimatedNumber } from "../components/AnimatedScore";
+import { isFeatureEnabled } from "../lib/featureFlags";
 
 type RiskLabel = "HIGH" | "LIMITED" | "MINIMAL" | "UNCLASSIFIED";
 type SystemStatus = "NOT_ASSESSED" | "IN_PROGRESS" | "ASSESSED" | "UNCLASSIFIED";
@@ -38,6 +40,9 @@ function countdownColor(days: number): string {
   return "var(--red)";
 }
 
+/**
+ * TODO: Replace with GET /api/v1/organisations/{org_id}/ai-systems (or dedicated AI register endpoint) when the governed AI inventory API ships — feature flag `aiSystemsLive`.
+ */
 const SYSTEMS: AISystem[] = [
   {
     id: "hr-screening",
@@ -291,7 +296,9 @@ export default function AISystems() {
   const daysLeft = useMemo(() => calendarDaysUntilDeadline(), []);
   const countdownStyle = countdownColor(daysLeft);
 
-  const systemsNeedingConformity = 3;
+  const systemsNeedingConformity = SYSTEMS.filter(
+    (s) => s.risk === "HIGH" && (s.status === "NOT_ASSESSED" || s.status === "IN_PROGRESS"),
+  ).length;
 
   const selectedClassification = CLASSIFICATIONS[selectedSystemId];
   const selectedSystem = SYSTEMS.find((s) => s.id === selectedSystemId);
@@ -315,22 +322,24 @@ export default function AISystems() {
         </p>
       </header>
 
-      <div
-        style={{
-          marginBottom: 20,
-          padding: "12px 14px",
-          borderRadius: 8,
-          border: "1px solid var(--border)",
-          background: "var(--surface)",
-          fontSize: 12,
-          color: "var(--text-secondary)",
-          lineHeight: 1.5,
-        }}
-      >
-        <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — The inventory below is{" "}
-        <strong style={{ color: "var(--text)" }}>static demo content</strong> for UX review. A governed AI register will
-        persist per organisation via API in a future release.
-      </div>
+      {(tab !== "inventory" || isFeatureEnabled("aiSystemsLive")) && (
+        <div
+          style={{
+            marginBottom: 20,
+            padding: "12px 14px",
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            fontSize: 12,
+            color: "var(--text-secondary)",
+            lineHeight: 1.5,
+          }}
+        >
+          <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — The inventory below is{" "}
+          <strong style={{ color: "var(--text)" }}>static demo content</strong> for UX review. A governed AI register will
+          persist per organisation via API in a future release.
+        </div>
+      )}
 
       <div
         style={{
@@ -426,7 +435,15 @@ export default function AISystems() {
         ))}
       </div>
 
-      {tab === "inventory" && (
+      {tab === "inventory" && !isFeatureEnabled("aiSystemsLive") && (
+        <ComingSoon
+          feature="AI System Registry"
+          description="Register, monitor, and govern AI systems across your organisation. Track model lineage, risk classifications, and EU AI Act obligations."
+          eta="Q3 2026"
+        />
+      )}
+
+      {tab === "inventory" && isFeatureEnabled("aiSystemsLive") && (
         <div
           style={{
             display: "grid",

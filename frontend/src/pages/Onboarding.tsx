@@ -1,10 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import AssessmentStream from "../components/AssessmentStream";
 import { LogoFull } from "../components/Logo";
-import { putOnboardingStep } from "../api/client";
+import type { FrameworkSummary } from "../api/frameworks";
+import { assessmentsApi, putOnboardingStep } from "../api/client";
+import { useFrameworks } from "../hooks/useFrameworks";
+import { frameworkLabelFromId } from "../lib/frameworkRegistry";
 import { invalidateComplianceData } from "../store/complianceStore";
 
 type StructureType = "single" | "multi";
@@ -24,16 +27,17 @@ type FrameworkCard = {
   description: string;
 };
 
-const FRAMEWORK_CARDS: FrameworkCard[] = [
-  { id: "iso27001-2022", title: "ISO/IEC 27001:2022", subtitle: "v2022 · international", control_count: 93, description: "Information Security Mgmt" },
-  { id: "gdpr-2016-679", title: "GDPR", subtitle: "2016/679 · EU", control_count: 25, description: "Personal data protection" },
-  { id: "nis2-2022-2555", title: "NIS2", subtitle: "2022/2555 · EU", control_count: 20, description: "Critical entity resilience" },
-  { id: "eu-ai-act-2024", title: "EU AI Act", subtitle: "2024 · EU", control_count: 31, description: "High-risk AI governance" },
-  { id: "cyber-essentials-v3.1", title: "Cyber Essentials", subtitle: "v3.1 · UK", control_count: 18, description: "UK baseline controls" },
-  { id: "nist-csf-2.0", title: "NIST CSF", subtitle: "v2.0 · US", control_count: 106, description: "Cybersecurity outcomes" },
-  { id: "csa-ccm-v4", title: "CSA CCM", subtitle: "v4 · cloud", control_count: 197, description: "Cloud control matrix" },
-  { id: "eu-cybersecurity-act", title: "EU Cybersecurity Act", subtitle: "2019 · EU", control_count: 22, description: "Certification and resilience" },
-];
+function summaryToCard(fw: FrameworkSummary): FrameworkCard {
+  const subtitle = [fw.version, fw.jurisdiction].filter(Boolean).join(" · ");
+  const description = fw.purpose_tags?.length ? fw.purpose_tags.join(", ") : fw.name;
+  return {
+    id: fw.id,
+    title: fw.name,
+    subtitle,
+    control_count: fw.control_count,
+    description,
+  };
+}
 
 const JURIS_OPTIONS = ["DE", "UK", "AU", "TH", "ES", "US", "EU", "OTHER"] as const;
 
@@ -59,14 +63,10 @@ function getPresetFrameworks(jurisdiction: string): string[] {
   return ["iso27001-2022"];
 }
 
-function frameworkLabel(id: string): string {
-  const fw = FRAMEWORK_CARDS.find((item) => item.id === id);
-  return fw ? fw.title : id;
-}
-
 export default function Onboarding() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const frameworksQuery = useFrameworks();
 
   const [step, setStep] = useState(1);
   const [structure, setStructure] = useState<StructureType | null>(null);
@@ -77,15 +77,48 @@ export default function Onboarding() {
   });
   const [busy, setBusy] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [assessmentRunAccepted, setAssessmentRunAccepted] = useState(true);
   const [error, setError] = useState("");
 
-  const totalControls = useMemo(
-    () => frameworks.reduce((sum, id) => sum + (FRAMEWORK_CARDS.find((f) => f.id === id)?.control_count ?? 0), 0),
-    [frameworks]
+  const orgId = localStorage.getItem("cortex_org_id") ?? "demo-org-001";
+
+  const frameworkCards = useMemo(
+    () => frameworksQuery.data?.map(summaryToCard) ?? [],
+    [frameworksQuery.data],
   );
 
-  function handleRunAssessment() {
-    setStreaming(true);
+  useEffect(() => {
+    const rows = frameworksQuery.data;
+    if (!rows?.length) return;
+    const allowed = new Set(rows.map((f) => f.id));
+    setFrameworks((prev) => {
+      const filtered = prev.filter((id) => allowed.has(id));
+      if (filtered.length > 0) return filtered;
+      const jurisdiction = localStorage.getItem("cortex_jurisdiction") ?? "OTHER";
+      const preset = getPresetFrameworks(jurisdiction).filter((id) => allowed.has(id));
+      return preset.length > 0 ? preset : [];
+    });
+  }, [frameworksQuery.data]);
+
+  const totalControls = useMemo(
+    () =>
+      frameworks.reduce((sum, id) => sum + (frameworkCards.find((f) => f.id === id)?.control_count ?? 0), 0),
+    [frameworks, frameworkCards],
+  );
+
+  async function handleRunAssessment() {
+    setBusy(true);
+    setError("");
+    try {
+      await assessmentsApi.run({ org_id: orgId, frameworks });
+      setAssessmentRunAccepted(true);
+      setStreaming(true);
+    } catch {
+      setAssessmentRunAccepted(false);
+      setStreaming(true);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleSkip() {
@@ -168,8 +201,9 @@ export default function Onboarding() {
       {streaming ? (
         <AssessmentStream
           orgName={localStorage.getItem("cortex_company") ?? "Your Organisation"}
-          orgId={localStorage.getItem("cortex_org_id") ?? "demo-org-001"}
+          orgId={orgId}
           frameworks={frameworks}
+          runAccepted={assessmentRunAccepted}
           onComplete={() => {
             void (async () => {
               try {
@@ -186,19 +220,6 @@ export default function Onboarding() {
                 /* non-blocking */
               }
               localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
-
-              const token = localStorage.getItem("cortex_token");
-              const orgId = localStorage.getItem("cortex_org_id") ?? "demo-org-001";
-              void fetch("/api/v1/assessments/run", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ org_id: orgId, frameworks }),
-              }).catch(() => {
-                /* Assessment endpoint may be unavailable — non-blocking */
-              });
 
               invalidateComplianceData(queryClient, orgId);
               navigate("/dashboard", { replace: true });
@@ -330,8 +351,22 @@ export default function Onboarding() {
             <p style={subStyle}>Pre-selected based on your jurisdiction. Adjust as needed.</p>
             <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 12 }}>{frameworks.length} frameworks selected</p>
 
+            {frameworksQuery.isLoading && (
+              <p style={{ color: "var(--text-tertiary)", fontSize: 13, marginBottom: 12 }}>Loading frameworks…</p>
+            )}
+            {frameworksQuery.isError && (
+              <div style={{ ...errorBanner, marginBottom: 14 }}>
+                {(frameworksQuery.error as Error).message}. Framework list requires GET /api/v1/frameworks.
+              </div>
+            )}
+            {!frameworksQuery.isLoading && frameworkCards.length === 0 && !frameworksQuery.isError && (
+              <p style={{ color: "var(--amber)", fontSize: 13, marginBottom: 12 }}>
+                No frameworks returned from the API — you cannot continue until frameworks are available.
+              </p>
+            )}
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-              {FRAMEWORK_CARDS.map((framework) => {
+              {frameworkCards.map((framework) => {
                 const checked = frameworks.includes(framework.id);
                 return (
                   <button
@@ -367,7 +402,12 @@ export default function Onboarding() {
 
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 18 }}>
               <button type="button" onClick={() => setStep(1)} style={ghostStyle}>← Back</button>
-              <button type="button" disabled={frameworks.length === 0 || busy} onClick={persistStep2} style={primaryStyle(frameworks.length === 0 || busy)}>
+              <button
+                type="button"
+                disabled={frameworks.length === 0 || busy || frameworksQuery.isLoading || frameworkCards.length === 0}
+                onClick={persistStep2}
+                style={primaryStyle(frameworks.length === 0 || busy || frameworksQuery.isLoading || frameworkCards.length === 0)}
+              >
                 Continue →
               </button>
             </div>
@@ -388,7 +428,7 @@ export default function Onboarding() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
               {frameworks.map((id) => (
                 <span key={id} style={{ fontSize: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--cyan) 40%, transparent)", color: "var(--cyan)", borderRadius: 999, padding: "4px 10px" }}>
-                  {frameworkLabel(id)}
+                  {frameworkLabelFromId(id)}
                 </span>
               ))}
             </div>

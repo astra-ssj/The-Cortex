@@ -21,6 +21,7 @@ export interface RoadmapEpic {
   stories: RoadmapStory[];
 }
 
+/** TODO: Replace with programme / milestone API when roadmap feature (`projectTracker`) is wired to backend. */
 export const ROADMAP_EPICS: RoadmapEpic[] = [
   {
     id: "epic-1",

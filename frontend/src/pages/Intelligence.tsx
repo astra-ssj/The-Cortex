@@ -1,13 +1,47 @@
 import { useState } from "react";
+import { ComingSoon } from "../components/ui/ComingSoon";
 import { AuditSimulator } from "../components/AuditSimulator";
 import { TelemetryFusion } from "../components/TelemetryFusion";
 import { RegulationIntel } from "../components/RegulationIntel";
 import { EvidenceVault } from "../components/EvidenceVault";
+import { isFeatureEnabled } from "../lib/featureFlags";
 
 type IntelTab = "simulator" | "signals" | "regulation" | "vault";
 
+const TAB_DEFS: { key: IntelTab; label: string; demo: string }[] = [
+  { key: "simulator", label: "Audit Simulator", demo: "(demo)" },
+  { key: "signals", label: "Live Signals", demo: "(demo)" },
+  { key: "regulation", label: "Regulation Intel", demo: "(demo)" },
+  { key: "vault", label: "Evidence Vault", demo: "(demo)" },
+];
+
 export default function Intelligence() {
   const [tab, setTab] = useState<IntelTab>("simulator");
+
+  const suiteGated =
+    !isFeatureEnabled("auditSimulator") &&
+    !isFeatureEnabled("telemetryFusion") &&
+    !isFeatureEnabled("regulationIntel") &&
+    !isFeatureEnabled("evidenceVault");
+
+  const tabDisabled = suiteGated;
+
+  function gateFor(t: IntelTab): boolean {
+    switch (t) {
+      case "simulator":
+        return !isFeatureEnabled("auditSimulator");
+      case "signals":
+        return !isFeatureEnabled("telemetryFusion");
+      case "regulation":
+        return !isFeatureEnabled("regulationIntel");
+      case "vault":
+        return !isFeatureEnabled("evidenceVault");
+      default:
+        return true;
+    }
+  }
+
+  const activeGated = gateFor(tab);
 
   return (
     <div
@@ -55,123 +89,128 @@ export default function Intelligence() {
             AI-powered regulatory intelligence and live control telemetry
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 14px",
-              borderRadius: 999,
-              background: "var(--surface)",
-              border: "1px solid color-mix(in srgb, var(--cyan) 45%, var(--border))",
-              fontSize: 12,
-              color: "var(--cyan)",
-            }}
-          >
-            <span
-              className="intelligence-live-dot"
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: "var(--cyan)",
-                flexShrink: 0,
-              }}
-            />
-            4 Live Signals
-          </span>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 14px",
-              borderRadius: 999,
-              background: "var(--surface)",
-              border: "1px solid color-mix(in srgb, var(--amber) 50%, var(--border))",
-              fontSize: 12,
-              color: "var(--amber)",
-            }}
-          >
+        {!suiteGated ? (
+          /* TODO(intelligence): Replace labels below with live aggregates from telemetry / regulator / regulation / vault APIs when those services ship. */
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: "var(--amber)",
-                flexShrink: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 14px",
+                borderRadius: 999,
+                background: "var(--surface)",
+                border: "1px solid color-mix(in srgb, var(--cyan) 45%, var(--border))",
+                fontSize: 12,
+                color: "var(--cyan)",
               }}
-            />
-            3 Regulators Modelled
-          </span>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 14px",
-              borderRadius: 999,
-              background: "var(--surface)",
-              border: "1px solid color-mix(in srgb, var(--blue) 45%, var(--border))",
-              fontSize: 12,
-              color: "var(--blue)",
-            }}
-          >
+            >
+              <span
+                className="intelligence-live-dot"
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: "var(--cyan)",
+                  flexShrink: 0,
+                }}
+              />
+              Telemetry signals
+            </span>
             <span
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: "var(--blue)",
-                flexShrink: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 14px",
+                borderRadius: 999,
+                background: "var(--surface)",
+                border: "1px solid color-mix(in srgb, var(--amber) 50%, var(--border))",
+                fontSize: 12,
+                color: "var(--amber)",
               }}
-            />
-            6 Regulatory Events
-          </span>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 14px",
-              borderRadius: 999,
-              background: "var(--surface)",
-              border: "1px solid color-mix(in srgb, var(--green) 45%, var(--border))",
-              fontSize: 12,
-              color: "var(--green)",
-            }}
-          >
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: "var(--amber)",
+                  flexShrink: 0,
+                }}
+              />
+              Regulator scenarios
+            </span>
             <span
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: "var(--green)",
-                flexShrink: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 14px",
+                borderRadius: 999,
+                background: "var(--surface)",
+                border: "1px solid color-mix(in srgb, var(--blue) 45%, var(--border))",
+                fontSize: 12,
+                color: "var(--blue)",
               }}
-            />
-            12 Evidence Records
-          </span>
-        </div>
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: "var(--blue)",
+                  flexShrink: 0,
+                }}
+              />
+              Regulatory horizon
+            </span>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 14px",
+                borderRadius: 999,
+                background: "var(--surface)",
+                border: "1px solid color-mix(in srgb, var(--green) 45%, var(--border))",
+                fontSize: 12,
+                color: "var(--green)",
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: "var(--green)",
+                  flexShrink: 0,
+                }}
+              />
+              Evidence records
+            </span>
+          </div>
+        ) : null}
       </header>
 
-      <div
-        style={{
-          marginBottom: 20,
-          padding: "12px 14px",
-          borderRadius: 8,
-          border: "1px solid var(--border)",
-          background: "var(--card)",
-          fontSize: 12,
-          color: "var(--text-secondary)",
-          lineHeight: 1.5,
-        }}
-      >
-        <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — Audit Simulator, Signals,
-        Regulation Intel, and Evidence Vault use <strong style={{ color: "var(--text)" }}>simulated / demo UX</strong> for
-        storytelling; they are not a substitute for production evidence stores unless wired to backend APIs.
-      </div>
+      {!suiteGated ? (
+        <div
+          style={{
+            marginBottom: 20,
+            padding: "12px 14px",
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "var(--card)",
+            fontSize: 12,
+            color: "var(--text-secondary)",
+            lineHeight: 1.5,
+          }}
+        >
+          <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — Audit Simulator, Signals,
+          Regulation Intel, and Evidence Vault use <strong style={{ color: "var(--text)" }}>simulated / demo UX</strong>{" "}
+          for storytelling; they are not a substitute for production evidence stores unless wired to backend APIs.
+        </div>
+      ) : null}
 
       <div
         role="tablist"
@@ -183,96 +222,61 @@ export default function Intelligence() {
           flexWrap: "wrap",
         }}
       >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "simulator"}
-          onClick={() => setTab("simulator")}
-          style={{
-            padding: "10px 0",
-            marginBottom: -1,
-            border: "none",
-            borderBottom: tab === "simulator" ? "2px solid var(--cyan)" : "2px solid transparent",
-            background: "transparent",
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: tab === "simulator" ? 600 : 400,
-            color: tab === "simulator" ? "var(--text)" : "var(--dim)",
-            fontFamily: "inherit",
-          }}
-        >
-          Audit Simulator{" "}
-          <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>(demo)</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "signals"}
-          onClick={() => setTab("signals")}
-          style={{
-            padding: "10px 0",
-            marginBottom: -1,
-            border: "none",
-            borderBottom: tab === "signals" ? "2px solid var(--cyan)" : "2px solid transparent",
-            background: "transparent",
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: tab === "signals" ? 600 : 400,
-            color: tab === "signals" ? "var(--text)" : "var(--dim)",
-            fontFamily: "inherit",
-          }}
-        >
-          Live Signals{" "}
-          <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>(demo)</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "regulation"}
-          onClick={() => setTab("regulation")}
-          style={{
-            padding: "10px 0",
-            marginBottom: -1,
-            border: "none",
-            borderBottom: tab === "regulation" ? "2px solid var(--cyan)" : "2px solid transparent",
-            background: "transparent",
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: tab === "regulation" ? 600 : 400,
-            color: tab === "regulation" ? "var(--text)" : "var(--dim)",
-            fontFamily: "inherit",
-          }}
-        >
-          Regulation Intel{" "}
-          <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>(demo)</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "vault"}
-          onClick={() => setTab("vault")}
-          style={{
-            padding: "10px 0",
-            marginBottom: -1,
-            border: "none",
-            borderBottom: tab === "vault" ? "2px solid var(--cyan)" : "2px solid transparent",
-            background: "transparent",
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: tab === "vault" ? 600 : 400,
-            color: tab === "vault" ? "var(--text)" : "var(--dim)",
-            fontFamily: "inherit",
-          }}
-        >
-          Evidence Vault{" "}
-          <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>(demo)</span>
-        </button>
+        {TAB_DEFS.map(({ key, label, demo }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            aria-disabled={tabDisabled}
+            disabled={tabDisabled}
+            onClick={() => {
+              if (tabDisabled) return;
+              setTab(key);
+            }}
+            style={{
+              padding: "10px 0",
+              marginBottom: -1,
+              border: "none",
+              borderBottom:
+                tab === key && !tabDisabled ? "2px solid var(--cyan)" : "2px solid transparent",
+              background: "transparent",
+              cursor: tabDisabled ? "not-allowed" : "pointer",
+              fontSize: 13,
+              fontWeight: tab === key ? 600 : 400,
+              color: tabDisabled ? "var(--text-tertiary)" : tab === key ? "var(--text)" : "var(--dim)",
+              fontFamily: "inherit",
+              opacity: tabDisabled ? 0.75 : 1,
+            }}
+          >
+            {label}{" "}
+            {!tabDisabled ? (
+              <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>{demo}</span>
+            ) : null}
+          </button>
+        ))}
       </div>
 
-      {tab === "simulator" && <AuditSimulator />}
-      {tab === "signals" && <TelemetryFusion />}
-      {tab === "regulation" && <RegulationIntel />}
-      {tab === "vault" && <EvidenceVault />}
+      {suiteGated ? (
+        <ComingSoon
+          feature="Intelligence Suite"
+          description="Audit simulation, regulatory horizon scanning, telemetry fusion, and evidence chain verification are in active development."
+          eta="Q3 2026"
+        />
+      ) : activeGated ? (
+        <ComingSoon
+          feature={TAB_DEFS.find((x) => x.key === tab)?.label ?? "Intelligence"}
+          description="This capability is not yet connected to production services."
+          eta="Q3 2026"
+        />
+      ) : (
+        <>
+          {tab === "simulator" && <AuditSimulator />}
+          {tab === "signals" && <TelemetryFusion />}
+          {tab === "regulation" && <RegulationIntel />}
+          {tab === "vault" && <EvidenceVault />}
+        </>
+      )}
     </div>
   );
 }
