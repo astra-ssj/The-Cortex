@@ -405,6 +405,19 @@ export async function fetchFindings(params?: ListFindingsParams): Promise<Remedi
   return fetchApi<RemediationFinding[]>(`/api/v1/findings${qs ? `?${qs}` : ""}`);
 }
 
+/** GET /api/v1/findings/{id} — single finding for detail view / deep links. */
+export async function getFinding(
+  id: string,
+  params?: Pick<ListFindingsParams, "org_id">
+): Promise<RemediationFinding> {
+  const search = new URLSearchParams();
+  if (params?.org_id) search.set("org_id", params.org_id);
+  const qs = search.toString();
+  return fetchApi<RemediationFinding>(
+    `/api/v1/findings/${encodeURIComponent(id)}${qs ? `?${qs}` : ""}`
+  );
+}
+
 export interface UpdateFindingBody {
   status?: FindingStatus;
   owner?: string;

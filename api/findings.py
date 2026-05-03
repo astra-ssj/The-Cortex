@@ -59,6 +59,21 @@ async def list_findings(
     return result
 
 
+@router.get("/{finding_id}", summary="Get finding by id")
+async def get_finding(
+    finding_id: str,
+    org_id: Optional[str] = Query(None, description="Scoped organisation id (demo toggle)"),
+    current_user: dict = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Return a single remediation finding when it exists for the scoped organisation."""
+    scope = (org_id or current_user.get("org_id") or DEMO_ORG_ID).strip()
+    effective = resolve_scoped_org_id(current_user, scope)
+    for f in FINDINGS_STORE:
+        if f.get("id") == finding_id and f.get("org_id", DEMO_ORG_ID) == effective:
+            return f
+    raise HTTPException(status_code=404, detail="Finding not found")
+
+
 @router.patch("/{finding_id}", summary="Update finding")
 async def update_finding(
     finding_id: str,

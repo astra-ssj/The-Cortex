@@ -23,6 +23,22 @@ def test_list_findings_filter_by_status(client: TestClient, auth_headers: dict[s
     assert len(data) >= 1
 
 
+def test_get_finding_by_id(client: TestClient, auth_headers: dict[str, str]) -> None:
+    """GET /api/v1/findings/{id} returns one finding."""
+    r = client.get("/api/v1/findings", headers=auth_headers)
+    assert r.status_code == 200
+    fid = r.json()[0]["id"]
+    r2 = client.get(f"/api/v1/findings/{fid}", headers=auth_headers)
+    assert r2.status_code == 200
+    assert r2.json()["id"] == fid
+
+
+def test_get_finding_404(client: TestClient, auth_headers: dict[str, str]) -> None:
+    """GET /api/v1/findings/{id} returns 404 for unknown id."""
+    r = client.get("/api/v1/findings/does-not-exist-xyz", headers=auth_headers)
+    assert r.status_code == 404
+
+
 def test_list_findings_filter_by_severity(client: TestClient, auth_headers: dict[str, str]) -> None:
     """GET /api/v1/findings?severity=CRITICAL returns only CRITICAL."""
     r = client.get("/api/v1/findings", params={"severity": "CRITICAL"}, headers=auth_headers)

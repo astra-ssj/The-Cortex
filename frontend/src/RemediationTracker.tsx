@@ -6,7 +6,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   fetchFindings,
   updateFinding,
@@ -462,6 +462,15 @@ export function RemediationTracker() {
                   <span className={`rounded border px-2 py-0.5 font-data text-xs ${severityBadgeClass(f.severity)}`}>
                     {f.severity}
                   </span>
+                  <p className="mt-1 font-data text-xs">
+                    <Link
+                      to={`/findings/${encodeURIComponent(f.id)}`}
+                      className="text-cortex-blue hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {f.id}
+                    </Link>
+                  </p>
                   <p className="mt-2 font-ui text-sm font-medium text-cortex-text" title={f.title}>
                     {truncate(f.title, 50)}
                   </p>
@@ -500,6 +509,15 @@ export function RemediationTracker() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="font-ui text-lg font-semibold text-cortex-text">{selectedFinding.title}</h2>
+                  <p className="mt-1 font-data text-xs">
+                    <Link
+                      to={`/findings/${encodeURIComponent(selectedFinding.id)}`}
+                      className="text-cortex-blue hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {selectedFinding.id}
+                    </Link>
+                  </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <span className={`rounded border px-2 py-0.5 font-data text-xs ${severityBadgeClass(selectedFinding.severity)}`}>
                       {selectedFinding.severity}
