@@ -1,6 +1,5 @@
-import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import { ALL_FRAMEWORK_IDS } from "./api/client";
 import { useOrgContext } from "./hooks/useOrgContext";
 import { useFrameworks } from "./hooks/useFrameworks";
@@ -9,221 +8,20 @@ import {
   useCompliancePosture,
   useZtaipStatus,
 } from "./store/complianceStore";
-import type { FrameworkSummary } from "./api/frameworks";
-import type { AssessmentEvent, FrameworkPosture } from "./types/compliance";
-import { Skeleton, StatCardSkeleton, FrameworkCardSkeleton } from "./components/Skeleton";
+import { Skeleton, StatCardSkeleton } from "./components/Skeleton";
 import { DashboardEmpty, FrameworksEmpty } from "./components/ui/EmptyState";
-import { AnimatedNumber, AnimatedScoreRing } from "./components/AnimatedScore";
 import { TrustChip } from "./components/ui/TrustChip";
-
-/** Token references — values resolve from :root in index.css */
-const tokens = {
-  border: "var(--border)",
-  borderLit: "var(--border)",
-  textPrimary: "var(--text)",
-  textMuted: "var(--text-secondary)",
-  textDim: "var(--text-quiet)",
-  green: "var(--green)",
-  amber: "var(--amber)",
-  red: "var(--red)",
-  blue: "var(--blue)",
-  cardHoverBg: "var(--card-hover)",
-  card: "var(--card)",
-} as const;
-
-function scoreRingColor(score: number): string {
-  if (score >= 70) return tokens.green;
-  if (score >= 50) return tokens.amber;
-  return tokens.red;
-}
-
-function riskBadgeStyle(risk: string): { background: string; color: string } {
-  switch (risk) {
-    case "CRITICAL":
-      return { background: "var(--tone-critical-bg)", color: "var(--tone-critical-fg)" };
-    case "HIGH":
-      return { background: "var(--tone-high-bg)", color: "var(--tone-high-fg)" };
-    case "MEDIUM":
-      return { background: "var(--tone-medium-bg)", color: "var(--tone-medium-fg)" };
-    case "LOW":
-      return { background: "var(--tone-low-bg)", color: "var(--tone-low-fg)" };
-    default:
-      return { background: tokens.border, color: tokens.textMuted };
-  }
-}
-
-function statusBadgeColor(status: string): string {
-  switch (status) {
-    case "NON_COMPLIANT":
-      return tokens.red;
-    case "PARTIAL":
-      return tokens.amber;
-    case "COMPLIANT":
-      return tokens.green;
-    default:
-      return tokens.textMuted;
-  }
-}
-
-type DisplayType = "start" | "fw_start" | "fw_done" | "control" | "review" | "complete" | "error";
-
-function eventDisplay(e: AssessmentEvent): { type: DisplayType; message: string } {
-  switch (e.kind) {
-    case "run_start":
-      return { type: "start", message: `Run started (${(e as { frameworkIds?: string[] }).frameworkIds?.length ?? 0} frameworks)` };
-    case "framework_start":
-      return { type: "fw_start", message: `Framework: ${(e as { frameworkName: string }).frameworkName} (${(e as { frameworkId: string }).frameworkId})` };
-    case "framework_done":
-      return { type: "fw_done", message: `Done: ${(e as { frameworkId: string }).frameworkId}` };
-    case "control_context":
-      return { type: "control", message: `Context: ${(e as { controlId: string }).controlId}` };
-    case "control_result": {
-      const r = e as { controlId: string; controlName: string; status: string; finding?: string };
-      return { type: "control", message: `${r.controlName} — ${r.status}${r.finding ? `: ${r.finding.slice(0, 60)}…` : ""}` };
-    }
-    case "run_done":
-      return { type: "complete", message: "Assessment complete" };
-    case "error":
-      return { type: "error", message: (e as { message: string }).message };
-    default:
-      return { type: "error", message: `Unknown event: ${(e as { kind: string }).kind}` };
-  }
-}
-
-function FrameworkCard({
-  fw,
-  postureEntry,
-}: {
-  fw: FrameworkSummary;
-  postureEntry?: FrameworkPosture;
-}) {
-  const score = postureEntry?.score;
-  const riskLevel = postureEntry?.riskLevel;
-  const status = postureEntry?.status;
-
-  return (
-    <Link
-      to={`/frameworks/${fw.id}`}
-      className="card-stagger cortex-card-link block rounded-[var(--radius-md)] transition"
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        padding: "var(--space-5)",
-        color: "var(--text)",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = tokens.borderLit;
-        e.currentTarget.style.background = tokens.cardHoverBg;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = tokens.border;
-        e.currentTarget.style.background = tokens.card;
-      }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h3 className="font-bold" style={{ color: "var(--text)", fontSize: "var(--text-body)" }}>
-            {fw.name}
-          </h3>
-          <p className="cortex-text-caption mt-1" style={{ color: tokens.textDim }}>
-            v{fw.version} · {postureEntry?.jurisdiction ?? fw.jurisdiction}
-          </p>
-        </div>
-        {typeof score === "number" && (
-          <div
-            className="relative flex shrink-0 items-center justify-center"
-            style={{ width: 40, height: 40 }}
-            title={`${score}%`}
-          >
-            <svg width="40" height="40" viewBox="0 0 40 40" className="-rotate-90">
-              <circle
-                cx="20"
-                cy="20"
-                r="16"
-                fill="none"
-                stroke={tokens.border}
-                strokeWidth="4"
-              />
-              <circle
-                cx="20"
-                cy="20"
-                r="16"
-                fill="none"
-                stroke={scoreRingColor(score)}
-                strokeWidth="4"
-                strokeDasharray={`${(score / 100) * 100.5} 100.5`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <span
-              className="absolute inset-0 flex items-center justify-center text-xs font-medium"
-              style={{ color: "var(--text)" }}
-            >
-              {score}%
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {fw.purpose_tags.map((tag) => (
-          <span
-            key={tag}
-            className="rounded px-2 py-0.5"
-            style={{
-              background: tokens.border,
-              color: tokens.textMuted,
-              fontSize: "11px",
-            }}
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-      <p className="cortex-text-body mt-3" style={{ color: "var(--muted)" }}>
-        {fw.control_count} control{fw.control_count !== 1 ? "s" : ""}
-        {typeof postureEntry?.gapCount === "number" && (
-          <span style={{ color: tokens.textDim }}> · {postureEntry.gapCount} gaps</span>
-        )}
-      </p>
-      {typeof score === "number" && (
-        <div
-          className="mt-3 overflow-hidden rounded"
-          style={{ height: 4, background: tokens.border }}
-        >
-          <div
-            className="bar-animated"
-            style={{
-              height: "100%",
-              width: `${score}%`,
-              background: scoreRingColor(score),
-              borderRadius: 2,
-            }}
-          />
-        </div>
-      )}
-      {(riskLevel != null || status != null) && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {riskLevel != null && (
-            <span
-              className="rounded px-2 py-0.5 text-xs font-medium"
-              style={riskBadgeStyle(riskLevel)}
-            >
-              {riskLevel}
-            </span>
-          )}
-          {status != null && (
-            <span
-              className="rounded px-2 py-0.5 text-xs font-medium"
-              style={{ color: statusBadgeColor(status) }}
-            >
-              {status}
-            </span>
-          )}
-        </div>
-      )}
-    </Link>
-  );
-}
+import { Button, Card, Table, Tooltip } from "./components/ui";
+import { FrameworkComplianceTable } from "./components/FrameworkComplianceTable";
+import { CompliancePostureStatCards } from "./components/CompliancePostureStatCards";
+import {
+  eventDisplay,
+  FRAMEWORK_TABLE_COLUMNS,
+  type FrameworkSortKey,
+  riskCompare,
+  statusCompare,
+  streamEventColor,
+} from "./complianceDashboardUtils";
 
 export function ComplianceDashboard() {
   const navigate = useNavigate();
@@ -234,6 +32,8 @@ export function ComplianceDashboard() {
   const { events, isStreaming, streamError, clearStreamError, startStream, stopStream } =
     useAssessmentStream();
   const streamPanelRef = useRef<HTMLDivElement | null>(null);
+  const [sortKey, setSortKey] = useState<FrameworkSortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const streamPhase = streamError
     ? "error"
@@ -245,26 +45,55 @@ export function ComplianceDashboard() {
           ? "streaming"
           : "complete";
 
-  function streamPhaseHintText(): string {
-    switch (streamPhase) {
-      case "idle":
-        return "Opens a live SSE connection to the assessment engine; posture and review queue refresh when the run completes.";
-      case "connecting":
-        return "Connecting to the assessment stream…";
-      case "streaming":
-        return "Receiving assessment events…";
-      case "complete":
-        return "Last run finished — scroll the log below.";
-      case "error":
-        return "Stream failed — confirm the API is up and you are signed in.";
-      default:
-        return "";
-    }
-  }
+  const streamHint: Record<string, string> = {
+    idle: "Opens a live SSE connection to the assessment engine; posture and review queue refresh when the run completes.",
+    connecting: "Connecting to the assessment stream…",
+    streaming: "Receiving assessment events…",
+    complete: "Last run finished — scroll the log below.",
+    error: "Stream failed — confirm the API is up and you are signed in.",
+  };
 
   const postureByFrameworkId = posture
     ? new Map(posture.frameworks.map((f) => [f.frameworkId, f]))
     : null;
+
+  const sortedFrameworks = useMemo(() => {
+    if (!frameworks?.length) return [];
+    const list = [...frameworks];
+    const mult = sortDir === "asc" ? 1 : -1;
+    list.sort((a, b) => {
+      const pa = postureByFrameworkId?.get(a.id);
+      const pb = postureByFrameworkId?.get(b.id);
+      switch (sortKey) {
+        case "name":
+          return mult * a.name.localeCompare(b.name);
+        case "jurisdiction": {
+          const ja = pa?.jurisdiction ?? a.jurisdiction;
+          const jb = pb?.jurisdiction ?? b.jurisdiction;
+          return mult * ja.localeCompare(jb);
+        }
+        case "score":
+          return mult * ((pa?.score ?? -1) - (pb?.score ?? -1));
+        case "controls":
+          return mult * (a.control_count - b.control_count);
+        case "risk":
+          return mult * riskCompare(pa?.riskLevel, pb?.riskLevel);
+        case "status":
+          return mult * statusCompare(pa?.status, pb?.status);
+        default:
+          return 0;
+      }
+    });
+    return list;
+  }, [frameworks, postureByFrameworkId, sortKey, sortDir]);
+
+  function handleFrameworkSort(key: string) {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(key as FrameworkSortKey);
+      setSortDir("asc");
+    }
+  }
 
   useEffect(() => {
     if (events.length > 0 && streamPanelRef.current) {
@@ -282,43 +111,29 @@ export function ComplianceDashboard() {
         <h1 className="cortex-text-page-title">Compliance overview</h1>
         <p className="cortex-text-caption mt-2">Loading posture and frameworks…</p>
         <div
-          style={{
-            background: "var(--surface)",
-            border: `1px solid ${tokens.border}`,
-            borderRadius: "8px",
-            padding: "10px 16px",
-            marginBottom: "24px",
-          }}
+          className="mb-6 rounded-lg border p-3"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         >
           <Skeleton width="60%" height="11px" />
         </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "16px",
-            marginBottom: "28px",
-          }}
-        >
+        <div className="mb-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <StatCardSkeleton key={i} />
           ))}
         </div>
-
-        <Skeleton width="160px" height="13px" style={{ marginBottom: "16px" }} />
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "14px",
-          }}
-        >
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <FrameworkCardSkeleton key={i} />
-          ))}
-        </div>
+        <Skeleton width="160px" height="13px" className="mb-4" />
+        <Table>
+          <Table.Header columns={FRAMEWORK_TABLE_COLUMNS} />
+          <tbody>
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Table.Row key={i}>
+                <Table.Cell colSpan={6}>
+                  <Skeleton height={14} />
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </tbody>
+        </Table>
       </div>
     );
   }
@@ -331,7 +146,7 @@ export function ComplianceDashboard() {
       <div
         className="rounded-lg border p-4"
         style={{
-          borderColor: tokens.red,
+          borderColor: "var(--red)",
           background: "var(--tone-error-box-bg)",
           color: "var(--tone-critical-fg)",
         }}
@@ -343,7 +158,9 @@ export function ComplianceDashboard() {
         ) : (
           <p className="mt-2 text-sm">
             Make sure the API is running. From repo root with Python venv active:{" "}
-            <code className="rounded px-1" style={{ background: "var(--panel)" }}>./scripts/run-api.sh</code>
+            <code className="rounded px-1" style={{ background: "var(--panel)" }}>
+              ./scripts/run-api.sh
+            </code>
           </p>
         )}
       </div>
@@ -355,13 +172,7 @@ export function ComplianceDashboard() {
       <div style={{ padding: "28px", background: "var(--shell)", color: "var(--text)" }}>
         <h1 className="cortex-text-page-title">Compliance overview</h1>
         <p className="cortex-text-caption mt-2 mb-6">Select frameworks to begin posture tracking.</p>
-        <div
-          style={{
-            background: "var(--panel)",
-            border: `1px solid ${tokens.border}`,
-            borderRadius: "10px",
-          }}
-        >
+        <div className="rounded-[10px] border" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
           <FrameworksEmpty onSelectFrameworks={() => navigate("/onboarding")} />
         </div>
       </div>
@@ -382,38 +193,27 @@ export function ComplianceDashboard() {
         </p>
         {ztaip && (
           <div
-            className="ztaip-bar rounded-lg border px-4 py-2"
+            className="ztaip-bar mb-6 rounded-lg border px-4 py-2"
             style={{
-              marginBottom: "24px",
               background: "var(--surface)",
-              borderColor: tokens.border,
-              color: tokens.textDim,
+              borderColor: "var(--border)",
+              color: "var(--text-quiet)",
               fontSize: "12px",
               fontFamily: "var(--font-mono)",
             }}
           >
-            <span className="font-medium" style={{ color: tokens.textMuted }}>
+            <span className="font-medium" style={{ color: "var(--text-secondary)" }}>
               ZTAIP:
             </span>{" "}
             audit events {ztaip.auditFabric.totalEvents} · circuit breakers {ztaip.circuitBreakersCount} · human review
             queue {ztaip.humanReviewQueueCount} · {ztaip.sovereigntyBroker}
           </div>
         )}
-        <div
-          style={{
-            background: "var(--panel)",
-            border: `1px solid ${tokens.border}`,
-            borderRadius: "10px",
-          }}
-        >
+        <div className="rounded-[10px] border" style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
           <DashboardEmpty
             orgName={posture?.organisationName ?? "Your Organisation"}
-            onRunAssessment={() => {
-              navigate("/onboarding");
-            }}
-            onViewFrameworks={() => {
-              navigate("/frameworks");
-            }}
+            onRunAssessment={() => navigate("/onboarding")}
+            onViewFrameworks={() => navigate("/frameworks")}
           />
         </div>
       </div>
@@ -432,28 +232,27 @@ export function ComplianceDashboard() {
         <div
           className="rounded-lg border px-4 py-3 text-sm"
           style={{
-            borderColor: tokens.borderLit,
+            borderColor: "var(--border)",
             background: "var(--surface)",
-            color: tokens.textMuted,
+            color: "var(--text-secondary)",
           }}
           role="status"
         >
           {posture.message}
         </div>
       ) : null}
-      {/* ZTAIP status bar */}
       {ztaip && (
         <div
           className="rounded-lg border px-4 py-2"
           style={{
             background: "var(--surface)",
-            borderColor: tokens.border,
-            color: tokens.textDim,
+            borderColor: "var(--border)",
+            color: "var(--text-quiet)",
             fontSize: "var(--text-caption)",
             fontFamily: "var(--font-mono)",
           }}
         >
-          <span className="font-medium" style={{ color: tokens.textMuted }}>
+          <span className="font-medium" style={{ color: "var(--text-secondary)" }}>
             ZTAIP:
           </span>{" "}
           audit events {ztaip.auditFabric.totalEvents} · circuit breakers {ztaip.circuitBreakersCount} · human review
@@ -461,15 +260,10 @@ export function ComplianceDashboard() {
         </div>
       )}
 
-      {/* Org banner */}
       {posture && (
         <section
           className="rounded-lg border-b px-4 py-4"
-          style={{
-            background: "var(--surface)",
-            borderColor: tokens.border,
-            borderBottomWidth: "1px",
-          }}
+          style={{ background: "var(--surface)", borderColor: "var(--border)", borderBottomWidth: "1px" }}
           aria-labelledby="org-snapshot-title"
         >
           <h2 id="org-snapshot-title" className="cortex-text-section font-bold" style={{ color: "var(--text)" }}>
@@ -486,259 +280,114 @@ export function ComplianceDashboard() {
         </section>
       )}
 
-      {/* Stats row: Overall Posture, Audit Readiness, Critical Gaps, Compliant X/8 */}
       {posture && (
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Posture summary">
-          <div
-            className="rounded-lg border p-5"
-            style={{
-              background: "var(--panel)",
-              borderColor: tokens.border,
-              padding: "var(--space-5) var(--space-6)",
-            }}
-          >
-            <h3 className="cortex-text-caption font-semibold uppercase tracking-wide" style={{ color: tokens.textDim }}>
-              Overall posture
-            </h3>
-            <div className="mt-2 flex items-center gap-3">
-              {typeof posture.overallScore === "number" && posture.overallScore > 0 ? (
-                <AnimatedScoreRing
-                  value={posture.overallScore}
-                  size={64}
-                  strokeWidth={5}
-                  duration={1400}
-                  delay={100}
-                />
-              ) : (
-                <div>
-                  <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "20px", margin: 0 }}>
-                    Not Yet Assessed
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/onboarding")}
-                    style={{
-                      marginTop: 8,
-                      border: "none",
-                      background: "transparent",
-                      color: "var(--cyan)",
-                      padding: 0,
-                      cursor: "pointer",
-                      fontSize: 12,
-                    }}
-                  >
-                    Run your first assessment →
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-          <div
-            className="rounded-lg border p-5"
-            style={{
-              background: "var(--panel)",
-              borderColor: tokens.border,
-              padding: "var(--space-5) var(--space-6)",
-            }}
-          >
-            <h3 className="cortex-text-caption font-semibold uppercase tracking-wide" style={{ color: tokens.textDim }}>
-              Audit readiness
-            </h3>
-            <div className="mt-2 flex items-center gap-3">
-              {typeof posture.auditReadiness === "number" ? (
-                <AnimatedScoreRing
-                  value={posture.auditReadiness}
-                  size={64}
-                  strokeWidth={5}
-                  duration={1400}
-                  delay={200}
-                  color="var(--amber)"
-                />
-              ) : (
-                <p className="font-bold" style={{ color: tokens.textMuted, fontSize: "24px" }}>—</p>
-              )}
-            </div>
-          </div>
-          <div
-            className="rounded-lg border p-5"
-            style={{
-              background: "var(--panel)",
-              borderColor: tokens.border,
-              padding: "var(--space-5) var(--space-6)",
-            }}
-          >
-            <h3 className="cortex-text-caption font-semibold uppercase tracking-wide" style={{ color: tokens.textDim }}>
-              Critical gaps
-            </h3>
-            <p className="font-bold" style={{ color: "var(--text)", fontSize: "24px" }}>
-              {typeof posture.criticalGapsCount === "number" ? (
-                <AnimatedNumber
-                  value={posture.criticalGapsCount}
-                  duration={800}
-                  delay={300}
-                  style={{
-                    fontSize: "28px",
-                    fontWeight: 700,
-                    fontFamily: "'Syne', sans-serif",
-                    color: "var(--red)",
-                  }}
-                />
-              ) : (
-                "—"
-              )}
-            </p>
-          </div>
-          <div
-            className="rounded-lg border p-5"
-            style={{
-              background: "var(--panel)",
-              borderColor: tokens.border,
-              padding: "var(--space-5) var(--space-6)",
-            }}
-          >
-            <h3 className="cortex-text-caption font-semibold uppercase tracking-wide" style={{ color: tokens.textDim }}>
-              Compliant frameworks
-            </h3>
-            <p className="font-bold" style={{ color: "var(--text)", fontSize: "24px" }}>
-              <AnimatedNumber
-                value={posture.frameworks.filter((f) => f.status === "COMPLIANT").length}
-                duration={800}
-                delay={400}
-                style={{
-                  fontSize: "28px",
-                  fontWeight: 700,
-                  fontFamily: "'Syne', sans-serif",
-                  color: "var(--text)",
-                }}
-              />
-              /{posture.frameworks.length}
-            </p>
-          </div>
-        </section>
+        <CompliancePostureStatCards
+          posture={posture}
+          onRunFirstAssessment={() => navigate("/onboarding")}
+        />
       )}
 
-      {/* Framework cards */}
       <section aria-labelledby="fw-directory-heading">
-        <h2 id="fw-directory-heading" className="cortex-text-section mb-4">
-          Compliance frameworks
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {frameworks.map((fw) => (
-            <FrameworkCard
-              key={fw.id}
-              fw={fw}
-              postureEntry={postureByFrameworkId?.get(fw.id)}
-            />
-          ))}
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <h2 id="fw-directory-heading" className="cortex-text-section">
+            Compliance frameworks
+          </h2>
+          <Tooltip content="Sort by column headers. Click a row to open framework detail." position="left">
+            <span
+              className="cursor-help text-[10px] font-semibold uppercase tracking-wide"
+              style={{ color: "var(--text-quiet)" }}
+              tabIndex={0}
+            >
+              How to use
+            </span>
+          </Tooltip>
         </div>
+        <FrameworkComplianceTable
+          columns={FRAMEWORK_TABLE_COLUMNS}
+          sortedFrameworks={sortedFrameworks}
+          postureByFrameworkId={postureByFrameworkId}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSort={handleFrameworkSort}
+          onOpenFramework={(id) => navigate(`/frameworks/${id}`)}
+        />
       </section>
 
-      {/* Run assessment + stream panel */}
-      <section
-        className="rounded-lg border p-4"
-        aria-labelledby="assessment-panel-heading"
-        style={{
-          background: "var(--panel)",
-          borderColor: tokens.border,
-        }}
-      >
-        <h2 id="assessment-panel-heading" className="cortex-text-section">
-          Run assessment
-        </h2>
-        <p className="mt-1 text-sm" style={{ color: tokens.textMuted }}>
-          Stream assessment for {orgId} — all 8 frameworks
-        </p>
-        <p className="mt-2 text-xs leading-relaxed" style={{ color: tokens.textDim }}>
-          {streamPhaseHintText()}
-        </p>
-        {streamError && (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <p style={{ color: tokens.red, fontSize: 13, margin: 0 }}>{streamError}</p>
-            <button
-              type="button"
-              onClick={() => clearStreamError()}
-              className="rounded border px-2 py-1 text-xs"
-              style={{ borderColor: tokens.border, color: tokens.textMuted, background: "transparent" }}
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-        <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              startStream(orgId, ALL_FRAMEWORK_IDS.split(","));
-            }}
-            disabled={isStreaming}
-            className="rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            style={{ background: tokens.blue }}
-          >
-            {isStreaming ? "Streaming…" : "Start stream"}
-          </button>
-          {isStreaming && (
-            <button
-              type="button"
-              onClick={stopStream}
-              className="rounded border px-3 py-1.5 text-sm font-medium"
-              style={{
-                borderColor: tokens.border,
-                color: tokens.textMuted,
-                background: "transparent",
-              }}
-            >
-              Stop
-            </button>
+      <Card>
+        <Card.Body className="p-4">
+          <h2 id="assessment-panel-heading" className="cortex-text-section">
+            Run assessment
+          </h2>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            Stream assessment for {orgId} — all 8 frameworks
+          </p>
+          <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--text-quiet)" }}>
+            {streamHint[streamPhase] ?? ""}
+          </p>
+          {streamError && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <p style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>{streamError}</p>
+              <Button type="button" variant="secondary" size="sm" onClick={() => clearStreamError()}>
+                Dismiss
+              </Button>
+            </div>
           )}
-        </div>
-        {(isStreaming || events.length > 0) && (
-          <div
-            ref={streamPanelRef}
-            className="mt-6 overflow-y-auto rounded-lg border"
-            style={{
-              padding: "var(--space-4)",
-              background: "var(--surface)",
-              borderColor: tokens.border,
-              fontFamily: "var(--font-mono)",
-              fontSize: "var(--text-caption)",
-              color: tokens.textDim,
-              maxHeight: "400px",
-            }}
-            aria-live={isStreaming ? "polite" : "off"}
-            tabIndex={0}
-            role="log"
-            aria-label="Assessment event stream"
-          >
-            {isStreaming && events.length === 0 && (
-              <div style={{ color: tokens.textMuted, padding: "2px 0" }}>Connecting…</div>
-            )}
-            {events.map((e, i) => {
-              const { type, message } = eventDisplay(e);
-              return (
-                <div
-                  key={i}
-                  style={{
-                    color:
-                      type === "complete"
-                        ? tokens.green
-                        : type === "review"
-                          ? tokens.amber
-                          : type === "error"
-                            ? tokens.red
-                            : type === "fw_start"
-                              ? tokens.blue
-                              : tokens.textMuted,
-                    padding: "2px 0",
-                    borderBottom: "1px solid var(--panel)",
-                  }}
-                >
-                  [{type}] {message}
-                </div>
-              );
-            })}
+          <div className="mt-3 flex gap-2">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              disabled={isStreaming}
+              onClick={() => startStream(orgId, ALL_FRAMEWORK_IDS.split(","))}
+            >
+              {isStreaming ? "Streaming…" : "Run assessment"}
+            </Button>
+            {isStreaming ? (
+              <Button type="button" variant="secondary" size="sm" onClick={stopStream}>
+                Stop
+              </Button>
+            ) : null}
           </div>
-        )}
-      </section>
+          {(isStreaming || events.length > 0) && (
+            <div
+              ref={streamPanelRef}
+              className="mt-6 overflow-y-auto rounded-lg border"
+              style={{
+                padding: "var(--space-4)",
+                background: "var(--surface)",
+                borderColor: "var(--border)",
+                fontFamily: "var(--font-mono)",
+                fontSize: "var(--text-caption)",
+                color: "var(--text-quiet)",
+                maxHeight: "400px",
+              }}
+              aria-live={isStreaming ? "polite" : "off"}
+              tabIndex={0}
+              role="log"
+              aria-label="Assessment event stream"
+            >
+              {isStreaming && events.length === 0 && (
+                <div style={{ color: "var(--text-secondary)", padding: "2px 0" }}>Connecting…</div>
+              )}
+              {events.map((e, i) => {
+                const { type, message } = eventDisplay(e);
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      color: streamEventColor(type),
+                      padding: "2px 0",
+                      borderBottom: "1px solid var(--panel)",
+                    }}
+                  >
+                    [{type}] {message}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card.Body>
+      </Card>
     </div>
   );
 }
