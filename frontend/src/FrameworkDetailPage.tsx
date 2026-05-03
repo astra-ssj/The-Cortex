@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { Breadcrumb } from "./components/ui/Breadcrumb";
 import { useFramework } from "./hooks/useFrameworks";
 
 export function FrameworkDetailPage() {
@@ -43,12 +44,9 @@ export function FrameworkDetailPage() {
 
   return (
     <div className="text-cortex-text">
-      <Link
-        to="/frameworks"
-        className="mb-4 inline-block text-sm font-medium text-cortex-muted hover:text-cortex-text"
-      >
-        ← Back to frameworks
-      </Link>
+      <Breadcrumb
+        items={[{ label: "Frameworks", href: "/frameworks" }, { label: framework.name }]}
+      />
       <div className="mb-6">
         <h2 className="text-2xl font-semibold tracking-tight text-cortex-text" style={{ fontFamily: "var(--font-sans)" }}>
           {framework.name}
