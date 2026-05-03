@@ -29,6 +29,7 @@ import { Sidebar, SIDEBAR_WIDTH_PX } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import Settings from "./pages/Settings";
 import { FrameworksList } from "./pages/FrameworksList";
+import FindingDetail from "./pages/FindingDetail";
 
 function MainChrome() {
   const [user, setUser] = useState(() => getUser() as Record<string, unknown> | null);
@@ -201,6 +202,7 @@ function AppRoutes() {
             <Route path="/cloud-scans" element={<CloudScans />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/evidence" element={<RemediationTracker />} />
+            <Route path="/findings/:id" element={<FindingDetail />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
