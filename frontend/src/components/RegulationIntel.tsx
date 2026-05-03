@@ -32,6 +32,7 @@ const CONTROL_DESCRIPTIONS: Record<string, string> = {
   "ISO-A.8.24": "Use of cryptography / cloud security extensions.",
 };
 
+/** TODO: Replace with regulatory horizon / digest feed API (endpoint TBD) when Regulation Intel is production-ready. */
 const MOCK_EVENTS: RegulatoryEvent[] = [
   {
     id: "e1",

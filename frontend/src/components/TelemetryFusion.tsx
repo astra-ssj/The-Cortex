@@ -145,6 +145,7 @@ export function TelemetryFusion() {
   const [incidentBanner, setIncidentBanner] = useState(false);
   const [incidentProgress, setIncidentProgress] = useState(0);
   const poolIndexRef = useRef(0);
+  const signalSeqRef = useRef(0);
   const incidentResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pushSignal = useCallback(() => {
@@ -152,9 +153,10 @@ export function TelemetryFusion() {
     const tmpl = SIGNAL_POOL[idx];
     if (!tmpl) return;
     poolIndexRef.current += 1;
+    signalSeqRef.current += 1;
     const entry: FeedEntry = {
       ...tmpl,
-      id: `${tmpl.source}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      id: `${tmpl.source}-${Date.now()}-${signalSeqRef.current}`,
       ts: Date.now(),
     };
 

@@ -90,6 +90,7 @@ export default function Intelligence() {
           </p>
         </div>
         {!suiteGated ? (
+          /* TODO(intelligence): Replace labels below with live aggregates from telemetry / regulator / regulation / vault APIs when those services ship. */
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span
               style={{
@@ -114,7 +115,7 @@ export default function Intelligence() {
                   flexShrink: 0,
                 }}
               />
-              4 Live Signals
+              Telemetry signals
             </span>
             <span
               style={{
@@ -138,7 +139,7 @@ export default function Intelligence() {
                   flexShrink: 0,
                 }}
               />
-              3 Regulators Modelled
+              Regulator scenarios
             </span>
             <span
               style={{
@@ -162,7 +163,7 @@ export default function Intelligence() {
                   flexShrink: 0,
                 }}
               />
-              6 Regulatory Events
+              Regulatory horizon
             </span>
             <span
               style={{
@@ -186,7 +187,7 @@ export default function Intelligence() {
                   flexShrink: 0,
                 }}
               />
-              12 Evidence Records
+              Evidence records
             </span>
           </div>
         ) : null}

@@ -40,6 +40,9 @@ function countdownColor(days: number): string {
   return "var(--red)";
 }
 
+/**
+ * TODO: Replace with GET /api/v1/organisations/{org_id}/ai-systems (or dedicated AI register endpoint) when the governed AI inventory API ships — feature flag `aiSystemsLive`.
+ */
 const SYSTEMS: AISystem[] = [
   {
     id: "hr-screening",
@@ -293,7 +296,9 @@ export default function AISystems() {
   const daysLeft = useMemo(() => calendarDaysUntilDeadline(), []);
   const countdownStyle = countdownColor(daysLeft);
 
-  const systemsNeedingConformity = 3;
+  const systemsNeedingConformity = SYSTEMS.filter(
+    (s) => s.risk === "HIGH" && (s.status === "NOT_ASSESSED" || s.status === "IN_PROGRESS"),
+  ).length;
 
   const selectedClassification = CLASSIFICATIONS[selectedSystemId];
   const selectedSystem = SYSTEMS.find((s) => s.id === selectedSystemId);

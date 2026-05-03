@@ -30,6 +30,7 @@ function truncateHash(h: string): string {
   return `${h.slice(0, 32)}...`;
 }
 
+/** TODO: Load chain from audit_fabric / evidence API when evidenceVault feature is enabled (append-only entries by org). */
 const RAW_SEED: RawEvidenceRecord[] = [
   {
     id: 12,
@@ -237,7 +238,6 @@ export function EvidenceVault() {
     if (!selected) return;
     setComputeState("computing");
     setComputedHash(null);
-    await new Promise((r) => setTimeout(r, 400));
     const payload = JSON.stringify({
       id: selected.id,
       type: selected.type,
@@ -256,9 +256,10 @@ export function EvidenceVault() {
     setChainVerifyResult(null);
     const sorted = [...chain].sort((a, b) => a.id - b.id);
     let prevHash = "0".repeat(64);
+    const yieldFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     for (let i = 0; i < sorted.length; i++) {
       setVerifyProgress({ current: i + 1, total: sorted.length });
-      await new Promise((r) => setTimeout(r, 150));
+      await yieldFrame();
       const rec = sorted[i]!;
       const payload = JSON.stringify({
         id: rec.id,
