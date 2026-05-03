@@ -1,9 +1,18 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { uploadEvidence } from "./api/client";
 import { Breadcrumb } from "./components/ui/Breadcrumb";
-import { useFramework } from "./hooks/useFrameworks";
+import { FileUpload } from "./components/ui/FileUpload";
+import { Modal } from "./components/ui/Modal";
+import { useOrgContext } from "./hooks/useOrgContext";
+import { frameworkQueryKey, useFramework } from "./hooks/useFrameworks";
 
 export function FrameworkDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { orgId } = useOrgContext();
+  const queryClient = useQueryClient();
+  const [evidenceControlId, setEvidenceControlId] = useState<string | null>(null);
   const { data: framework, isLoading, error } = useFramework(id ?? null);
 
   if (isLoading) {
@@ -74,14 +83,53 @@ export function FrameworkDetailPage() {
             key={c.id}
             className="rounded-lg border border-cortex-border bg-cortex-card p-4 shadow-sm transition-colors hover:border-cortex-border"
           >
-            <p className="font-medium text-cortex-text">{c.name}</p>
-            {c.domain && <p className="text-sm text-cortex-muted">{c.domain}</p>}
-            <p className="mt-2 text-sm text-cortex-muted">
-              {c.requirements.length} requirement{c.requirements.length !== 1 ? "s" : ""}
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-cortex-text">{c.name}</p>
+                {c.domain && <p className="text-sm text-cortex-muted">{c.domain}</p>}
+                <p className="mt-2 text-sm text-cortex-muted">
+                  {c.requirements.length} requirement{c.requirements.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEvidenceControlId(c.id)}
+                className="shrink-0 rounded border border-cortex-border bg-cortex-panel px-3 py-1.5 font-ui text-sm text-cortex-text hover:bg-cortex-card-hover"
+              >
+                Attach Evidence
+              </button>
+            </div>
           </li>
         ))}
       </ul>
+
+      <Modal open={evidenceControlId != null} onClose={() => setEvidenceControlId(null)} size="md">
+        <Modal.Header
+          title="Attach evidence"
+          onClose={() => setEvidenceControlId(null)}
+        />
+        <Modal.Body>
+          {evidenceControlId != null && id != null ? (
+            <FileUpload
+              key={evidenceControlId}
+              label={`Upload for control ${evidenceControlId}`}
+              onUpload={async (file, onProgress) => {
+                await uploadEvidence(
+                  file,
+                  {
+                    org_id: orgId,
+                    framework_id: id,
+                    control_id: evidenceControlId,
+                  },
+                  { onProgress }
+                );
+                await queryClient.invalidateQueries({ queryKey: frameworkQueryKey(id) });
+                window.setTimeout(() => setEvidenceControlId(null), 1000);
+              }}
+            />
+          ) : null}
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }

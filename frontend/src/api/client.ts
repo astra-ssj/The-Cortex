@@ -51,6 +51,134 @@ export async function fetchApi<T = unknown>(
   return res.json() as Promise<T>;
 }
 
+/** Matches compliance-engine ``document_id`` (SHA-256 of first 1 KiB, hex prefix). */
+export async function computeIngestDocumentId(file: File): Promise<string> {
+  const n = Math.min(1024, file.size);
+  const buf = await file.slice(0, n).arrayBuffer();
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  const hex = Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `doc-${hex.slice(0, 12)}`;
+}
+
+function sseProgressFromEvent(event: string, dataLine: string): number | null {
+  if (event === "mapping_done") return 72;
+  if (event === "evidence_created") return 86;
+  if (event === "summary") return 94;
+  if (event === "done") return 100;
+  if (event !== "progress") return null;
+  try {
+    const d = JSON.parse(dataLine) as { stage?: string };
+    const s = d.stage;
+    if (s === "processing") return 18;
+    if (s === "chunks") return 38;
+    if (s === "mapping") return 56;
+    if (s === "done") return 92;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+/** Consume ingest SSE stream; throws on ``event: error``; optional rough progress from pipeline events. */
+async function consumeIngestSseBody(
+  body: ReadableStream<Uint8Array> | null,
+  onProgress?: (pct: number) => void
+): Promise<void> {
+  if (!body) return;
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let sep: number;
+    while ((sep = buffer.indexOf("\n\n")) !== -1) {
+      const raw = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+
+      let ev = "";
+      let data = "";
+      for (const line of raw.split("\n")) {
+        if (line.startsWith("event:")) ev = line.slice(6).trim();
+        else if (line.startsWith("data:")) data += line.slice(5).trimStart();
+      }
+
+      const dataTrim = data.trim();
+      const pct = sseProgressFromEvent(ev, dataTrim);
+      if (pct != null) onProgress?.(pct);
+      if (ev === "error") {
+        let msg = "Document ingest failed";
+        try {
+          const j = JSON.parse(dataTrim) as { message?: string };
+          if (j.message) msg = j.message;
+        } catch {
+          /* ignore */
+        }
+        throw new Error(msg);
+      }
+    }
+  }
+}
+
+export interface UploadEvidenceOptions {
+  onProgress?: (pct: number) => void;
+}
+
+/**
+ * POST /api/v1/ingest/document — multipart file upload; response is SSE (not JSON).
+ * Extra form fields are forwarded for future linking (finding/control metadata); pipeline currently uses the file only.
+ */
+export async function uploadEvidence(
+  file: File,
+  metadata: {
+    org_id: string;
+    finding_id?: string;
+    control_id?: string;
+    framework_id?: string;
+    description?: string;
+  },
+  options?: UploadEvidenceOptions
+): Promise<{ id: string; filename: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  Object.entries(metadata).forEach(([k, v]) => {
+    if (v != null && v !== "") formData.append(k, v);
+  });
+
+  const token = getToken();
+  const url = `${API_BASE || ""}/api/v1/ingest/document`;
+  const headers: HeadersInit = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const id = await computeIngestDocumentId(file);
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearCortexBrowserSession();
+      window.dispatchEvent(new CustomEvent("cortex:auth-expired"));
+    }
+    const errText = await res.text().catch(() => "");
+    throw new Error(errText.trim() || `HTTP ${res.status}`);
+  }
+
+  options?.onProgress?.(8);
+  await consumeIngestSseBody(res.body, options?.onProgress);
+  options?.onProgress?.(100);
+
+  return { id, filename: file.name };
+}
+
 async function postApi<T>(path: string, body: unknown): Promise<T> {
   return fetchApi<T>(path, { method: "POST", body: JSON.stringify(body) });
 }

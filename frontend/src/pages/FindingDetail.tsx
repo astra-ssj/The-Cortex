@@ -10,11 +10,13 @@ import {
   fetchFindings,
   getFinding,
   updateFinding,
+  uploadEvidence,
   type FindingStatus,
   type RemediationFinding,
   type UpdateFindingBody,
 } from "../api/client";
 import { Breadcrumb } from "../components/ui/Breadcrumb";
+import { FileUpload } from "../components/ui/FileUpload";
 import { useOrgContext } from "../hooks/useOrgContext";
 import { useRole } from "../hooks/useRole";
 import { invalidateComplianceData } from "../store/complianceStore";
@@ -256,19 +258,7 @@ export default function FindingDetail() {
 
           <section>
             <h2 className="font-ui text-lg font-semibold text-cortex-text">Evidence</h2>
-            {evidenceList.length === 0 ? (
-              <div className="mt-3 rounded-xl border border-dashed border-cortex-border bg-cortex-panel/50 p-6 text-center">
-                <p className="font-ui text-sm text-cortex-muted">No evidence attached yet.</p>
-                <button
-                  type="button"
-                  disabled
-                  className="mt-3 rounded bg-cortex-surface px-4 py-2 font-ui text-sm text-cortex-muted opacity-60"
-                  title="Coming soon"
-                >
-                  Attach Evidence
-                </button>
-              </div>
-            ) : (
+            {evidenceList.length > 0 ? (
               <ul className="mt-3 space-y-2">
                 {evidenceList.map((ev, i) => (
                   <li
@@ -281,7 +271,30 @@ export default function FindingDetail() {
                   </li>
                 ))}
               </ul>
+            ) : (
+              <p className="mt-3 font-ui text-sm text-cortex-muted">
+                No evidence attached yet.
+              </p>
             )}
+            {canEditFindings ? (
+              <div className="mt-4">
+                <FileUpload
+                  label="Attach evidence"
+                  onUpload={async (file, onProgress) => {
+                    await uploadEvidence(
+                      file,
+                      { org_id: orgId, finding_id: finding.id },
+                      { onProgress }
+                    );
+                    await queryClient.invalidateQueries({ queryKey: ["finding", id, orgId] });
+                    await queryClient.invalidateQueries({
+                      queryKey: ["findings", "byFramework", finding.framework_id, orgId],
+                    });
+                    invalidateComplianceData(queryClient, orgId);
+                  }}
+                />
+              </div>
+            ) : null}
           </section>
 
           <section>
