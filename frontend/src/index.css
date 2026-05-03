@@ -121,6 +121,9 @@
 
   /* Focus */
   --focus-ring: 0 0 0 2px var(--blue);
+
+  /* Overlays */
+  --modal-backdrop: rgba(0, 0, 0, 0.6);
 }
 
 /* Skip link: first focusable, off-screen until focus */

@@ -21,7 +21,7 @@ import {
   type FrameworkFilterOption,
 } from "./lib/frameworkRegistry";
 import { invalidateComplianceData } from "./store/complianceStore";
-import { RemediationEmpty } from "./components/EmptyState";
+import { RemediationEmpty } from "./components/ui/EmptyState";
 
 const STATUSES: FindingStatus[] = ["OPEN", "IN_PROGRESS", "REMEDIATED", "ACCEPTED"];
 const STATUS_LABELS: Record<FindingStatus, string> = {

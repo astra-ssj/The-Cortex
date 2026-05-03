@@ -11,7 +11,7 @@ import {
 } from "../api/client";
 import { useOrgContext } from "../hooks/useOrgContext";
 import { ReportSkeleton } from "./Skeleton";
-import { AuditReportEmpty } from "./EmptyState";
+import { AuditReportEmpty } from "./ui/EmptyState";
 
 const REPORT_TYPES = [
   { value: "executive-summary", label: "Executive Summary (Board)" },

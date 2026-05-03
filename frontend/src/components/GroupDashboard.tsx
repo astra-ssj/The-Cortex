@@ -4,7 +4,7 @@ import { groupsApi } from "../api/client";
 import { useOrgContext } from "../hooks/useOrgContext";
 import type { GroupPostureResponse, GroupEntity } from "../api/client";
 import { Skeleton, StatCardSkeleton, EntityCardSkeleton, HeatmapSkeleton } from "./Skeleton";
-import { GroupEmpty } from "./EmptyState";
+import { GroupEmpty } from "./ui/EmptyState";
 import { AnimatedNumber } from "./AnimatedScore";
 
 // ─── CORTEX dark theme (match ComplianceDashboard) ─────────────────────────

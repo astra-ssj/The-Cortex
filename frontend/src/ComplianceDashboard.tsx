@@ -12,7 +12,7 @@ import {
 import type { FrameworkSummary } from "./api/frameworks";
 import type { AssessmentEvent, FrameworkPosture } from "./types/compliance";
 import { Skeleton, StatCardSkeleton, FrameworkCardSkeleton } from "./components/Skeleton";
-import { DashboardEmpty, FrameworksEmpty } from "./components/EmptyState";
+import { DashboardEmpty, FrameworksEmpty } from "./components/ui/EmptyState";
 import { AnimatedNumber, AnimatedScoreRing } from "./components/AnimatedScore";
 import { TrustChip } from "./components/ui/TrustChip";
 
