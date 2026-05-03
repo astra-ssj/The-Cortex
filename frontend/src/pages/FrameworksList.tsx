@@ -8,11 +8,12 @@ import {
   statusBadgeVariant,
   statusCompare,
 } from "../complianceDashboardUtils";
-import { Badge, Select, Table, Tooltip } from "../components/ui";
+import { Badge, Button, Select, Table, Tooltip } from "../components/ui";
 import type { TableColumn } from "../components/ui/Table";
 import { useOrgContext } from "../hooks/useOrgContext";
 import { useFrameworks } from "../hooks/useFrameworks";
-import { useCompliancePosture } from "../store/complianceStore";
+import { useRole } from "../hooks/useRole";
+import { useAssessmentStream, useCompliancePosture } from "../store/complianceStore";
 import type { FrameworkPosture } from "../types/compliance";
 
 type StatusFilter = "all" | "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT";
@@ -38,6 +39,7 @@ const COLUMNS: TableColumn[] = [
   { key: "trend", label: "Trend", align: "right" },
   { key: "jurisdiction", label: "Jurisdiction" },
   { key: "lastAssessed", label: "Last Assessed" },
+  { key: "actions", label: "Actions", align: "right", sortable: false },
 ];
 
 function MiniScoreRing({ score }: { score: number }) {
@@ -137,6 +139,9 @@ function sortRows(
 export function FrameworksList() {
   const navigate = useNavigate();
   const { orgId } = useOrgContext();
+  const { can } = useRole();
+  const canRunAssessment = can("canRunAssessment");
+  const { isStreaming, startStream } = useAssessmentStream();
   const { data: frameworks, isLoading, error } = useFrameworks();
   const { data: posture, isLoading: postureLoading } = useCompliancePosture(orgId);
 
@@ -326,6 +331,22 @@ export function FrameworksList() {
                   </Table.Cell>
                   <Table.Cell style={{ color: "var(--text-secondary)" }}>
                     {formatLastAssessed(lastAssessedRaw)}
+                  </Table.Cell>
+                  <Table.Cell className="text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={isStreaming || !canRunAssessment}
+                      title={!canRunAssessment ? "Admin or Analyst required" : undefined}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startStream(orgId, [fw.id]);
+                        navigate("/dashboard");
+                      }}
+                    >
+                      Run
+                    </Button>
                   </Table.Cell>
                 </Table.Row>
               );

@@ -1,4 +1,5 @@
 export { Button } from "./Button";
+export { Checkbox } from "./Checkbox";
 export { Badge } from "./Badge";
 export { Card } from "./Card";
 export { Input } from "./Input";
