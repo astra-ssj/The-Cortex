@@ -7,6 +7,7 @@ export { Table } from "./Table";
 export { Modal } from "./Modal";
 export { Dropdown } from "./Dropdown";
 export { Tooltip } from "./Tooltip";
+export { Breadcrumb } from "./Breadcrumb";
 export {
   EmptyState,
   DashboardEmpty,

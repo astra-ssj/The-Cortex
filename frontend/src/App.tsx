@@ -28,6 +28,7 @@ import { clearCortexBrowserSession } from "./lib/cortexSession";
 import { Sidebar, SIDEBAR_WIDTH_PX } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import Settings from "./pages/Settings";
+import { FrameworksList } from "./pages/FrameworksList";
 
 function MainChrome() {
   const [user, setUser] = useState(() => getUser() as Record<string, unknown> | null);
@@ -190,7 +191,7 @@ function AppRoutes() {
           <Route element={<MainChrome />}>
             <Route path="/dashboard" element={<ComplianceDashboard />} />
             <Route path="/group" element={<GroupDashboard />} />
-            <Route path="/frameworks" element={<ComplianceDashboard />} />
+            <Route path="/frameworks" element={<FrameworksList />} />
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
             <Route path="/intelligence" element={<Intelligence />} />
             <Route path="/ai-systems" element={<AISystems />} />
