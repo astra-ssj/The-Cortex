@@ -27,6 +27,7 @@ import { HelpPanel } from "./components/HelpPanel";
 import { clearCortexBrowserSession } from "./lib/cortexSession";
 import { Sidebar, SIDEBAR_WIDTH_PX } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
+import { CommandPalette } from "./components/CommandPalette";
 import Settings from "./pages/Settings";
 import { FrameworksList } from "./pages/FrameworksList";
 import FindingDetail from "./pages/FindingDetail";
@@ -134,9 +135,15 @@ function LoginScreen() {
 function AppRoutes() {
   const navigate = useNavigate();
   const [helpOpen, setHelpOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandOpen(true);
+        return;
+      }
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
@@ -181,8 +188,15 @@ function AppRoutes() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [navigate]);
 
+  useEffect(() => {
+    const openPalette = () => setCommandOpen(true);
+    window.addEventListener("cortex:open-command-palette", openPalette);
+    return () => window.removeEventListener("cortex:open-command-palette", openPalette);
+  }, []);
+
   return (
     <>
+      <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginScreen />} />
