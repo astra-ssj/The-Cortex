@@ -148,6 +148,16 @@ export function TopBar() {
         <LiveClock />
         <Button
           type="button"
+          variant="ghost"
+          size="md"
+          onClick={() => window.dispatchEvent(new Event("cortex:open-command-palette"))}
+          title="Open command palette (Cmd/Ctrl + K)"
+          aria-label="Open global search"
+        >
+          ⌕ Search
+        </Button>
+        <Button
+          type="button"
           variant="primary"
           size="md"
           disabled={isStreaming || !canRunAssessment}
