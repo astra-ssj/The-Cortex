@@ -1,4 +1,4 @@
-# core/audit_fabric.py — Append-only audit log. Writes to audit_log (Postgres); in-memory fallback if DB fails.
+# core/audit_fabric.py — Append-only audit_log writes; transactional helper for same-session mutations.
 
 from __future__ import annotations
 
@@ -9,18 +9,48 @@ from typing import Any
 
 import structlog
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import database_ready, engine
 
 logger = structlog.get_logger()
 
-# Events that failed to persist (e.g. DB down). Counted in totals so ZTAIP status stays consistent.
-_fallback_events: list[dict[str, Any]] = []
+
+def _entry_payload_json(payload: dict[str, Any] | None) -> str:
+    return json.dumps(payload or {}, default=str)
 
 
-async def _persist_audit_entry(entry: dict[str, Any]) -> None:
+async def append_audit_log(
+    session: AsyncSession,
+    *,
+    event_type: str,
+    entity_type: str | None = None,
+    entity_id: str | None = None,
+    payload: dict[str, Any] | None = None,
+) -> None:
+    """Insert one audit row using the caller's session so it commits with the same transaction."""
+    await session.execute(
+        text(
+            """
+            INSERT INTO audit_log (event_type, entity_type, entity_id, payload)
+            VALUES (:event_type, :entity_type, :entity_id, CAST(:payload AS jsonb))
+            """
+        ),
+        {
+            "event_type": event_type,
+            "entity_type": entity_type,
+            "entity_id": entity_id,
+            "payload": _entry_payload_json(payload),
+        },
+    )
+
+
+async def _persist_audit_entry_standalone(entry: dict[str, Any]) -> None:
+    if not await database_ready():
+        logger.warning("audit_fabric_db_unreachable", event_type=entry.get("event_type"))
+        return
     try:
-        payload_json = json.dumps(entry["payload"], default=str)
+        payload_json = _entry_payload_json(entry.get("payload"))
         async with engine.begin() as conn:
             await conn.execute(
                 text(
@@ -42,7 +72,6 @@ async def _persist_audit_entry(entry: dict[str, Any]) -> None:
             error=str(e),
             event_type=entry.get("event_type"),
         )
-        _fallback_events.append(entry)
 
 
 class AuditFabric:
@@ -55,6 +84,7 @@ class AuditFabric:
         entity_id: str | None = None,
         payload: dict[str, Any] | None = None,
     ) -> None:
+        """Standalone audit insert in its own transaction (for reads/connectors without an open DB session)."""
         entry = {
             "event_type": event_type,
             "entity_type": entity_type,
@@ -66,38 +96,29 @@ class AuditFabric:
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
-            _fallback_events.append(entry)
             logger.warning("audit_fabric_no_event_loop", event_type=event_type)
             return
-        loop.create_task(_persist_audit_entry(entry))
+        loop.create_task(_persist_audit_entry_standalone(entry))
 
     async def total_events_async(self) -> int:
-        n_fb = len(_fallback_events)
         if not await database_ready():
-            return n_fb
+            return 0
         async with engine.connect() as conn:
             result = await conn.execute(text("SELECT COUNT(*) FROM audit_log"))
             n_db = result.scalar_one()
-        return int(n_db) + n_fb
+        return int(n_db)
 
     async def last_event_at_async(self) -> str | None:
-        db_iso: str | None = None
-        if await database_ready():
-            async with engine.connect() as conn:
-                row = (
-                    await conn.execute(
-                        text("SELECT created_at FROM audit_log ORDER BY id DESC LIMIT 1")
-                    )
-                ).first()
-                if row is not None:
-                    ts = row[0]
-                    db_iso = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
-        fb_iso = _fallback_events[-1]["created_at"] if _fallback_events else None
-        if db_iso is None:
-            return fb_iso
-        if fb_iso is None:
-            return db_iso
-        return max(db_iso, fb_iso)
+        if not await database_ready():
+            return None
+        async with engine.connect() as conn:
+            row = (
+                await conn.execute(text("SELECT created_at FROM audit_log ORDER BY id DESC LIMIT 1"))
+            ).first()
+            if row is None:
+                return None
+            ts = row[0]
+            return ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
 
 
 audit_fabric = AuditFabric()

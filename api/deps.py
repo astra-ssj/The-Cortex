@@ -1,28 +1,7 @@
-# api/deps.py — FastAPI dependencies (DB session, etc.).
+# api/deps.py — Re-export DB dependencies from db.deps.
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
+from db.deps import get_db, get_db_login_session
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from db.session import async_session_factory
-
-
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session_factory() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-
-
-async def get_db_login_session() -> AsyncGenerator[AsyncSession, None]:
-    """Read-only DB use (login probe). Always rollback — avoids post-response commit when DB is down but demo JWT path succeeds."""
-    async with async_session_factory() as session:
-        try:
-            yield session
-        finally:
-            await session.rollback()
+__all__ = ["get_db", "get_db_login_session"]

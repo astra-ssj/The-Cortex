@@ -8,10 +8,11 @@ import structlog
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
+from api.errors import json_error
 from core.audit_fabric import audit_fabric
 from db.session import database_ready
 from core.circuit_breaker import circuit_breakers_count
-from core.human_review import human_review_queue_count
+from core.human_review import human_review_pending_total_async
 
 from api.schemas import AuditFabricStatus, ZTAIPStatus
 
@@ -28,21 +29,17 @@ AGENT_CERTIFICATES_COUNT = 0
 async def get_system_ready() -> dict[str, str] | JSONResponse:
     """Readiness probe: requires Postgres (load balancers should use this, not /health)."""
     if not await database_ready():
-        return JSONResponse(
-            status_code=503,
-            content={
-                "status": "not_ready",
-                "detail": "database_unreachable",
-            },
+        return json_error(
+            "SERVICE_UNAVAILABLE",
+            "Database is not reachable",
+            503,
         )
-    return {"status": "ready"}
+    return {"status": "ready", "database": "ok"}
 
 
 @router.get("/system/ztaip-status", response_model=ZTAIPStatus)
 async def get_ztaip_status() -> ZTAIPStatus:
     """Return ZTAIP status from audit fabric, circuit breakers, human review queue, sovereignty broker, agent certs."""
-    # Yield so scheduled audit_log INSERT tasks from concurrent requests usually complete before COUNT.
-    await asyncio.sleep(0)
     await asyncio.sleep(0)
     return ZTAIPStatus(
         audit_fabric=AuditFabricStatus(
@@ -50,7 +47,7 @@ async def get_ztaip_status() -> ZTAIPStatus:
             last_event_at=await audit_fabric.last_event_at_async(),
         ),
         circuit_breakers_count=circuit_breakers_count(),
-        human_review_queue_count=human_review_queue_count(),
+        human_review_queue_count=await human_review_pending_total_async(),
         sovereignty_broker=SOVEREIGNTY_BROKER_STATUS,
         agent_certificates_count=AGENT_CERTIFICATES_COUNT,
     )

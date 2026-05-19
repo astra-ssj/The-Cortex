@@ -565,3 +565,5 @@ export function TelemetryFusion() {
     </div>
   );
 }
+
+export default TelemetryFusion;

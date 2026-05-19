@@ -5,6 +5,7 @@
 
 export const CORTEX_STORAGE_KEYS = [
   "cortex_token",
+  "cortex_refresh_token",
   "cortex_user",
   "cortex_org_id",
   "cortex_demo_mode",

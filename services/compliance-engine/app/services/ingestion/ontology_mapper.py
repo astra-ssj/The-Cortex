@@ -6,9 +6,11 @@ from typing import List, cast
 
 import structlog
 
-from core.audit_fabric import audit_fabric
+from core.audit_fabric import append_audit_log, audit_fabric
 from core.circuit_breaker import CircuitBreaker, register_circuit_breaker
-from core.human_review import enqueue_for_review
+from core.human_review import enqueue_ingestion_human_review
+from core.tenant import DEMO_ORG_ID
+from db.session import async_session_factory
 from ontology.models import (
     ControlRef,
     Obligation,
@@ -75,6 +77,7 @@ async def map_chunks_to_ontology(
     chunks: List[DocumentChunk],
     document_type: str,
     document_id: str,
+    org_id: str = DEMO_ORG_ID,
 ) -> OntologyMappingResult:
     """
     Take DocumentChunk list + document type; call LLM (CircuitBreaker); return OntologyMappingResult.
@@ -98,7 +101,25 @@ async def map_chunks_to_ontology(
         raise
     if result.confidence_score < CONFIDENCE_THRESHOLD:
         result.requires_human_review = True
-        enqueue_for_review({"document_id": document_id, "confidence": result.confidence_score})
+        async with async_session_factory() as session:
+            await enqueue_ingestion_human_review(
+                session,
+                org_id,
+                document_id,
+                float(result.confidence_score),
+            )
+            await append_audit_log(
+                session,
+                event_type="ontology_human_review_enqueued",
+                entity_type="document",
+                entity_id=document_id,
+                payload={
+                    "org_id": org_id,
+                    "confidence": float(result.confidence_score),
+                    "document_type": document_type,
+                },
+            )
+            await session.commit()
     audit_fabric.log(
         "ontology_mapping_done",
         entity_type="document",

@@ -2,7 +2,17 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi.testclient import TestClient
+
+
+def _findings_items(payload: dict[str, Any] | list[Any]) -> list[dict[str, Any]]:
+    """List endpoint returns paginated ``{ items, total, offset, limit }``."""
+    if isinstance(payload, list):
+        return payload
+    items = payload.get("items")
+    return items if isinstance(items, list) else []
 
 
 def test_list_findings_returns_12(client: TestClient, auth_headers: dict[str, str]) -> None:
@@ -10,24 +20,29 @@ def test_list_findings_returns_12(client: TestClient, auth_headers: dict[str, st
     r = client.get("/api/v1/findings", headers=auth_headers)
     assert r.status_code == 200
     data = r.json()
-    assert isinstance(data, list)
-    assert len(data) == 12
+    assert isinstance(data, dict)
+    assert "items" in data and "total" in data
+    items = _findings_items(data)
+    assert len(items) == 12
+    assert data["total"] == 12
 
 
 def test_list_findings_filter_by_status(client: TestClient, auth_headers: dict[str, str]) -> None:
     """GET /api/v1/findings?status=OPEN returns only OPEN findings."""
     r = client.get("/api/v1/findings", params={"status": "OPEN"}, headers=auth_headers)
     assert r.status_code == 200
-    data = r.json()
-    assert all(f["status"] == "OPEN" for f in data)
-    assert len(data) >= 1
+    items = _findings_items(r.json())
+    assert all(f["status"] == "OPEN" for f in items)
+    assert len(items) >= 1
 
 
 def test_get_finding_by_id(client: TestClient, auth_headers: dict[str, str]) -> None:
     """GET /api/v1/findings/{id} returns one finding."""
     r = client.get("/api/v1/findings", headers=auth_headers)
     assert r.status_code == 200
-    fid = r.json()[0]["id"]
+    items = _findings_items(r.json())
+    assert len(items) >= 1
+    fid = items[0]["id"]
     r2 = client.get(f"/api/v1/findings/{fid}", headers=auth_headers)
     assert r2.status_code == 200
     assert r2.json()["id"] == fid
@@ -43,15 +58,15 @@ def test_list_findings_filter_by_severity(client: TestClient, auth_headers: dict
     """GET /api/v1/findings?severity=CRITICAL returns only CRITICAL."""
     r = client.get("/api/v1/findings", params={"severity": "CRITICAL"}, headers=auth_headers)
     assert r.status_code == 200
-    data = r.json()
-    assert all(f["severity"] == "CRITICAL" for f in data)
+    items = _findings_items(r.json())
+    assert all(f["severity"] == "CRITICAL" for f in items)
 
 
 def test_update_finding_status(client: TestClient, auth_headers: dict[str, str]) -> None:
     """PATCH /api/v1/findings/{id} updates status."""
     r = client.get("/api/v1/findings", headers=auth_headers)
     assert r.status_code == 200
-    findings = r.json()
+    findings = _findings_items(r.json())
     fid = findings[0]["id"]
     original_status = findings[0]["status"]
     new_status = "IN_PROGRESS" if original_status == "OPEN" else "OPEN"

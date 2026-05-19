@@ -38,6 +38,19 @@ const INDUSTRY_OPTIONS = [
   "Other",
 ] as const;
 
+function bannerFromApiError(payload: unknown, fallback: string): string {
+  if (payload == null || typeof payload !== "object") return fallback;
+  const o = payload as Record<string, unknown>;
+  const nested = o.error;
+  if (nested !== null && typeof nested === "object" && "message" in nested) {
+    const m = (nested as { message?: unknown }).message;
+    if (typeof m === "string" && m.trim()) return m.trim();
+  }
+  const d = o.detail;
+  if (typeof d === "string") return d;
+  return fallback;
+}
+
 function validateForm(form: RegisterForm): RegisterErrors {
   const next: RegisterErrors = {};
   if (!form.company_name.trim()) next.company_name = "Company name is required.";
@@ -104,17 +117,24 @@ export default function Register() {
           return;
         }
         if (response.status === 400) {
-          const payload = (await response.json().catch(() => ({}))) as { detail?: string };
-          setBannerError(payload.detail ?? "Invalid registration payload.");
+          const payload = await response.json().catch(() => ({}));
+          setBannerError(bannerFromApiError(payload, "Invalid registration payload."));
           return;
         }
-        const payload = (await response.json().catch(() => ({}))) as { detail?: string };
-        setBannerError(payload.detail ?? "Registration failed. Please try again.");
+        const payload = await response.json().catch(() => ({}));
+        setBannerError(bannerFromApiError(payload, "Registration failed. Please try again."));
         return;
       }
 
-      const data = (await response.json()) as { access_token: string; org_id: string };
+      const data = (await response.json()) as {
+        access_token: string;
+        refresh_token?: string;
+        org_id: string;
+      };
       localStorage.setItem("cortex_token", data.access_token);
+      if (typeof data.refresh_token === "string" && data.refresh_token.length > 0) {
+        localStorage.setItem("cortex_refresh_token", data.refresh_token);
+      }
       localStorage.setItem(
         "cortex_user",
         JSON.stringify({

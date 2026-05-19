@@ -16,18 +16,18 @@ You understand every design decision made so far and enforce consistency.
 - All audit_log entries are append-only — never suggest UPDATE or DELETE on audit_log
 
 ## STACK
-- Python 3.12 / FastAPI / SQLAlchemy async / Pydantic v2 (backend services)
-- Node.js 20 / TypeScript / Express (API gateway)
-- React 18 / TypeScript / Tailwind / TanStack Query (frontend)
-- PostgreSQL 16 / Redis 7 / Kafka / Qdrant (infrastructure)
+- Python 3.12 / FastAPI / SQLAlchemy async / Pydantic v2 (backend)
+- Node.js 18+ / TypeScript / Vite (frontend); TanStack Query for server state
+- React 18 / TypeScript / Tailwind (frontend)
+- PostgreSQL 16 (required); Redis 7 optional for Shasta queue (`docker compose --profile queue`)
 - pytest + pytest-asyncio (Python tests) / vitest (TS tests)
-- Docker + Kubernetes (all services containerised)
+- Docker Compose for local dev (API + Postgres + optional Redis/worker profiles)
 
 ## PATTERNS — ALWAYS FOLLOW THESE
 - New compliance framework → copy nist_csf.py structure, register in registry.py
 - New API endpoint → follow pattern in assessments.py (SSE streaming where relevant)
 - New domain model → inherit SovereignModel, add migration to init.sql
-- New service → needs Dockerfile, K8s manifest, health + ready endpoints
+- New containerised service → Dockerfile, health + ready endpoints, wired in Docker Compose for dev
 - Circuit breaker → instantiate at module level, not inside functions
 
 ## CODE STYLE

@@ -52,10 +52,11 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 | Frontend    | React 18, TypeScript, Vite                              |
 | Backend     | FastAPI, Python 3.12, SQLAlchemy async, asyncpg       |
 | Database    | PostgreSQL 16 (Docker Compose)                        |
-| Data layer  | GraphJin (GraphQL → SQL, [read path](services/graphjin/README.md); Compose **`--profile graphql`** → **:8080**) + FastAPI REST (app + mutations) |
+| Data/API    | FastAPI REST (`/api/v1`), same process as assessments and auth |
+| Async jobs  | Optional Redis + worker (`docker compose --profile queue`) for durable Shasta scan jobs — see [CORTEX_SETUP.md](CORTEX_SETUP.md) |
 | GRC Skills  | Loaded examples include GDPR, ISO 27001, DORA, ISO 42001 (via compliance-engine loader) |
 | Auth        | JWT (HS256), bcrypt passwords                           |
-| Container   | Docker Compose                                          |
+| Container   | Docker Compose (Postgres + API by default)              |
 
 ## Frameworks Supported
 
@@ -85,7 +86,7 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 git clone https://github.com/AstraLabs-AI/The-Cortex
 cd The-Cortex
 
-# Start backend (Postgres + API; GraphJin is opt-in — see below)
+# Start backend (Postgres + API)
 POSTGRES_PASSWORD=cortex-dev docker compose up -d
 
 # After editing backend Python (api/, core/, db/), rebuild the API image or changes won't run:
@@ -97,10 +98,6 @@ curl -s http://localhost:8000/ready
 
 # End-to-end HTTP smoke (same spine CI runs): health → login → frameworks → review → approve
 bash scripts/smoke_happy_path.sh
-
-# Optional: GraphJin GraphQL read layer (same Postgres; dev UI on :8080 — do not expose publicly)
-# POSTGRES_PASSWORD=cortex-dev docker compose --profile graphql up -d
-# curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/
 
 # Start frontend
 cd frontend && npm install && npm run dev
@@ -132,16 +129,11 @@ Open http://localhost:3000/register, fill company details, complete the three-st
 
 ```text
 Browser (React, :3000)
-    → FastAPI (`api.main`, :8000) — REST, auth, writes, first-party app reads
+    → FastAPI (`api.main`, :8000) — REST, JWT, tenancy, assessments, audit paths
         → PostgreSQL (:5432, internal to Compose network)
-
-GraphQL / reporting / tools (optional, :8080 — `docker compose --profile graphql`)
-    → GraphJin (GraphQL → SQL, read-leaning) → same PostgreSQL
 
 compliance-engine routers: mounted from `services/compliance-engine` under FastAPI
 ```
-
-**Why GraphJin?** It turns ad-hoc and joined reads into GraphQL (compiled to efficient SQL) without new Python endpoints, while **mutations, JWT, audit, and tenancy** stay in FastAPI. See [services/graphjin/README.md](services/graphjin/README.md).
 
 ### Repository layout (high level)
 
@@ -150,7 +142,7 @@ compliance-engine routers: mounted from `services/compliance-engine` under FastA
 | `api/` | REST routers: auth, assessments, organisations, findings, groups, system |
 | `core/` | Security (JWT, bcrypt), tenant scoping, shared helpers |
 | `compliance/` | Framework registry and posture primitives |
-| `services/` | Posture calculator, GraphJin [config + README](services/graphjin), SQL migrations, compliance-engine app |
+| `services/` | Posture calculator, compliance-engine app, SQL fragments mounted into Postgres init (see `docker-compose.yml`) |
 | `frontend/` | Vite + React SPA, dashboards, Intelligence, AI Systems |
 | `init.sql`, `migrations/` | PostgreSQL schema and incremental DDL |
 

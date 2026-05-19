@@ -17,7 +17,9 @@ for f in \
   "$ROOT/services/graphjin/migrations/005_assessment_results_fix.sql" \
   "$ROOT/migrations/006_human_review_queue.sql" \
   "$ROOT/migrations/009_shasta_cloud.sql" \
-  "$ROOT/migrations/010_shasta_evidence_control_links.sql"
+  "$ROOT/migrations/010_shasta_evidence_control_links.sql" \
+  "$ROOT/migrations/011_operational_persistence.sql" \
+  "$ROOT/migrations/012_security_auth.sql"
   do
   echo "Applying $(basename "$f")..."
   psql -f "$f"

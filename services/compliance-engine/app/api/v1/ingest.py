@@ -13,6 +13,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
 from core.audit_fabric import audit_fabric
+from core.tenant import DEMO_ORG_ID
 from app.services.ingestion import (
     create_evidence_from_mapping,
     map_chunks_to_ontology,
@@ -56,7 +57,7 @@ async def _run_ingest_stream(content: bytes, ext: str, document_type: str, docum
             success = True
             return
         yield _sse("progress", {"stage": "mapping", "message": "Mapping to ontology via LLM"})
-        mapping = await map_chunks_to_ontology(chunks, document_type, document_id)
+        mapping = await map_chunks_to_ontology(chunks, document_type, document_id, DEMO_ORG_ID)
         yield _sse(
             "mapping_done",
             {

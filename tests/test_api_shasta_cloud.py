@@ -67,7 +67,9 @@ def test_post_shasta_scan_501_when_not_installed(
             headers=shasta_auth_headers,
         )
     assert r.status_code == 501
-    assert "shasta-scan" in (r.json().get("detail") or "")
+    data = r.json()
+    msg = (data.get("error") or {}).get("message") or data.get("detail") or ""
+    assert "shasta-scan" in str(msg).lower()
 
 
 @patch("api.shasta_cloud._run_shasta_scan_background", new_callable=AsyncMock)

@@ -129,7 +129,7 @@ export function RemediationTracker() {
     setError(null);
     try {
       const data = await fetchFindings({ org_id: orgId });
-      setFindings(data);
+      setFindings(Array.isArray(data.items) ? data.items : []);
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
     } finally {

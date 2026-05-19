@@ -55,14 +55,19 @@ def test_get_organisation_demo_org(client: TestClient, auth_headers: dict[str, s
     assert data.get("industry") == "Technology"
 
 
-def test_get_organisation_unknown_404(client: TestClient, auth_headers: dict[str, str]) -> None:
-    """GET /api/v1/organisations/unknown returns 404."""
+def test_get_organisation_unknown_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    """Cross-tenant org id is rejected before a 404 lookup (tenant guard)."""
     r = client.get("/api/v1/organisations/unknown-org", headers=auth_headers)
-    assert r.status_code == 404
+    assert r.status_code == 403
+    data = r.json()
+    msg = (data.get("error") or {}).get("message") or data.get("detail") or ""
+    assert "not allowed" in str(msg).lower() or "organisation" in str(msg).lower()
 
 
-def test_get_posture_unknown_org_404(client: TestClient, auth_headers: dict[str, str]) -> None:
-    """GET /api/v1/organisations/unknown-org/posture returns 404."""
+def test_get_posture_unknown_org_403(client: TestClient, auth_headers: dict[str, str]) -> None:
+    """Cross-tenant posture path returns 403 for non-demo org outside JWT scope."""
     r = client.get("/api/v1/organisations/unknown-org/posture", headers=auth_headers)
-    assert r.status_code == 404
-    assert "not found" in r.json()["detail"].lower()
+    assert r.status_code == 403
+    data = r.json()
+    msg = (data.get("error") or {}).get("message") or data.get("detail") or ""
+    assert "not allowed" in str(msg).lower() or "organisation" in str(msg).lower()

@@ -6,16 +6,19 @@ from fastapi.testclient import TestClient
 
 
 def test_list_frameworks(client: TestClient, auth_headers: dict[str, str]) -> None:
-    """GET /api/v1/frameworks returns list of framework summaries."""
+    """GET /api/v1/frameworks returns paginated framework summaries."""
     r = client.get("/api/v1/frameworks", headers=auth_headers)
     assert r.status_code == 200
-    data = r.json()
+    payload = r.json()
+    assert "items" in payload and "total" in payload and "offset" in payload and "limit" in payload
+    data = payload["items"]
     assert isinstance(data, list)
     ids = {fw["id"] for fw in data}
     assert "nist-csf-2.0" in ids
     assert "gdpr-2016-679" in ids
     assert "nis2-2022-2555" in ids
-    assert len(data) == 8  # Exactly 8 frameworks (no SOC2, HIPAA, PCI_DSS, CCPA)
+    assert payload["total"] == 8  # Exactly 8 frameworks (no SOC2, HIPAA, PCI_DSS, CCPA)
+    assert len(data) == 8
     for fw in data:
         assert "id" in fw and "name" in fw and "version" in fw
         assert "control_count" in fw and isinstance(fw["control_count"], int)
