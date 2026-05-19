@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOrgContext } from "../hooks/useOrgContext";
-import { shastaCloudApi, type ShastaEvidenceMapOut, type ShastaScanRunRow } from "../api/client";
+import {
+  shastaCloudApi,
+  type PaginatedJsonRows,
+  type ShastaCloudFindingRow,
+  type ShastaEvidenceMapOut,
+  type ShastaScanRunRow,
+} from "../api/client";
 import { ShastaEvidenceMapFlow } from "../components/ShastaEvidenceMapFlow";
 import { SHASTA_EVIDENCE_MAP_SAMPLE } from "../lib/shastaEvidenceMapMock";
 import { buildEvidenceMapRows } from "../lib/shastaEvidenceMapRows";
 import { EngineBadge, TrustChip } from "../components/ui/TrustChip";
+import { useFilterParams } from "../hooks/useSearchParams";
 
 function ComplianceEvidenceMapBlock({
   mapOut,
@@ -204,10 +211,14 @@ function ComplianceEvidenceMapBlock({
 export default function CloudScans() {
   const { orgId } = useOrgContext();
   const qc = useQueryClient();
+  const [filterParams, setFilterParams] = useFilterParams({
+    scanId: "",
+    sample: "false",
+  });
   const [pinnedScanId, setPinnedScanId] = useState<string | null>(null);
-  const [detailScanId, setDetailScanId] = useState<string | null>(null);
+  const detailScanId = filterParams.scanId || null;
   const [scanNotice, setScanNotice] = useState<string | null>(null);
-  const [sampleEvidenceMapOpen, setSampleEvidenceMapOpen] = useState(false);
+  const sampleEvidenceMapOpen = filterParams.sample === "true";
   const prevStatusRef = useRef<Record<string, string>>({});
 
   const scansQuery = useQuery({
@@ -215,8 +226,8 @@ export default function CloudScans() {
     queryFn: () => shastaCloudApi.listScans(orgId),
     retry: 1,
     refetchInterval: (query) => {
-      const rows = query.state.data;
-      if (!Array.isArray(rows) || rows.length === 0) return false;
+      const rows = query.state.data?.items;
+      if (!rows?.length) return false;
       return rows.some((r) => r.status === "running") ? 3000 : false;
     },
   });
@@ -226,8 +237,8 @@ export default function CloudScans() {
     queryFn: () => shastaCloudApi.listRecentFindings(orgId),
     retry: 1,
     refetchInterval: () => {
-      const scanRows = qc.getQueryData<ShastaScanRunRow[]>(["shasta-scans", orgId]);
-      if (!scanRows?.some((r) => r.status === "running")) return false;
+      const page = qc.getQueryData<PaginatedJsonRows<ShastaScanRunRow>>(["shasta-scans", orgId]);
+      if (!page?.items?.some((r) => r.status === "running")) return false;
       return 4000;
     },
   });
@@ -237,7 +248,12 @@ export default function CloudScans() {
     queryFn: () =>
       detailScanId
         ? shastaCloudApi.listFindingsForScan(orgId, detailScanId)
-        : Promise.resolve([]),
+        : Promise.resolve({
+            items: [] as ShastaCloudFindingRow[],
+            total: 0,
+            offset: 0,
+            limit: 0,
+          }),
     enabled: Boolean(detailScanId),
     retry: 1,
   });
@@ -252,9 +268,13 @@ export default function CloudScans() {
     retry: 1,
   });
 
+  const scanRows = scansQuery.data?.items ?? [];
+  const recentFindingRows = findingsQuery.data?.items ?? [];
+  const detailFindingRows = detailFindingsQuery.data?.items ?? [];
+
   useEffect(() => {
-    const rows = scansQuery.data;
-    if (!Array.isArray(rows)) return;
+    const rows = scansQuery.data?.items;
+    if (!rows?.length) return;
     for (const row of rows) {
       const prev = prevStatusRef.current[row.id];
       if (prev === "running" && row.status === "completed") {
@@ -280,9 +300,7 @@ export default function CloudScans() {
     },
   });
 
-  const runningAny =
-    Array.isArray(scansQuery.data) &&
-    scansQuery.data.some((r) => r.status === "running");
+  const runningAny = scanRows.some((r) => r.status === "running");
 
   return (
     <div
@@ -370,7 +388,11 @@ export default function CloudScans() {
         </button>
         <button
           type="button"
-          onClick={() => setSampleEvidenceMapOpen((v) => !v)}
+          onClick={() =>
+            setFilterParams({
+              sample: sampleEvidenceMapOpen ? "false" : "true",
+            })
+          }
           aria-expanded={sampleEvidenceMapOpen}
           style={{
             padding: "10px 18px",
@@ -463,10 +485,10 @@ export default function CloudScans() {
             {(scansQuery.error as Error).message}
           </p>
         )}
-        {scansQuery.data && scansQuery.data.length === 0 && (
+        {scansQuery.data && scanRows.length === 0 && (
           <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>No scans yet for this organisation.</p>
         )}
-        {scansQuery.data && scansQuery.data.length > 0 && (
+        {scansQuery.data && scanRows.length > 0 && (
           <div className="cortex-table-wrap">
             <table className="cortex-table">
               <caption>Cloud scan runs stored for this organisation (Shasta)</caption>
@@ -483,7 +505,7 @@ export default function CloudScans() {
                 </tr>
               </thead>
               <tbody>
-                {scansQuery.data.map((row) => {
+                {scanRows.map((row) => {
                   const active =
                     row.status === "running" ||
                     (pinnedScanId !== null && row.id === pinnedScanId);
@@ -527,7 +549,9 @@ export default function CloudScans() {
                         <button
                           type="button"
                           onClick={() =>
-                            setDetailScanId((cur) => (cur === row.id ? null : row.id))
+                            setFilterParams({
+                              scanId: detailScanId === row.id ? "" : row.id,
+                            })
                           }
                           style={{
                             padding: "4px 10px",
@@ -580,10 +604,10 @@ export default function CloudScans() {
               {(detailFindingsQuery.error as Error).message}
             </p>
           )}
-          {detailFindingsQuery.data && detailFindingsQuery.data.length === 0 && (
+          {detailFindingsQuery.data && detailFindingRows.length === 0 && (
             <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>No findings for this run yet.</p>
           )}
-          {detailFindingsQuery.data && detailFindingsQuery.data.length > 0 && (
+          {detailFindingsQuery.data && detailFindingRows.length > 0 && (
             <div className="cortex-table-wrap">
               <table className="cortex-table">
                 <caption>Findings persisted for the selected scan run</caption>
@@ -597,7 +621,7 @@ export default function CloudScans() {
                   </tr>
                 </thead>
                 <tbody>
-                  {detailFindingsQuery.data.map((f) => (
+                  {detailFindingRows.map((f) => (
                     <tr key={f.id}>
                       <td>{f.severity_normalized ?? "—"}</td>
                       <td style={{ maxWidth: 280 }}>{f.title ?? "—"}</td>
@@ -631,10 +655,10 @@ export default function CloudScans() {
             {(findingsQuery.error as Error).message}
           </p>
         )}
-        {findingsQuery.data && findingsQuery.data.length === 0 && (
+        {findingsQuery.data && recentFindingRows.length === 0 && (
           <p style={{ color: "var(--text-tertiary)", fontSize: 13 }}>No cloud findings stored yet.</p>
         )}
-        {findingsQuery.data && findingsQuery.data.length > 0 && (
+        {findingsQuery.data && recentFindingRows.length > 0 && (
           <div className="cortex-table-wrap">
             <table className="cortex-table">
               <caption>Most recently stored findings across scans</caption>
@@ -648,7 +672,7 @@ export default function CloudScans() {
                 </tr>
               </thead>
               <tbody>
-                {findingsQuery.data.map((f) => (
+                {recentFindingRows.map((f) => (
                   <tr key={f.id}>
                     <td>{f.severity_normalized ?? "—"}</td>
                     <td style={{ maxWidth: 280 }}>{f.title ?? "—"}</td>

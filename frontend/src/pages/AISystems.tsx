@@ -1,8 +1,24 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { ComingSoon } from "../components/ui/ComingSoon";
 import { AISystemCardSkeleton } from "../components/Skeleton";
 import { AnimatedNumber } from "../components/AnimatedScore";
 import { isFeatureEnabled } from "../lib/featureFlags";
+
+const DEMO_BADGE_STYLE: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "4px 10px",
+  borderRadius: 6,
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: "0.05em",
+  background: "color-mix(in srgb, var(--amber) 22%, transparent)",
+  border: "1px solid color-mix(in srgb, var(--amber) 45%, var(--border))",
+  color: "var(--amber)",
+};
+
+function DemoDataBadge() {
+  return <span style={DEMO_BADGE_STYLE}>DEMO DATA</span>;
+}
 
 type RiskLabel = "HIGH" | "LIMITED" | "MINIMAL" | "UNCLASSIFIED";
 type SystemStatus = "NOT_ASSESSED" | "IN_PROGRESS" | "ASSESSED" | "UNCLASSIFIED";
@@ -322,7 +338,7 @@ export default function AISystems() {
         </p>
       </header>
 
-      {(tab !== "inventory" || isFeatureEnabled("aiSystemsLive")) && (
+      {!isFeatureEnabled("aiSystemsLive") && (
         <div
           style={{
             marginBottom: 20,
@@ -435,22 +451,20 @@ export default function AISystems() {
         ))}
       </div>
 
-      {tab === "inventory" && !isFeatureEnabled("aiSystemsLive") && (
-        <ComingSoon
-          feature="AI System Registry"
-          description="Register, monitor, and govern AI systems across your organisation. Track model lineage, risk classifications, and EU AI Act obligations."
-          eta="Q3 2026"
-        />
-      )}
-
-      {tab === "inventory" && isFeatureEnabled("aiSystemsLive") && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            gap: 16,
-          }}
-        >
+      {tab === "inventory" && (
+        <div>
+          {!isFeatureEnabled("aiSystemsLive") ? (
+            <div style={{ marginBottom: 16 }}>
+              <DemoDataBadge />
+            </div>
+          ) : null}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+              gap: 16,
+            }}
+          >
           {/* Empty state — uncomment when systems are loaded from API:
           {!inventorySkeleton && systems.length === 0 && (
             <AISystemsEmpty
@@ -565,14 +579,18 @@ export default function AISystems() {
                   </div>
                 </article>
               ))}
+          </div>
         </div>
       )}
 
       {tab === "classification" && (
         <div>
-          <h2 style={{ fontFamily: "var(--font-sans)", fontSize: 18, margin: "0 0 8px", color: "var(--text)" }}>
-            EU AI Act Risk Classification
-          </h2>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <h2 style={{ fontFamily: "var(--font-sans)", fontSize: 18, margin: 0, color: "var(--text)" }}>
+              EU AI Act Risk Classification
+            </h2>
+            {!isFeatureEnabled("aiSystemsLive") ? <DemoDataBadge /> : null}
+          </div>
           <p style={{ fontSize: 12, color: "var(--dim)", marginBottom: 16, maxWidth: 560 }}>
             Annex III classification with reasoning grounded in ISO 42001 and EU AI Act Article 6
           </p>
@@ -664,9 +682,12 @@ export default function AISystems() {
 
       {tab === "obligations" && (
         <div>
-          <h2 style={{ fontFamily: "var(--font-sans)", fontSize: 18, margin: "0 0 8px", color: "var(--text)" }}>
-            Obligation Mapping
-          </h2>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <h2 style={{ fontFamily: "var(--font-sans)", fontSize: 18, margin: 0, color: "var(--text)" }}>
+              Obligation Mapping
+            </h2>
+            {!isFeatureEnabled("aiSystemsLive") ? <DemoDataBadge /> : null}
+          </div>
           <p style={{ fontSize: 12, color: "var(--dim)", marginBottom: 20, maxWidth: 520 }}>
             What each high-risk system must comply with by Aug 2026
           </p>

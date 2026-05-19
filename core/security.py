@@ -1,21 +1,24 @@
-# core/security.py — JWT auth and RBAC. Demo users in-memory; DB-backed users via api/auth.
+# core/security.py — JWT auth, token versioning, async principal resolution, API keys.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
 import os
 import secrets as secrets_stdlib
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 import bcrypt
 import structlog
 from jose import JWTError, jwt
 from fastapi import Depends, Header, HTTPException, Request, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db.deps import get_db
 
 logger = structlog.get_logger()
 
-# Dev-only signing material if JWT_SECRET unset (not a credential; suppress false-positive hardcoded-password rules).
 _DEV_SECRET_DEFAULT = "cortex-dev-jwt-signing-placeholder-not-for-production"  # nosec B105
 SECRET_KEY = (
     os.getenv("JWT_SECRET")
@@ -23,7 +26,8 @@ SECRET_KEY = (
     or _DEV_SECRET_DEFAULT
 )
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours max
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
 if SECRET_KEY == _DEV_SECRET_DEFAULT:
     logger.warning(
@@ -37,12 +41,11 @@ def _token_bypass_allowed() -> bool:
 
 
 def _token_bypass_expected() -> str:
-    """Raw token value for dev bypass (never hardcode in source)."""
     return os.getenv("CORTEX_TOKEN_BYPASS_VALUE", "").strip()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
-# Demo users — pre-computed bcrypt hashes (passlib 1.7.4 + bcrypt backend fails at import in some Docker envs).
+http_bearer_optional = HTTPBearer(auto_error=False)
+
 DEMO_USERS: dict[str, dict[str, Any]] = {
     "ciso@astralabs.com": {
         "name": "Group CISO",
@@ -76,13 +79,13 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 
-def create_access_token(data: dict[str, Any]) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+def create_access_token(data: dict[str, Any], expires_minutes: int | None = None) -> str:
+    minutes = expires_minutes if expires_minutes is not None else ACCESS_TOKEN_EXPIRE_MINUTES
+    expire = datetime.now(timezone.utc) + timedelta(minutes=minutes)
     return str(jwt.encode({**data, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM))
 
 
 def _claims_user(payload: dict[str, Any]) -> dict[str, Any]:
-    """Normalise JWT claims into the dependency dict used across routers."""
     email = payload.get("email") or ""
     name = payload.get("name") or payload.get("full_name") or email or ""
     entity = payload.get("entity") or payload.get("org_name") or ""
@@ -101,7 +104,8 @@ def _claims_user(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _decode_user(token: str) -> dict[str, Any]:
+async def decode_access_token_async(session: AsyncSession, token: str) -> dict[str, Any]:
+    """Validate JWT and token_version for DB-backed sessions."""
     expected = _token_bypass_expected()
     if _token_bypass_allowed() and expected and secrets_stdlib.compare_digest(token, expected):
         logger.warning("jwt_token_bypass_used")
@@ -117,6 +121,7 @@ def _decode_user(token: str) -> dict[str, Any]:
             "onboarding_complete": True,
             "onboarding_step": 5,
         }
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
@@ -125,16 +130,16 @@ def _decode_user(token: str) -> dict[str, Any]:
             detail="Invalid or expired token",
         ) from None
 
-    if payload.get("org_id"):
-        return _claims_user(payload)
+    sub = payload.get("sub")
+    org_id = payload.get("org_id")
+    tv = payload.get("tv")
 
-    email = payload.get("sub")
-    if isinstance(email, str) and email in DEMO_USERS:
-        u = DEMO_USERS[email]
+    if isinstance(sub, str) and sub in DEMO_USERS:
+        u = DEMO_USERS[sub]
         return {
-            "sub": email,
-            "user_id": email,
-            "email": email,
+            "sub": sub,
+            "user_id": sub,
+            "email": sub,
             "role": u["role"],
             "org_id": "demo-org-001",
             "name": u["name"],
@@ -144,21 +149,60 @@ def _decode_user(token: str) -> dict[str, Any]:
             "onboarding_step": 5,
         }
 
+    if payload.get("is_demo") is True:
+        return _claims_user(payload)
+
+    if org_id and tv is not None and sub:
+        res = await session.execute(
+            text("SELECT token_version FROM users WHERE id = :id AND is_active = TRUE"),
+            {"id": str(sub)},
+        )
+        db_tv = res.scalar_one_or_none()
+        if db_tv is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token",
+            )
+        if int(db_tv) != int(tv):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session invalidated — sign in again",
+            )
+        return _claims_user(payload)
+
+    if org_id and tv is None:
+        # Legacy / synthetic JWTs (signed claims only; DB sessions always include ``tv``).
+        return _claims_user(payload)
+
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired token",
     )
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> dict[str, Any]:
-    return _decode_user(token)
+async def get_current_user(
+    session: AsyncSession = Depends(get_db),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(http_bearer_optional),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+) -> dict[str, Any]:
+    """Bearer JWT (with token_version) or ``X-API-Key`` for service-to-service calls."""
+    if x_api_key:
+        from core.api_key_service import resolve_api_key_principal
+
+        return await resolve_api_key_principal(session, x_api_key)
+    if not credentials or not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+    return await decode_access_token_async(session, credentials.credentials)
 
 
-def get_current_user_query_or_header(
+async def get_current_user_query_or_header(
     request: Request,
+    session: AsyncSession = Depends(get_db),
     token_query: str | None = None,
 ) -> dict[str, Any]:
-    """Resolve user from query param (for SSE; EventSource cannot send headers) or Authorization header."""
     token: str | None = token_query
     if not token:
         auth = request.headers.get("Authorization")
@@ -169,20 +213,22 @@ def get_current_user_query_or_header(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
-    return _decode_user(token)
+    return await decode_access_token_async(session, token)
 
 
-async def get_current_user_stream(request: Request = Depends()) -> dict[str, Any]:
-    """Dependency for SSE endpoints: auth via query param 'token' or Authorization header."""
+async def get_current_user_stream(
+    request: Request,
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
     token = request.query_params.get("token")
-    return get_current_user_query_or_header(request, token)
+    return await get_current_user_query_or_header(request, session, token)
 
 
 async def get_current_user_optional(
     request: Request,
+    session: AsyncSession = Depends(get_db),
     token_header: Optional[str] = Header(None, alias="Authorization"),
 ) -> dict[str, Any]:
-    """Auth for SSE/stream: try Authorization header first, then query param 'token'."""
     token: Optional[str] = None
     if token_header and token_header.startswith("Bearer "):
         token = token_header.split(" ", 1)[1].strip()
@@ -193,4 +239,4 @@ async def get_current_user_optional(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
-    return _decode_user(token)
+    return await decode_access_token_async(session, token)

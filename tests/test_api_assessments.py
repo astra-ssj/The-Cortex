@@ -6,6 +6,16 @@ import pytest
 from fastapi.testclient import TestClient
 
 
+def _response_message(data: dict) -> str:
+    err = data.get("error")
+    if isinstance(err, dict) and err.get("message"):
+        return str(err["message"])
+    d = data.get("detail")
+    if isinstance(d, str):
+        return d
+    return ""
+
+
 def test_assessments_run_rejects_empty_organization_id(client: TestClient, auth_headers: dict[str, str]) -> None:
     """GET /api/v1/assessments/run with empty organization_id returns 400."""
     r = client.get(
@@ -14,7 +24,8 @@ def test_assessments_run_rejects_empty_organization_id(client: TestClient, auth_
         headers=auth_headers,
     )
     assert r.status_code == 400
-    assert "required" in r.json()["detail"].lower() or "empty" in r.json()["detail"].lower()
+    msg = _response_message(r.json())
+    assert "required" in msg.lower() or "empty" in msg.lower()
 
 
 def test_assessments_run_rejects_whitespace_organization_id(client: TestClient, auth_headers: dict[str, str]) -> None:
@@ -38,7 +49,8 @@ def test_assessments_run_rejects_path_traversal_organization_id(
             headers=auth_headers,
         )
         assert r.status_code == 400, f"Expected 400 for organization_id={bad_id!r}"
-        assert "invalid" in r.json()["detail"].lower() or "path" in r.json()["detail"].lower()
+        msg = _response_message(r.json())
+        assert "invalid" in msg.lower() or "path" in msg.lower()
 
 
 def test_assessments_run_accepts_valid_org_and_streams(client: TestClient, auth_headers: dict[str, str]) -> None:
@@ -61,9 +73,17 @@ def test_assessments_run_accepts_valid_org_and_streams(client: TestClient, auth_
     assert count >= 1
 
 
-def test_review_queue_demo_has_eight_pending(client: TestClient, auth_headers: dict[str, str]) -> None:
-    """Human review queue seeds eight items for demo-org (DB or memory fallback)."""
+def test_review_queue_demo_has_eight_pending(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    postgres_reachable: bool,
+) -> None:
+    """Human review queue seeds eight items for demo-org when Postgres + migration 006 exist."""
+    if not postgres_reachable:
+        pytest.skip("database not reachable")
     r = client.get("/api/v1/assessments/review-queue", headers=auth_headers)
+    if r.status_code == 503:
+        pytest.skip("human_review schema not applied")
     assert r.status_code == 200
     data = r.json()
     assert isinstance(data["items"], list)

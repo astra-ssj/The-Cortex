@@ -974,3 +974,5 @@ function AnimatedQuestion({ delayMs, children }: { delayMs: number; children: Re
 
   return <div className="intelligence-fade-in-up">{children}</div>;
 }
+
+export default AuditSimulator;

@@ -9,6 +9,7 @@ from typing import Any, Optional
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from api.schemas import FindingPatchBody, PaginatedRemediationFindings
 from core.security import get_current_user
 from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
 
@@ -42,8 +43,10 @@ async def list_findings(
     framework_id: Optional[str] = None,
     entity: Optional[str] = None,
     org_id: Optional[str] = Query(None, description="Scoped organisation id (demo toggle)"),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     current_user: dict = Depends(get_current_user),
-) -> list[dict[str, Any]]:
+) -> PaginatedRemediationFindings:
     """Return remediation findings. Filter by status, severity, framework_id, entity if provided."""
     scope = (org_id or current_user.get("org_id") or DEMO_ORG_ID).strip()
     effective = resolve_scoped_org_id(current_user, scope)
@@ -56,7 +59,9 @@ async def list_findings(
         result = [f for f in result if f.get("framework_id") == framework_id.strip()]
     if entity is not None and entity.strip():
         result = [f for f in result if f.get("entity_code") == entity.strip()]
-    return result
+    total = len(result)
+    page = result[offset : offset + limit]
+    return PaginatedRemediationFindings(items=page, total=total, offset=offset, limit=limit)
 
 
 @router.get("/{finding_id}", summary="Get finding by id")
@@ -77,7 +82,7 @@ async def get_finding(
 @router.patch("/{finding_id}", summary="Update finding")
 async def update_finding(
     finding_id: str,
-    body: dict[str, Any],
+    body: FindingPatchBody,
     current_user: dict = Depends(get_current_user),
 ) -> dict[str, Any]:
     """Accept: status, owner, due_date, notes, completed_actions, priority. Log to audit fabric."""
@@ -86,23 +91,26 @@ async def update_finding(
         raise HTTPException(status_code=404, detail="Finding not found")
 
     before = deepcopy(FINDINGS_STORE[idx])
+    patch = body.model_dump(exclude_unset=True)
 
-    if "status" in body and body["status"] is not None:
-        FINDINGS_STORE[idx]["status"] = str(body["status"]).strip()
-    if "owner" in body and body["owner"] is not None:
-        FINDINGS_STORE[idx]["owner"] = str(body["owner"]).strip()
-    if "due_date" in body and body["due_date"] is not None:
-        FINDINGS_STORE[idx]["due_date"] = str(body["due_date"]).strip()
-    if "priority" in body and body["priority"] is not None:
-        FINDINGS_STORE[idx]["priority"] = str(body["priority"]).strip()
-    if "notes" in body and isinstance(body["notes"], list):
-        FINDINGS_STORE[idx]["notes"] = list(body["notes"])
-    elif body.get("note_append"):
+    if "status" in patch and patch["status"] is not None:
+        FINDINGS_STORE[idx]["status"] = str(patch["status"]).strip()
+    if "severity" in patch and patch["severity"] is not None:
+        FINDINGS_STORE[idx]["severity"] = str(patch["severity"]).strip()
+    if "owner" in patch and patch["owner"] is not None:
+        FINDINGS_STORE[idx]["owner"] = str(patch["owner"]).strip()
+    if "due_date" in patch and patch["due_date"] is not None:
+        FINDINGS_STORE[idx]["due_date"] = str(patch["due_date"]).strip()
+    if "priority" in patch and patch["priority"] is not None:
+        FINDINGS_STORE[idx]["priority"] = str(patch["priority"]).strip()
+    if "notes" in patch and isinstance(patch["notes"], list):
+        FINDINGS_STORE[idx]["notes"] = list(patch["notes"])
+    elif patch.get("note_append"):
         FINDINGS_STORE[idx].setdefault("notes", []).append(
-            {"text": str(body["note_append"]), "timestamp": body.get("note_timestamp") or ""}
+            {"text": str(patch["note_append"]), "timestamp": patch.get("note_timestamp") or ""}
         )
-    if "completed_actions" in body and isinstance(body["completed_actions"], list):
-        FINDINGS_STORE[idx]["completed_actions"] = [int(x) for x in body["completed_actions"]]
+    if "completed_actions" in patch and isinstance(patch["completed_actions"], list):
+        FINDINGS_STORE[idx]["completed_actions"] = [int(x) for x in patch["completed_actions"]]
 
     updated = FINDINGS_STORE[idx]
     audit_fabric.log(

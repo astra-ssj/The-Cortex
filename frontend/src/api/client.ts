@@ -7,6 +7,39 @@ import { clearCortexBrowserSession } from "../lib/cortexSession";
 // In dev use relative URLs so Vite proxy (→ localhost:8000) is used; avoids CORS and connection to wrong host.
 const API_BASE = import.meta.env.DEV ? "" : "http://localhost:8000";
 
+/** Abort hung fetches (proxy waiting on dead API). Set VITE_FETCH_TIMEOUT_MS=0 to disable. */
+const FETCH_TIMEOUT_MS = Number(import.meta.env.VITE_FETCH_TIMEOUT_MS ?? 45000);
+
+function withFetchTimeout(init: RequestInit): {
+  init: RequestInit;
+  clearTimer: () => void;
+  timedOutRef: { current: boolean };
+} {
+  const timedOutRef = { current: false };
+  if (FETCH_TIMEOUT_MS <= 0) {
+    return { init, clearTimer: () => {}, timedOutRef };
+  }
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => {
+    timedOutRef.current = true;
+    ctrl.abort();
+  }, FETCH_TIMEOUT_MS);
+  const userSig = init.signal;
+  if (userSig) {
+    if (userSig.aborted) {
+      clearTimeout(tid);
+      ctrl.abort();
+      return { init: { ...init, signal: ctrl.signal }, clearTimer: () => {}, timedOutRef };
+    }
+    userSig.addEventListener("abort", () => ctrl.abort(), { once: true });
+  }
+  return {
+    init: { ...init, signal: ctrl.signal },
+    clearTimer: () => clearTimeout(tid),
+    timedOutRef,
+  };
+}
+
 function getApiOrigin(): string {
   if (API_BASE) return API_BASE;
   if (typeof window !== "undefined") return window.location.origin;
@@ -21,34 +54,117 @@ export const ALL_FRAMEWORK_IDS = ALL_FRAMEWORK_IDS_BUNDLE;
 export const getToken = (): string | null =>
   localStorage.getItem("cortex_token");
 
-export const getUser = () => {
+/** Serialized refresh token for DB-backed sessions (see POST /api/v1/auth/refresh). */
+export const getRefreshToken = (): string | null =>
+  localStorage.getItem("cortex_refresh_token");
+
+let _refreshSingleFlight: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  const rt = localStorage.getItem("cortex_refresh_token");
+  if (!rt) return false;
+  if (_refreshSingleFlight) return _refreshSingleFlight;
+
+  _refreshSingleFlight = (async (): Promise<boolean> => {
+    try {
+      const url = `${API_BASE || ""}/api/v1/auth/refresh`;
+      const refreshInit: RequestInit = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: rt }),
+      };
+      const { init: timed, clearTimer, timedOutRef } = withFetchTimeout(refreshInit);
+      let res: Response;
+      try {
+        res = await fetch(url, { ...refreshInit, ...timed });
+      } catch {
+        if (timedOutRef.current) return false;
+        return false;
+      } finally {
+        clearTimer();
+      }
+      if (!res.ok) return false;
+      const data = (await res.json()) as {
+        access_token?: string;
+        refresh_token?: string;
+      };
+      if (!data.access_token || !data.refresh_token) return false;
+      localStorage.setItem("cortex_token", data.access_token);
+      localStorage.setItem("cortex_refresh_token", data.refresh_token);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      _refreshSingleFlight = null;
+    }
+  })();
+
+  return _refreshSingleFlight;
+}
+
+export const getUser = (): Record<string, unknown> | null => {
   const u = localStorage.getItem("cortex_user");
   return u ? JSON.parse(u) : null;
 };
 
 export async function fetchApi<T = unknown>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retriedAfterRefresh = false
 ): Promise<T> {
   const token = getToken();
   const url = `${API_BASE || ""}${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  const { init: timedInit, clearTimer, timedOutRef } = withFetchTimeout(options);
+  let res: Response;
+  try {
+    try {
+      res = await fetch(url, {
+        ...options,
+        ...timedInit,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...options.headers,
+        },
+      });
+    } catch (e) {
+      if (timedOutRef.current) {
+        throw new Error(
+          `Request timed out after ${FETCH_TIMEOUT_MS / 1000}s — is the API running (e.g. port 8000)?`
+        );
+      }
+      throw e;
+    }
+
+  if (
+    res.status === 401 &&
+    !retriedAfterRefresh &&
+    localStorage.getItem("cortex_refresh_token")
+  ) {
+    const ok = await refreshAccessToken();
+    if (ok) return fetchApi<T>(path, options, true);
+  }
+
   if (!res.ok) {
     if (res.status === 401) {
       clearCortexBrowserSession();
       window.dispatchEvent(new CustomEvent("cortex:auth-expired"));
     }
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail || `HTTP ${res.status}`);
+    const body = err as { error?: { message?: string }; detail?: unknown };
+    const fromEnvelope = body.error?.message;
+    const fromLegacy =
+      typeof body.detail === "string"
+        ? body.detail
+        : Array.isArray(body.detail)
+          ? JSON.stringify(body.detail)
+          : undefined;
+    throw new Error(fromEnvelope || fromLegacy || `HTTP ${res.status}`);
   }
   return res.json() as Promise<T>;
+  } finally {
+    clearTimer();
+  }
 }
 
 /** Matches compliance-engine ``document_id`` (SHA-256 of first 1 KiB, hex prefix). */
@@ -192,9 +308,13 @@ async function putApi<T>(path: string, body: unknown): Promise<T> {
 }
 
 // API modules
-export const frameworksApi = {
-  list: () => fetchApi("/api/v1/frameworks"),
-};
+/** Standard list pagination envelope (matches api/schemas.py). */
+export interface PaginatedJsonRows<T = Record<string, unknown>> {
+  items: T[];
+  total: number;
+  offset: number;
+  limit: number;
+}
 
 export const organisationsApi = {
   getPosture: (orgId: string = DEFAULT_ORG_ID) =>
@@ -282,20 +402,22 @@ export const shastaCloudApi = {
       `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}?org_id=${encodeURIComponent(orgId)}`
     ),
   listScans: (orgId: string) =>
-    fetchApi<ShastaScanRunRow[]>(
+    fetchApi<PaginatedJsonRows<ShastaScanRunRow>>(
       `/api/v1/shasta/scans?org_id=${encodeURIComponent(orgId)}`
     ),
   listRecentFindings: (orgId: string, severity?: string) => {
     const q = new URLSearchParams({ org_id: orgId });
     if (severity?.trim()) q.set("severity", severity.trim());
-    return fetchApi<ShastaCloudFindingRow[]>(`/api/v1/shasta/findings?${q.toString()}`);
+    return fetchApi<PaginatedJsonRows<ShastaCloudFindingRow>>(
+      `/api/v1/shasta/findings?${q.toString()}`
+    );
   },
   listFindingsForScan: (orgId: string, scanRunId: string, limit = 500) => {
     const q = new URLSearchParams({
       org_id: orgId,
       limit: String(limit),
     });
-    return fetchApi<ShastaCloudFindingRow[]>(
+    return fetchApi<PaginatedJsonRows<ShastaCloudFindingRow>>(
       `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}/findings?${q.toString()}`
     );
   },
@@ -522,15 +644,35 @@ export interface ListFindingsParams {
   org_id?: string;
 }
 
-export async function fetchFindings(params?: ListFindingsParams): Promise<RemediationFinding[]> {
+export async function fetchFindings(
+  params?: ListFindingsParams & { offset?: number; limit?: number }
+): Promise<PaginatedJsonRows<RemediationFinding>> {
   const search = new URLSearchParams();
   if (params?.status) search.set("status", params.status);
   if (params?.severity) search.set("severity", params.severity);
   if (params?.framework_id) search.set("framework_id", params.framework_id);
   if (params?.entity) search.set("entity", params.entity);
   if (params?.org_id) search.set("org_id", params.org_id);
+  if (params?.offset != null) search.set("offset", String(params.offset));
+  if (params?.limit != null) search.set("limit", String(params.limit));
   const qs = search.toString();
-  return fetchApi<RemediationFinding[]>(`/api/v1/findings${qs ? `?${qs}` : ""}`);
+  const raw = await fetchApi<PaginatedJsonRows<RemediationFinding> | RemediationFinding[]>(
+    `/api/v1/findings${qs ? `?${qs}` : ""}`
+  );
+  if (raw == null || typeof raw !== "object") {
+    return { items: [], total: 0, offset: 0, limit: 0 };
+  }
+  if (Array.isArray(raw)) {
+    const items = raw;
+    return { items, total: items.length, offset: 0, limit: items.length };
+  }
+  const items = Array.isArray(raw.items) ? raw.items : [];
+  return {
+    items,
+    total: typeof raw.total === "number" ? raw.total : items.length,
+    offset: typeof raw.offset === "number" ? raw.offset : 0,
+    limit: typeof raw.limit === "number" ? raw.limit : items.length,
+  };
 }
 
 /** GET /api/v1/findings/{id} — single finding for detail view / deep links. */
@@ -591,6 +733,10 @@ export interface ReviewedItem {
 export interface ReviewQueueResponse {
   items: ReviewQueueItem[];
   reviewed: ReviewedItem[];
+  totalPending: number;
+  totalReviewed: number;
+  limit: number;
+  offset: number;
 }
 
 export async function fetchReviewQueueApi(orgId?: string): Promise<ReviewQueueResponse> {

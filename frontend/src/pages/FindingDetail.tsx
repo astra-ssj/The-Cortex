@@ -116,7 +116,7 @@ export default function FindingDetail() {
   });
 
   const relatedFindings = useMemo(() => {
-    const list = relatedQuery.data ?? [];
+    const list = relatedQuery.data?.items ?? [];
     return list.filter((f) => f.id !== finding?.id).slice(0, 8);
   }, [relatedQuery.data, finding?.id]);
 

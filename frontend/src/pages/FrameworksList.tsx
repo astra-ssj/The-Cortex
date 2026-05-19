@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { FrameworkSummary } from "../api/frameworks";
 import {
@@ -10,6 +10,7 @@ import {
 } from "../complianceDashboardUtils";
 import { Badge, Button, Select, Table, Tooltip } from "../components/ui";
 import type { TableColumn } from "../components/ui/Table";
+import { useFilterParams } from "../hooks/useSearchParams";
 import { useOrgContext } from "../hooks/useOrgContext";
 import { useFrameworks } from "../hooks/useFrameworks";
 import { useRole } from "../hooks/useRole";
@@ -28,6 +29,25 @@ type SortKey =
   | "trend"
   | "jurisdiction"
   | "lastAssessed";
+
+const STATUS_FILTER_VALUES: StatusFilter[] = ["all", "COMPLIANT", "PARTIAL", "NON_COMPLIANT"];
+const SORT_KEY_VALUES: SortKey[] = [
+  "name",
+  "score",
+  "status",
+  "risk",
+  "controls",
+  "gaps",
+  "trend",
+  "jurisdiction",
+  "lastAssessed",
+];
+const FILTER_DEFAULTS = {
+  status: "all",
+  jurisdiction: "all",
+  sortBy: "name",
+  sortDir: "asc",
+} as const;
 
 const COLUMNS: TableColumn[] = [
   { key: "name", label: "Name" },
@@ -145,10 +165,15 @@ export function FrameworksList() {
   const { data: frameworks, isLoading, error } = useFrameworks();
   const { data: posture, isLoading: postureLoading } = useCompliancePosture(orgId);
 
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [jurisdictionFilter, setJurisdictionFilter] = useState<string>("all");
-  const [sortKey, setSortKey] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [filterParams, setFilterParams] = useFilterParams(FILTER_DEFAULTS);
+  const statusFilter: StatusFilter = STATUS_FILTER_VALUES.includes(filterParams.status as StatusFilter)
+    ? (filterParams.status as StatusFilter)
+    : "all";
+  const jurisdictionFilter = filterParams.jurisdiction;
+  const sortKey: SortKey = SORT_KEY_VALUES.includes(filterParams.sortBy as SortKey)
+    ? (filterParams.sortBy as SortKey)
+    : "name";
+  const sortDir: "asc" | "desc" = filterParams.sortDir === "desc" ? "desc" : "asc";
 
   const postureByFrameworkId = posture
     ? new Map(posture.frameworks.map((f) => [f.frameworkId, f]))
@@ -191,11 +216,12 @@ export function FrameworksList() {
   );
 
   function handleSort(key: string) {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else {
-      setSortKey(key as SortKey);
-      setSortDir("asc");
+    if (sortKey === key) {
+      setFilterParams({ sortDir: sortDir === "asc" ? "desc" : "asc" });
+      return;
     }
+
+    setFilterParams({ sortBy: key, sortDir: "asc" });
   }
 
   if (isLoading || postureLoading) {
@@ -231,7 +257,7 @@ export function FrameworksList() {
             label="Status"
             selectSize="sm"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            onChange={(e) => setFilterParams({ status: e.target.value })}
             options={[
               { value: "all", label: "All" },
               { value: "COMPLIANT", label: "Compliant" },
@@ -245,7 +271,7 @@ export function FrameworksList() {
             label="Jurisdiction"
             selectSize="sm"
             value={jurisdictionFilter}
-            onChange={(e) => setJurisdictionFilter(e.target.value)}
+            onChange={(e) => setFilterParams({ jurisdiction: e.target.value })}
             options={jurisdictionOptions}
           />
         </div>

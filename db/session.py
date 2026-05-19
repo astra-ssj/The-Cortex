@@ -15,7 +15,15 @@ DATABASE_URL = os.environ.get(
     "postgresql+asyncpg://localhost/cortex",
 ).replace("postgresql://", "postgresql+asyncpg://", 1)
 
-engine = create_async_engine(DATABASE_URL, echo=False)
+_engine_kwargs: dict = {"echo": False}
+# TestClient runs many requests on one event loop; pooling asyncpg across requests causes
+# "another operation is in progress" (InterfaceError). NullPool opens a fresh connection per checkout.
+if os.getenv("CORTEX_TESTING") or os.getenv("PYTEST_CURRENT_TEST"):
+    from sqlalchemy.pool import NullPool
+
+    _engine_kwargs["poolclass"] = NullPool
+
+engine = create_async_engine(DATABASE_URL, **_engine_kwargs)
 async_session_factory = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
 )
@@ -52,6 +60,59 @@ async def ensure_org_onboarding_schema() -> None:
                 await conn.execute(text(stmt))
     except Exception as e:
         logger.warning("org_onboarding_schema_guard_failed", error=str(e))
+
+
+# Mirrors migrations/012_security_auth.sql — heals older volumes without that migration file.
+_SECURITY_AUTH_STATEMENTS: tuple[str, ...] = (
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 1",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ NULL",
+    """
+    CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash TEXT NOT NULL UNIQUE,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        revoked_at TIMESTAMPTZ NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id)",
+    """
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash TEXT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used_at TIMESTAMPTZ NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_password_reset_user ON password_reset_tokens(user_id)",
+    """
+    CREATE TABLE IF NOT EXISTS service_api_keys (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        org_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        key_prefix TEXT NOT NULL,
+        key_hash TEXT NOT NULL UNIQUE,
+        label TEXT NOT NULL DEFAULT '',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        last_used_at TIMESTAMPTZ NULL,
+        revoked_at TIMESTAMPTZ NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_service_api_keys_org ON service_api_keys(org_id)",
+)
+
+
+async def ensure_security_auth_schema() -> None:
+    """Apply auth-hardening tables/columns if missing (idempotent)."""
+    try:
+        async with engine.begin() as conn:
+            for stmt in _SECURITY_AUTH_STATEMENTS:
+                await conn.execute(text(stmt))
+    except Exception as e:
+        logger.warning("security_auth_schema_guard_failed", error=str(e))
 
 
 class Base(DeclarativeBase):

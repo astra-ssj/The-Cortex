@@ -693,3 +693,5 @@ export function EvidenceVault() {
     </div>
   );
 }
+
+export default EvidenceVault;

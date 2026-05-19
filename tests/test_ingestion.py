@@ -185,8 +185,11 @@ def test_ingest_document_rejects_large_file() -> None:
     """POST /api/v1/ingest/document rejects file > 10MB."""
     big = b"x" * (11 * 1024 * 1024)
     r = client.post("/api/v1/ingest/document", files={"file": ("big.txt", io.BytesIO(big), "text/plain")})
-    assert r.status_code == 400
-    assert "10MB" in r.json()["detail"]
+    # Body-size middleware may answer 413 before route validation returns 400.
+    assert r.status_code in (400, 413)
+    data = r.json()
+    msg = (data.get("error") or {}).get("message") or data.get("detail") or ""
+    assert "10MB" in str(msg) or "maximum" in str(msg).lower() or "exceeds" in str(msg).lower()
 
 
 def test_ingest_document_rejects_bad_type() -> None:
@@ -202,7 +205,9 @@ def test_ingest_document_rejects_path_traversal_filename() -> None:
         files={"file": ("../../../etc/passwd.txt", io.BytesIO(b"x"), "text/plain")},
     )
     assert r.status_code == 400
-    assert "path traversal" in r.json()["detail"].lower() or "invalid filename" in r.json()["detail"].lower()
+    data = r.json()
+    msg = str((data.get("error") or {}).get("message") or data.get("detail") or "").lower()
+    assert "path traversal" in msg or "invalid filename" in msg
 
 
 def test_ingest_document_accepts_txt() -> None:

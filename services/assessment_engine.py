@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from compliance import FrameworkId, get
 
-from core.audit_fabric import audit_fabric
+from core.audit_fabric import append_audit_log
 from services.context_builder import get_context_for_control, get_org_profile
 from services.posture_calculator import PostureCalculator
 
@@ -30,7 +30,16 @@ async def run_assessment_stream(
     run_id = str(uuid.uuid4())
     started_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    audit_fabric.log("assessment_run_start", entity_type="assessment_run", entity_id=run_id, payload={"organization_id": organization_id, "framework_ids": [f.value for f in framework_ids]})
+    await append_audit_log(
+        session,
+        event_type="assessment_run_start",
+        entity_type="assessment_run",
+        entity_id=run_id,
+        payload={
+            "organization_id": organization_id,
+            "framework_ids": [f.value for f in framework_ids],
+        },
+    )
 
     yield {
         "kind": "run_start",
@@ -112,10 +121,22 @@ async def run_assessment_stream(
 
         posture = calculator.calculate_framework_posture(fid.value, org_context)
         await calculator.save_assessment_result(
-            session, organization_id, fid.value, float(posture["score"]), posture["gap_count"]
+            session,
+            organization_id,
+            fid.value,
+            float(posture["score"]),
+            posture["gap_count"],
+            str(posture["status"]),
+            str(posture["risk_level"]),
         )
         yield {"kind": "framework_done", "frameworkId": fid.value}
 
     finished_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    audit_fabric.log("assessment_run_done", entity_type="assessment_run", entity_id=run_id, payload={"finished_at": finished_at})
+    await append_audit_log(
+        session,
+        event_type="assessment_run_done",
+        entity_type="assessment_run",
+        entity_id=run_id,
+        payload={"finished_at": finished_at},
+    )
     yield {"kind": "run_done", "runId": run_id, "finishedAt": finished_at}

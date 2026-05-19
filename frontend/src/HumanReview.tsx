@@ -14,6 +14,7 @@ import {
   FRAMEWORK_FILTER_OPTIONS,
   type FrameworkFilterOption,
 } from "./lib/frameworkRegistry";
+import { useFilterParams } from "./hooks/useSearchParams";
 import { invalidateComplianceData } from "./store/complianceStore";
 import { Skeleton, TableRowSkeleton } from "./components/Skeleton";
 import { ReviewQueueEmpty } from "./components/ui/EmptyState";
@@ -28,6 +29,12 @@ const SORT_OPTIONS = [
 type SeverityFilter = (typeof SEVERITIES)[number] | "All";
 type FrameworkFilter = FrameworkFilterOption;
 type SortKey = (typeof SORT_OPTIONS)[number]["value"];
+const SORT_VALUES: SortKey[] = SORT_OPTIONS.map((o) => o.value);
+const FILTER_DEFAULTS = {
+  severityFilter: "All",
+  frameworkFilter: "All",
+  sortBy: "confidence",
+} as const;
 
 function severityBadgeClass(severity: string): string {
   switch (severity) {
@@ -66,9 +73,20 @@ export function HumanReview() {
   const showApprove = can("canApproveReview");
   const showOverride = can("canOverrideControl");
   const { items: rawItems, reviewed, isLoading, error } = useReviewQueue(orgId);
-  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("All");
-  const [frameworkFilter, setFrameworkFilter] = useState<FrameworkFilter>("All");
-  const [sortBy, setSortBy] = useState<SortKey>("confidence");
+  const [filterParams, setFilterParams] = useFilterParams(FILTER_DEFAULTS);
+  const severityFilter: SeverityFilter =
+    filterParams.severityFilter === "All" ||
+    SEVERITIES.includes(filterParams.severityFilter as (typeof SEVERITIES)[number])
+      ? (filterParams.severityFilter as SeverityFilter)
+      : "All";
+  const frameworkFilter: FrameworkFilter =
+    filterParams.frameworkFilter === "All" ||
+    FRAMEWORK_FILTER_OPTIONS.includes(filterParams.frameworkFilter as FrameworkFilterOption)
+      ? (filterParams.frameworkFilter as FrameworkFilter)
+      : "All";
+  const sortBy: SortKey = SORT_VALUES.includes(filterParams.sortBy as SortKey)
+    ? (filterParams.sortBy as SortKey)
+    : "confidence";
   const [expandedApproveId, setExpandedApproveId] = useState<string | null>(null);
   const [expandedOverrideId, setExpandedOverrideId] = useState<string | null>(null);
   const [approveNotes, setApproveNotes] = useState<Record<string, string>>({});
@@ -267,7 +285,7 @@ export function HumanReview() {
             <button
               key={s}
               type="button"
-              onClick={() => setSeverityFilter(s)}
+              onClick={() => setFilterParams({ severityFilter: s })}
               className={`rounded px-3 py-1.5 font-ui text-sm ${severityFilter === s ? "bg-cortex-blue text-white" : "bg-cortex-surface text-cortex-muted hover:text-cortex-text"}`}
             >
               {s}
@@ -277,7 +295,7 @@ export function HumanReview() {
         <span className="ml-4 font-data text-xs uppercase tracking-wider text-cortex-muted">Framework</span>
         <select
           value={frameworkFilter}
-          onChange={(e) => setFrameworkFilter(e.target.value as FrameworkFilter)}
+          onChange={(e) => setFilterParams({ frameworkFilter: e.target.value })}
           className="rounded border border-cortex-border bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text"
         >
           {FRAMEWORK_FILTER_OPTIONS.map((f) => (
@@ -289,7 +307,7 @@ export function HumanReview() {
         <span className="ml-4 font-data text-xs uppercase tracking-wider text-cortex-muted">Sort by</span>
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as SortKey)}
+          onChange={(e) => setFilterParams({ sortBy: e.target.value })}
           className="rounded border border-cortex-border bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text"
         >
           {SORT_OPTIONS.map((o) => (

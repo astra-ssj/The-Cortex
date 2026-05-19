@@ -58,6 +58,49 @@ class PaginatedControls(BaseModel):
     page_size: int
 
 
+class PaginatedFrameworkSummaries(BaseModel):
+    """Offset/limit list of framework summaries."""
+
+    items: list[FrameworkSummary]
+    total: int
+    offset: int
+    limit: int
+
+
+class PaginatedRemediationFindings(BaseModel):
+    """Remediation findings list with pagination metadata."""
+
+    items: list[dict[str, Any]]
+    total: int
+    offset: int
+    limit: int
+
+
+class PaginatedJsonRows(BaseModel):
+    """Generic pagination envelope for SQL-backed JSON rows (e.g. Shasta)."""
+
+    items: list[dict[str, Any]]
+    total: int
+    offset: int
+    limit: int
+
+
+class FindingPatchBody(BaseModel):
+    """PATCH body for remediation findings (partial update)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    status: str | None = None
+    severity: str | None = None
+    owner: str | None = None
+    due_date: str | None = None
+    priority: str | None = None
+    notes: list[Any] | None = None
+    note_append: str | None = None
+    note_timestamp: str | None = None
+    completed_actions: list[int] | None = None
+
+
 # ---- Compliance posture (matches frontend src/types/compliance.ts) ----
 
 
@@ -174,8 +217,16 @@ class ReviewedItem(BaseModel):
 
 
 class ReviewQueueResponse(BaseModel):
+    """Human review queue list + pagination metadata (camelCase for TS clients)."""
+
+    model_config = ConfigDict(serialize_by_alias=True)
+
     items: list[ReviewQueueItem]
     reviewed: list[ReviewedItem]
+    total_pending: int = Field(..., serialization_alias="totalPending")
+    total_reviewed: int = Field(..., serialization_alias="totalReviewed")
+    limit: int
+    offset: int
 
 
 class ApproveRequest(BaseModel):

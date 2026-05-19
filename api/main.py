@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import secrets
 import sys
 import uuid
 from contextlib import asynccontextmanager
@@ -12,12 +13,22 @@ from typing import Callable
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import SQLAlchemyError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
+from api.errors import (
+    error_body,
+    json_error,
+    request_validation_exception_handler,
+    sqlalchemy_exception_handler,
+    starlette_http_exception_handler,
+    unhandled_exception_handler,
+)
 from api.assessments import router as assessments_router
 from api.auth import router as auth_router
 from api.limits import limiter
@@ -26,7 +37,8 @@ from api.groups import router as groups_router
 from api.organisations import router as organisations_router
 from api.shasta_cloud import router as shasta_cloud_router
 from api.system import router as system_router
-from db.session import database_ready, ensure_org_onboarding_schema
+from core.circuit_breaker import load_circuit_breaker_states_from_db
+from db.session import database_ready, ensure_org_onboarding_schema, ensure_security_auth_schema
 
 # Compliance-engine app (document ingestion at services/compliance-engine/app/).
 _compliance_engine = Path(__file__).resolve().parent.parent / "services" / "compliance-engine"
@@ -42,6 +54,10 @@ except ImportError as _v1_import_err:
     _v1_import_error = str(_v1_import_err)
 
 logger = structlog.get_logger()
+
+_MAX_BODY_BYTES = int(os.getenv("CORTEX_MAX_BODY_BYTES", str(2 * 1024 * 1024)))
+_CSRF_PROTECT = os.getenv("CORTEX_CSRF_PROTECT", "0").lower() in ("1", "true", "yes")
+
 if not _has_v1:
     logger.warning(
         "compliance_engine_v1_import_failed",
@@ -56,6 +72,8 @@ async def lifespan(app: FastAPI):
     import compliance  # noqa: F401
 
     await ensure_org_onboarding_schema()
+    await ensure_security_auth_schema()
+    await load_circuit_breaker_states_from_db()
 
     if _has_v1:
         try:
@@ -82,7 +100,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+async def _rate_limit_envelope_handler(request: Request, exc: RateLimitExceeded) -> Response:
+    return json_error(
+        "TOO_MANY_REQUESTS",
+        str(getattr(exc, "detail", "rate limit exceeded")),
+        429,
+    )
+
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_envelope_handler)
+app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
+app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+app.add_exception_handler(StarletteHTTPException, starlette_http_exception_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -97,6 +129,72 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "geolocation=(), microphone=(), camera=()",
         )
         return response
+
+
+class RequestBodySizeLimitMiddleware(BaseHTTPMiddleware):
+    """Reject oversized bodies using Content-Length (first-line DoS mitigation)."""
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        if request.method not in ("POST", "PUT", "PATCH", "DELETE"):
+            return await call_next(request)
+        cl = request.headers.get("content-length")
+        if cl:
+            try:
+                n = int(cl)
+                if n > _MAX_BODY_BYTES:
+                    return json_error(
+                        "PAYLOAD_TOO_LARGE",
+                        f"Request body exceeds maximum of {_MAX_BODY_BYTES} bytes",
+                        413,
+                    )
+            except ValueError:
+                pass
+        return await call_next(request)
+
+
+class CsrfProtectionMiddleware(BaseHTTPMiddleware):
+    """Optional double-submit CSRF when ``CORTEX_CSRF_PROTECT=1``. JWT Bearer clients skip (no cookie)."""
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        if not _CSRF_PROTECT:
+            return await call_next(request)
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return await call_next(request)
+        path = request.url.path.split("?", 1)[0]
+        if not path.startswith("/api/"):
+            return await call_next(request)
+        auth = (request.headers.get("authorization") or "").strip()
+        if auth.lower().startswith("bearer "):
+            return await call_next(request)
+        cookie = request.cookies.get("cortex_csrf")
+        hdr = request.headers.get("x-csrf-token") or request.headers.get("X-CSRF-Token")
+        if cookie and hdr and secrets.compare_digest(cookie, hdr):
+            return await call_next(request)
+        return json_error(
+            "FORBIDDEN",
+            "CSRF validation failed — send X-CSRF-Token matching cortex_csrf cookie or use Authorization Bearer",
+            403,
+        )
+
+
+class ApiVersionEnforcementMiddleware(BaseHTTPMiddleware):
+    """Reject ``/api/...`` routes that are not under ``/api/v1`` (non-versioned paths are not supported)."""
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        path = request.url.path.split("?", 1)[0]
+        if not path.startswith("/api/"):
+            return await call_next(request)
+        if path == "/api/v1" or path.startswith("/api/v1/"):
+            return await call_next(request)
+        return JSONResponse(
+            status_code=404,
+            content=error_body(
+                "NOT_FOUND",
+                "API routes require the /api/v1 prefix (for example /api/v1/frameworks).",
+            ),
+        )
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -142,6 +240,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(RequestIDMiddleware)
+app.add_middleware(ApiVersionEnforcementMiddleware)
+app.add_middleware(CsrfProtectionMiddleware)
+app.add_middleware(RequestBodySizeLimitMiddleware)
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessments_router)
@@ -157,14 +258,17 @@ app.include_router(system_router)
 
 @app.get("/health")
 async def health() -> dict[str, str]:
+    """Liveness: process is up (does not check Postgres)."""
     return {"status": "ok"}
 
 
 @app.get("/ready", response_model=None)
 async def ready() -> dict[str, str] | JSONResponse:
+    """Readiness: Postgres must accept connections."""
     if not await database_ready():
-        return JSONResponse(
-            status_code=503,
-            content={"status": "not_ready", "detail": "database_unreachable"},
+        return json_error(
+            "SERVICE_UNAVAILABLE",
+            "Database is not reachable",
+            503,
         )
-    return {"status": "ready"}
+    return {"status": "ready", "database": "ok"}

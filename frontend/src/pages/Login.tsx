@@ -25,6 +25,18 @@ function formatAuthErrorDetail(raw: unknown): string {
   return String(raw);
 }
 
+/** Standard envelope `{ error: { code, message } }` plus legacy ``detail``. */
+function formatAuthErrorBody(payload: unknown): string {
+  if (payload == null || typeof payload !== "object") return "Login failed";
+  const o = payload as Record<string, unknown>;
+  const nested = o.error;
+  if (nested !== null && typeof nested === "object" && "message" in nested) {
+    const m = (nested as { message?: unknown }).message;
+    if (typeof m === "string" && m.trim()) return m.trim();
+  }
+  return formatAuthErrorDetail(o.detail ?? (o as { message?: unknown }).message);
+}
+
 export default function Login({ onSuccess }: LoginProps) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -49,15 +61,14 @@ export default function Login({ onSuccess }: LoginProps) {
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        const msg = formatAuthErrorDetail(
-          (e as { detail?: unknown }).detail ?? (e as { message?: string }).message,
-        );
+        const msg = formatAuthErrorBody(e);
         throw new Error(
           msg || (res.status === 401 ? "Invalid email or password" : `HTTP ${res.status}`),
         );
       }
       const data = (await res.json()) as {
         access_token: string;
+        refresh_token?: string;
         user?: Record<string, unknown>;
         org_id?: string;
         role?: string;
@@ -79,6 +90,11 @@ export default function Login({ onSuccess }: LoginProps) {
       };
 
       localStorage.setItem("cortex_token", data.access_token);
+      if (typeof data.refresh_token === "string" && data.refresh_token.length > 0) {
+        localStorage.setItem("cortex_refresh_token", data.refresh_token);
+      } else {
+        localStorage.removeItem("cortex_refresh_token");
+      }
       localStorage.setItem("cortex_user", JSON.stringify(mergedUser));
 
       const orgId = (data.org_id ?? data.user?.org_id) as string | undefined;

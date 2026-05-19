@@ -34,7 +34,7 @@ python -m pytest
 
 Three rules that must be preserved in all contributions:
 
-1. **Read/write split** — **All mutations, auth, and first-party app traffic** go through **FastAPI** (audit, tenancy, ZTAIP). **GraphJin** (see `services/graphjin/`, Compose **`--profile graphql`**, port **8080**) is the optional **GraphQL read** surface on the same PostgreSQL schema for tools, reporting, and exploratory joins — do not bypass FastAPI for writes or for anything requiring audit/authorization hooks until explicitly designed.
+1. **API boundary** — **All mutations, auth, and application reads** go through **FastAPI** with tenant-scoped queries and ZTAIP audit patterns. Do not add parallel database-facing HTTP surfaces for product traffic without an explicit architecture decision.
 
 2. **Human-in-the-loop** — every AI assessment with confidence below **0.75** must route to the Human Review Queue. This is an EU AI Act Art.14 requirement, not optional.
 

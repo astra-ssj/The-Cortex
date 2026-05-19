@@ -16,6 +16,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
+from api.schemas import PaginatedJsonRows
 from core.audit_fabric import audit_fabric
 from core.shasta_queue import enqueue_shasta_scan_job, redis_url_configured
 from db.session import async_session_factory
@@ -441,14 +442,23 @@ async def ingest_shasta_json(
     return {"scan_run_id": str(run_uuid), "ingested": len(normalized), "org_id": org_id}
 
 
-@router.get("/scans")
+@router.get("/scans", response_model=PaginatedJsonRows)
 async def list_shasta_scans(
     org_id: str = Query(..., description="Organisation id"),
     limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     session: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
-) -> list[dict[str, Any]]:
+) -> PaginatedJsonRows:
     effective = resolve_scoped_org_id(current_user, org_id.strip())
+    total = int(
+        (
+            await session.execute(
+                text("SELECT COUNT(*) FROM shasta_scan_runs WHERE org_id = :org_id"),
+                {"org_id": effective},
+            )
+        ).scalar_one()
+    )
     result = await session.execute(
         text(
             """
@@ -457,13 +467,13 @@ async def list_shasta_scans(
             FROM shasta_scan_runs
             WHERE org_id = :org_id
             ORDER BY started_at DESC
-            LIMIT :limit
+            LIMIT :limit OFFSET :offset
             """
         ),
-        {"org_id": effective, "limit": limit},
+        {"org_id": effective, "limit": limit, "offset": offset},
     )
     rows = result.mappings().all()
-    return [dict(r) for r in rows]
+    return PaginatedJsonRows(items=[dict(r) for r in rows], total=total, offset=offset, limit=limit)
 
 
 @router.get("/scans/{scan_run_id}")
@@ -492,14 +502,15 @@ async def get_shasta_scan_run(
     return dict(row)
 
 
-@router.get("/scans/{scan_run_id}/findings")
+@router.get("/scans/{scan_run_id}/findings", response_model=PaginatedJsonRows)
 async def list_findings_for_scan(
     scan_run_id: str,
     org_id: str = Query(..., description="Organisation id (must own the scan)"),
     limit: int = Query(500, ge=1, le=2000),
+    offset: int = Query(0, ge=0),
     session: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
-) -> list[dict[str, Any]]:
+) -> PaginatedJsonRows:
     effective = resolve_scoped_org_id(current_user, org_id.strip())
     chk = await session.execute(
         text("SELECT 1 FROM shasta_scan_runs WHERE id = CAST(:sid AS uuid) AND org_id = :org_id"),
@@ -507,6 +518,19 @@ async def list_findings_for_scan(
     )
     if chk.first() is None:
         raise HTTPException(status_code=404, detail="Scan run not found for this organisation")
+    total = int(
+        (
+            await session.execute(
+                text(
+                    """
+                    SELECT COUNT(*) FROM shasta_cloud_findings
+                    WHERE scan_run_id = CAST(:sid AS uuid) AND org_id = :org_id
+                    """
+                ),
+                {"sid": scan_run_id, "org_id": effective},
+            )
+        ).scalar_one()
+    )
     result = await session.execute(
         text(
             """
@@ -517,10 +541,10 @@ async def list_findings_for_scan(
             FROM shasta_cloud_findings
             WHERE scan_run_id = CAST(:sid AS uuid) AND org_id = :org_id
             ORDER BY id
-            LIMIT :limit
+            LIMIT :limit OFFSET :offset
             """
         ),
-        {"sid": scan_run_id, "org_id": effective, "limit": limit},
+        {"sid": scan_run_id, "org_id": effective, "limit": limit, "offset": offset},
     )
     out: list[dict[str, Any]] = []
     for row in result.mappings().all():
@@ -528,7 +552,7 @@ async def list_findings_for_scan(
         if d.get("framework_controls") is not None and hasattr(d["framework_controls"], "keys"):
             d["framework_controls"] = dict(d["framework_controls"])
         out.append(d)
-    return out
+    return PaginatedJsonRows(items=out, total=total, offset=offset, limit=limit)
 
 
 @router.get("/scans/{scan_run_id}/evidence-map", response_model=EvidenceMapOut)
@@ -624,19 +648,33 @@ async def list_evidence_control_links_for_scan(
     return [dict(r) for r in result.mappings().all()]
 
 
-@router.get("/findings")
+@router.get("/findings", response_model=PaginatedJsonRows)
 async def list_recent_cloud_findings(
     org_id: str = Query(..., description="Organisation id"),
     severity: str | None = None,
     limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     session: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
-) -> list[dict[str, Any]]:
+) -> PaginatedJsonRows:
     """Latest cloud findings across scans for an organisation."""
     effective = resolve_scoped_org_id(current_user, org_id.strip())
-    params: dict[str, Any] = {"org_id": effective, "limit": limit}
+    params: dict[str, Any] = {"org_id": effective, "limit": limit, "offset": offset}
     if severity and severity.strip():
         params["sev"] = severity.strip()
+        total = int(
+            (
+                await session.execute(
+                    text(
+                        """
+                        SELECT COUNT(*) FROM shasta_cloud_findings f
+                        WHERE f.org_id = :org_id AND severity_normalized = :sev
+                        """
+                    ),
+                    {"org_id": effective, "sev": severity.strip()},
+                )
+            ).scalar_one()
+        )
         result = await session.execute(
             text(
                 """
@@ -647,12 +685,20 @@ async def list_recent_cloud_findings(
                 FROM shasta_cloud_findings f
                 WHERE f.org_id = :org_id AND severity_normalized = :sev
                 ORDER BY f.created_at DESC
-                LIMIT :limit
+                LIMIT :limit OFFSET :offset
                 """
             ),
             params,
         )
     else:
+        total = int(
+            (
+                await session.execute(
+                    text("SELECT COUNT(*) FROM shasta_cloud_findings f WHERE f.org_id = :org_id"),
+                    {"org_id": effective},
+                )
+            ).scalar_one()
+        )
         result = await session.execute(
             text(
                 """
@@ -663,7 +709,7 @@ async def list_recent_cloud_findings(
                 FROM shasta_cloud_findings f
                 WHERE f.org_id = :org_id
                 ORDER BY f.created_at DESC
-                LIMIT :limit
+                LIMIT :limit OFFSET :offset
                 """
             ),
             params,
@@ -674,4 +720,4 @@ async def list_recent_cloud_findings(
         if d.get("framework_controls") is not None and hasattr(d["framework_controls"], "keys"):
             d["framework_controls"] = dict(d["framework_controls"])
         out.append(d)
-    return out
+    return PaginatedJsonRows(items=out, total=total, offset=offset, limit=limit)

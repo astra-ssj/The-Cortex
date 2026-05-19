@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
-from api.main import app
-
-client = TestClient(app)
-
-
-def test_ztaip_status_returns_200() -> None:
+def test_ztaip_status_returns_200(client: TestClient) -> None:
     """GET /api/v1/system/ztaip-status returns ZTAIPStatus."""
     r = client.get("/api/v1/system/ztaip-status")
     assert r.status_code == 200
@@ -21,7 +17,7 @@ def test_ztaip_status_returns_200() -> None:
     assert "agentCertificatesCount" in data
 
 
-def test_ztaip_status_audit_fabric_shape() -> None:
+def test_ztaip_status_audit_fabric_shape(client: TestClient) -> None:
     """auditFabric has totalEvents and lastEventAt (read from audit_fabric)."""
     r = client.get("/api/v1/system/ztaip-status")
     assert r.status_code == 200
@@ -32,21 +28,35 @@ def test_ztaip_status_audit_fabric_shape() -> None:
     assert af["totalEvents"] >= 0
 
 
-def test_system_ready_returns_200_when_database_available() -> None:
+def test_system_ready_returns_200_when_database_available(
+    client: TestClient,
+    postgres_reachable: bool,
+) -> None:
     """GET /api/v1/system/ready succeeds when Postgres is reachable."""
+    if not postgres_reachable:
+        pytest.skip("database not reachable")
     r = client.get("/api/v1/system/ready")
     assert r.status_code == 200
-    assert r.json().get("status") == "ready"
+    data = r.json()
+    assert data.get("status") == "ready"
+    assert data.get("database") == "ok"
 
 
-def test_root_ready_returns_200_when_database_available() -> None:
+def test_root_ready_returns_200_when_database_available(
+    client: TestClient,
+    postgres_reachable: bool,
+) -> None:
     """GET /ready matches /api/v1/system/ready semantics."""
+    if not postgres_reachable:
+        pytest.skip("database not reachable")
     r = client.get("/ready")
     assert r.status_code == 200
-    assert r.json().get("status") == "ready"
+    data = r.json()
+    assert data.get("status") == "ready"
+    assert data.get("database") == "ok"
 
 
-def test_ztaip_status_circuit_breakers_count() -> None:
+def test_ztaip_status_circuit_breakers_count(client: TestClient) -> None:
     """circuitBreakersCount is read from real circuit breaker registry."""
     r = client.get("/api/v1/system/ztaip-status")
     assert r.status_code == 200

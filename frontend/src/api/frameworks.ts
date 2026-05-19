@@ -50,8 +50,30 @@ export interface PaginatedControls {
   page_size: number;
 }
 
-export async function fetchFrameworks(): Promise<FrameworkSummary[]> {
-  return fetchApi<FrameworkSummary[]>("/api/v1/frameworks");
+export interface PaginatedFrameworkSummaries {
+  items: FrameworkSummary[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export async function fetchFrameworks(): Promise<PaginatedFrameworkSummaries> {
+  const raw = await fetchApi<PaginatedFrameworkSummaries | FrameworkSummary[]>("/api/v1/frameworks");
+  if (raw == null || typeof raw !== "object") {
+    return { items: [], total: 0, offset: 0, limit: 0 };
+  }
+  // Backend may return paginated object or (legacy) a bare array; TanStack Query rejects undefined data.
+  if (Array.isArray(raw)) {
+    const items = raw;
+    return { items, total: items.length, offset: 0, limit: items.length };
+  }
+  const items = raw.items ?? [];
+  return {
+    items,
+    total: typeof raw.total === "number" ? raw.total : items.length,
+    offset: typeof raw.offset === "number" ? raw.offset : 0,
+    limit: typeof raw.limit === "number" ? raw.limit : items.length,
+  };
 }
 
 export async function fetchFramework(id: string): Promise<FrameworkDetail> {

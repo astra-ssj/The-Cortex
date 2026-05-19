@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { ComingSoon } from "../components/ui/ComingSoon";
-import { AuditSimulator } from "../components/AuditSimulator";
-import { TelemetryFusion } from "../components/TelemetryFusion";
-import { RegulationIntel } from "../components/RegulationIntel";
-import { EvidenceVault } from "../components/EvidenceVault";
+import AuditSimulator from "../components/AuditSimulator";
+import TelemetryFusion from "../components/TelemetryFusion";
+import RegulationIntel from "../components/RegulationIntel";
+import EvidenceVault from "../components/EvidenceVault";
 import { isFeatureEnabled } from "../lib/featureFlags";
 
 type IntelTab = "simulator" | "signals" | "regulation" | "vault";
@@ -23,25 +22,6 @@ export default function Intelligence() {
     !isFeatureEnabled("telemetryFusion") &&
     !isFeatureEnabled("regulationIntel") &&
     !isFeatureEnabled("evidenceVault");
-
-  const tabDisabled = suiteGated;
-
-  function gateFor(t: IntelTab): boolean {
-    switch (t) {
-      case "simulator":
-        return !isFeatureEnabled("auditSimulator");
-      case "signals":
-        return !isFeatureEnabled("telemetryFusion");
-      case "regulation":
-        return !isFeatureEnabled("regulationIntel");
-      case "vault":
-        return !isFeatureEnabled("evidenceVault");
-      default:
-        return true;
-    }
-  }
-
-  const activeGated = gateFor(tab);
 
   return (
     <div
@@ -228,55 +208,32 @@ export default function Intelligence() {
             type="button"
             role="tab"
             aria-selected={tab === key}
-            aria-disabled={tabDisabled}
-            disabled={tabDisabled}
-            onClick={() => {
-              if (tabDisabled) return;
-              setTab(key);
-            }}
+            onClick={() => setTab(key)}
             style={{
               padding: "10px 0",
               marginBottom: -1,
               border: "none",
-              borderBottom:
-                tab === key && !tabDisabled ? "2px solid var(--cyan)" : "2px solid transparent",
+              borderBottom: tab === key ? "2px solid var(--cyan)" : "2px solid transparent",
               background: "transparent",
-              cursor: tabDisabled ? "not-allowed" : "pointer",
+              cursor: "pointer",
               fontSize: 13,
               fontWeight: tab === key ? 600 : 400,
-              color: tabDisabled ? "var(--text-tertiary)" : tab === key ? "var(--text)" : "var(--dim)",
+              color: tab === key ? "var(--text)" : "var(--dim)",
               fontFamily: "inherit",
-              opacity: tabDisabled ? 0.75 : 1,
             }}
           >
             {label}{" "}
-            {!tabDisabled ? (
-              <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>{demo}</span>
-            ) : null}
+            <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>{demo}</span>
           </button>
         ))}
       </div>
 
-      {suiteGated ? (
-        <ComingSoon
-          feature="Intelligence Suite"
-          description="Audit simulation, regulatory horizon scanning, telemetry fusion, and evidence chain verification are in active development."
-          eta="Q3 2026"
-        />
-      ) : activeGated ? (
-        <ComingSoon
-          feature={TAB_DEFS.find((x) => x.key === tab)?.label ?? "Intelligence"}
-          description="This capability is not yet connected to production services."
-          eta="Q3 2026"
-        />
-      ) : (
-        <>
-          {tab === "simulator" && <AuditSimulator />}
-          {tab === "signals" && <TelemetryFusion />}
-          {tab === "regulation" && <RegulationIntel />}
-          {tab === "vault" && <EvidenceVault />}
-        </>
-      )}
+      <>
+        {tab === "simulator" && <AuditSimulator />}
+        {tab === "signals" && <TelemetryFusion />}
+        {tab === "regulation" && <RegulationIntel />}
+        {tab === "vault" && <EvidenceVault />}
+      </>
     </div>
   );
 }
