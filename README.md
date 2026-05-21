@@ -36,6 +36,13 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 - Three-step setup wizard
 - Demo mode toggle for comparing tenant vs AstraLabs reference data
 
+### Compliance graph
+
+- **UI:** `/graph` — interactive D3 force graph (controls, evidence, frameworks, entities, findings).
+- **API:** `GET /api/v1/graph/{org_id}` plus control/evidence/impact subgraph routes — see [`api/graph.py`](api/graph.py) and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+- **Schema:** `control_mappings`, `evidence`, `evidence_controls`, `framework_entities` (`migrations/013_compliance_graph.sql`).
+- **GraphJin:** Nested GraphQL on the same tables, e.g. `evidence { evidence_controls { control_id framework_id } }`.
+
 ### Cloud security (Shasta CSPM)
 
 - **Cloud scans** UI (`/cloud-scans`) — async AWS/Azure scans; Postgres is the source of truth for runs and findings (migration `009_shasta_cloud.sql`).
@@ -53,10 +60,11 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 | Backend     | FastAPI, Python 3.12, SQLAlchemy async, asyncpg       |
 | Database    | PostgreSQL 16 (Docker Compose)                        |
 | Data/API    | FastAPI REST (`/api/v1`), same process as assessments and auth |
+| GraphQL     | GraphJin sidecar (port **8080**) — auto-generated reads on Postgres; compliance graph tables in `migrations/013_compliance_graph.sql` |
 | Async jobs  | Optional Redis + worker (`docker compose --profile queue`) for durable Shasta scan jobs — see [CORTEX_SETUP.md](CORTEX_SETUP.md) |
 | GRC Skills  | Loaded examples include GDPR, ISO 27001, DORA, ISO 42001 (via compliance-engine loader) |
 | Auth        | JWT (HS256), bcrypt passwords                           |
-| Container   | Docker Compose (Postgres + API by default)              |
+| Container   | Docker Compose (Postgres + API + GraphJin by default)   |
 
 ## Frameworks Supported
 

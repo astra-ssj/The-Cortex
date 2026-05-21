@@ -449,6 +449,22 @@ export const ztaipApi = {
   getStatus: () => fetchApi("/api/v1/system/ztaip-status"),
 };
 
+export type LlmPlatformStatusResponse = {
+  chain: string[];
+  active_chain: string[];
+  providers: Record<
+    string,
+    { provider?: string; configured?: boolean; model?: string; api_key_set?: boolean }
+  >;
+  assessment_llm_enabled?: boolean;
+  assessment_max_controls_per_run?: number;
+};
+
+export const systemApi = {
+  getLlmProviders: () =>
+    fetchApi<LlmPlatformStatusResponse>("/api/v1/system/llm-providers"),
+};
+
 export const integrationsApi = {
   list: () => fetchApi<IntegrationSummary[]>("/api/v1/integrations"),
   get: (id: string) => fetchApi<IntegrationDetail>(`/api/v1/integrations/${encodeURIComponent(id)}`),
@@ -773,6 +789,58 @@ export async function overrideControl(
 }
 
 export const reviewQueueQueryKey = (orgId: string) => ["reviewQueue", orgId] as const;
+
+export type ComplianceGraphNode = {
+  id: string;
+  type: "control" | "evidence" | "finding" | "framework" | "entity";
+  label: string;
+  framework_id?: string;
+  status?: string;
+  severity?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type ComplianceGraphEdge = {
+  from: string;
+  to: string;
+  type: "contains" | "maps_to" | "proves" | "violates" | "affects" | "applies_to";
+  relationship?: string;
+  confidence?: number;
+  strength?: string;
+  basis?: string;
+  scope?: string;
+};
+
+export type ComplianceGraphStats = {
+  total_nodes: number;
+  total_edges: number;
+  shared_evidence: number;
+  work_reduction_pct: number;
+  naive_assessments?: number;
+  effective_assessments?: number;
+  framework_coverage: Record<string, { proven: number; total: number }>;
+};
+
+export type ComplianceGraphResponse = {
+  org_id: string;
+  nodes: ComplianceGraphNode[];
+  edges: ComplianceGraphEdge[];
+  stats: ComplianceGraphStats;
+};
+
+export const complianceGraphQueryKey = (orgId: string) => ["complianceGraph", orgId] as const;
+
+export function fetchComplianceGraph(orgId: string): Promise<ComplianceGraphResponse> {
+  return fetchApi<ComplianceGraphResponse>(`/api/v1/graph/${encodeURIComponent(orgId)}`);
+}
+
+export function useComplianceGraph(orgId: string) {
+  return useQuery({
+    queryKey: complianceGraphQueryKey(orgId),
+    queryFn: () => fetchComplianceGraph(orgId),
+    enabled: Boolean(orgId),
+  });
+}
 
 export function useReviewQueue(orgId?: string | null): {
   items: ReviewQueueItem[] | null;

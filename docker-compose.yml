@@ -25,6 +25,7 @@ services:
       - ./migrations/009_shasta_cloud.sql:/docker-entrypoint-initdb.d/09_shasta_cloud.sql:ro
       - ./migrations/010_shasta_evidence_control_links.sql:/docker-entrypoint-initdb.d/10_shasta_evidence_links.sql:ro
       - ./migrations/012_security_auth.sql:/docker-entrypoint-initdb.d/11_security_auth.sql:ro
+      - ./migrations/013_compliance_graph.sql:/docker-entrypoint-initdb.d/12_compliance_graph.sql:ro
       - ./services/graphjin/migrations:/graphjin/migrations:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
@@ -33,11 +34,10 @@ services:
       retries: 5
 
   # GraphQL read layer: same DB as FastAPI. Dev auth disabled — do not expose 8080 to the internet. See services/graphjin/README.md
-  # Default stack omits GraphJin; start with: docker compose --profile graphql up -d
   graphjin:
-    profiles:
-      - graphql
     image: dosco/graphjin:3.18.10
+    container_name: cortex-graphjin
+    restart: unless-stopped
     # Entrypoint is `graphjin`; without `serve` the container prints CLI help and exits.
     command: ["serve", "--path", "/app/config"]
     working_dir: /app
@@ -69,6 +69,16 @@ services:
       CORTEX_LEGACY_DEMO_PASSWORD: ${CORTEX_LEGACY_DEMO_PASSWORD:-admin}
       COMPLIANCE_ENGINE_STUB_PASSWORD: ${COMPLIANCE_ENGINE_STUB_PASSWORD:-demo}
       COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN: ${COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN:-compliance-stub-dev-token}
+      # LLM provider chain (Track B ingest) — set keys in .env or shell; stub used when unset.
+      CORTEX_LLM_PROVIDERS: ${CORTEX_LLM_PROVIDERS:-anthropic,openai,stub}
+      CORTEX_LLM_TIMEOUT_SECONDS: ${CORTEX_LLM_TIMEOUT_SECONDS:-90}
+      CORTEX_LLM_MAX_INGEST_CHARS: ${CORTEX_LLM_MAX_INGEST_CHARS:-24000}
+      CORTEX_ASSESSMENT_LLM_ENABLED: ${CORTEX_ASSESSMENT_LLM_ENABLED:-1}
+      CORTEX_ASSESSMENT_MAX_CONTROLS: ${CORTEX_ASSESSMENT_MAX_CONTROLS:-5}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
     depends_on:
       postgres:
         condition: service_healthy
