@@ -9,6 +9,9 @@ import structlog
 from core.audit_fabric import append_audit_log, audit_fabric
 from core.circuit_breaker import CircuitBreaker, register_circuit_breaker
 from core.human_review import enqueue_ingestion_human_review
+from core.llm import StructuredCompletionRequest, complete_structured
+from core.llm.mapping_prompt import build_ontology_mapping_request
+from core.llm.mapping_schema import OntologyMappingLLMOutput
 from core.tenant import DEMO_ORG_ID
 from db.session import async_session_factory
 from ontology.models import (
@@ -29,40 +32,39 @@ _ingestion_breaker = CircuitBreaker("ingestion_llm", failure_threshold=5)
 register_circuit_breaker(_ingestion_breaker)
 
 
-async def _call_llm_for_mapping(chunks: List[DocumentChunk], document_type: str) -> OntologyMappingResult:
-    """
-    Call LLM to extract controls, obligations, people, systems from chunks.
-    Wrapped in CircuitBreaker by map_chunks_to_ontology. Replace with real LLM call.
-    """
-    controls = [ControlRef(framework_id="gdpr", control_id="lawful-basis-consent")]
+def _llm_output_to_result(out: OntologyMappingLLMOutput) -> OntologyMappingResult:
+    controls = [ControlRef(framework_id=c.framework_id, control_id=c.control_id) for c in out.controls]
     obligations = [
         Obligation(
-            jurisdiction="EU",
-            purpose_tags=["ingestion"],
-            id="obl-1",
-            description="Processing must have lawful basis",
-            control_refs=controls,
+            jurisdiction=o.jurisdiction,
+            purpose_tags=list(o.purpose_tags),
+            id=o.id,
+            description=o.description,
+            control_refs=[ControlRef(framework_id=r.framework_id, control_id=r.control_id) for r in o.control_refs],
         )
+        for o in out.obligations
     ]
     people = [
         Person(
-            jurisdiction="internal",
-            purpose_tags=[],
-            id="p1",
-            name="Document Author",
-            role="author",
+            jurisdiction=p.jurisdiction,
+            purpose_tags=list(p.purpose_tags),
+            id=p.id,
+            name=p.name,
+            role=p.role,
         )
+        for p in out.people
     ]
     systems = [
         SystemAsset(
-            jurisdiction="internal",
-            purpose_tags=[],
-            id="sys1",
-            name="Document System",
-            system_type="application",
+            jurisdiction=s.jurisdiction,
+            purpose_tags=list(s.purpose_tags),
+            id=s.id,
+            name=s.name,
+            system_type=s.system_type,
         )
+        for s in out.systems
     ]
-    score = 0.82
+    score = float(out.confidence_score)
     return OntologyMappingResult(
         controls=controls,
         obligations=obligations,
@@ -71,6 +73,37 @@ async def _call_llm_for_mapping(chunks: List[DocumentChunk], document_type: str)
         confidence_score=score,
         requires_human_review=score < CONFIDENCE_THRESHOLD,
     )
+
+
+async def _call_llm_for_mapping(chunks: List[DocumentChunk], document_type: str) -> OntologyMappingResult:
+    """
+    Multi-provider LLM extraction (Anthropic → OpenAI → stub per CORTEX_LLM_PROVIDERS).
+    Wrapped in CircuitBreaker by map_chunks_to_ontology.
+    """
+    system, user = build_ontology_mapping_request([c.content for c in chunks], document_type)
+    request = StructuredCompletionRequest(
+        system=system,
+        user=user,
+        response_schema_name="ontology_mapping",
+        metadata={"document_type": document_type, "chunk_count": len(chunks)},
+    )
+
+    async def _invoke() -> OntologyMappingResult:
+        completion = await complete_structured(request, OntologyMappingLLMOutput)
+        audit_fabric.log(
+            "ontology_mapping_llm_response",
+            entity_type="llm",
+            entity_id=completion.provider_id,
+            payload={
+                "provider": completion.provider_id,
+                "model": completion.model,
+                "usage": completion.usage,
+            },
+        )
+        out = OntologyMappingLLMOutput.model_validate_json(completion.raw_text)
+        return _llm_output_to_result(out)
+
+    return await _invoke()
 
 
 async def map_chunks_to_ontology(
@@ -87,7 +120,17 @@ async def map_chunks_to_ontology(
         "ontology_mapping_start",
         entity_type="document",
         entity_id=document_id,
-        payload={"chunk_count": len(chunks), "document_type": document_type},
+        payload={"chunk_count": len(chunks), "document_type": document_type, "org_id": org_id},
+    )
+    audit_fabric.log(
+        "ontology_mapping_llm_request",
+        entity_type="document",
+        entity_id=document_id,
+        payload={
+            "chunk_count": len(chunks),
+            "document_type": document_type,
+            "char_estimate": sum(len(c.content) for c in chunks),
+        },
     )
     try:
         result = await _ingestion_breaker.execute(_call_llm_for_mapping, chunks, document_type)

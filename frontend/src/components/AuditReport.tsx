@@ -5,6 +5,7 @@
 
 import { useState, useCallback } from "react";
 import {
+  downloadExecutiveSummaryPdf,
   fetchExecutiveSummary,
   type ExecutiveSummaryReport,
   type ExecutiveSummaryParams,
@@ -60,6 +61,7 @@ export function AuditReport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const generateReport = useCallback(async () => {
     setError(null);
@@ -77,6 +79,23 @@ export function AuditReport() {
       setReport(null);
     } finally {
       setLoading(false);
+    }
+  }, [asAt, entityScope, orgId]);
+
+  const handleDownloadPdf = useCallback(async () => {
+    setError(null);
+    setPdfLoading(true);
+    try {
+      const params: ExecutiveSummaryParams = {
+        org_id: orgId,
+        as_at: asAt,
+        entity_scope: entityScope === "ALL" ? undefined : entityScope,
+      };
+      await downloadExecutiveSummaryPdf(params);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPdfLoading(false);
     }
   }, [asAt, entityScope, orgId]);
 
@@ -218,10 +237,18 @@ export function AuditReport() {
             <>
               <button
                 type="button"
+                onClick={() => void handleDownloadPdf()}
+                disabled={pdfLoading}
+                className="rounded-lg border border-cortex-blue/50 bg-cortex-blue/10 px-4 py-2 font-ui text-sm font-semibold text-cortex-blue transition hover:bg-cortex-blue/20 disabled:opacity-60"
+              >
+                {pdfLoading ? "Preparing PDF…" : "Download PDF"}
+              </button>
+              <button
+                type="button"
                 onClick={handlePrint}
                 className="rounded-lg border border-cortex-border bg-cortex-panel px-4 py-2 font-ui text-sm font-semibold text-cortex-text transition hover:bg-cortex-border"
               >
-                Download PDF
+                Print in browser
               </button>
               <button
                 type="button"

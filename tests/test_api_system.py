@@ -62,3 +62,17 @@ def test_ztaip_status_circuit_breakers_count(client: TestClient) -> None:
     assert r.status_code == 200
     assert isinstance(r.json()["circuitBreakersCount"], int)
     assert r.json()["circuitBreakersCount"] >= 1  # at least assessment_llm breaker
+
+
+def test_llm_providers_returns_chain(client: TestClient) -> None:
+    """GET /api/v1/system/llm-providers exposes provider chain without secrets."""
+    r = client.get("/api/v1/system/llm-providers")
+    assert r.status_code == 200
+    data = r.json()
+    assert "chain" in data
+    assert "active_chain" in data
+    assert "providers" in data
+    assert "stub" in data["providers"]
+    stub = data["providers"]["stub"]
+    assert stub.get("configured") is True
+    assert "apiKeySet" not in stub or stub.get("apiKeySet") is not True

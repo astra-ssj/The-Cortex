@@ -31,7 +31,12 @@ function formatEventLine(ev: AssessmentEvent): string | null {
       return null;
     case "control_result": {
       const skill = ev.skill_name ? ` · ${ev.skill_name}` : "";
-      return `[${ev.frameworkId}] ${ev.controlName} — ${ev.status}${skill}`;
+      const conf =
+        typeof ev.confidence === "number"
+          ? ` · ${Math.round(ev.confidence * 100)}%`
+          : "";
+      const prov = ev.llm_provider ? ` · ${ev.llm_provider}` : "";
+      return `[${ev.frameworkId}] ${ev.controlName} — ${ev.status}${conf}${prov}${skill}`;
     }
     case "framework_done":
       return `[ZTAIP] ${frameworkLabelFromId(ev.frameworkId)} — complete`;

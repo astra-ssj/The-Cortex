@@ -15,6 +15,8 @@ export const FEATURES = {
   groupDashboard: true,
   cloudScans: true,
   integrations: true,
+  evidenceIngestLive: true, // POST /api/v1/ingest/document + multi-provider LLM (core/llm)
+  assessmentLlmLive: true, // GET /api/v1/assessments/stream uses assessment_llm CircuitBreaker
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES;

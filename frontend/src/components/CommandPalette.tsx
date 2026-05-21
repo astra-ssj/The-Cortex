@@ -44,6 +44,7 @@ const PAGE_ITEMS: PageItem[] = [
   { title: "Integrations", route: "/integrations", icon: "⚡" },
   { title: "Roadmap", route: "/roadmap", icon: "▸" },
   { title: "Settings", route: "/settings", icon: "⚙" },
+  { title: "Help & Documentation", route: "/help", icon: "?" },
 ];
 
 function TypeBadge({ type }: { type: ResultType }) {

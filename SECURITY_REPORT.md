@@ -1,6 +1,30 @@
 # CORTEX Compliance Engine — Security & QA Report
 
-**Date:** 2026-02-21  
+## Verification run — 2026-05-21
+
+**Scope:** CI-aligned SAST, dependency audit, pytest (Compose DB), HTTP smokes.  
+**Posture:** **AMBER** (same as baseline; two pytest failures + one pip CVE + one smoke flake)
+
+| Control | Result |
+|---------|--------|
+| Ruff | Pass (4 unused imports fixed) |
+| Bandit `-ll` | Pass (0 High/Medium) |
+| `pip-audit` | **Fail** — `idna` 3.13 → ≥ 3.15 |
+| `npm audit --audit-level=high` | Pass |
+| ESLint security plugins | Pass (0 errors; 56 warnings) |
+| Pytest (Compose) | 135 pass / **2 fail** / 10 skip |
+| `smoke_happy_path.sh` | Pass |
+| `smoke_ingest_llm.sh` | Pass |
+| `smoke_assessment_llm.sh` | Fail (SSE `run_done`) |
+
+**Details:** [`QA-REPORT.md`](QA-REPORT.md), [`SAST-REPORT.md`](SAST-REPORT.md), [`docs/RELEASE_QA.md`](docs/RELEASE_QA.md).
+
+**Open items:** Upgrade `idna`; fix or isolate LLM provider test env; stabilise assessment SSE smoke + `test_api_assessments`.
+
+---
+
+## Historical report — 2026-02-21
+
 **Scope:** SAST, dependency security, secret scanning, test coverage, API security, Docker, CI.
 
 ---

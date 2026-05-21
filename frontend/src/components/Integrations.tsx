@@ -3,8 +3,13 @@ import {
   integrationsApi,
   type IntegrationSummary,
   type IntegrationDetail,
+  type M365ConnectionStatus,
+  type M365FindingRow,
 } from "../api/client";
+import { useOrgContext } from "../hooks/useOrgContext";
 import { useRole } from "../hooks/useRole";
+import { invalidateComplianceData } from "../store/complianceStore";
+import { useQueryClient } from "@tanstack/react-query";
 
 const CARD_BG = "var(--card)";
 const CARD_BORDER = "var(--border)";
@@ -78,6 +83,8 @@ const COMING_SOON_ITEMS = [
 
 export function Integrations() {
   const { can } = useRole();
+  const { orgId } = useOrgContext();
+  const queryClient = useQueryClient();
   const canManageIntegrations = can("canManageIntegrations");
   const [list, setList] = useState<IntegrationSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +93,9 @@ export function Integrations() {
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<string | null>(null);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [m365Status, setM365Status] = useState<M365ConnectionStatus | null>(null);
+  const [m365Findings, setM365Findings] = useState<M365FindingRow[]>([]);
+  const [m365Syncing, setM365Syncing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,10 +113,55 @@ export function Integrations() {
     return () => { cancelled = true; };
   }, []);
 
+  const refreshM365 = async () => {
+    try {
+      const [st, findings] = await Promise.all([
+        integrationsApi.m365Status(orgId),
+        integrationsApi.m365Findings(orgId),
+      ]);
+      setM365Status(st);
+      setM365Findings(findings.items ?? []);
+      if (st.connected) {
+        setList((prev) =>
+          prev.map((i) =>
+            i.id === "microsoft-365" ? { ...i, status: "connected" as const } : i
+          )
+        );
+      }
+    } catch {
+      setM365Status(null);
+      setM365Findings([]);
+    }
+  };
+
   const openPanel = (integration: IntegrationSummary) => {
     setPanelIntegration(integration as IntegrationDetail);
     setPanelTab("guide");
     setCredentials({});
+    if (integration.id === "microsoft-365") {
+      void refreshM365();
+    }
+  };
+
+  const handleM365Sync = async () => {
+    if (!canManageIntegrations) {
+      showToast("Permission required to sync integrations");
+      return;
+    }
+    setM365Syncing(true);
+    try {
+      const res = await integrationsApi.m365Sync(orgId);
+      showToast(
+        `Synced ${res.findings_count} signals · ${res.evidence_created} evidence on graph`
+      );
+      await refreshM365();
+      invalidateComplianceData(queryClient, orgId);
+      setPanelTab("preview");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Sync failed");
+    } finally {
+      setM365Syncing(false);
+    }
   };
 
   const closePanel = () => setPanelIntegration(null);
@@ -434,6 +489,10 @@ export function Integrations() {
           onTestConnection={handleTestConnection}
           onSaveCredentials={handleSaveCredentials}
           canManageIntegrations={canManageIntegrations}
+          m365Status={m365Status}
+          m365Findings={m365Findings}
+          m365Syncing={m365Syncing}
+          onM365Sync={() => void handleM365Sync()}
         />
       )}
 
@@ -473,6 +532,10 @@ function SetupPanel({
   onTestConnection,
   onSaveCredentials,
   canManageIntegrations,
+  m365Status,
+  m365Findings,
+  m365Syncing,
+  onM365Sync,
 }: {
   integration: IntegrationDetail;
   onClose: () => void;
@@ -483,6 +546,10 @@ function SetupPanel({
   onTestConnection: () => void;
   onSaveCredentials: () => void;
   canManageIntegrations: boolean;
+  m365Status?: M365ConnectionStatus | null;
+  m365Findings?: M365FindingRow[];
+  m365Syncing?: boolean;
+  onM365Sync?: () => void;
 }) {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
 
@@ -794,7 +861,27 @@ function SetupPanel({
                 )}
               </div>
             ))}
-            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+              {integration.id === "microsoft-365" && onM365Sync ? (
+                <button
+                  type="button"
+                  onClick={onM365Sync}
+                  disabled={!canManageIntegrations || m365Syncing}
+                  style={{
+                    padding: "10px 18px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: "var(--blue)",
+                    color: "var(--text)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: canManageIntegrations && !m365Syncing ? "pointer" : "not-allowed",
+                    opacity: canManageIntegrations && !m365Syncing ? 1 : 0.6,
+                  }}
+                >
+                  {m365Syncing ? "Syncing…" : "Sync now (demo)"}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={onTestConnection}
@@ -833,6 +920,48 @@ function SetupPanel({
 
         {activeTab === "preview" && (
           <div>
+            {integration.id === "microsoft-365" ? (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: TEXT_MUTED, marginBottom: 8 }}>
+                  Last sync
+                </div>
+                {m365Status?.connected ? (
+                  <p style={{ fontSize: 13, color: TEXT_PRIMARY, margin: "0 0 12px" }}>
+                    {m365Status.findings_count ?? 0} findings
+                    {m365Status.mock_mode ? " (demo mock)" : ""}
+                    {m365Status.last_sync_at
+                      ? ` · ${new Date(m365Status.last_sync_at).toLocaleString()}`
+                      : ""}
+                  </p>
+                ) : (
+                  <p style={{ fontSize: 13, color: TEXT_GREY, margin: "0 0 12px" }}>
+                    Not synced yet. Use Sync now on the Credentials tab.
+                  </p>
+                )}
+                {(m365Findings?.length ?? 0) > 0 ? (
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+                    {m365Findings!.map((f) => (
+                      <li
+                        key={f.id}
+                        style={{
+                          padding: "10px 12px",
+                          marginBottom: 8,
+                          borderRadius: 6,
+                          border: `1px solid ${CARD_BORDER}`,
+                          background: PANEL_BG,
+                          fontSize: 12,
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, color: TEXT_PRIMARY }}>{f.title}</div>
+                        <div style={{ color: TEXT_GREY, marginTop: 4 }}>
+                          {f.severity_normalized} · {f.check_id}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
             <div
               style={{
                 fontSize: 12,

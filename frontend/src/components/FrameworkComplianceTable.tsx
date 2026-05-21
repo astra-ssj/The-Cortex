@@ -74,7 +74,7 @@ export function FrameworkComplianceTable({
                     {fw.name}
                   </p>
                   <div className="mt-1 flex flex-wrap gap-1">
-                    {fw.purpose_tags.map((tag) => (
+                    {(fw.purpose_tags ?? []).map((tag) => (
                       <Badge
                         key={tag}
                         variant="neutral"

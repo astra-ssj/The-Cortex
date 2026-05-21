@@ -32,6 +32,7 @@ import Settings from "./pages/Settings";
 import { FrameworksList } from "./pages/FrameworksList";
 import ComplianceGraph from "./pages/ComplianceGraph";
 import FindingDetail from "./pages/FindingDetail";
+import HelpDocs from "./pages/HelpDocs";
 
 function MainChrome() {
   const [user, setUser] = useState(() => getUser() as Record<string, unknown> | null);
@@ -192,7 +193,7 @@ function AppRoutes() {
           navigate("/settings");
           break;
         case "h":
-          setHelpOpen(true);
+          navigate("/help");
           break;
         default:
           break;
@@ -233,6 +234,7 @@ function AppRoutes() {
             <Route path="/evidence" element={<RemediationTracker />} />
             <Route path="/findings/:id" element={<FindingDetail />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/help" element={<HelpDocs />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Route>

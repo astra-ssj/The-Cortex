@@ -36,6 +36,7 @@ from api.findings import router as findings_router
 from api.graph import router as graph_router
 from api.groups import router as groups_router
 from api.organisations import router as organisations_router
+from api.microsoft_cloud import router as microsoft_cloud_router
 from api.shasta_cloud import router as shasta_cloud_router
 from api.system import router as system_router
 from core.circuit_breaker import load_circuit_breaker_states_from_db
@@ -248,6 +249,7 @@ app.add_middleware(RequestBodySizeLimitMiddleware)
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessments_router)
 app.include_router(shasta_cloud_router)
+app.include_router(microsoft_cloud_router)
 app.include_router(findings_router, prefix="/api/v1/findings")
 app.include_router(graph_router)
 app.include_router(groups_router)

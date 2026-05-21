@@ -16,8 +16,6 @@ const SIDEBAR_W = 220;
 
 export const SIDEBAR_WIDTH_PX = SIDEBAR_W;
 
-const DOCS_URL = "https://github.com/AstraLabs-AI/The-Cortex";
-
 type NavItem = {
   label: string;
   path: string;
@@ -388,12 +386,10 @@ export function Sidebar({
               Settings
             </NavLink>
           ) : null}
-          <a
-            href={DOCS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="cortex-sidebar-link-external"
-            style={{
+          <NavLink
+            to="/help"
+            className={({ isActive }) => (isActive ? "cortex-sidebar-link-active" : undefined)}
+            style={({ isActive }) => ({
               display: "flex",
               alignItems: "center",
               gap: 10,
@@ -402,14 +398,16 @@ export function Sidebar({
               textDecoration: "none",
               fontSize: "13px",
               fontWeight: 500,
-              color: "var(--text-secondary)",
-            }}
+              color: isActive ? "var(--text)" : "var(--text-secondary)",
+              background: isActive ? "var(--card)" : "transparent",
+              borderLeft: isActive ? "2px solid var(--blue)" : "2px solid transparent",
+            })}
           >
             <span style={{ width: 22, textAlign: "center" }} aria-hidden>
               ?
             </span>
-            Docs
-          </a>
+            Help
+          </NavLink>
         </div>
 
         <div

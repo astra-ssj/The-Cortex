@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from api.schemas import FindingPatchBody, PaginatedRemediationFindings
+from core.rbac import Permission, require_permission
 from core.security import get_current_user
 from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
 
@@ -34,6 +36,33 @@ FINDINGS_STORE: list[dict[str, Any]] = [
     {"org_id": "demo-org-001", "id": "finding-011", "title": "Business continuity plan not tested", "severity": "MEDIUM", "framework": "NIS2 Directive", "framework_id": "nis2-2022-2555", "control_id": "NIS2-RM-03", "control_name": "BCP/DR", "reference": "NIS2 Art.21(2)(c)", "entity": "AstraLabs DE", "entity_code": "DE", "status": "REMEDIATED", "current_state": "BCP tested in Q4 2025 tabletop exercise", "required_state": "Annual BCP test with documented results", "actions": ["Conduct annual BCP tabletop", "Document test results", "Address gaps identified"], "completed_actions": [0, 1, 2], "owner": "CISO", "due_date": "2026-01-31", "days_open": 0, "priority": "P2", "notes": []},
     {"org_id": "demo-org-001", "id": "finding-012", "title": "Security awareness training completion below 90%", "severity": "LOW", "framework": "ISO/IEC 27001:2022", "framework_id": "iso27001-2022", "control_id": "ISO-A.6.3", "control_name": "Information security awareness", "reference": "ISO 27001 A.6.3", "entity": "AstraLabs TH", "entity_code": "TH", "status": "IN_PROGRESS", "current_state": "72% completion rate across TH entity", "required_state": "90%+ completion with evidence", "actions": ["Send reminder to incomplete staff", "Set completion deadline", "Report to entity head"], "completed_actions": [0], "owner": "Security Lead TH", "due_date": "2026-02-28", "days_open": 15, "priority": "P2", "notes": []},
 ]
+
+
+def attach_evidence_to_finding(
+    finding_id: str,
+    *,
+    evidence_id: str,
+    title: str,
+    document_id: str | None = None,
+) -> bool:
+    """Append a graph evidence reference to an in-memory remediation finding (idempotent)."""
+    for f in FINDINGS_STORE:
+        if f.get("id") != finding_id:
+            continue
+        items: list[dict[str, Any]] = list(f.get("evidence") or [])
+        if any(str(e.get("id")) == evidence_id for e in items if isinstance(e, dict)):
+            return True
+        entry: dict[str, Any] = {
+            "id": evidence_id,
+            "title": title,
+            "linked_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if document_id:
+            entry["document_id"] = document_id
+        items.append(entry)
+        f["evidence"] = items
+        return True
+    return False
 
 
 @router.get("", summary="List all findings")
@@ -83,7 +112,7 @@ async def get_finding(
 async def update_finding(
     finding_id: str,
     body: FindingPatchBody,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_permission(Permission.edit_findings)),
 ) -> dict[str, Any]:
     """Accept: status, owner, due_date, notes, completed_actions, priority. Log to audit fabric."""
     idx = next((i for i, f in enumerate(FINDINGS_STORE) if f.get("id") == finding_id), None)

@@ -72,7 +72,7 @@ export const ROADMAP_EPICS: RoadmapEpic[] = [
       { id: "s3-5", title: "AWS connector", status: "in_progress", priority: "P1", owner: "CORTEX", phase: 2 },
       { id: "s3-6", title: "HR system import", status: "not_started", priority: "P2", owner: "Manual", phase: 3 },
       { id: "s3-7", title: "Real-time scanning", status: "not_started", priority: "P2", owner: "Manual", phase: 3 },
-      { id: "s3-8", title: "Test document ingestion", status: "not_started", priority: "P0", owner: "CORTEX", phase: 2 },
+      { id: "s3-8", title: "Test document ingestion", status: "done", priority: "P0", owner: "CORTEX", phase: 2 },
       { id: "s3-9", title: "Test Azure connector", status: "not_started", priority: "P0", owner: "CORTEX", phase: 2 },
       { id: "s3-10", title: "Test AWS connector", status: "not_started", priority: "P0", owner: "CORTEX", phase: 2 },
     ],

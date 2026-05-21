@@ -20,6 +20,7 @@ from api.schemas import PaginatedJsonRows
 from core.audit_fabric import audit_fabric
 from core.shasta_queue import enqueue_shasta_scan_job, redis_url_configured
 from db.session import async_session_factory
+from core.rbac import Permission, require_permission
 from core.security import get_current_user
 from core.tenant import resolve_scoped_org_id
 from core.shasta_evidence_links import sync_evidence_control_links_for_run
@@ -348,7 +349,7 @@ async def run_shasta_scan_persisted(
     body: ShastaScanRequest,
     background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_permission(Permission.manage_integrations)),
 ) -> dict[str, Any]:
     """Enqueue Shasta scan — returns ``scan_run_id`` with ``running``; worker persists to Postgres.
 
@@ -420,7 +421,7 @@ async def run_shasta_scan_persisted(
 async def ingest_shasta_json(
     body: ShastaIngestRequest,
     session: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_permission(Permission.manage_integrations)),
 ) -> dict[str, Any]:
     """Persist externally produced Shasta-shaped finding payloads (subprocess contract)."""
     from app.connectors.shasta.shasta_adapter import shasta_finding_payload_to_normalized

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { getToken } from "../api/client";
 import {
   fetchFramework,
   fetchFrameworkControls,
@@ -22,6 +23,9 @@ export function useFrameworks() {
       const items = page.items;
       return Array.isArray(items) ? items : [];
     },
+    enabled: Boolean(getToken()),
+    retry: 1,
+    staleTime: 60_000,
   });
 }
 

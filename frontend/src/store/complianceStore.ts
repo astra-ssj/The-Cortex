@@ -10,6 +10,7 @@ import type { AssessmentEvent, CompliancePosture, ZTAIPStatus } from "../types/c
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import {
   buildStreamUrl,
+  complianceGraphQueryKey,
   getToken,
   organisationsApi,
   reviewQueueQueryKey,
@@ -28,6 +29,7 @@ export function invalidateComplianceData(queryClient: QueryClient, orgId: string
   if (id) {
     void queryClient.invalidateQueries({ queryKey: postureQueryKey(id) });
     void queryClient.invalidateQueries({ queryKey: reviewQueueQueryKey(id) });
+    void queryClient.invalidateQueries({ queryKey: complianceGraphQueryKey(id) });
   }
 }
 
@@ -88,12 +90,33 @@ export function useCompliancePosture(orgId: string | null) {
   });
 }
 
+function mapZtaipResponse(raw: Record<string, unknown>): ZTAIPStatus {
+  const af = (raw.auditFabric ?? raw.audit_fabric) as Record<string, unknown> | undefined;
+  return {
+    auditFabric: {
+      totalEvents: Number(af?.totalEvents ?? af?.total_events ?? 0),
+      lastEventAt:
+        (af?.lastEventAt ?? af?.last_event_at) != null
+          ? String(af?.lastEventAt ?? af?.last_event_at)
+          : null,
+    },
+    circuitBreakersCount: Number(raw.circuitBreakersCount ?? raw.circuit_breakers_count ?? 0),
+    humanReviewQueueCount: Number(raw.humanReviewQueueCount ?? raw.human_review_queue_count ?? 0),
+    sovereigntyBroker: (raw.sovereigntyBroker ?? raw.sovereignty_broker ?? "unavailable") as ZTAIPStatus["sovereigntyBroker"],
+    agentCertificatesCount: Number(raw.agentCertificatesCount ?? raw.agent_certificates_count ?? 0),
+  };
+}
+
 export function useZtaipStatus() {
   return useQuery({
     queryKey: ztaipStatusQueryKey,
-    queryFn: () => ztaipApi.getStatus() as Promise<ZTAIPStatus>,
+    queryFn: async () => {
+      const raw = await ztaipApi.getStatus();
+      return mapZtaipResponse(raw as Record<string, unknown>);
+    },
     staleTime: 30_000,
     refetchInterval: 30_000,
+    retry: 1,
   });
 }
 

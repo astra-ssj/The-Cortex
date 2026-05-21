@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { LogoIcon } from "./Logo";
 
 type HelpSection = {
@@ -67,7 +68,7 @@ const SECTIONS: HelpSection[] = [
       {
         subtitle: "1. Register your organisation",
         body:
-          "Go to /register, enter your company details, choose your jurisdiction. CORTEX will pre-select relevant frameworks based on your location.",
+          "Go to /register, enter your company details, choose your jurisdiction. CORTEX will pre-select relevant frameworks based on your location. See Help → full onboarding guide.",
       },
       {
         subtitle: "2. Complete the setup wizard",
@@ -241,8 +242,8 @@ const SECTIONS: HelpSection[] = [
           "I → Intelligence",
           "A → AI Systems",
           "R → Review Queue",
-          "H → Help (this panel)",
-          "Esc → Close Help",
+          "H → Help & Documentation (full page)",
+          "Esc → Close panel",
         ].join("\n"),
       },
     ],
@@ -357,6 +358,19 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                 Help & Documentation
               </h2>
               <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-tertiary)" }}>CORTEX v0.7.0</p>
+              <Link
+                to="/help"
+                onClick={onClose}
+                style={{
+                  display: "inline-block",
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: "var(--cyan)",
+                  textDecoration: "none",
+                }}
+              >
+                Open full onboarding guide →
+              </Link>
             </div>
           </div>
           <button
@@ -457,6 +471,13 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                         </div>
                       ))}
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <Link
+                          to="/help"
+                          onClick={onClose}
+                          style={{ color: "var(--cyan)", fontSize: 13, textDecoration: "none" }}
+                        >
+                          Help & onboarding (full page) →
+                        </Link>
                         <a
                           href="https://github.com/AstraLabs-AI/The-Cortex"
                           target="_blank"

@@ -37,7 +37,8 @@ def shasta_auth_headers() -> dict[str, str]:
             "sub": "shasta-api-test@cortex.local",
             "email": "shasta-api-test@cortex.local",
             "org_id": "demo-org-001",
-            "role": "ciso",
+            "role": "admin",
+            "is_demo": True,
         }
     )
     return {"Authorization": f"Bearer {token}"}

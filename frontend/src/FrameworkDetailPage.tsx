@@ -7,6 +7,7 @@ import { FileUpload } from "./components/ui/FileUpload";
 import { Modal } from "./components/ui/Modal";
 import { useOrgContext } from "./hooks/useOrgContext";
 import { frameworkQueryKey, useFramework } from "./hooks/useFrameworks";
+import { invalidateComplianceData } from "./store/complianceStore";
 
 export function FrameworkDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -124,6 +125,7 @@ export function FrameworkDetailPage() {
                   { onProgress }
                 );
                 await queryClient.invalidateQueries({ queryKey: frameworkQueryKey(id) });
+                invalidateComplianceData(queryClient, orgId);
                 window.setTimeout(() => setEvidenceControlId(null), 1000);
               }}
             />

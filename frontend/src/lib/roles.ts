@@ -39,8 +39,11 @@ export const ROLE_LABELS: Record<Role, string> = {
   viewer: "Viewer",
 };
 
-/** Defaults legacy / unknown API role strings to admin until backend ships RBAC claims. */
+/** Map JWT / API role to UI role. Unknown values fail closed to viewer (matches server RBAC). */
 export function normalizeRole(raw: unknown): Role {
   if (raw === "admin" || raw === "analyst" || raw === "viewer") return raw;
-  return "admin";
+  const r = typeof raw === "string" ? raw.toLowerCase() : "";
+  if (r === "admin" || r === "administrator") return "admin";
+  if (r === "ciso" || r === "dpo" || r === "analyst" || r === "security_lead") return "analyst";
+  return "viewer";
 }
