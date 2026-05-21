@@ -29,6 +29,7 @@ type NavItem = {
 const POSTURE: NavItem[] = [
   { label: "Dashboard", path: "/dashboard", icon: "◫" },
   { label: "Frameworks", path: "/frameworks", icon: "▦" },
+  { label: "Graph", path: "/graph", icon: "◎" },
   { label: "Findings", path: "/evidence", icon: "⚑", badge: "findings" },
   { label: "Group View", path: "/group", icon: "⊞" },
 ];

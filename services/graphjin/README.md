@@ -13,7 +13,7 @@
 
 ## Compose
 
-- **`graphjin`** uses Compose **`profiles: [graphql]`**. Start with: `docker compose --profile graphql up -d` (with `postgres` already up or in the same command).
+- **`graphjin`** starts with the default stack: `docker compose up -d` (alongside `postgres` and `api`).
 - Service **`graphjin`** maps **host `8080`** → GraphJin.
 - **API** remains **`8000`**.
 - The image entrypoint is the `graphjin` CLI; Compose sets **`command: ["serve", "--path", "/app/config"]`** so the HTTP server actually starts (without this, the container prints help and exits).

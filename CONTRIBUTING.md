@@ -40,6 +40,8 @@ Three rules that must be preserved in all contributions:
 
 3. **Tenant isolation** — every DB query must be scoped by `org_id` from the JWT. No cross-tenant data access ever.
 
+**GraphJin** runs as a Docker sidecar on port **8080** (`services/graphjin/`). It auto-generates GraphQL from the PostgreSQL schema — use it for graph traversals and nested read queries. All writes and authenticated product traffic stay on FastAPI.
+
 ## Code expectations
 
 - **Python:** type hints, **structlog** for logging (do not use `print` or `logging.info` for operational messages).

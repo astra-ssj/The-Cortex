@@ -19,7 +19,8 @@ for f in \
   "$ROOT/migrations/009_shasta_cloud.sql" \
   "$ROOT/migrations/010_shasta_evidence_control_links.sql" \
   "$ROOT/migrations/011_operational_persistence.sql" \
-  "$ROOT/migrations/012_security_auth.sql"
+  "$ROOT/migrations/012_security_auth.sql" \
+  "$ROOT/migrations/013_compliance_graph.sql"
   do
   echo "Applying $(basename "$f")..."
   psql -f "$f"

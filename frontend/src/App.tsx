@@ -30,6 +30,7 @@ import { TopBar } from "./components/TopBar";
 import { CommandPalette } from "./components/CommandPalette";
 import Settings from "./pages/Settings";
 import { FrameworksList } from "./pages/FrameworksList";
+import ComplianceGraph from "./pages/ComplianceGraph";
 import FindingDetail from "./pages/FindingDetail";
 
 function MainChrome() {
@@ -73,8 +74,21 @@ function MainChrome() {
 }
 
 function AuthGate() {
-  const token = getToken();
   const loc = useLocation();
+  const [authTick, setAuthTick] = useState(0);
+
+  useEffect(() => {
+    const onAuthChange = () => setAuthTick((n) => n + 1);
+    window.addEventListener("cortex:auth-expired", onAuthChange);
+    window.addEventListener("storage", onAuthChange);
+    return () => {
+      window.removeEventListener("cortex:auth-expired", onAuthChange);
+      window.removeEventListener("storage", onAuthChange);
+    };
+  }, []);
+
+  void authTick;
+  const token = getToken();
   if (!token) {
     return <Navigate to="/login" replace />;
   }
@@ -208,6 +222,7 @@ function AppRoutes() {
             <Route path="/group" element={<GroupDashboard />} />
             <Route path="/frameworks" element={<FrameworksList />} />
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
+            <Route path="/graph" element={<ComplianceGraph />} />
             <Route path="/intelligence" element={<Intelligence />} />
             <Route path="/ai-systems" element={<AISystems />} />
             <Route path="/review-queue" element={<HumanReview />} />
