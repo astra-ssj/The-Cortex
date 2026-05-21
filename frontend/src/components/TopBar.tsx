@@ -7,6 +7,7 @@ import { useRole } from "../hooks/useRole";
 import { useFramework, useFrameworks } from "../hooks/useFrameworks";
 import { useAssessmentStream, useCompliancePosture } from "../store/complianceStore";
 import { Button } from "./ui/Button";
+import { LlmProviderBadge } from "./LlmProviderBadge";
 
 function LiveClock() {
   const [time, setTime] = useState(new Date());
@@ -34,6 +35,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/integrations": "Integrations",
   "/roadmap": "Roadmap",
   "/settings": "Settings",
+  "/help": "Help & Documentation",
 };
 
 function formatAssessed(iso: string | undefined): string {
@@ -145,6 +147,7 @@ export function TopBar() {
         }}
       >
         {can("canToggleDemo") ? <DemoToggle /> : null}
+        <LlmProviderBadge />
         <LiveClock />
         <Button
           type="button"

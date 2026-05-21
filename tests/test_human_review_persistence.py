@@ -92,7 +92,7 @@ async def test_approve_persists_to_reviewed(client: TestClient, auth_headers: di
 
 
 @pytest.mark.asyncio
-async def test_override_persists_to_reviewed(client: TestClient, auth_headers: dict[str, str]) -> None:
+async def test_override_persists_to_reviewed(client: TestClient, admin_headers: dict[str, str]) -> None:
     if not await database_ready():
         pytest.skip("database not reachable")
 
@@ -101,14 +101,14 @@ async def test_override_persists_to_reviewed(client: TestClient, auth_headers: d
     await _seed_pending_item(item_id)
 
     try:
-        rq = client.get("/api/v1/assessments/review-queue", headers=auth_headers)
+        rq = client.get("/api/v1/assessments/review-queue", headers=admin_headers)
         if rq.status_code == 503:
             pytest.skip("human_review schema not applied")
         assert rq.status_code == 200
 
         ov = client.post(
             f"/api/v1/assessments/controls/{item_id}/override",
-            headers=auth_headers,
+            headers=admin_headers,
             json={
                 "assessment": "COMPLIANT",
                 "justification": "pytest override — twenty chars minimum rationale here.",
@@ -117,7 +117,7 @@ async def test_override_persists_to_reviewed(client: TestClient, auth_headers: d
         assert ov.status_code == 200, ov.text
         assert ov.json().get("status") == "overridden"
 
-        after = client.get("/api/v1/assessments/review-queue", headers=auth_headers)
+        after = client.get("/api/v1/assessments/review-queue", headers=admin_headers)
         assert after.status_code == 200
         reviewed = after.json().get("reviewed", [])
         match = next((x for x in reviewed if x["id"] == item_id), None)

@@ -554,10 +554,11 @@ async def create_service_key(
     current_user: dict[str, Any] = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
-    """Create a service API key for the caller's organisation (ADMIN role). Raw key is shown once."""
-    role = str(current_user.get("role") or "").upper()
-    if role != "ADMIN":
-        raise HTTPException(status_code=403, detail="ADMIN role required")
+    """Create a service API key for the caller's organisation (admin only). Raw key is shown once."""
+    from core.rbac import Permission, user_has_permission
+
+    if not user_has_permission(current_user, Permission.manage_api_keys):
+        raise HTTPException(status_code=403, detail="Permission denied: manage_api_keys")
     org_id = str(current_user.get("org_id") or "")
     if not org_id:
         raise HTTPException(status_code=400, detail="Missing organisation")

@@ -1,56 +1,103 @@
 # CORTEX SAST Report
 
-Generated: 2026-05-01  
-Version: v0.7.4 (release tag per security milestone; `pyproject.toml` package version unchanged)
+**Generated:** 2026-05-21  
+**Package:** `cortex` 0.1.0  
+**Scope:** Backend (`api/`, `core/`, `compliance/`, `db/`, `ontology/`, `services/compliance-engine/app/`), frontend (`frontend/src/`)
 
 ## Summary
 
-| Tool | Findings | Critical | High | Medium | Fixed |
-|------|----------|----------|------|--------|-------|
-| Bandit (`services/compliance-engine/app/`, `api/`, `core/`) | 4 → 0 | 0 | 0 | 1 → 0 | 4 |
-| Semgrep (`p/python`, `p/secrets`, `p/owasp-top-ten` on compliance-engine; `p/secrets` on `api/` + `core/`) | 3 → 0 | 0 | 0 | 0 | 3 |
-| npm audit (`frontend`, `--audit-level=high`) | 0 | 0 | 0 | — | — |
-| npm audit (`--audit-level=moderate`) | 2 | 0 | 0 | 2 | 1 (postcss via `npm audit fix`) |
-| Safety (`pip freeze` on scan host; CI uses project install + freeze) | 7 reported | 0 | 0 | — | Addressed in `pyproject.toml` pins |
-| ESLint (`eslint-plugin-security`, `eslint-plugin-no-unsanitized`) | 25 | 0 | 0 | — | 0 errors |
-| Manual checks (below) | — | 0 | 0 | — | Pass |
+| Tool | Findings (actionable) | Critical | High | Medium | Low | CI gate |
+|------|----------------------|----------|------|--------|-----|---------|
+| Ruff | 0 (4 unused imports fixed in-run) | — | — | — | — | Yes (`.github/workflows/ci.yml`) |
+| Bandit `-ll` | 0 High/Med; 15 Low | 0 | 0 | 0 | 15 | Yes |
+| Mypy `api` + `core` | 33 type errors | — | — | — | — | No (local advisory) |
+| ESLint + security plugins | 0 errors; 56 warnings | 0 | 0 | — | 56 warn | Yes (lint step) |
+| npm audit `--audit-level=high` | 0 high | 0 | 0 | — | 6 mod (dev) | Yes |
+| pip-audit | 1 (`idna` CVE) | — | — | — | 1 | Yes (`security` job) |
+| Semgrep | Not re-run locally | — | — | — | — | `.github/workflows/sast.yml` |
 
-## Critical Findings Fixed
+## Ruff
 
-None. No critical issues were reported by the tools above.
+```bash
+ruff check api core compliance db ontology services/compliance-engine/app tests --ignore E501
+```
 
-## High Findings Fixed
+**Result:** All checks passed (after auto-fix).
 
-None at High severity. The following **Medium** / policy issues were remediated:
+**Fixed during 2026-05-21 run:**
 
-- **Bandit B608** (`api/auth.py`): Dynamic SQL string for onboarding `UPDATE` replaced with SQLAlchemy `update()` + bound parameters.
-- **Bandit B105** (legacy `admin`/`admin` path): Removed hardcoded password; login enabled only when `CORTEX_LEGACY_DEMO_PASSWORD` is set (compose default documents local demo only).
-- **Bandit B105** (`core/security.py`): Dev JWT signing placeholder annotated with `# nosec B105` (documented non-production default).
-- **Literal JWT bypass** (`core/security.py`): Replaced hardcoded bearer `TOKEN` with `CORTEX_TOKEN_BYPASS_VALUE` when `CORTEX_ALLOW_TOKEN_BYPASS` is enabled.
-- **Compliance-engine auth stub** (`services/compliance-engine/.../auth.py`): Removed hardcoded stub token and default demo password; stub requires env configuration (defaults supplied in `docker-compose.yml` for local stacks).
-- **Semgrep** (`p/secrets`): False-positive “bcrypt hash” hits on **known demo password hashes** suppressed with `# nosemgrep` (hashes are public demo material, not live secrets).
+- `core/evidence_persistence.py` — unused `ControlRef` import
+- `tests/test_assessment_llm.py` — unused `asyncio`, `MagicMock`
+- `tests/test_report_pdf.py` — unused `TestClient`
 
-## Accepted Risks
+## Bandit
 
-- **npm (moderate):** Remaining `vite` advisory (path traversal in optimized deps `.map` handling) has fix paths that require a **major** Vite upgrade; risk is primarily **development-server** exposure. Tracked for a planned Vite 6+ upgrade.
-- **ESLint `security/detect-object-injection` (warnings):** Twenty-five warnings on dynamic property access where keys are **application-controlled** (framework IDs, wizard steps). Reviewed; no change required for exploitability in current UX.
+```bash
+bandit -r api core compliance db ontology services/compliance-engine/app -ll --skip B101
+```
 
-## Manual Checks
+**Result:** No issues at Low confidence and above in the report summary; metrics show **15 Low** severity findings at Medium confidence (typical try/except or assert patterns). Exit code **0** with `-ll` threshold.
+
+**Skipped:** B101 (`assert` in tests) via `--skip B101`.
+
+## Mypy (advisory)
+
+```bash
+mypy api core
+```
+
+**Result:** 33 errors in 9 files — predominantly:
+
+- `no-any-return` in LLM providers and `api/main.py` middleware/helpers
+- `arg-type` on Starlette `add_exception_handler` registrations
+
+Not enforced in CI today; treat as tech-debt backlog.
+
+## Frontend ESLint
+
+```bash
+cd frontend && npm run lint
+```
+
+**Result:** 0 errors, **56 warnings** — all `security/detect-object-injection` on dynamic keys (framework IDs, feature flags, wizard state). Reviewed as **accepted risk** (application-controlled keys). See prior report rationale.
+
+Plugins: `eslint-plugin-security`, `eslint-plugin-no-unsanitized`.
+
+## Dependency audits
+
+### Python (`pip-audit`)
+
+| Package | Version | ID | Fix |
+|---------|---------|-----|-----|
+| idna | 3.13 | CVE-2026-45409 | ≥ 3.15 |
+
+### Node (`npm audit --audit-level=high`)
+
+**High:** 0  
+**Moderate (below CI fail threshold):** `brace-expansion`, `esbuild` / `vite` dev-server chain — upgrade path is major Vite bump; dev-only exposure.
+
+## Manual checks (2026-05-21)
 
 | Check | Result |
 |-------|--------|
-| JWT / signing secret hardcoded | `JWT_SECRET` / `CORTEX_SECRET_KEY` with dev fallback only (logged); bypass requires explicit env |
-| SQL injection (`f"...SELECT`, etc.) | No problematic patterns; onboarding uses SQLAlchemy `update()` |
-| Sensitive data in logs | No password/token logging patterns found in sampled `api/` routers |
-| CORS wildcard | Explicit origin list + `FRONTEND_URL` |
+| JWT / signing secret hardcoded in prod path | Env-driven; dev defaults documented |
+| SQL injection (`f"...SELECT` in app code) | Parameterised / SQLAlchemy |
+| `dangerouslySetInnerHTML` in `frontend/src` | Not found |
+| CORS wildcard | Allowlist + `FRONTEND_URL` |
 | FastAPI `debug=True` | Not used |
-| `dangerouslySetInnerHTML` | Not present under `frontend/src/` |
-| Hardcoded frontend credentials | None found (excluding placeholders/copy) |
-| `random` for security-sensitive use | Not used in compliance-engine app |
-| Open redirect | No `RedirectResponse`/`navigate` on raw user URLs found in scoped grep |
+| LLM calls without CircuitBreaker | Ingest/assessment use `core/llm` + breaker per architecture rules |
+| Raw LLM in routers | Routed through `core/llm` |
 
-## Next Steps
+## Next steps
 
-- Schedule penetration test (ISO 27001 A.8.8).
-- Keep **SAST in CI** (`.github/workflows/sast.yml`).
-- Re-run quarterly and before major releases; upgrade Vite when the ecosystem catches up without breaking the build.
+1. Bump **`idna>=3.15`** and re-run `pip-audit`.
+2. Isolate **`test_llm_providers`** stub-only case from Compose `CORTEX_LLM_PROVIDERS` env (or document required test env).
+3. Stabilise **`smoke_assessment_llm.sh`** / `test_api_assessments` SSE `run_done` contract.
+4. Schedule Semgrep workflow re-run on PR (`.github/workflows/sast.yml`).
+5. Plan Vite 6+ upgrade to clear moderate dev dependency advisories.
+
+## Related
+
+- [`QA-REPORT.md`](QA-REPORT.md) — full QA + smoke run log
+- [`docs/RELEASE_QA.md`](docs/RELEASE_QA.md) — pre-release checklist
+- [`SECURITY.md`](SECURITY.md) — security policy

@@ -181,10 +181,14 @@ def test_create_evidence_from_mapping() -> None:
 # ---- API (TestClient) ----
 
 
-def test_ingest_document_rejects_large_file() -> None:
+def test_ingest_document_rejects_large_file(auth_headers: dict[str, str]) -> None:
     """POST /api/v1/ingest/document rejects file > 10MB."""
     big = b"x" * (11 * 1024 * 1024)
-    r = client.post("/api/v1/ingest/document", files={"file": ("big.txt", io.BytesIO(big), "text/plain")})
+    r = client.post(
+        "/api/v1/ingest/document",
+        files={"file": ("big.txt", io.BytesIO(big), "text/plain")},
+        headers=auth_headers,
+    )
     # Body-size middleware may answer 413 before route validation returns 400.
     assert r.status_code in (400, 413)
     data = r.json()
@@ -192,17 +196,22 @@ def test_ingest_document_rejects_large_file() -> None:
     assert "10MB" in str(msg) or "maximum" in str(msg).lower() or "exceeds" in str(msg).lower()
 
 
-def test_ingest_document_rejects_bad_type() -> None:
+def test_ingest_document_rejects_bad_type(auth_headers: dict[str, str]) -> None:
     """POST rejects non-PDF/DOCX/TXT."""
-    r = client.post("/api/v1/ingest/document", files={"file": ("x.xml", io.BytesIO(b"<a/>"), "application/xml")})
+    r = client.post(
+        "/api/v1/ingest/document",
+        files={"file": ("x.xml", io.BytesIO(b"<a/>"), "application/xml")},
+        headers=auth_headers,
+    )
     assert r.status_code == 400
 
 
-def test_ingest_document_rejects_path_traversal_filename() -> None:
+def test_ingest_document_rejects_path_traversal_filename(auth_headers: dict[str, str]) -> None:
     r"""POST rejects filename with path traversal (.. or / or \)."""
     r = client.post(
         "/api/v1/ingest/document",
         files={"file": ("../../../etc/passwd.txt", io.BytesIO(b"x"), "text/plain")},
+        headers=auth_headers,
     )
     assert r.status_code == 400
     data = r.json()
@@ -210,21 +219,23 @@ def test_ingest_document_rejects_path_traversal_filename() -> None:
     assert "path traversal" in msg or "invalid filename" in msg
 
 
-def test_ingest_document_accepts_txt() -> None:
+def test_ingest_document_accepts_txt(auth_headers: dict[str, str]) -> None:
     """POST /api/v1/ingest/document accepts TXT and returns streaming response."""
     r = client.post(
         "/api/v1/ingest/document",
         files={"file": ("sample.txt", io.BytesIO(b"Policy document content here."), "text/plain")},
+        headers=auth_headers,
     )
     assert r.status_code == 200
     assert "text/event-stream" in r.headers.get("content-type", "")
 
 
-def test_ingest_document_stream_includes_progress_and_summary() -> None:
+def test_ingest_document_stream_includes_progress_and_summary(auth_headers: dict[str, str]) -> None:
     """SSE stream includes progress, mapping_done, evidence_created, summary, done."""
     r = client.post(
         "/api/v1/ingest/document",
         files={"file": ("sample.txt", io.BytesIO(b"Short policy."), "text/plain")},
+        headers=auth_headers,
     )
     assert r.status_code == 200
     text = r.text
@@ -233,13 +244,31 @@ def test_ingest_document_stream_includes_progress_and_summary() -> None:
     assert "event: done" in text or "event: summary" in text
 
 
-def test_ingest_document_pipeline_error_emits_error_event() -> None:
+def test_ingest_document_accepts_finding_metadata(auth_headers: dict[str, str]) -> None:
+    """Multipart finding_id / control_id forwarded; stream completes."""
+    r = client.post(
+        "/api/v1/ingest/document",
+        data={
+            "finding_id": "finding-001",
+            "control_id": "GDPR-BN-02",
+            "framework_id": "gdpr-2016-679",
+            "org_id": "demo-org-001",
+        },
+        files={"file": ("policy.txt", io.BytesIO(b"Breach notification procedure."), "text/plain")},
+        headers=auth_headers,
+    )
+    assert r.status_code == 200
+    assert "event: done" in r.text or "event: summary" in r.text
+
+
+def test_ingest_document_pipeline_error_emits_error_event(auth_headers: dict[str, str]) -> None:
     """When mapping raises, stream emits error event (audit ingest_done still runs)."""
     with patch("app.api.v1.ingest.map_chunks_to_ontology", new_callable=AsyncMock) as mock_map:
         mock_map.side_effect = RuntimeError("LLM unavailable")
         r = client.post(
             "/api/v1/ingest/document",
             files={"file": ("sample.txt", io.BytesIO(b"Some content for chunks."), "text/plain")},
+            headers=auth_headers,
         )
         assert r.status_code == 200
         assert "event: error" in r.text

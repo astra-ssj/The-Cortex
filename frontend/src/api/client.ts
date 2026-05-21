@@ -181,6 +181,7 @@ export async function computeIngestDocumentId(file: File): Promise<string> {
 function sseProgressFromEvent(event: string, dataLine: string): number | null {
   if (event === "mapping_done") return 72;
   if (event === "evidence_created") return 86;
+  if (event === "persisted") return 92;
   if (event === "summary") return 94;
   if (event === "done") return 100;
   if (event !== "progress") return null;
@@ -197,12 +198,19 @@ function sseProgressFromEvent(event: string, dataLine: string): number | null {
   return null;
 }
 
+export interface IngestSseResult {
+  evidenceId?: string;
+  controlsLinked?: number;
+  findingLinked?: boolean;
+}
+
 /** Consume ingest SSE stream; throws on ``event: error``; optional rough progress from pipeline events. */
 async function consumeIngestSseBody(
   body: ReadableStream<Uint8Array> | null,
   onProgress?: (pct: number) => void
-): Promise<void> {
-  if (!body) return;
+): Promise<IngestSseResult> {
+  const result: IngestSseResult = {};
+  if (!body) return result;
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -227,6 +235,20 @@ async function consumeIngestSseBody(
       const dataTrim = data.trim();
       const pct = sseProgressFromEvent(ev, dataTrim);
       if (pct != null) onProgress?.(pct);
+      if (ev === "persisted" || ev === "summary") {
+        try {
+          const j = JSON.parse(dataTrim) as {
+            evidence_id?: string;
+            controls_linked?: number;
+            finding_linked?: boolean;
+          };
+          if (j.evidence_id) result.evidenceId = j.evidence_id;
+          if (typeof j.controls_linked === "number") result.controlsLinked = j.controls_linked;
+          if (typeof j.finding_linked === "boolean") result.findingLinked = j.finding_linked;
+        } catch {
+          /* ignore */
+        }
+      }
       if (ev === "error") {
         let msg = "Document ingest failed";
         try {
@@ -239,6 +261,7 @@ async function consumeIngestSseBody(
       }
     }
   }
+  return result;
 }
 
 export interface UploadEvidenceOptions {
@@ -247,7 +270,7 @@ export interface UploadEvidenceOptions {
 
 /**
  * POST /api/v1/ingest/document — multipart file upload; response is SSE (not JSON).
- * Extra form fields are forwarded for future linking (finding/control metadata); pipeline currently uses the file only.
+ * Forwards finding/control/framework metadata for graph linking and remediation attachment.
  */
 export async function uploadEvidence(
   file: File,
@@ -259,7 +282,7 @@ export async function uploadEvidence(
     description?: string;
   },
   options?: UploadEvidenceOptions
-): Promise<{ id: string; filename: string }> {
+): Promise<{ id: string; filename: string; evidenceId?: string; controlsLinked?: number }> {
   const formData = new FormData();
   formData.append("file", file);
   Object.entries(metadata).forEach(([k, v]) => {
@@ -289,10 +312,15 @@ export async function uploadEvidence(
   }
 
   options?.onProgress?.(8);
-  await consumeIngestSseBody(res.body, options?.onProgress);
+  const ingestMeta = await consumeIngestSseBody(res.body, options?.onProgress);
   options?.onProgress?.(100);
 
-  return { id, filename: file.name };
+  return {
+    id,
+    filename: file.name,
+    evidenceId: ingestMeta.evidenceId,
+    controlsLinked: ingestMeta.controlsLinked,
+  };
 }
 
 async function postApi<T>(path: string, body: unknown): Promise<T> {
@@ -469,7 +497,45 @@ export const integrationsApi = {
   list: () => fetchApi<IntegrationSummary[]>("/api/v1/integrations"),
   get: (id: string) => fetchApi<IntegrationDetail>(`/api/v1/integrations/${encodeURIComponent(id)}`),
   test: (id: string) => fetchApi<{ status: string; message?: string }>(`/api/v1/integrations/${encodeURIComponent(id)}/test`, { method: "POST" }),
+  m365Status: (orgId: string) =>
+    fetchApi<M365ConnectionStatus>(
+      `/api/v1/integrations/microsoft-365/status?org_id=${encodeURIComponent(orgId)}`
+    ),
+  m365Sync: (orgId: string) =>
+    postApi<M365SyncResult>("/api/v1/integrations/microsoft-365/sync", { org_id: orgId }),
+  m365Findings: (orgId: string) =>
+    fetchApi<PaginatedJsonRows<M365FindingRow>>(
+      `/api/v1/integrations/microsoft-365/findings?org_id=${encodeURIComponent(orgId)}&limit=20`
+    ),
 };
+
+export interface M365ConnectionStatus {
+  connected: boolean;
+  status: string;
+  mock_mode?: boolean;
+  last_sync_at?: string | null;
+  findings_count?: number;
+  sync_run_id?: string;
+}
+
+export interface M365SyncResult {
+  org_id: string;
+  sync_run_id: string;
+  findings_count: number;
+  evidence_created: number;
+  mock_mode: boolean;
+  status: string;
+  engine_sync_id: string;
+}
+
+export interface M365FindingRow {
+  id: number;
+  title?: string;
+  severity_normalized?: string;
+  check_id?: string;
+  compliance_status?: string;
+  framework_controls?: Record<string, string[]>;
+}
 
 export interface IntegrationSetupStep {
   step: number;
@@ -622,6 +688,51 @@ export async function fetchExecutiveSummary(
   return fetchApi<ExecutiveSummaryReport>(
     `/api/v1/reports/executive-summary${qs ? `?${qs}` : ""}`
   );
+}
+
+function executiveSummarySearchParams(params?: ExecutiveSummaryParams): URLSearchParams {
+  const search = new URLSearchParams();
+  if (params?.org_id) search.set("org_id", params.org_id);
+  if (params?.as_at) search.set("as_at", params.as_at);
+  if (params?.entity_scope) search.set("entity_scope", params.entity_scope);
+  search.set("format", "pdf");
+  return search;
+}
+
+/** Download server-generated executive summary PDF (auditor pack). */
+export async function downloadExecutiveSummaryPdf(
+  params?: ExecutiveSummaryParams
+): Promise<void> {
+  const search = executiveSummarySearchParams(params);
+  const token = getToken();
+  const url = `${API_BASE || ""}/api/v1/reports/executive-summary/export?${search.toString()}`;
+  const headers: HeadersInit = { Accept: "application/pdf" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(url, { method: "GET", headers });
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearCortexBrowserSession();
+      window.dispatchEvent(new CustomEvent("cortex:auth-expired"));
+    }
+    const errText = await res.text().catch(() => "");
+    throw new Error(errText.trim() || `PDF export failed (HTTP ${res.status})`);
+  }
+
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const match = /filename="?([^";\n]+)"?/i.exec(disposition);
+  const filename = match?.[1]?.trim() || `Executive-Summary-${params?.as_at || "report"}.pdf`;
+
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(objectUrl);
 }
 
 // ---- Remediation / Findings (for RemediationTracker) ----

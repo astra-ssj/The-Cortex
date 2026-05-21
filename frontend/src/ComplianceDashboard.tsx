@@ -209,7 +209,7 @@ export function ComplianceDashboard() {
             <span className="font-medium" style={{ color: "var(--text-secondary)" }}>
               ZTAIP:
             </span>{" "}
-            audit events {ztaip.auditFabric.totalEvents} · circuit breakers {ztaip.circuitBreakersCount} · human review
+            audit events {ztaip.auditFabric?.totalEvents ?? 0} · circuit breakers {ztaip.circuitBreakersCount} · human review
             queue {ztaip.humanReviewQueueCount} · {ztaip.sovereigntyBroker}
           </div>
         )}
@@ -275,7 +275,7 @@ export function ComplianceDashboard() {
           <span className="font-medium" style={{ color: "var(--text-secondary)" }}>
             ZTAIP:
           </span>{" "}
-          audit events {ztaip.auditFabric.totalEvents} · circuit breakers {ztaip.circuitBreakersCount} · human review
+          audit events {ztaip.auditFabric?.totalEvents ?? 0} · circuit breakers {ztaip.circuitBreakersCount} · human review
           queue {ztaip.humanReviewQueueCount} · {ztaip.sovereigntyBroker}
         </div>
       )}

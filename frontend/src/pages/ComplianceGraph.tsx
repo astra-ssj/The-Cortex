@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   useComplianceGraph,
   type ComplianceGraphEdge,
@@ -54,12 +54,25 @@ function edgeDash(edge: ComplianceGraphEdge): string | undefined {
 export default function ComplianceGraph() {
   const { orgId } = useOrgContext();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const highlightRaw = searchParams.get("highlight");
   const { data, isLoading, error } = useComplianceGraph(orgId);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [filter, setFilter] = useState<NodeFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dims, setDims] = useState({ w: 800, h: 520 });
+
+  useEffect(() => {
+    if (!highlightRaw || !data?.nodes.length) return;
+    const target = highlightRaw.startsWith("evidence:")
+      ? highlightRaw
+      : `evidence:${highlightRaw}`;
+    if (data.nodes.some((n) => n.id === target)) {
+      setSelectedId(target);
+      setFilter("evidence");
+    }
+  }, [highlightRaw, data?.nodes]);
 
   useEffect(() => {
     const el = containerRef.current;

@@ -15,6 +15,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.canonical_roles import normalize_canonical_role
 from db.deps import get_db
 
 logger = structlog.get_logger()
@@ -89,12 +90,14 @@ def _claims_user(payload: dict[str, Any]) -> dict[str, Any]:
     email = payload.get("email") or ""
     name = payload.get("name") or payload.get("full_name") or email or ""
     entity = payload.get("entity") or payload.get("org_name") or ""
-    role_raw = payload.get("role", "CISO")
+    role_raw = payload.get("role", "viewer")
+    canonical = normalize_canonical_role(str(role_raw) if role_raw is not None else None)
     return {
         "sub": payload.get("sub"),
         "user_id": str(payload.get("sub") or ""),
         "email": email,
-        "role": str(role_raw).lower() if isinstance(role_raw, str) else role_raw,
+        "role": canonical.value,
+        "canonical_role": canonical.value,
         "org_id": str(payload.get("org_id") or ""),
         "name": name,
         "entity": entity,
@@ -136,11 +139,13 @@ async def decode_access_token_async(session: AsyncSession, token: str) -> dict[s
 
     if isinstance(sub, str) and sub in DEMO_USERS:
         u = DEMO_USERS[sub]
+        demo_role = normalize_canonical_role(u["role"])
         return {
             "sub": sub,
             "user_id": sub,
             "email": sub,
-            "role": u["role"],
+            "role": demo_role.value,
+            "canonical_role": demo_role.value,
             "org_id": "demo-org-001",
             "name": u["name"],
             "entity": u["entity"],

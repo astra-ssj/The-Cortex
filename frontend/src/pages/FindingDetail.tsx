@@ -260,16 +260,30 @@ export default function FindingDetail() {
             <h2 className="font-ui text-lg font-semibold text-cortex-text">Evidence</h2>
             {evidenceList.length > 0 ? (
               <ul className="mt-3 space-y-2">
-                {evidenceList.map((ev, i) => (
-                  <li
-                    key={i}
-                    className="rounded-lg border border-cortex-border bg-cortex-surface px-3 py-2 font-ui text-sm text-cortex-text"
-                  >
-                    {typeof ev === "object" && ev !== null && "label" in ev
-                      ? String((ev as { label?: string }).label)
-                      : JSON.stringify(ev)}
-                  </li>
-                ))}
+                {evidenceList.map((ev, i) => {
+                  const row =
+                    typeof ev === "object" && ev !== null
+                      ? (ev as { id?: string; title?: string; label?: string })
+                      : null;
+                  const title = row?.title ?? row?.label ?? JSON.stringify(ev);
+                  const eid = row?.id;
+                  return (
+                    <li
+                      key={eid ?? i}
+                      className="rounded-lg border border-cortex-border bg-cortex-surface px-3 py-2 font-ui text-sm text-cortex-text"
+                    >
+                      <span>{title}</span>
+                      {eid ? (
+                        <Link
+                          to={`/graph?highlight=${encodeURIComponent(eid)}`}
+                          className="mt-1 block font-ui text-xs text-cortex-blue hover:underline"
+                        >
+                          View on compliance graph →
+                        </Link>
+                      ) : null}
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="mt-3 font-ui text-sm text-cortex-muted">
@@ -281,9 +295,14 @@ export default function FindingDetail() {
                 <FileUpload
                   label="Attach evidence"
                   onUpload={async (file, onProgress) => {
-                    await uploadEvidence(
+                    const result = await uploadEvidence(
                       file,
-                      { org_id: orgId, finding_id: finding.id },
+                      {
+                        org_id: orgId,
+                        finding_id: finding.id,
+                        control_id: finding.control_id,
+                        framework_id: finding.framework_id,
+                      },
                       { onProgress }
                     );
                     await queryClient.invalidateQueries({ queryKey: ["finding", id, orgId] });
@@ -291,6 +310,12 @@ export default function FindingDetail() {
                       queryKey: ["findings", "byFramework", finding.framework_id, orgId],
                     });
                     invalidateComplianceData(queryClient, orgId);
+                    const linked = result.controlsLinked ?? 0;
+                    return {
+                      successMessage: result.evidenceId
+                        ? `Linked to ${linked} control${linked === 1 ? "" : "s"} on the compliance graph. Open Graph to explore.`
+                        : "Document processed (graph tables unavailable in this environment).",
+                    };
                   }}
                 />
               </div>

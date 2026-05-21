@@ -337,8 +337,14 @@ async def get_integration(integration_id: str):
 
 @router.post("/{integration_id}/test")
 async def test_integration(integration_id: str):
+    if integration_id == "microsoft-365":
+        return {
+            "integration_id": integration_id,
+            "status": "mock_ready",
+            "message": "Demo mode: use Sync now to pull Microsoft 365 signals (CORTEX_M365_MOCK).",
+        }
     return {
         "integration_id": integration_id,
         "status": "coming_soon",
-        "message": "Live connection testing coming in v0.4.0"
+        "message": "Live connection testing coming in v0.4.0",
     }

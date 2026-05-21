@@ -1,0 +1,67 @@
+# CORTEX UI demo — social / investor recording guide
+
+~60–90 second story: **upload proof → AI maps to controls → graph updates → finding closed loop**.
+
+## Before you record
+
+1. Start stack: `docker compose up -d` (API + Postgres; migration `013_compliance_graph.sql` applied via init).
+2. Frontend: `cd frontend && npm run dev` → http://localhost:5173
+3. Login: **ciso@astralabs.com** / **cortex-ciso-2026** (analyst can ingest).
+4. Org: **AstraLabs DE** (`demo-org-001`).
+5. Optional live LLM: `ANTHROPIC_API_KEY` in API env. Without it, **stub** provider still completes the flow (deterministic GDPR mapping + your control hint).
+
+## Demo file (bundled)
+
+Use the repo fixture (reads well on camera):
+
+`tests/fixtures/sample_breach_procedure.txt`
+
+Copy to Desktop if you prefer dragging from Finder.
+
+## Shot list (recommended order)
+
+| # | Screen | Action | Line (optional voiceover) |
+|---|--------|--------|---------------------------|
+| 1 | Dashboard | Pause on posture + frameworks | “This is CORTEX — compliance intelligence, not another spreadsheet.” |
+| 2 | Remediation → **finding-001** | Open “72-hour breach notification procedure not tested” | “Every gap is a finding with owner and control context.” |
+| 3 | Finding detail → **Attach evidence** | Upload `sample_breach_procedure.txt` | “Watch the document map to the ontology in real time.” |
+| 4 | Same page | Point at success + evidence list + **View on compliance graph** | “Evidence is persisted — not a demo toast.” |
+| 5 | **Compliance Graph** | Filter **Evidence**, select new node (green) | “One upload can prove multiple frameworks — test once, comply many.” |
+| 6 | Audit report (optional) | Executive summary | “When the auditor asks, we export the pack.” |
+
+## Recording tips
+
+- **Resolution:** 1920×1080, 30fps; crop to 16:9 for LinkedIn/X.
+- **Browser:** Zoom 110%, hide bookmarks bar, use dark theme (CORTEX default).
+- **Mouse:** Slow moves; pause 2s on graph after upload.
+- **Audio:** Short sentences; avoid reading control IDs aloud — say “breach notification” not “GDPR-BN-02”.
+- **B-roll:** SSE progress bar during upload (shows “Mapping to ontology via …”).
+
+## Post copy (templates)
+
+**LinkedIn**
+
+> We shipped the first closed loop in CORTEX: upload a policy → LLM maps it to your control ontology → evidence lands on the compliance graph. No integration required. Built on ZTAIP (circuit breakers, audit fabric, human review under 0.75 confidence).  
+> #compliance #GRC #NIS2 #GDPR #AI
+
+**X**
+
+> Upload → map → graph. Manual evidence in CORTEX today. Integrations next.  
+> [video]
+
+## Troubleshooting on camera
+
+| Issue | Fix |
+|-------|-----|
+| Upload 401 | Re-login; token expired |
+| “Graph tables unavailable” | Run Postgres + migration 013 |
+| Empty graph after upload | Refresh; confirm org `demo-org-001` |
+| Stub mapping only | Expected without API keys; hint control still links from finding |
+
+## What to say we’re *not* claiming yet
+
+- Server-side PDF export (browser print today)
+- Live Microsoft 365 sync (mock connector next)
+- Scheduled assessments / email alerts
+
+Keeps the demo credible.

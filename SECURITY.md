@@ -34,7 +34,32 @@ We respond within 48 hours and patch critical issues within 7 days.
 | SQL injection        | Parameterised queries only   |
 | Evidence integrity   | SHA-256 hash chain           |
 | Tenant isolation     | `org_id` scoping on all queries |
+| LLM calls            | `core/llm` multi-provider router (Anthropic, OpenAI, stub); CircuitBreaker on ingest; no document body in audit payloads |
 | Supply chain (CI)    | `pip-audit` and `npm audit` (high severity threshold for npm) on push/PR to `main` |
+
+## LLM configuration
+
+| Variable | Purpose |
+|----------|---------|
+| `CORTEX_LLM_PROVIDERS` | Comma-separated chain, e.g. `anthropic,openai,stub` (default) |
+| `ANTHROPIC_API_KEY` | Anthropic Messages API |
+| `ANTHROPIC_MODEL` | Model id (default `claude-sonnet-4-20250514`) |
+| `OPENAI_API_KEY` | Optional OpenAI fallback |
+| `OPENAI_MODEL` | OpenAI model (default `gpt-4o-mini`) |
+
+See [docs/LLM_PROVIDERS.md](docs/LLM_PROVIDERS.md).
+
+## Verification reports
+
+Before release, run the checklist in [docs/RELEASE_QA.md](docs/RELEASE_QA.md). Latest automated run summaries:
+
+| Report | Purpose |
+|--------|---------|
+| [QA-REPORT.md](QA-REPORT.md) | QA, pytest, HTTP smokes |
+| [SAST-REPORT.md](SAST-REPORT.md) | Ruff, Bandit, ESLint, dependency audits |
+| [SECURITY_REPORT.md](SECURITY_REPORT.md) | Security posture history + run log |
+
+**Last run (2026-05-21):** Frontend build/tests pass; Ruff/Bandit pass; `smoke_happy_path` + Track B ingest pass; `pip-audit` flags `idna` upgrade; 2 pytest failures on Compose DB; Track A assessment smoke missing `run_done`.
 
 ## Known Development Limitations
 

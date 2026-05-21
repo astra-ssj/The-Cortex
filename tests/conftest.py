@@ -58,21 +58,45 @@ def client() -> TestClient:
     return TestClient(app)
 
 
-@pytest.fixture
-def auth_headers() -> dict[str, str]:
-    """Signed demo JWT — no Postgres round-trip; safe with TestClient event loop."""
+def make_auth_headers(
+    role: str,
+    *,
+    org_id: str = "demo-org-001",
+    email: str = "rbac-test@cortex.local",
+) -> dict[str, str]:
     token = create_access_token(
         {
-            "sub": _DEMO_USER,
-            "email": _DEMO_USER,
-            "org_id": "demo-org-001",
-            "role": "ciso",
+            "sub": email,
+            "email": email,
+            "org_id": org_id,
+            "role": role,
             "is_demo": True,
             "onboarding_complete": True,
             "onboarding_step": 5,
         }
     )
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def auth_headers() -> dict[str, str]:
+    """Analyst-capable demo JWT (maps legacy CISO → analyst on server)."""
+    return make_auth_headers("ciso", email=_DEMO_USER)
+
+
+@pytest.fixture
+def analyst_headers() -> dict[str, str]:
+    return make_auth_headers("analyst")
+
+
+@pytest.fixture
+def viewer_headers() -> dict[str, str]:
+    return make_auth_headers("viewer")
+
+
+@pytest.fixture
+def admin_headers() -> dict[str, str]:
+    return make_auth_headers("admin")
 
 
 @pytest.fixture

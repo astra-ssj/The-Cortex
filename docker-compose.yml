@@ -26,6 +26,7 @@ services:
       - ./migrations/010_shasta_evidence_control_links.sql:/docker-entrypoint-initdb.d/10_shasta_evidence_links.sql:ro
       - ./migrations/012_security_auth.sql:/docker-entrypoint-initdb.d/11_security_auth.sql:ro
       - ./migrations/013_compliance_graph.sql:/docker-entrypoint-initdb.d/12_compliance_graph.sql:ro
+      - ./migrations/014_microsoft_integration.sql:/docker-entrypoint-initdb.d/13_microsoft_integration.sql:ro
       - ./services/graphjin/migrations:/graphjin/migrations:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
@@ -75,6 +76,7 @@ services:
       CORTEX_LLM_MAX_INGEST_CHARS: ${CORTEX_LLM_MAX_INGEST_CHARS:-24000}
       CORTEX_ASSESSMENT_LLM_ENABLED: ${CORTEX_ASSESSMENT_LLM_ENABLED:-1}
       CORTEX_ASSESSMENT_MAX_CONTROLS: ${CORTEX_ASSESSMENT_MAX_CONTROLS:-5}
+      CORTEX_M365_MOCK: ${CORTEX_M365_MOCK:-1}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}

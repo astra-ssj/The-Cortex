@@ -98,6 +98,10 @@ export interface AssessmentEventControlResult {
   controlName: string;
   status: "assessed" | "skipped" | "error";
   finding?: string;
+  /** ZTAIP confidence from assessment LLM (0–1). */
+  confidence?: number;
+  llm_provider?: string;
+  compliance_status?: string;
   /** GRC bundled skill matched for this framework (assessment_engine). */
   skill_id?: string | null;
   skill_name?: string;

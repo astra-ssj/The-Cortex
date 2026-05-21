@@ -13,6 +13,7 @@ from core.audit_fabric import audit_fabric
 from db.session import database_ready
 from core.circuit_breaker import circuit_breakers_count
 from core.human_review import human_review_pending_total_async
+from core.llm import llm_platform_status
 
 from api.schemas import AuditFabricStatus, ZTAIPStatus
 
@@ -35,6 +36,12 @@ async def get_system_ready() -> dict[str, str] | JSONResponse:
             503,
         )
     return {"status": "ready", "database": "ok"}
+
+
+@router.get("/system/llm-providers")
+async def get_llm_providers() -> dict:
+    """Configured LLM provider chain (Anthropic, OpenAI, stub) — no secrets."""
+    return llm_platform_status()
 
 
 @router.get("/system/ztaip-status", response_model=ZTAIPStatus)

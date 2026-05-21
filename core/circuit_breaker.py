@@ -133,5 +133,10 @@ async def load_circuit_breaker_states_from_db() -> None:
 _assessment_breaker = CircuitBreaker("assessment_llm", failure_threshold=5)
 register_circuit_breaker(_assessment_breaker)
 
+
+def get_assessment_breaker() -> CircuitBreaker:
+    """Module-level assessment LLM breaker (ZTAIP: no naked LLM calls)."""
+    return _assessment_breaker
+
 # Singleton list for "read real state" — API returns count.
 circuit_breakers = _breakers

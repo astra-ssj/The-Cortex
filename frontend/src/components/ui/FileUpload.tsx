@@ -1,8 +1,14 @@
 import { useCallback, useId, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 
+import { isFeatureEnabled } from "../../lib/featureFlags";
+import { primaryIngestProvider, useLlmProviders } from "../../hooks/useLlmProviders";
+
 export interface FileUploadProps {
-  /** Return a promise that rejects on upload/processing failure. */
-  onUpload: (file: File, onProgress?: (pct: number) => void) => Promise<void>;
+  /** Return a promise that rejects on upload/processing failure. Optional successMessage for UI. */
+  onUpload: (
+    file: File,
+    onProgress?: (pct: number) => void
+  ) => Promise<void | { successMessage?: string }>;
   accept?: string;
   maxSizeMB?: number;
   label?: string;
@@ -51,7 +57,7 @@ function FileIcon({ className }: { className?: string }) {
 export function FileUpload({
   onUpload,
   accept = DEFAULT_ACCEPT,
-  maxSizeMB = 25,
+  maxSizeMB = 10,
   label = "Evidence file",
   className = "",
 }: FileUploadProps) {
@@ -62,12 +68,17 @@ export function FileUpload({
   const [fileSize, setFileSize] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const maxBytes = maxSizeMB * 1024 * 1024;
+  const ingestLive = isFeatureEnabled("evidenceIngestLive");
+  const { data: llmStatus } = useLlmProviders();
+  const ingestProvider = ingestLive ? primaryIngestProvider(llmStatus) : null;
 
   const resetForNewFile = useCallback(() => {
     setStatus("idle");
     setErrorMessage(null);
+    setSuccessMessage(null);
     setProgress(0);
   }, []);
 
@@ -94,9 +105,12 @@ export function FileUpload({
 
       setStatus("uploading");
       try {
-        await onUpload(file, (pct) => setProgress(Math.min(100, Math.max(0, pct))));
+        const outcome = await onUpload(file, (pct) =>
+          setProgress(Math.min(100, Math.max(0, pct)))
+        );
         setStatus("success");
         setProgress(100);
+        setSuccessMessage(outcome?.successMessage ?? "Evidence mapped and saved to compliance graph.");
       } catch (e) {
         setStatus("error");
         setErrorMessage(e instanceof Error ? e.message : "Upload failed");
@@ -140,6 +154,13 @@ export function FileUpload({
   return (
     <div className={`font-ui ${className}`}>
       <p className="mb-2 text-sm font-medium text-cortex-text">{label}</p>
+      {ingestLive && ingestProvider ? (
+        <p className="mb-2 text-xs text-cortex-muted">
+          Ontology mapping via{" "}
+          <span className="font-data text-cortex-text-ter">{ingestProvider}</span>
+          {ingestProvider === "stub" ? " (offline — set ANTHROPIC_API_KEY for live LLM)" : ""}
+        </p>
+      ) : null}
 
       <input
         ref={inputRef}
@@ -193,11 +214,16 @@ export function FileUpload({
           ) : null}
 
           {status === "success" ? (
-            <div className="flex items-center gap-2 text-sm text-cortex-green">
-              <span aria-hidden>✓</span>
-              <span>
-                Uploaded <span className="font-medium">{fileName}</span>
-              </span>
+            <div className="space-y-1 text-sm text-cortex-green">
+              <div className="flex items-center gap-2">
+                <span aria-hidden>✓</span>
+                <span>
+                  Uploaded <span className="font-medium">{fileName}</span>
+                </span>
+              </div>
+              {successMessage ? (
+                <p className="text-xs text-cortex-muted">{successMessage}</p>
+              ) : null}
             </div>
           ) : null}
 

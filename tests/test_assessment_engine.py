@@ -14,6 +14,21 @@ from compliance import FrameworkId
 from services.assessment_engine import run_assessment_stream
 
 
+def _mock_control_result(**kwargs: object) -> dict:
+    base = {
+        "kind": "control_result",
+        "frameworkId": FrameworkId.GDPR_2016_679.value,
+        "controlId": "ctrl-1",
+        "controlName": "Test Control",
+        "status": "assessed",
+        "finding": "Mock assessment.",
+        "confidence": 0.9,
+        "llm_provider": "test",
+    }
+    base.update(kwargs)
+    return base
+
+
 @contextmanager
 def _stream_session_mocks(context_return: dict[str, str]) -> None:
     """Patch org profile + DB persist so AsyncMock session is never executed against Postgres."""
@@ -31,7 +46,21 @@ def _stream_session_mocks(context_return: dict[str, str]) -> None:
                 new_callable=AsyncMock,
             ) as m_ctx:
                 m_ctx.return_value = context_return
-                yield
+                with patch(
+                    "services.assessment_engine.assess_control_with_llm",
+                    new_callable=AsyncMock,
+                ) as m_llm:
+
+                    async def _llm_side_effect(_session: object, **kwargs: object) -> dict:
+                        ctrl = kwargs["control"]
+                        return _mock_control_result(
+                            controlId=ctrl.id,
+                            controlName=ctrl.name,
+                            frameworkId=str(kwargs["framework_id"]),
+                        )
+
+                    m_llm.side_effect = _llm_side_effect
+                    yield
 
 
 def test_run_assessment_stream_yields_run_start_and_run_done() -> None:

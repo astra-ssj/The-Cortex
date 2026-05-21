@@ -14,7 +14,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
-from core.security import get_current_user, get_current_user_optional, get_current_user_stream
+from core.rbac import Permission, require_permission, require_permission_stream
+from core.security import get_current_user
 from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -201,7 +202,7 @@ class RunAssessmentBody(BaseModel):
 @router.post("/assessments/run")
 async def run_assessment_post_json(
     body: RunAssessmentBody,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_permission(Permission.run_assessment)),
 ) -> dict[str, Any]:
     """Accept run intent; client opens GET /assessments/stream for SSE (EventSource cannot POST)."""
     effective = resolve_scoped_org_id(current_user, body.org_id.strip())
@@ -237,7 +238,7 @@ async def stream_assessment(
         ...,
         description="Comma-separated framework ids (e.g. iso27001-2022,gdpr-2016-679,...)",
     ),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(require_permission_stream(Permission.run_assessment)),
 ) -> StreamingResponse:
     """Stream assessment run via SSE. Params: org_id, frameworks (comma-separated)."""
     _validate_organization_id(org_id)
@@ -252,7 +253,7 @@ async def run_assessment(
         ...,
         description="Comma-separated framework ids (e.g. iso27001-2022,gdpr-2016-679,...)",
     ),
-    current_user: dict = Depends(get_current_user_stream),
+    current_user: dict = Depends(require_permission_stream(Permission.run_assessment)),
 ) -> StreamingResponse:
     """Stream assessment run via SSE (alias). Params: organization_id, framework_ids."""
     _validate_organization_id(organization_id)
@@ -509,7 +510,7 @@ async def get_review_queue(
 async def approve_control(
     control_id: str,
     body: ApproveRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_permission(Permission.approve_review)),
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     """Approve a flagged assessment. Logged to audit fabric. Moves item to reviewed."""
@@ -587,7 +588,7 @@ async def approve_control(
 async def override_control(
     control_id: str,
     body: OverrideRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_permission(Permission.override_review)),
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     """Override AI assessment. Logged immutably to audit fabric. Moves item to reviewed."""

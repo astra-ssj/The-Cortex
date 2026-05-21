@@ -1,0 +1,24 @@
+AstraLabs GmbH — Data Breach Notification Procedure (v2.1)
+
+1. Purpose
+This procedure implements GDPR Article 33 (72-hour notification to the supervisory authority)
+and supports NIS2 Article 23 early warning where applicable.
+
+2. Scope
+All personal data breaches affecting EU/EEA data subjects processed by AstraLabs entities.
+
+3. Roles
+- Incident Commander: CISO
+- DPO: coordinates supervisory authority communication
+- Legal: reviews notification content
+
+4. Timelines
+- Internal escalation: within 1 hour of confirmed breach
+- Supervisory authority notification: within 72 hours (GDPR Art.33)
+- Data subject notification: without undue delay when high risk
+
+5. Testing
+Tabletop exercise scheduled Q2 2026. Last full test: not yet completed (gap tracked as finding-001).
+
+6. Evidence
+Maintain incident log, notification templates, and authority contact list in the compliance vault.

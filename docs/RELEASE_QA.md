@@ -2,6 +2,22 @@
 
 Run before tagging a release or merging main-facing work. Commands assume repo root and match CI intent.
 
+## Latest verification run (2026-05-21)
+
+| Step | Status | Notes |
+|------|--------|-------|
+| Frontend `tsc` / lint / test / build | ✅ | 5 Vitest tests; 56 ESLint security warnings (0 errors) |
+| `npm audit --audit-level=high` | ✅ | 6 moderate (dev-only) |
+| Ruff + Bandit | ✅ | 4 unused imports auto-fixed; see [`SAST-REPORT.md`](../SAST-REPORT.md) |
+| Pytest (Compose DB via `docker compose run … api`) | ⚠️ | 135 passed, **2 failed**, 10 skipped |
+| `pip-audit` | ❌ | `idna` 3.13 → upgrade ≥ 3.15 |
+| `smoke_happy_path.sh` | ✅ | |
+| `smoke_ingest_llm.sh` | ✅ | Track B |
+| `smoke_assessment_llm.sh` | ❌ | SSE missing `run_done` |
+| Mypy `api core` | ⚠️ | 33 errors — advisory only |
+
+Full log: [`QA-REPORT.md`](../QA-REPORT.md).
+
 ## 1. Environment
 
 | Requirement | Notes |
@@ -55,6 +71,8 @@ cd frontend && npm audit --audit-level=high
 | Script | Purpose |
 |--------|---------|
 | `scripts/smoke_happy_path.sh` | Health → login → frameworks → review (needs API + DB) |
+| `scripts/smoke_ingest_llm.sh` | Track B — `GET /llm-providers` → login → `POST /ingest/document` SSE |
+| `scripts/smoke_assessment_llm.sh` | Track A — login → `POST /assessments/run` SSE (`control_result`, `run_done`) |
 | `scripts/verify_shasta_stack.sh` | Ephemeral Postgres :5433, schema, Shasta pytest + evidence-links unit tests |
 | `scripts/shasta_uvicorn_e2e.sh` | Manual lifecycle against real uvicorn (optional; respects HTTP 501 if Shasta missing) |
 
@@ -62,6 +80,19 @@ Example after `docker compose up -d` with API on :8000:
 
 ```bash
 bash scripts/smoke_happy_path.sh
+bash scripts/smoke_ingest_llm.sh
+bash scripts/smoke_assessment_llm.sh
+```
+
+**Pytest against Compose Postgres** (host port 5432 not published by default):
+
+```bash
+docker compose run --rm --no-deps \
+  -e DATABASE_URL=postgresql+asyncpg://cortex:cortex-dev@postgres:5432/cortex \
+  -e PYTHONPATH=/app:.:/app/services/compliance-engine \
+  -e CORTEX_DISABLE_RATE_LIMIT=1 -e CORTEX_TESTING=1 \
+  -v "$(pwd)":/app -w /app api \
+  sh -c 'pip install -q pytest pytest-asyncio psycopg2-binary && python -m pytest -q --tb=short'
 ```
 
 ## 4. Manual UX (5 minutes)
@@ -90,5 +121,14 @@ SELECT 1 FROM shasta_evidence_control_links LIMIT 0;
 
 - [ ] CI-equivalent commands pass locally or on PR.
 - [ ] No blocking `npm audit` / `pip-audit` issues above configured thresholds.
-- [ ] Smoke script passes against running stack (or documented exception).
+- [ ] Smoke scripts pass against running stack (`smoke_happy_path`, Track B ingest; Track A assessment documented if flaky).
+- [ ] Pytest green on Compose DB (see §3 docker one-liner).
 - [ ] Manual UX spot-check complete.
+
+## 8. Report artifacts
+
+| Document | Contents |
+|----------|----------|
+| [`QA-REPORT.md`](../QA-REPORT.md) | Latest QA + smoke + pytest summary |
+| [`SAST-REPORT.md`](../SAST-REPORT.md) | Ruff, Bandit, ESLint, pip/npm audit |
+| [`SECURITY_REPORT.md`](../SECURITY_REPORT.md) | Historical compliance-engine security review |
