@@ -38,6 +38,10 @@ CREATE INDEX IF NOT EXISTS idx_ar_org ON assessment_results(org_id);
 
 -- ─────────────────────────────────────────────
 -- 4. Demo admin (admin@astralabs.com / admin) — bcrypt rounds 12
+-- DEMO SEED ONLY. This is a publicly-known credential; do NOT ship in a production
+-- deployment. DO NOTHING on conflict so an operator-changed password is never
+-- silently reset back to the demo default on re-initialisation.
+-- TODO(release): gate this seed behind an explicit CORTEX_SEED_DEMO flag.
 -- ─────────────────────────────────────────────
 INSERT INTO users (id, email, password_hash, full_name, org_id, role, is_active)
 VALUES (
@@ -49,9 +53,7 @@ VALUES (
   'CISO',
   TRUE
 )
-ON CONFLICT (email) DO UPDATE SET
-  password_hash = EXCLUDED.password_hash,
-  updated_at = NOW();
+ON CONFLICT (email) DO NOTHING;
 
 -- ─────────────────────────────────────────────
 -- 5. Verify

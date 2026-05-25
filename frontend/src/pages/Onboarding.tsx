@@ -113,30 +113,25 @@ export default function Onboarding() {
       await assessmentsApi.run({ org_id: orgId, frameworks });
       setAssessmentRunAccepted(true);
       setStreaming(true);
-    } catch {
-      setAssessmentRunAccepted(false);
-      setStreaming(true);
+    } catch (e) {
+      // Surface the real failure instead of dropping the user into a misleading "running…" view.
+      setError(e instanceof Error ? e.message : "Could not start the assessment. Please try again.");
     } finally {
       setBusy(false);
     }
   }
 
   async function handleSkip() {
+    setBusy(true);
+    setError("");
     try {
-      const token = localStorage.getItem("cortex_token");
-      await fetch("/api/v1/auth/onboarding/step", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ step: 3 }),
-      });
+      await putOnboardingStep({ step: 3 });
       localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
-    } catch {
-      // Non-blocking
-    } finally {
       navigate("/dashboard", { replace: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not complete setup. Please try again.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -207,17 +202,9 @@ export default function Onboarding() {
           onComplete={() => {
             void (async () => {
               try {
-                const token = localStorage.getItem("cortex_token");
-                await fetch("/api/v1/auth/onboarding/step", {
-                  method: "PUT",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({ step: 3 }),
-                });
+                await putOnboardingStep({ step: 3 });
               } catch {
-                /* non-blocking */
+                // Best-effort: the assessment already ran; proceed to the dashboard either way.
               }
               localStorage.setItem("cortex_onboarding", JSON.stringify({ complete: true, step: 3 }));
 

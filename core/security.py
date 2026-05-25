@@ -21,6 +21,10 @@ from db.deps import get_db
 logger = structlog.get_logger()
 
 _DEV_SECRET_DEFAULT = "cortex-dev-jwt-signing-placeholder-not-for-production"  # nosec B105
+
+APP_ENV = os.getenv("CORTEX_ENV", os.getenv("APP_ENV", "development")).strip().lower()
+IS_PRODUCTION = APP_ENV in ("production", "prod", "staging")
+
 SECRET_KEY = (
     os.getenv("JWT_SECRET")
     or os.getenv("CORTEX_SECRET_KEY")
@@ -31,6 +35,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
 if SECRET_KEY == _DEV_SECRET_DEFAULT:
+    # Fail closed: a known signing key in production allows trivial token forgery.
+    if IS_PRODUCTION:
+        raise RuntimeError(
+            "JWT_SECRET (or CORTEX_SECRET_KEY) must be set to a strong random value "
+            "in production. Refusing to start with the built-in development key."
+        )
     logger.warning(
         "jwt_secret_default",
         message="JWT_SECRET/CORTEX_SECRET_KEY not set — using dev default. Set JWT_SECRET in production.",
@@ -38,6 +48,9 @@ if SECRET_KEY == _DEV_SECRET_DEFAULT:
 
 
 def _token_bypass_allowed() -> bool:
+    # The static token-bypass principal is a development-only convenience; never honour it in production.
+    if IS_PRODUCTION:
+        return False
     return os.getenv("CORTEX_ALLOW_TOKEN_BYPASS", "").lower() in ("1", "true", "yes")
 
 

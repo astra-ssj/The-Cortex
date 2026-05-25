@@ -63,13 +63,16 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cortex}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
+      # Required: JWT signing key. No default — the app fails closed in production without it.
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set (min 32 random chars)}
+      CORTEX_ENV: ${CORTEX_ENV:-development}
       # When set (e.g. redis://redis:6379/0 with profile ``queue``), Shasta scans enqueue to Redis instead of in-process BackgroundTasks.
       REDIS_URL: ${REDIS_URL:-}
       SHASTA_REDIS_URL: ${SHASTA_REDIS_URL:-}
-      # Local/demo only — override in production (see README security defaults).
-      CORTEX_LEGACY_DEMO_PASSWORD: ${CORTEX_LEGACY_DEMO_PASSWORD:-admin}
-      COMPLIANCE_ENGINE_STUB_PASSWORD: ${COMPLIANCE_ENGINE_STUB_PASSWORD:-demo}
-      COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN: ${COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN:-compliance-stub-dev-token}
+      # Local/demo only — disabled by default (empty). Set explicitly to enable the demo/legacy login paths; never set in production.
+      CORTEX_LEGACY_DEMO_PASSWORD: ${CORTEX_LEGACY_DEMO_PASSWORD:-}
+      COMPLIANCE_ENGINE_STUB_PASSWORD: ${COMPLIANCE_ENGINE_STUB_PASSWORD:-}
+      COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN: ${COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN:-}
       # LLM provider chain (Track B ingest) — set keys in .env or shell; stub used when unset.
       CORTEX_LLM_PROVIDERS: ${CORTEX_LLM_PROVIDERS:-anthropic,openai,stub}
       CORTEX_LLM_TIMEOUT_SECONDS: ${CORTEX_LLM_TIMEOUT_SECONDS:-90}

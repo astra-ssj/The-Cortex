@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import time
 from enum import Enum
 from typing import Any, Callable, TypeVar
 
@@ -11,6 +13,8 @@ from sqlalchemy import text
 logger = structlog.get_logger()
 
 T = TypeVar("T")
+
+_DEFAULT_RECOVERY_SECONDS = float(os.getenv("CORTEX_CIRCUIT_RECOVERY_SECONDS", "30"))
 
 
 class CircuitState(str, Enum):
@@ -22,11 +26,18 @@ class CircuitState(str, Enum):
 class CircuitBreaker:
     """Circuit breaker with optional Postgres-backed state (loaded at app startup, persisted after execute())."""
 
-    def __init__(self, name: str, failure_threshold: int = 5) -> None:
+    def __init__(
+        self,
+        name: str,
+        failure_threshold: int = 5,
+        recovery_seconds: float = _DEFAULT_RECOVERY_SECONDS,
+    ) -> None:
         self.name = name
         self.failure_threshold = failure_threshold
+        self.recovery_seconds = recovery_seconds
         self._state = CircuitState.CLOSED
         self._failures = 0
+        self._opened_at: float | None = None
 
     @property
     def state(self) -> CircuitState:
@@ -36,15 +47,22 @@ class CircuitBreaker:
         """Hydrate from Postgres after restart."""
         self._state = state
         self._failures = failures
+        if state == CircuitState.OPEN:
+            self._opened_at = time.monotonic()
 
     def record_success(self) -> None:
         self._state = CircuitState.CLOSED
         self._failures = 0
+        self._opened_at = None
 
     def record_failure(self) -> None:
         self._failures += 1
-        if self._failures >= self.failure_threshold:
+        if self._state == CircuitState.HALF_OPEN or self._failures >= self.failure_threshold:
             self._state = CircuitState.OPEN
+            self._opened_at = time.monotonic()
+
+    def _ready_to_retry(self) -> bool:
+        return self._opened_at is not None and (time.monotonic() - self._opened_at) >= self.recovery_seconds
 
     async def _persist_state_if_ready(self) -> None:
         from db.session import database_ready, engine
@@ -79,7 +97,12 @@ class CircuitBreaker:
 
     async def execute(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         if self._state == CircuitState.OPEN:
-            raise RuntimeError(f"Circuit breaker {self.name} is open")
+            if self._ready_to_retry():
+                # Cooldown elapsed: allow a single trial call to probe recovery.
+                self._state = CircuitState.HALF_OPEN
+                logger.info("circuit_breaker_half_open", breaker=self.name)
+            else:
+                raise RuntimeError(f"Circuit breaker {self.name} is open")
         try:
             result = await fn(*args, **kwargs)
             self.record_success()

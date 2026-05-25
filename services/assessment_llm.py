@@ -42,6 +42,29 @@ def _demo_control_result(
     }
 
 
+def _degraded_control_result(
+    *,
+    framework_id: str,
+    control: Control,
+    organization_id: str,
+    reason: str,
+) -> dict[str, Any]:
+    """Returned when the LLM is unavailable. Marked as not-assessed/degraded with zero
+    confidence so it is never mistaken for a real verdict and is routed to human review."""
+    return {
+        "kind": "control_result",
+        "frameworkId": framework_id,
+        "controlId": control.id,
+        "controlName": control.name,
+        "status": "degraded",
+        "compliance_status": "not_assessed",
+        "finding": f"Automated assessment unavailable for {control.name}. {reason}",
+        "confidence": 0.0,
+        "severity": "HIGH",
+        "llm_provider": "unavailable",
+    }
+
+
 def _reference_for_control(control: Control) -> str:
     for req in control.requirements:
         if req.article_ref:
@@ -164,7 +187,7 @@ async def assess_control_with_llm(
             entity_id=run_id,
             payload={"control_id": control.id, "error": str(e)},
         )
-        return _demo_control_result(
+        result = _degraded_control_result(
             framework_id=framework_id,
             control=control,
             organization_id=org_id,
@@ -172,7 +195,12 @@ async def assess_control_with_llm(
         )
 
     confidence = float(result.get("confidence") or 0.0)
-    if confidence < CONFIDENCE_THRESHOLD:
+    severity = str(result.get("severity") or "MEDIUM").upper()
+    # Human oversight (EU AI Act Art.14): route to review on low model confidence OR on
+    # high-impact verdicts, regardless of the model's self-reported confidence — which an
+    # injected document could otherwise inflate to skip the gate (server-side criteria).
+    needs_review = confidence < CONFIDENCE_THRESHOLD or severity in ("CRITICAL", "HIGH")
+    if needs_review:
         item_id = f"assess-{run_id[:8]}-{control.id}"[:120]
         assessment_label = str(result.get("compliance_status") or "unknown").upper().replace("_", " ")
         await enqueue_assessment_human_review(

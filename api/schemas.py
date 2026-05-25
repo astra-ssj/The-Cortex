@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class FrameworkSummary(BaseModel):
@@ -85,6 +85,11 @@ class PaginatedJsonRows(BaseModel):
     limit: int
 
 
+_FINDING_STATUSES = {"OPEN", "IN_PROGRESS", "REMEDIATED", "ACCEPTED", "RISK_ACCEPTED"}
+_FINDING_SEVERITIES = {"CRITICAL", "HIGH", "MEDIUM", "LOW"}
+_FINDING_PRIORITIES = {"P0", "P1", "P2", "P3"}
+
+
 class FindingPatchBody(BaseModel):
     """PATCH body for remediation findings (partial update)."""
 
@@ -92,13 +97,59 @@ class FindingPatchBody(BaseModel):
 
     status: str | None = None
     severity: str | None = None
-    owner: str | None = None
-    due_date: str | None = None
+    owner: str | None = Field(None, max_length=200)
+    due_date: str | None = Field(None, max_length=40)
     priority: str | None = None
     notes: list[Any] | None = None
-    note_append: str | None = None
-    note_timestamp: str | None = None
+    note_append: str | None = Field(None, max_length=4000)
+    note_timestamp: str | None = Field(None, max_length=40)
     completed_actions: list[int] | None = None
+
+    @field_validator("status")
+    @classmethod
+    def _check_status(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        norm = v.strip().upper()
+        if norm not in _FINDING_STATUSES:
+            raise ValueError(f"status must be one of {sorted(_FINDING_STATUSES)}")
+        return norm
+
+    @field_validator("severity")
+    @classmethod
+    def _check_severity(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        norm = v.strip().upper()
+        if norm not in _FINDING_SEVERITIES:
+            raise ValueError(f"severity must be one of {sorted(_FINDING_SEVERITIES)}")
+        return norm
+
+    @field_validator("priority")
+    @classmethod
+    def _check_priority(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        norm = v.strip().upper()
+        if norm not in _FINDING_PRIORITIES:
+            raise ValueError(f"priority must be one of {sorted(_FINDING_PRIORITIES)}")
+        return norm
+
+    @field_validator("notes")
+    @classmethod
+    def _cap_notes(cls, v: list[Any] | None) -> list[Any] | None:
+        if v is not None and len(v) > 500:
+            raise ValueError("notes list too large")
+        return v
+
+    @field_validator("completed_actions")
+    @classmethod
+    def _check_actions(cls, v: list[int] | None) -> list[int] | None:
+        if v is None:
+            return v
+        if len(v) > 100 or any(i < 0 or i > 1000 for i in v):
+            raise ValueError("completed_actions out of range")
+        return v
 
 
 # ---- Compliance posture (matches frontend src/types/compliance.ts) ----

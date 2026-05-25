@@ -43,6 +43,9 @@ _LEGACY_DEMO_PASSWORD = os.getenv("CORTEX_LEGACY_DEMO_PASSWORD", "").strip()
 LOGIN_MAX_ATTEMPTS = int(os.getenv("CORTEX_LOGIN_MAX_ATTEMPTS", "5"))
 LOGIN_LOCKOUT_MINUTES = int(os.getenv("CORTEX_LOGIN_LOCKOUT_MINUTES", "15"))
 
+# Constant bcrypt hash used to equalise response timing for unknown accounts (mitigates user enumeration).
+_DUMMY_PASSWORD_HASH = "$2b$12$Dd2gDvE6wOyJHfCXF75f4eY2eUGVtXX7LPS1VkENlmBRcftj2F/XO"  # nosec B105
+
 
 class RegisterBody(BaseModel):
     company_name: str = Field(..., min_length=1)
@@ -336,8 +339,12 @@ async def login(
                 {"mins": LOGIN_LOCKOUT_MINUTES, "id": db_user["id"]},
             )
             logger.warning("account_locked", email=db_user["email"], attempts=n)
+        # Persist the failed-attempt/lockout state now; the request ends in a 401 below,
+        # which would otherwise roll back the request transaction and discard the increment.
+        await session.commit()
     else:
-        pass
+        # Equalise timing for unknown accounts so response latency does not reveal which emails exist.
+        verify_password(password, _DUMMY_PASSWORD_HASH)
 
     demo = DEMO_USERS.get(username)
     if demo and verify_password(password, demo["hashed_password"]):

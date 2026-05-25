@@ -57,7 +57,9 @@ except ImportError as _v1_import_err:
 
 logger = structlog.get_logger()
 
-_MAX_BODY_BYTES = int(os.getenv("CORTEX_MAX_BODY_BYTES", str(2 * 1024 * 1024)))
+_MAX_BODY_BYTES = int(os.getenv("CORTEX_MAX_BODY_BYTES", str(10 * 1024 * 1024)))
+# Swagger/Redoc load assets from a CDN; exempt them from the strict API CSP.
+_CSP_EXEMPT_PATHS = ("/docs", "/redoc", "/openapi.json")
 _CSRF_PROTECT = os.getenv("CORTEX_CSRF_PROTECT", "0").lower() in ("1", "true", "yes")
 
 if not _has_v1:
@@ -130,6 +132,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "Permissions-Policy",
             "geolocation=(), microphone=(), camera=()",
         )
+        path = request.url.path.split("?", 1)[0]
+        if not path.startswith(_CSP_EXEMPT_PATHS):
+            # API serves JSON only — lock it down so any HTML-sniffed response cannot run scripts or be framed.
+            response.headers.setdefault(
+                "Content-Security-Policy",
+                "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+            )
         return response
 
 
@@ -214,8 +223,13 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         return response
 
 
+from core.security import IS_PRODUCTION
+
 _frontend = os.getenv("FRONTEND_URL", "http://localhost:3000").strip().rstrip("/")
-_cors_origins = [
+# Localhost dev origins are only trusted outside production. In production the allowlist
+# is driven solely by FRONTEND_URL so a deployed API does not accept credentialed
+# requests from arbitrary localhost origins.
+_dev_origins = [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost:3001",
@@ -229,6 +243,7 @@ _cors_origins = [
     "http://127.0.0.1:3003",
     "http://127.0.0.1:3004",
 ]
+_cors_origins = [] if IS_PRODUCTION else list(_dev_origins)
 if _frontend and _frontend not in _cors_origins:
     _cors_origins.append(_frontend)
 

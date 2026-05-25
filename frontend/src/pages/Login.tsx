@@ -53,7 +53,7 @@ export default function Login({ onSuccess }: LoginProps) {
       const form = new URLSearchParams();
       form.append("username", email);
       form.append("password", password);
-      const base = import.meta.env.DEV ? "" : "http://localhost:8000";
+      const base = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL ?? "");
       const res = await fetch(`${base}/api/v1/auth/token`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },

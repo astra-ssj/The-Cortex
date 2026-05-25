@@ -4,8 +4,9 @@ import { useCallback } from "react";
 import { ALL_FRAMEWORK_IDS as ALL_FRAMEWORK_IDS_BUNDLE } from "../lib/frameworkRegistry";
 import { clearCortexBrowserSession } from "../lib/cortexSession";
 
-// In dev use relative URLs so Vite proxy (→ localhost:8000) is used; avoids CORS and connection to wrong host.
-const API_BASE = import.meta.env.DEV ? "" : "http://localhost:8000";
+// In dev use relative URLs so the Vite proxy (→ localhost:8000) is used; avoids CORS and connecting to the wrong host.
+// In production use VITE_API_URL when set, otherwise same-origin ("") so the deployed app talks to its own backend.
+const API_BASE = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL ?? "");
 
 /** Abort hung fetches (proxy waiting on dead API). Set VITE_FETCH_TIMEOUT_MS=0 to disable. */
 const FETCH_TIMEOUT_MS = Number(import.meta.env.VITE_FETCH_TIMEOUT_MS ?? 45000);
@@ -76,7 +77,7 @@ async function refreshAccessToken(): Promise<boolean> {
       const { init: timed, clearTimer, timedOutRef } = withFetchTimeout(refreshInit);
       let res: Response;
       try {
-        res = await fetch(url, { ...refreshInit, ...timed });
+        res = await fetch(url, timed);
       } catch {
         if (timedOutRef.current) return false;
         return false;
@@ -104,7 +105,14 @@ async function refreshAccessToken(): Promise<boolean> {
 
 export const getUser = (): Record<string, unknown> | null => {
   const u = localStorage.getItem("cortex_user");
-  return u ? JSON.parse(u) : null;
+  if (!u) return null;
+  try {
+    return JSON.parse(u) as Record<string, unknown>;
+  } catch {
+    // Corrupt/partial value (e.g. interrupted write or tampering) — treat as logged out.
+    localStorage.removeItem("cortex_user");
+    return null;
+  }
 };
 
 export async function fetchApi<T = unknown>(

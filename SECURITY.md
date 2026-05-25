@@ -26,15 +26,15 @@ We respond within 48 hours and patch critical issues within 7 days.
 
 | Control              | Implementation               |
 |----------------------|------------------------------|
-| Authentication       | JWT HS256, 8h expiry         |
-| Passwords            | bcrypt 12 rounds             |
+| Authentication       | JWT HS256, 60-min access tokens (`ACCESS_TOKEN_EXPIRE_MINUTES`) + rotating refresh tokens; app refuses to boot in production without `JWT_SECRET` |
+| Passwords            | bcrypt 12 rounds; failed-login lockout (persisted); constant-time verify on unknown accounts |
 | Rate limiting        | 10/min login, 5/min register |
-| Security headers     | X-Frame-Options, XSS, CSP    |
-| CORS                 | Allowlist only               |
+| Security headers     | X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Content-Security-Policy (API + SPA) |
+| CORS                 | Allowlist only (localhost origins dropped in production; `FRONTEND_URL`-driven) |
 | SQL injection        | Parameterised queries only   |
-| Evidence integrity   | SHA-256 hash chain           |
-| Tenant isolation     | `org_id` scoping on all queries |
-| LLM calls            | `core/llm` multi-provider router (Anthropic, OpenAI, stub); CircuitBreaker on ingest; no document body in audit payloads |
+| Evidence integrity   | SHA-256 hash chain (client-side; server-anchored chain on the roadmap) |
+| Tenant isolation     | Application-layer `org_id` scoping on all queries (`resolve_scoped_org_id`); database row-level security on the roadmap |
+| LLM calls            | `core/llm` multi-provider router (Anthropic, OpenAI, stub) behind CircuitBreaker (assessment + ingest); untrusted document text delimited in prompts; LLM-emitted control IDs validated against the registry; human review on low confidence OR high-severity verdicts; no document body in audit payloads |
 | Supply chain (CI)    | `pip-audit` and `npm audit` (high severity threshold for npm) on push/PR to `main` |
 
 ## LLM configuration

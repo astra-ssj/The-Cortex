@@ -112,10 +112,21 @@ async def get_finding(
 async def update_finding(
     finding_id: str,
     body: FindingPatchBody,
+    org_id: Optional[str] = Query(None, description="Scoped organisation id (demo toggle)"),
     current_user: dict = Depends(require_permission(Permission.edit_findings)),
 ) -> dict[str, Any]:
     """Accept: status, owner, due_date, notes, completed_actions, priority. Log to audit fabric."""
-    idx = next((i for i, f in enumerate(FINDINGS_STORE) if f.get("id") == finding_id), None)
+    scope = (org_id or current_user.get("org_id") or DEMO_ORG_ID).strip()
+    effective = resolve_scoped_org_id(current_user, scope)
+    # Tenant isolation: only match findings belonging to the caller's scoped organisation.
+    idx = next(
+        (
+            i
+            for i, f in enumerate(FINDINGS_STORE)
+            if f.get("id") == finding_id and f.get("org_id", DEMO_ORG_ID) == effective
+        ),
+        None,
+    )
     if idx is None:
         raise HTTPException(status_code=404, detail="Finding not found")
 
@@ -139,7 +150,10 @@ async def update_finding(
             {"text": str(patch["note_append"]), "timestamp": patch.get("note_timestamp") or ""}
         )
     if "completed_actions" in patch and isinstance(patch["completed_actions"], list):
-        FINDINGS_STORE[idx]["completed_actions"] = [int(x) for x in patch["completed_actions"]]
+        action_count = len(FINDINGS_STORE[idx].get("actions") or [])
+        FINDINGS_STORE[idx]["completed_actions"] = sorted(
+            {int(x) for x in patch["completed_actions"] if 0 <= int(x) < action_count}
+        )
 
     updated = FINDINGS_STORE[idx]
     audit_fabric.log(

@@ -32,15 +32,53 @@ _ingestion_breaker = CircuitBreaker("ingestion_llm", failure_threshold=5)
 register_circuit_breaker(_ingestion_breaker)
 
 
+def _valid_control_index() -> dict[str, set[str]]:
+    """Authoritative {framework_id: {control_id, ...}} from the compliance registry."""
+    from compliance import REGISTRY
+
+    index: dict[str, set[str]] = {}
+    for fid, fw in REGISTRY.items():
+        index[fid.value] = {c.id for c in fw.controls}
+    return index
+
+
+def _filter_known_controls(refs: list[ControlRef]) -> list[ControlRef]:
+    """Drop any LLM-emitted control ref that is not a real (framework, control) in the registry.
+
+    Prevents hallucinated or injected control IDs from being persisted into the compliance graph.
+    """
+    index = _valid_control_index()
+    kept: list[ControlRef] = []
+    dropped: list[str] = []
+    for r in refs:
+        if r.control_id in index.get(r.framework_id, set()):
+            kept.append(r)
+        else:
+            dropped.append(f"{r.framework_id}:{r.control_id}")
+    if dropped:
+        logger.warning("ontology_mapping_dropped_unknown_controls", dropped=dropped)
+        audit_fabric.log(
+            "ontology_mapping_controls_rejected",
+            entity_type="llm",
+            entity_id="ontology_mapping",
+            payload={"dropped": dropped},
+        )
+    return kept
+
+
 def _llm_output_to_result(out: OntologyMappingLLMOutput) -> OntologyMappingResult:
-    controls = [ControlRef(framework_id=c.framework_id, control_id=c.control_id) for c in out.controls]
+    controls = _filter_known_controls(
+        [ControlRef(framework_id=c.framework_id, control_id=c.control_id) for c in out.controls]
+    )
     obligations = [
         Obligation(
             jurisdiction=o.jurisdiction,
             purpose_tags=list(o.purpose_tags),
             id=o.id,
             description=o.description,
-            control_refs=[ControlRef(framework_id=r.framework_id, control_id=r.control_id) for r in o.control_refs],
+            control_refs=_filter_known_controls(
+                [ControlRef(framework_id=r.framework_id, control_id=r.control_id) for r in o.control_refs]
+            ),
         )
         for o in out.obligations
     ]

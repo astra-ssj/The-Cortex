@@ -74,6 +74,18 @@ function MainChrome() {
   );
 }
 
+function readOnboardingState(): { complete?: boolean } | null {
+  const raw = localStorage.getItem("cortex_onboarding");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as { complete?: boolean };
+  } catch {
+    // Corrupt value would otherwise throw during render and blank the app.
+    localStorage.removeItem("cortex_onboarding");
+    return null;
+  }
+}
+
 function AuthGate() {
   const loc = useLocation();
   const [authTick, setAuthTick] = useState(0);
@@ -93,10 +105,7 @@ function AuthGate() {
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  const onboardingRaw = localStorage.getItem("cortex_onboarding");
-  const onboardingState = onboardingRaw
-    ? (JSON.parse(onboardingRaw) as { complete?: boolean })
-    : null;
+  const onboardingState = readOnboardingState();
   const needsOnboarding = onboardingState?.complete === false;
   if (needsOnboarding && loc.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
@@ -111,10 +120,7 @@ function RootRedirect() {
   if (!getToken()) {
     return <Navigate to="/login" replace />;
   }
-  const onboardingRaw = localStorage.getItem("cortex_onboarding");
-  const onboardingState = onboardingRaw
-    ? (JSON.parse(onboardingRaw) as { complete?: boolean })
-    : null;
+  const onboardingState = readOnboardingState();
   if (onboardingState?.complete === false) {
     return <Navigate to="/onboarding" replace />;
   }
@@ -124,10 +130,7 @@ function RootRedirect() {
 function LoginScreen() {
   const navigate = useNavigate();
   if (getToken()) {
-    const onboardingRaw = localStorage.getItem("cortex_onboarding");
-    const onboardingState = onboardingRaw
-      ? (JSON.parse(onboardingRaw) as { complete?: boolean })
-      : null;
+    const onboardingState = readOnboardingState();
     if (onboardingState?.complete === false) {
       return <Navigate to="/onboarding" replace />;
     }

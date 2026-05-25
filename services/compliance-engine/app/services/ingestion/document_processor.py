@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -12,6 +13,16 @@ DocumentType = Literal["pdf", "docx", "txt"]
 CHUNK_TOKEN_TARGET = 500
 CHUNK_OVERLAP = 50
 CHARS_PER_TOKEN = 4  # approximate
+
+# Resource bounds — protect against decompression bombs / pathological documents.
+# The upload size cap does not bound decompressed/extracted output, so cap it here.
+MAX_PAGES = int(os.getenv("CORTEX_DOC_MAX_PAGES", "1000"))
+MAX_PARAGRAPHS = int(os.getenv("CORTEX_DOC_MAX_PARAGRAPHS", "50000"))
+MAX_EXTRACTED_CHARS = int(os.getenv("CORTEX_DOC_MAX_EXTRACTED_CHARS", str(5_000_000)))
+
+
+class DocumentTooLargeError(ValueError):
+    """Raised when an extracted document exceeds configured resource bounds."""
 
 
 class DocumentChunk(BaseModel):
@@ -85,10 +96,16 @@ def extract_text_pdf(file_path: str | Path) -> tuple[str, list[tuple[int, str]]]
     except ImportError:
         raise ImportError("pypdf is required for PDF extraction. pip install pypdf")
     reader = PdfReader(str(file_path))
+    if len(reader.pages) > MAX_PAGES:
+        raise DocumentTooLargeError(f"PDF exceeds the {MAX_PAGES}-page limit")
     full_parts: list[str] = []
     page_texts: list[tuple[int, str]] = []
+    total_chars = 0
     for i, page in enumerate(reader.pages, start=1):
         t = page.extract_text() or ""
+        total_chars += len(t)
+        if total_chars > MAX_EXTRACTED_CHARS:
+            raise DocumentTooLargeError(f"PDF text exceeds the {MAX_EXTRACTED_CHARS}-character limit")
         page_texts.append((i, t))
         full_parts.append(t)
     return "\n\n".join(full_parts), page_texts
@@ -103,9 +120,15 @@ def extract_text_docx(file_path: str | Path) -> tuple[str, list[tuple[int, str]]
     doc = Document(str(file_path))
     parts: list[str] = []
     page_texts: list[tuple[int, str]] = []
+    total_chars = 0
     for i, para in enumerate(doc.paragraphs, start=1):
+        if i > MAX_PARAGRAPHS:
+            raise DocumentTooLargeError(f"DOCX exceeds the {MAX_PARAGRAPHS}-paragraph limit")
         t = para.text.strip()
         if t:
+            total_chars += len(t)
+            if total_chars > MAX_EXTRACTED_CHARS:
+                raise DocumentTooLargeError(f"DOCX text exceeds the {MAX_EXTRACTED_CHARS}-character limit")
             parts.append(t)
             page_texts.append((i, t))
     return "\n\n".join(parts), page_texts
@@ -114,6 +137,8 @@ def extract_text_docx(file_path: str | Path) -> tuple[str, list[tuple[int, str]]
 def extract_text_txt(file_path: str | Path) -> tuple[str, list[tuple[int, str]]]:
     """Read plain text file; page_texts use line index as pseudo-page."""
     path = Path(file_path)
+    if path.stat().st_size > MAX_EXTRACTED_CHARS:
+        raise DocumentTooLargeError(f"Text file exceeds the {MAX_EXTRACTED_CHARS}-character limit")
     text = path.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines()
     page_texts = [(i, line) for i, line in enumerate(lines, 1) if line.strip()]

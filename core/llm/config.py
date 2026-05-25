@@ -40,5 +40,6 @@ def assessment_llm_enabled() -> bool:
 
 
 def assessment_max_controls_per_run() -> int:
-    """Cap LLM assessments per run (0 = unlimited). Useful for demos and CI."""
-    return int(os.getenv("CORTEX_ASSESSMENT_MAX_CONTROLS", "0"))
+    """Cap LLM assessments per run (0 = unlimited). Default is bounded to avoid
+    unbounded paid LLM fan-out; set CORTEX_ASSESSMENT_MAX_CONTROLS=0 to disable the cap."""
+    return int(os.getenv("CORTEX_ASSESSMENT_MAX_CONTROLS", "50"))

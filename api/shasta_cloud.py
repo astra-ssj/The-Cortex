@@ -427,6 +427,12 @@ async def ingest_shasta_json(
     from app.connectors.shasta.shasta_adapter import shasta_finding_payload_to_normalized
 
     org_id = resolve_scoped_org_id(current_user, body.org_id.strip())
+    _MAX_INGEST_FINDINGS = int(os.getenv("CORTEX_SHASTA_MAX_INGEST_FINDINGS", "5000"))
+    if len(body.findings) > _MAX_INGEST_FINDINGS:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Too many findings in one request (max {_MAX_INGEST_FINDINGS})",
+        )
     scan_ref = body.engine_scan_id or f"ingest-{uuid.uuid4().hex[:12]}"
     normalized = [
         shasta_finding_payload_to_normalized(scan_ref, dict(p)) for p in body.findings
