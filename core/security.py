@@ -222,45 +222,28 @@ async def get_current_user(
     return await decode_access_token_async(session, credentials.credentials)
 
 
-async def get_current_user_query_or_header(
-    request: Request,
-    session: AsyncSession = Depends(get_db),
-    token_query: str | None = None,
-) -> dict[str, Any]:
-    token: str | None = token_query
-    if not token:
-        auth = request.headers.get("Authorization")
-        if auth and auth.startswith("Bearer "):
-            token = auth[7:].strip()
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
-    return await decode_access_token_async(session, token)
-
-
 async def get_current_user_stream(
     request: Request,
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    token = request.query_params.get("token")
-    return await get_current_user_query_or_header(request, session, token)
+    """SSE/stream auth. Header-only: the JWT must arrive via ``Authorization: Bearer``.
 
-
-async def get_current_user_optional(
-    request: Request,
-    session: AsyncSession = Depends(get_db),
-    token_header: Optional[str] = Header(None, alias="Authorization"),
-) -> dict[str, Any]:
-    token: Optional[str] = None
-    if token_header and token_header.startswith("Bearer "):
-        token = token_header.split(" ", 1)[1].strip()
-    if not token:
-        token = request.query_params.get("token")
+    The access token is never accepted from the query string, which would leak it into
+    server/proxy access logs, browser history, and the Referer header. Browsers use
+    ``@microsoft/fetch-event-source`` (which supports request headers).
+    """
+    auth = request.headers.get("Authorization") or ""
+    if not auth.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+    token = auth[7:].strip()
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
     return await decode_access_token_async(session, token)
+
+
