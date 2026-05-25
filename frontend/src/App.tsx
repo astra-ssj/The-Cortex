@@ -47,6 +47,12 @@ function MainChrome() {
   }, []);
 
   const onLogout = () => {
+    // Best-effort server-side revocation of the HttpOnly refresh cookie + token row.
+    const base = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL ?? "");
+    void fetch(`${base}/api/v1/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {});
     clearCortexBrowserSession();
     setUser(null);
     navigate("/login", { replace: true });

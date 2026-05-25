@@ -18,6 +18,14 @@ _store: dict[str, bytes] = {}
 _ENCRYPTION_KEY_ENV = "CORTEX_CONNECTOR_SECRET_KEY"
 
 
+def _is_production() -> bool:
+    return os.getenv("CORTEX_ENV", os.getenv("APP_ENV", "development")).strip().lower() in (
+        "production",
+        "prod",
+        "staging",
+    )
+
+
 def _get_fernet_key() -> bytes | None:
     key = os.environ.get(_ENCRYPTION_KEY_ENV)
     if not key:
@@ -39,7 +47,12 @@ def _get_fernet_key() -> bytes | None:
 def _encrypt(payload: dict[str, Any]) -> bytes:
     key = _get_fernet_key()
     if key is None:
-        # No key: encode as base64 only (not secure; for dev). Log warning.
+        # Fail closed in production: refuse to store credentials without real encryption.
+        if _is_production():
+            raise RuntimeError(
+                f"{_ENCRYPTION_KEY_ENV} must be set to encrypt connector credentials in production"
+            )
+        # Dev only: base64 is NOT encryption — log a warning.
         logger.warning("connector_credential_no_encryption_key", env_key=_ENCRYPTION_KEY_ENV)
         return base64.b64encode(json.dumps(payload).encode("utf-8"))
     from cryptography.fernet import Fernet

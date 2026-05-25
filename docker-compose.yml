@@ -27,6 +27,7 @@ services:
       - ./migrations/012_security_auth.sql:/docker-entrypoint-initdb.d/11_security_auth.sql:ro
       - ./migrations/013_compliance_graph.sql:/docker-entrypoint-initdb.d/12_compliance_graph.sql:ro
       - ./migrations/014_microsoft_integration.sql:/docker-entrypoint-initdb.d/13_microsoft_integration.sql:ro
+      - ./migrations/015_tenant_fk_constraints.sql:/docker-entrypoint-initdb.d/14_tenant_fk_constraints.sql:ro
       - ./services/graphjin/migrations:/graphjin/migrations:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]

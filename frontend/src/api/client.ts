@@ -55,15 +55,12 @@ export const ALL_FRAMEWORK_IDS = ALL_FRAMEWORK_IDS_BUNDLE;
 export const getToken = (): string | null =>
   localStorage.getItem("cortex_token");
 
-/** Serialized refresh token for DB-backed sessions (see POST /api/v1/auth/refresh). */
-export const getRefreshToken = (): string | null =>
-  localStorage.getItem("cortex_refresh_token");
-
 let _refreshSingleFlight: Promise<boolean> | null = null;
 
 async function refreshAccessToken(): Promise<boolean> {
-  const rt = localStorage.getItem("cortex_refresh_token");
-  if (!rt) return false;
+  // The refresh token lives in an HttpOnly cookie (cortex_refresh) — not readable by JS.
+  // Only attempt a refresh when we had an authenticated session (an access token is/was present).
+  if (!localStorage.getItem("cortex_token")) return false;
   if (_refreshSingleFlight) return _refreshSingleFlight;
 
   _refreshSingleFlight = (async (): Promise<boolean> => {
@@ -72,7 +69,8 @@ async function refreshAccessToken(): Promise<boolean> {
       const refreshInit: RequestInit = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: rt }),
+        credentials: "include", // send the HttpOnly refresh cookie
+        body: "{}",
       };
       const { init: timed, clearTimer, timedOutRef } = withFetchTimeout(refreshInit);
       let res: Response;
@@ -87,11 +85,9 @@ async function refreshAccessToken(): Promise<boolean> {
       if (!res.ok) return false;
       const data = (await res.json()) as {
         access_token?: string;
-        refresh_token?: string;
       };
-      if (!data.access_token || !data.refresh_token) return false;
+      if (!data.access_token) return false;
       localStorage.setItem("cortex_token", data.access_token);
-      localStorage.setItem("cortex_refresh_token", data.refresh_token);
       return true;
     } catch {
       return false;
@@ -144,11 +140,7 @@ export async function fetchApi<T = unknown>(
       throw e;
     }
 
-  if (
-    res.status === 401 &&
-    !retriedAfterRefresh &&
-    localStorage.getItem("cortex_refresh_token")
-  ) {
+  if (res.status === 401 && !retriedAfterRefresh && getToken()) {
     const ok = await refreshAccessToken();
     if (ok) return fetchApi<T>(path, options, true);
   }

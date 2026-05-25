@@ -15,7 +15,7 @@ from fastapi.responses import StreamingResponse
 from core.audit_fabric import audit_fabric
 from core.evidence_persistence import IngestLinkHints, persist_ingested_evidence
 from core.rbac import Permission, require_permission
-from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
+from core.tenant import resolve_scoped_org_id
 from db.session import async_session_factory
 from app.services.ingestion import (
     create_evidence_from_mapping,
@@ -188,9 +188,10 @@ async def ingest_document(
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File exceeds 10MB limit")
     document_id = "doc-" + hashlib.sha256(content[:1024]).hexdigest()[:12]
+    # Do not silently fall back to the shared demo org for writes; require an explicit scope.
     scoped_org = resolve_scoped_org_id(
         current_user,
-        str(org_id or current_user.get("org_id") or DEMO_ORG_ID).strip(),
+        str(org_id or current_user.get("org_id") or "").strip(),
     )
     actor = _actor_label(current_user)
     hints = IngestLinkHints(

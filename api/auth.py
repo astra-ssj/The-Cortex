@@ -46,6 +46,32 @@ LOGIN_LOCKOUT_MINUTES = int(os.getenv("CORTEX_LOGIN_LOCKOUT_MINUTES", "15"))
 # Constant bcrypt hash used to equalise response timing for unknown accounts (mitigates user enumeration).
 _DUMMY_PASSWORD_HASH = "$2b$12$Dd2gDvE6wOyJHfCXF75f4eY2eUGVtXX7LPS1VkENlmBRcftj2F/XO"  # nosec B105
 
+# Refresh token is delivered to browsers as an HttpOnly cookie (inaccessible to JS / XSS).
+# It is still returned in the JSON body for non-browser API clients. Path-scoped to the auth
+# routes so it is only sent where it is needed.
+REFRESH_COOKIE_NAME = "cortex_refresh"
+_REFRESH_COOKIE_PATH = "/api/v1/auth"
+
+
+def _cookie_secure() -> bool:
+    return os.getenv("CORTEX_COOKIE_SECURE", "").lower() in ("1", "true", "yes")
+
+
+def _set_refresh_cookie(response: Response, raw: str) -> None:
+    response.set_cookie(
+        key=REFRESH_COOKIE_NAME,
+        value=raw,
+        httponly=True,
+        samesite="strict",
+        secure=_cookie_secure(),
+        path=_REFRESH_COOKIE_PATH,
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(key=REFRESH_COOKIE_NAME, path=_REFRESH_COOKIE_PATH)
+
 
 class RegisterBody(BaseModel):
     company_name: str = Field(..., min_length=1)
@@ -62,7 +88,8 @@ class OnboardingStepBody(BaseModel):
 
 
 class RefreshBody(BaseModel):
-    refresh_token: str = Field(..., min_length=10)
+    # Optional: browsers send the refresh token via the HttpOnly cookie instead of the body.
+    refresh_token: str | None = Field(default=None, min_length=10)
 
 
 class ForgotPasswordBody(BaseModel):
@@ -164,6 +191,7 @@ async def get_csrf_token(response: Response) -> dict[str, str]:
 @limiter.limit("5/minute")
 async def register(
     request: Request,
+    response: Response,
     payload: RegisterBody,
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
@@ -250,6 +278,7 @@ async def register(
         user_id=user_id,
         refresh_ttl_days=REFRESH_TOKEN_EXPIRE_DAYS,
     )
+    _set_refresh_cookie(response, refresh)
 
     return {
         "access_token": access,
@@ -266,6 +295,7 @@ async def register(
 @limiter.limit("10/minute")
 async def login(
     request: Request,
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
@@ -295,6 +325,7 @@ async def login(
                 user_id=str(db_user["id"]),
                 refresh_ttl_days=REFRESH_TOKEN_EXPIRE_DAYS,
             )
+            _set_refresh_cookie(response, refresh)
             return {
                 "access_token": access,
                 "refresh_token": refresh,
@@ -415,12 +446,17 @@ async def login(
 @limiter.limit("30/minute")
 async def refresh_session(
     request: Request,
+    response: Response,
     body: RefreshBody,
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    """Rotate refresh token and issue new access token."""
-    uid = await take_refresh_token(session, body.refresh_token)
+    """Rotate refresh token and issue new access token. Token from HttpOnly cookie or request body."""
+    raw_refresh = request.cookies.get(REFRESH_COOKIE_NAME) or body.refresh_token
+    if not raw_refresh:
+        raise HTTPException(status_code=401, detail="Missing refresh token")
+    uid = await take_refresh_token(session, raw_refresh)
     if uid is None:
+        _clear_refresh_cookie(response)
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
     row = (
@@ -451,12 +487,27 @@ async def refresh_session(
         user_id=uid,
         refresh_ttl_days=REFRESH_TOKEN_EXPIRE_DAYS,
     )
+    _set_refresh_cookie(response, new_refresh)
     return {
         "access_token": access,
         "refresh_token": new_refresh,
         "token_type": "bearer",
         "expires_in": 60 * int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")),
     }
+
+
+@router.post("/logout")
+async def logout(
+    request: Request,
+    response: Response,
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Revoke the presented refresh token and clear the cookie (per-session sign-out)."""
+    raw = request.cookies.get(REFRESH_COOKIE_NAME)
+    if raw:
+        await take_refresh_token(session, raw)  # one-time take revokes the row
+    _clear_refresh_cookie(response)
+    return {"message": "Signed out"}
 
 
 @router.post("/forgot-password")

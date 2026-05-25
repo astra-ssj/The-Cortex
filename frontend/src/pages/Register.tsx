@@ -101,6 +101,7 @@ export default function Register() {
       const response = await fetch(`${base}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // accept the HttpOnly refresh cookie
         body: JSON.stringify({
           company_name: form.company_name.trim(),
           jurisdiction: form.jurisdiction,
@@ -132,9 +133,7 @@ export default function Register() {
         org_id: string;
       };
       localStorage.setItem("cortex_token", data.access_token);
-      if (typeof data.refresh_token === "string" && data.refresh_token.length > 0) {
-        localStorage.setItem("cortex_refresh_token", data.refresh_token);
-      }
+      // Refresh token is stored by the browser as an HttpOnly cookie — never in localStorage.
       localStorage.setItem(
         "cortex_user",
         JSON.stringify({

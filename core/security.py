@@ -190,6 +190,12 @@ async def decode_access_token_async(session: AsyncSession, token: str) -> dict[s
 
     if org_id and tv is None:
         # Legacy / synthetic JWTs (signed claims only; DB sessions always include ``tv``).
+        # These cannot be revoked via token_version, so reject them in production.
+        if IS_PRODUCTION:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session invalidated — sign in again",
+            )
         return _claims_user(payload)
 
     raise HTTPException(

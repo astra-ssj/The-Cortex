@@ -517,7 +517,9 @@ async def approve_control(
     notes = (body.notes or "").strip()
     if not notes:
         raise HTTPException(status_code=400, detail="notes is required")
-    org_scope = str(current_user.get("org_id") or DEMO_ORG_ID).strip()
+    org_scope = str(current_user.get("org_id") or "").strip()
+    if not org_scope:
+        raise HTTPException(status_code=400, detail="Missing organisation")
     actor = _review_actor_id(current_user)
 
     await _ensure_human_review_schema(session)
@@ -597,7 +599,9 @@ async def override_control(
         raise HTTPException(status_code=400, detail="justification must be at least 20 characters")
     if body.assessment not in ("COMPLIANT", "PARTIAL", "NON_COMPLIANT"):
         raise HTTPException(status_code=400, detail="assessment must be COMPLIANT, PARTIAL, or NON_COMPLIANT")
-    org_scope = str(current_user.get("org_id") or DEMO_ORG_ID).strip()
+    org_scope = str(current_user.get("org_id") or "").strip()
+    if not org_scope:
+        raise HTTPException(status_code=400, detail="Missing organisation")
     actor = _review_actor_id(current_user)
 
     await _ensure_human_review_schema(session)

@@ -57,6 +57,7 @@ export default function Login({ onSuccess }: LoginProps) {
       const res = await fetch(`${base}/api/v1/auth/token`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        credentials: "include", // accept the HttpOnly refresh cookie
         body: form.toString(),
       });
       if (!res.ok) {
@@ -90,11 +91,8 @@ export default function Login({ onSuccess }: LoginProps) {
       };
 
       localStorage.setItem("cortex_token", data.access_token);
-      if (typeof data.refresh_token === "string" && data.refresh_token.length > 0) {
-        localStorage.setItem("cortex_refresh_token", data.refresh_token);
-      } else {
-        localStorage.removeItem("cortex_refresh_token");
-      }
+      // Refresh token is stored by the browser as an HttpOnly cookie — never in localStorage.
+      localStorage.removeItem("cortex_refresh_token");
       localStorage.setItem("cortex_user", JSON.stringify(mergedUser));
 
       const orgId = (data.org_id ?? data.user?.org_id) as string | undefined;
