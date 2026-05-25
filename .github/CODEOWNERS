@@ -1,0 +1,21 @@
+# Code owners — auto-requested as reviewers on matching paths.
+# Required-review branch protection on `main` uses this file to enforce review.
+# NOTE: with a single owner, the owner's own PRs cannot be self-approved under
+# "require review from Code Owners" — add a second maintainer before relying on
+# this as the sole gate, or use admin merge sparingly and deliberately.
+
+# Default owner for everything.
+*                           @SristiNative
+
+# Security-sensitive surfaces — keep tightly reviewed.
+/api/auth.py                @SristiNative
+/core/security.py           @SristiNative
+/core/rbac.py               @SristiNative
+/core/canonical_roles.py    @SristiNative
+/core/api_key_service.py    @SristiNative
+/core/llm/                  @SristiNative
+/services/assessment_llm.py @SristiNative
+/migrations/                @SristiNative
+/services/graphjin/migrations/ @SristiNative
+/docker-compose.yml         @SristiNative
+/.github/                   @SristiNative
