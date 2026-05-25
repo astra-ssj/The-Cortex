@@ -204,6 +204,24 @@ async def decode_access_token_async(session: AsyncSession, token: str) -> dict[s
     )
 
 
+async def _apply_org_context(session: AsyncSession, principal: dict[str, Any]) -> None:
+    """Set the transaction-local org id for Postgres row-level security.
+
+    Best-effort: authentication must never fail because the RLS GUC could not be set.
+    Has no effect unless the app connects as a non-superuser role with RLS policies (migration 016).
+    """
+    org = str(principal.get("org_id") or "")
+    if not org:
+        return
+    try:
+        await session.execute(
+            text("SELECT set_config('app.current_org', :org, true)"),
+            {"org": org},
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        logger.debug("rls_org_context_skipped", error=str(e))
+
+
 async def get_current_user(
     session: AsyncSession = Depends(get_db),
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(http_bearer_optional),
@@ -213,13 +231,16 @@ async def get_current_user(
     if x_api_key:
         from core.api_key_service import resolve_api_key_principal
 
-        return await resolve_api_key_principal(session, x_api_key)
-    if not credentials or not credentials.credentials:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-        )
-    return await decode_access_token_async(session, credentials.credentials)
+        principal = await resolve_api_key_principal(session, x_api_key)
+    else:
+        if not credentials or not credentials.credentials:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+            )
+        principal = await decode_access_token_async(session, credentials.credentials)
+    await _apply_org_context(session, principal)
+    return principal
 
 
 async def get_current_user_stream(
@@ -244,6 +265,8 @@ async def get_current_user_stream(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
-    return await decode_access_token_async(session, token)
+    principal = await decode_access_token_async(session, token)
+    await _apply_org_context(session, principal)
+    return principal
 
 

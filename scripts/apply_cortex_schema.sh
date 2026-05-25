@@ -21,7 +21,8 @@ for f in \
   "$ROOT/migrations/011_operational_persistence.sql" \
   "$ROOT/migrations/012_security_auth.sql" \
   "$ROOT/migrations/013_compliance_graph.sql" \
-  "$ROOT/migrations/015_tenant_fk_constraints.sql"
+  "$ROOT/migrations/015_tenant_fk_constraints.sql" \
+  "$ROOT/migrations/016_row_level_security.sql"
   do
   echo "Applying $(basename "$f")..."
   psql -f "$f"
