@@ -1,4 +1,4 @@
 # Auth dependencies — add to existing project deps (primary: pyproject.toml)
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
-python-multipart==0.0.9
+python-multipart==0.0.29
