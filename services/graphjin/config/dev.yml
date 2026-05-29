@@ -42,6 +42,11 @@ tables:
   - name: framework_entities
   - name: assessment_results
   - name: entities
+  - name: rel_people
+  - name: rel_teams
+  - name: rel_systems
+  - name: rel_risks
+  - name: relationship_edges
 
 blocklist:
   - users

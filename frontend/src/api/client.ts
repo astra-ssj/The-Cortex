@@ -901,9 +901,20 @@ export async function overrideControl(
 
 export const reviewQueueQueryKey = (orgId: string) => ["reviewQueue", orgId] as const;
 
+export type ComplianceGraphNodeType =
+  | "control"
+  | "evidence"
+  | "finding"
+  | "framework"
+  | "entity"
+  | "person"
+  | "team"
+  | "system"
+  | "risk";
+
 export type ComplianceGraphNode = {
   id: string;
-  type: "control" | "evidence" | "finding" | "framework" | "entity";
+  type: ComplianceGraphNodeType;
   label: string;
   framework_id?: string;
   status?: string;
@@ -914,12 +925,28 @@ export type ComplianceGraphNode = {
 export type ComplianceGraphEdge = {
   from: string;
   to: string;
-  type: "contains" | "maps_to" | "proves" | "violates" | "affects" | "applies_to";
+  type:
+    | "contains"
+    | "maps_to"
+    | "proves"
+    | "violates"
+    | "affects"
+    | "applies_to"
+    | "owns"
+    | "responsible_for"
+    | "operates"
+    | "exposes_to"
+    | "reports_to"
+    | "member_of"
+    | "processes_data_on"
+    | "subject_to"
+    | "mitigates";
   relationship?: string;
   confidence?: number;
   strength?: string;
   basis?: string;
   scope?: string;
+  weight?: number;
 };
 
 export type ComplianceGraphStats = {
@@ -930,6 +957,12 @@ export type ComplianceGraphStats = {
   naive_assessments?: number;
   effective_assessments?: number;
   framework_coverage: Record<string, { proven: number; total: number }>;
+  node_type_counts?: Record<string, number>;
+  ownership_coverage_pct?: number;
+  owned_controls?: number;
+  unowned_controls?: number;
+  total_controls?: number;
+  total_risk_exposure_eur?: number;
 };
 
 export type ComplianceGraphResponse = {
@@ -951,6 +984,24 @@ export function useComplianceGraph(orgId: string) {
     queryFn: () => fetchComplianceGraph(orgId),
     enabled: Boolean(orgId),
   });
+}
+
+export function fetchFindingTrace(
+  orgId: string,
+  findingId: string
+): Promise<ComplianceGraphResponse> {
+  return fetchApi<ComplianceGraphResponse>(
+    `/api/v1/graph/${encodeURIComponent(orgId)}/trace/${encodeURIComponent(findingId)}`
+  );
+}
+
+export function fetchPersonAccountability(
+  orgId: string,
+  personId: string
+): Promise<ComplianceGraphResponse> {
+  return fetchApi<ComplianceGraphResponse>(
+    `/api/v1/graph/${encodeURIComponent(orgId)}/person/${encodeURIComponent(personId)}`
+  );
 }
 
 export function useReviewQueue(orgId?: string | null): {

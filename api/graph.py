@@ -14,6 +14,7 @@ from core.compliance_graph import (
     ComplianceGraphOut,
     build_compliance_graph,
     subgraph_around_node,
+    trace_accountability_chain,
 )
 from core.security import get_current_user
 from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
@@ -94,8 +95,88 @@ async def _load_graph_inputs(
         ]
 
 
+async def _load_relationship_inputs(
+    session: AsyncSession,
+    org_id: str,
+) -> tuple[list, list, list, list, list]:
+    """Load relationship-graph tables; empty lists when migration 015 not applied."""
+    try:
+        people = (
+            await session.execute(
+                text(
+                    """
+                    SELECT id::text AS id, org_id, name, role, email,
+                           team_id::text AS team_id, reports_to::text AS reports_to
+                    FROM rel_people WHERE org_id = :org_id
+                    """
+                ),
+                {"org_id": org_id},
+            )
+        ).mappings().all()
+        teams = (
+            await session.execute(
+                text(
+                    """
+                    SELECT id::text AS id, org_id, name, function, lead_id::text AS lead_id
+                    FROM rel_teams WHERE org_id = :org_id
+                    """
+                ),
+                {"org_id": org_id},
+            )
+        ).mappings().all()
+        systems = (
+            await session.execute(
+                text(
+                    """
+                    SELECT id::text AS id, org_id, name, system_type, criticality,
+                           processes_pii, owner_id::text AS owner_id, ai_risk_class
+                    FROM rel_systems WHERE org_id = :org_id
+                    """
+                ),
+                {"org_id": org_id},
+            )
+        ).mappings().all()
+        risks = (
+            await session.execute(
+                text(
+                    """
+                    SELECT id::text AS id, org_id, title, category, likelihood,
+                           impact_eur, framework_id
+                    FROM rel_risks WHERE org_id = :org_id
+                    """
+                ),
+                {"org_id": org_id},
+            )
+        ).mappings().all()
+        rel_edges = (
+            await session.execute(
+                text(
+                    """
+                    SELECT source_id, source_type, target_id, target_type,
+                           relationship, weight
+                    FROM relationship_edges WHERE org_id = :org_id
+                    """
+                ),
+                {"org_id": org_id},
+            )
+        ).mappings().all()
+        return (
+            [dict(r) for r in people],
+            [dict(r) for r in teams],
+            [dict(r) for r in systems],
+            [dict(r) for r in risks],
+            [dict(r) for r in rel_edges],
+        )
+    except ProgrammingError:
+        await session.rollback()
+        return [], [], [], [], []
+
+
 async def _build_org_graph(session: AsyncSession, org_id: str) -> ComplianceGraphOut:
     mappings, evidence, ec_rows, fe_rows, frameworks, findings = await _load_graph_inputs(
+        session, org_id
+    )
+    people, teams, systems, risks, rel_edges = await _load_relationship_inputs(
         session, org_id
     )
     return build_compliance_graph(
@@ -106,6 +187,11 @@ async def _build_org_graph(session: AsyncSession, org_id: str) -> ComplianceGrap
         framework_entities=fe_rows,
         frameworks=frameworks,
         findings=findings,
+        people=people,
+        teams=teams,
+        systems=systems,
+        risks=risks,
+        relationship_edges=rel_edges,
     )
 
 
@@ -117,6 +203,10 @@ def _resolve_node_id(graph: ComplianceGraphOut, raw_id: str, node_type: str) -> 
         "control": "control:",
         "evidence": "evidence:",
         "finding": "finding:",
+        "person": "person:",
+        "team": "team:",
+        "system": "system:",
+        "risk": "risk:",
     }.get(node_type, "")
     candidate = f"{prefix}{raw_id}"
     for n in graph.nodes:
@@ -178,3 +268,35 @@ async def get_finding_impact(
     if not any(str(n["id"]) == node_id for n in graph.nodes):
         raise HTTPException(status_code=404, detail="Finding not found in graph")
     return subgraph_around_node(graph, node_id)
+
+
+@router.get("/{org_id}/person/{person_id}", summary="Accountability view for one person")
+async def get_person_accountability(
+    org_id: str,
+    person_id: str,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> ComplianceGraphOut:
+    """Everything a person touches: controls owned, team, systems operated, hierarchy."""
+    effective = resolve_scoped_org_id(current_user, org_id.strip())
+    graph = await _build_org_graph(session, effective)
+    node_id = _resolve_node_id(graph, person_id, "person")
+    if not any(str(n["id"]) == node_id for n in graph.nodes):
+        raise HTTPException(status_code=404, detail="Person not found in graph")
+    return subgraph_around_node(graph, node_id)
+
+
+@router.get("/{org_id}/trace/{finding_id}", summary="Accountability + exposure chain for a finding")
+async def get_finding_trace(
+    org_id: str,
+    finding_id: str,
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> ComplianceGraphOut:
+    """The full chain: finding → control → owner → team → system → entity → risk."""
+    effective = resolve_scoped_org_id(current_user, org_id.strip())
+    graph = await _build_org_graph(session, effective)
+    node_id = _resolve_node_id(graph, finding_id, "finding")
+    if not any(str(n["id"]) == node_id for n in graph.nodes):
+        raise HTTPException(status_code=404, detail="Finding not found in graph")
+    return trace_accountability_chain(graph, node_id)
