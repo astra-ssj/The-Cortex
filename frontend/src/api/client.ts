@@ -1004,6 +1004,69 @@ export function fetchPersonAccountability(
   );
 }
 
+// ── Intelligence Engine ──────────────────────────────────────────────────────
+export type InsightSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "WIN";
+
+export type InsightCategory =
+  | "CASCADE_RISK"
+  | "ACCOUNTABILITY_GAP"
+  | "SINGLE_POINT_OF_FAILURE"
+  | "EFFICIENCY_WIN"
+  | "DEADLINE_RISK"
+  | "EVIDENCE_DECAY"
+  | "EXPOSURE";
+
+export type Insight = {
+  id: string;
+  severity: InsightSeverity;
+  category: InsightCategory | string;
+  title: string;
+  detail: string;
+  related_nodes: string[];
+  action: { label?: string; href?: string };
+  computed_at: string;
+};
+
+export type InsightsSummary = {
+  critical: number;
+  high: number;
+  medium: number;
+  wins: number;
+  low: number;
+  total_exposure_eur: number;
+  generated_at: string;
+};
+
+export type InsightsResponse = {
+  insights: Insight[];
+  summary: InsightsSummary;
+};
+
+export const insightsQueryKey = (orgId: string) => ["insights", orgId] as const;
+
+export function fetchInsights(orgId: string): Promise<InsightsResponse> {
+  return fetchApi<InsightsResponse>(
+    `/api/v1/intelligence/insights?org_id=${encodeURIComponent(orgId)}`
+  );
+}
+
+export function useInsights(orgId: string) {
+  return useQuery({
+    queryKey: insightsQueryKey(orgId),
+    queryFn: () => fetchInsights(orgId),
+    enabled: Boolean(orgId),
+  });
+}
+
+export function fetchInsightTrace(
+  orgId: string,
+  insightId: string
+): Promise<ComplianceGraphResponse> {
+  return fetchApi<ComplianceGraphResponse>(
+    `/api/v1/intelligence/insights/${encodeURIComponent(insightId)}/trace?org_id=${encodeURIComponent(orgId)}`
+  );
+}
+
 export function useReviewQueue(orgId?: string | null): {
   items: ReviewQueueItem[] | null;
   reviewed: ReviewedItem[] | null;

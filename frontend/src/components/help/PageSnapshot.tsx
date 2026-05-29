@@ -431,7 +431,7 @@ const TITLES: Record<SnapshotVariant, string> = {
   dashboard: "cortex.app/dashboard",
   sidebar: "Application layout",
   frameworks: "cortex.app/frameworks",
-  findings: "cortex.app/evidence",
+  findings: "cortex.app/findings",
   integrations: "cortex.app/integrations",
   "cloud-scans": "cortex.app/cloud-scans",
   "review-queue": "cortex.app/review-queue",

@@ -35,6 +35,7 @@ from api.limits import limiter
 from api.findings import router as findings_router
 from api.graph import router as graph_router
 from api.groups import router as groups_router
+from api.intelligence import router as intelligence_router
 from api.organisations import router as organisations_router
 from api.microsoft_cloud import router as microsoft_cloud_router
 from api.shasta_cloud import router as shasta_cloud_router
@@ -252,6 +253,7 @@ app.include_router(shasta_cloud_router)
 app.include_router(microsoft_cloud_router)
 app.include_router(findings_router, prefix="/api/v1/findings")
 app.include_router(graph_router)
+app.include_router(intelligence_router)
 app.include_router(groups_router)
 # Prefer root api.organisations (DB-backed posture) over compliance-engine stub when both register /api/v1/organisations.
 app.include_router(organisations_router)

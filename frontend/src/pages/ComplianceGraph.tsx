@@ -143,6 +143,7 @@ export default function ComplianceGraph() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightRaw = searchParams.get("highlight");
+  const focusRaw = searchParams.get("focus");
   const { data, isLoading, error } = useComplianceGraph(orgId);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -157,6 +158,8 @@ export default function ComplianceGraph() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [trace, setTrace] = useState<TraceState | null>(null);
+  // Multi-node focus driven by an insight's "Trace in graph →" deep-link (?focus=a,b,c).
+  const [focusSet, setFocusSet] = useState<Set<string>>(() => new Set());
   const [revealedHop, setRevealedHop] = useState(0);
   const [tracing, setTracing] = useState(false);
   const [dims, setDims] = useState({ w: 800, h: 560 });
@@ -170,6 +173,27 @@ export default function ComplianceGraph() {
       setSelectedId(target);
     }
   }, [highlightRaw, data?.nodes]);
+
+  // Insight deep-link: light up the related nodes and centre the chain in focus mode.
+  useEffect(() => {
+    if (!focusRaw || !data?.nodes.length) {
+      setFocusSet(new Set());
+      return;
+    }
+    const present = new Set(data.nodes.map((n) => n.id));
+    const ids = focusRaw
+      .split(",")
+      .map((s) => s.trim())
+      .filter((id) => present.has(id));
+    if (ids.length === 0) {
+      setFocusSet(new Set());
+      return;
+    }
+    setVisibleTypes(new Set(NODE_TYPE_ORDER));
+    setTrace(null);
+    setFocusSet(new Set(ids));
+    setSelectedId(ids[0] ?? null);
+  }, [focusRaw, data?.nodes]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -262,6 +286,7 @@ export default function ComplianceGraph() {
   const clearFocus = useCallback(() => {
     setSelectedId(null);
     setTrace(null);
+    setFocusSet(new Set());
   }, []);
 
   const handleTrace = useCallback(
@@ -486,6 +511,7 @@ export default function ComplianceGraph() {
     if (!node || !link) return;
 
     const traceActive = trace != null;
+    const focusActive = !traceActive && focusSet.size > 0;
     const isRevealed = (id: string) =>
       traceActive && trace!.hopById[id] != null && trace!.hopById[id] <= revealedHop;
 
@@ -494,14 +520,18 @@ export default function ComplianceGraph() {
       .attr("r", (d) => {
         const base = baseRadius(d.type);
         if (traceActive) return isRevealed(d.id) ? base * (trace!.hopById[d.id] === 0 ? 1.4 : 1.15) : base;
+        if (focusActive) return focusSet.has(d.id) ? base * 1.3 : base;
         return d.id === selectedId ? base * 1.4 : base;
       })
       .attr("opacity", (d) => {
         if (traceActive) return isRevealed(d.id) ? 1 : 0.08;
+        if (focusActive) return focusSet.has(d.id) ? 1 : 0.12;
         if (selectedId) return d.id === selectedId || neighbourIds.has(d.id) ? 1 : 0.1;
         return 1;
       })
-      .attr("stroke", (d) => (d.id === selectedId ? "#fff" : "transparent"));
+      .attr("stroke", (d) =>
+        d.id === selectedId || (focusActive && focusSet.has(d.id)) ? "#fff" : "transparent"
+      );
 
     link.attr("opacity", (d) => {
       const from = edgeNodeId(d.source);
@@ -510,6 +540,7 @@ export default function ComplianceGraph() {
         const key = `${from}|${to}|${d.type}`;
         return trace!.edgeKeys.has(key) && isRevealed(from) && isRevealed(to) ? 0.95 : 0.04;
       }
+      if (focusActive) return focusSet.has(from) && focusSet.has(to) ? 0.95 : 0.06;
       if (selectedId) return from === selectedId || to === selectedId ? 0.7 : 0.05;
       return 0.6;
     });
@@ -517,6 +548,7 @@ export default function ComplianceGraph() {
     node.select<SVGGElement>("g.node-label").attr("display", (d) => {
       let show: boolean;
       if (traceActive) show = isRevealed(d.id);
+      else if (focusActive) show = focusSet.has(d.id);
       else
         show =
           d.id === selectedId ||
@@ -525,7 +557,7 @@ export default function ComplianceGraph() {
           d.id === hoverId;
       return show ? null : "none";
     });
-  }, [selectedId, hoverId, neighbourIds, trace, revealedHop, degreeOf, renderGraph]);
+  }, [selectedId, hoverId, neighbourIds, trace, revealedHop, focusSet, degreeOf, renderGraph]);
 
   if (isLoading) {
     return (

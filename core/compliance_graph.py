@@ -447,6 +447,48 @@ def subgraph_around_node(graph: ComplianceGraphOut, node_id: str) -> ComplianceG
     return ComplianceGraphOut(org_id=graph.org_id, nodes=nodes, edges=edges, stats=stats)
 
 
+def subgraph_for_nodes(
+    graph: ComplianceGraphOut, focus_node_ids: list[str]
+) -> ComplianceGraphOut:
+    """Return the focus nodes plus their one-hop neighbourhood.
+
+    Used by the Intelligence Engine's ``/insights/{id}/trace`` endpoint: an insight
+    references an arbitrary set of related node ids (evidence, controls, frameworks,
+    people, risks) and the UI wants the chain that connects them. Focus nodes are
+    tagged ``metadata.insight_focus = True`` so the frontend can light them up while
+    dimming the contextual neighbours.
+    """
+    focus = {str(nid) for nid in focus_node_ids}
+    connected: set[str] = set(focus)
+    for edge in graph.edges:
+        f, t = str(edge["from"]), str(edge["to"])
+        if f in focus or t in focus:
+            connected.add(f)
+            connected.add(t)
+
+    node_set = connected
+    nodes: list[dict[str, Any]] = []
+    for n in graph.nodes:
+        nid = str(n["id"])
+        if nid not in node_set:
+            continue
+        node = dict(n)
+        meta = dict(node.get("metadata") or {})
+        meta["insight_focus"] = nid in focus
+        node["metadata"] = meta
+        nodes.append(node)
+
+    present = {str(n["id"]) for n in nodes}
+    edges = [
+        e
+        for e in graph.edges
+        if str(e["from"]) in present and str(e["to"]) in present
+    ]
+    evidence_rows = [n for n in nodes if n.get("type") == "evidence"]
+    stats = _compute_stats(nodes, edges, evidence_rows, [])
+    return ComplianceGraphOut(org_id=graph.org_id, nodes=nodes, edges=edges, stats=stats)
+
+
 def trace_accountability_chain(
     graph: ComplianceGraphOut, finding_node_id: str
 ) -> ComplianceGraphOut:

@@ -1,27 +1,33 @@
-import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import AuditSimulator from "../components/AuditSimulator";
 import TelemetryFusion from "../components/TelemetryFusion";
 import RegulationIntel from "../components/RegulationIntel";
-import EvidenceVault from "../components/EvidenceVault";
-import { isFeatureEnabled } from "../lib/featureFlags";
+import InsightsFeed from "../components/InsightsFeed";
 
-type IntelTab = "simulator" | "signals" | "regulation" | "vault";
+// Insights is the reasoning layer (real backend); the remaining three are illustrative
+// demo surfaces. Tabs map 1:1 to sub-routes so the sidebar can deep-link to each.
+type IntelTab = "insights" | "simulator" | "signals" | "regulation";
 
-const TAB_DEFS: { key: IntelTab; label: string; demo: string }[] = [
-  { key: "simulator", label: "Audit Simulator", demo: "(demo)" },
-  { key: "signals", label: "Live Signals", demo: "(demo)" },
-  { key: "regulation", label: "Regulation Intel", demo: "(demo)" },
-  { key: "vault", label: "Evidence Vault", demo: "(demo)" },
+const TAB_DEFS: { key: IntelTab; label: string; path: string; demo: boolean }[] = [
+  { key: "insights", label: "Insights", path: "/intelligence", demo: false },
+  { key: "simulator", label: "Audit Simulator", path: "/intelligence/simulator", demo: true },
+  { key: "signals", label: "Live Signals", path: "/intelligence/signals", demo: true },
+  { key: "regulation", label: "Regulation Intel", path: "/intelligence/regulation", demo: true },
 ];
 
-export default function Intelligence() {
-  const [tab, setTab] = useState<IntelTab>("simulator");
+const TAB_BY_SLUG: Record<string, IntelTab> = {
+  simulator: "simulator",
+  signals: "signals",
+  regulation: "regulation",
+};
 
-  const suiteGated =
-    !isFeatureEnabled("auditSimulator") &&
-    !isFeatureEnabled("telemetryFusion") &&
-    !isFeatureEnabled("regulationIntel") &&
-    !isFeatureEnabled("evidenceVault");
+export default function Intelligence() {
+  const navigate = useNavigate();
+  const { tab: tabSlug } = useParams<{ tab?: string }>();
+  const tab: IntelTab = tabSlug ? (TAB_BY_SLUG[tabSlug] ?? "insights") : "insights";
+
+  // The demo banner only applies to the three illustrative tabs, never to Insights.
+  const onDemoTab = tab !== "insights";
 
   return (
     <div
@@ -69,8 +75,8 @@ export default function Intelligence() {
             AI-powered regulatory intelligence and live control telemetry
           </p>
         </div>
-        {!suiteGated ? (
-          /* TODO(intelligence): Replace labels below with live aggregates from telemetry / regulator / regulation / vault APIs when those services ship. */
+        {onDemoTab ? (
+          /* TODO(intelligence): Replace labels below with live aggregates from telemetry / regulator / regulation APIs when those services ship. */
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span
               style={{
@@ -145,35 +151,11 @@ export default function Intelligence() {
               />
               Regulatory horizon
             </span>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 14px",
-                borderRadius: 999,
-                background: "var(--surface)",
-                border: "1px solid color-mix(in srgb, var(--green) 45%, var(--border))",
-                fontSize: 12,
-                color: "var(--green)",
-              }}
-            >
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: "var(--green)",
-                  flexShrink: 0,
-                }}
-              />
-              Evidence records
-            </span>
           </div>
         ) : null}
       </header>
 
-      {!suiteGated ? (
+      {onDemoTab ? (
         <div
           style={{
             marginBottom: 20,
@@ -186,9 +168,9 @@ export default function Intelligence() {
             lineHeight: 1.5,
           }}
         >
-          <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — Audit Simulator, Signals,
-          Regulation Intel, and Evidence Vault use <strong style={{ color: "var(--text)" }}>simulated / demo UX</strong>{" "}
-          for storytelling; they are not a substitute for production evidence stores unless wired to backend APIs.
+          <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — Audit Simulator, Live Signals,
+          and Regulation Intel use <strong style={{ color: "var(--text)" }}>simulated / demo UX</strong>{" "}
+          for storytelling. The <strong style={{ color: "var(--text)" }}>Insights</strong> tab is live — it reasons over your real compliance graph.
         </div>
       ) : null}
 
@@ -202,13 +184,13 @@ export default function Intelligence() {
           flexWrap: "wrap",
         }}
       >
-        {TAB_DEFS.map(({ key, label, demo }) => (
+        {TAB_DEFS.map(({ key, label, path, demo }) => (
           <button
             key={key}
             type="button"
             role="tab"
             aria-selected={tab === key}
-            onClick={() => setTab(key)}
+            onClick={() => navigate(path)}
             style={{
               padding: "10px 0",
               marginBottom: -1,
@@ -223,16 +205,18 @@ export default function Intelligence() {
             }}
           >
             {label}{" "}
-            <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>{demo}</span>
+            {demo ? (
+              <span style={{ fontSize: 10, color: "var(--amber)", fontWeight: 600 }}>(demo)</span>
+            ) : null}
           </button>
         ))}
       </div>
 
       <>
+        {tab === "insights" && <InsightsFeed />}
         {tab === "simulator" && <AuditSimulator />}
         {tab === "signals" && <TelemetryFusion />}
         {tab === "regulation" && <RegulationIntel />}
-        {tab === "vault" && <EvidenceVault />}
       </>
     </div>
   );
