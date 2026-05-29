@@ -15,10 +15,19 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
+    # Major upgrades (React 19, Tailwind 4, Vite 8, etc.) need a deliberate,
+    # code-migrated change set — never an auto-grouped Dependabot PR. Only allow
+    # minor/patch bumps here; majors must be done intentionally on a branch.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       npm-dependencies:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: github-actions
     directory: "/"
