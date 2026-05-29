@@ -133,7 +133,7 @@ export default function FindingDetail() {
     if (window.history.length > 1) {
       navigate(-1);
     } else {
-      navigate("/evidence");
+      navigate("/findings");
     }
   };
 
@@ -186,7 +186,7 @@ export default function FindingDetail() {
             Back
           </button>
           <Link
-            to="/evidence"
+            to="/findings"
             className="rounded bg-cortex-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-cortex-blue/90"
           >
             Go to Findings
@@ -208,7 +208,7 @@ export default function FindingDetail() {
         </button>
       </div>
 
-      <Breadcrumb items={[{ label: "Findings", href: "/evidence" }, { label: finding.id }]} />
+      <Breadcrumb items={[{ label: "Findings", href: "/findings" }, { label: finding.id }]} />
 
       <div className="mt-2 grid gap-8 lg:grid-cols-[13fr_7fr]">
         {/* Main column */}

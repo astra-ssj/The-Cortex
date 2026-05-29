@@ -24,25 +24,54 @@ type NavItem = {
   soon?: boolean;
 };
 
-const POSTURE: NavItem[] = [
-  { label: "Dashboard", path: "/dashboard", icon: "◫" },
-  { label: "Frameworks", path: "/frameworks", icon: "▦" },
-  { label: "Graph", path: "/graph", icon: "◎" },
-  { label: "Findings", path: "/evidence", icon: "⚑", badge: "findings" },
-  { label: "Group View", path: "/group", icon: "⊞" },
-];
+type NavGroupDef = { label: string; items: NavItem[] };
 
-const GOVERNANCE: NavItem[] = [
-  { label: "Review Queue", path: "/review-queue", icon: "⇌", badge: "review" },
-  { label: "Audit Report", path: "/audit-report", icon: "⊡" },
-  { label: "AI Systems", path: "/ai-systems", icon: "◈", soon: showNavSoonForPath("/ai-systems") },
-  { label: "Intelligence", path: "/intelligence", icon: "◎", soon: showNavSoonForPath("/intelligence") },
-];
-
-const OPERATIONS: NavItem[] = [
-  { label: "Cloud Scans", path: "/cloud-scans", icon: "☁" },
-  { label: "Integrations", path: "/integrations", icon: "⚡" },
-  { label: "Roadmap", path: "/roadmap", icon: "▸", soon: showNavSoonForPath("/roadmap") },
+// Five top-level categories. Order mirrors the user's compliance workflow:
+// understand posture → reason about it → govern it → know what you own → operate.
+const NAV_GROUPS: NavGroupDef[] = [
+  {
+    label: "Posture",
+    items: [
+      { label: "Dashboard", path: "/dashboard", icon: "◫" },
+      { label: "Group View", path: "/group", icon: "⊞" },
+      { label: "Frameworks", path: "/frameworks", icon: "▦" },
+      { label: "Graph", path: "/graph", icon: "◎" },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      { label: "Insights", path: "/intelligence", icon: "✦" },
+      { label: "Audit Simulator", path: "/intelligence/simulator", icon: "▷" },
+      { label: "Live Signals", path: "/intelligence/signals", icon: "≈" },
+      { label: "Regulation Intel", path: "/intelligence/regulation", icon: "§" },
+    ],
+  },
+  {
+    label: "Governance",
+    items: [
+      { label: "Review Queue", path: "/review-queue", icon: "⇌", badge: "review" },
+      { label: "Findings", path: "/findings", icon: "⚑", badge: "findings" },
+      { label: "Remediation", path: "/remediation", icon: "↻" },
+      { label: "Audit Report", path: "/audit-report", icon: "⊡" },
+    ],
+  },
+  {
+    label: "Inventory",
+    items: [
+      { label: "AI Systems", path: "/ai-systems", icon: "◈", soon: showNavSoonForPath("/ai-systems") },
+      { label: "Evidence Vault", path: "/evidence", icon: "▤" },
+      { label: "Integrations", path: "/integrations", icon: "⚡" },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { label: "Cloud Scans", path: "/cloud-scans", icon: "☁" },
+      { label: "Roadmap", path: "/roadmap", icon: "▸", soon: showNavSoonForPath("/roadmap") },
+      { label: "Settings", path: "/settings", icon: "⚙" },
+    ],
+  },
 ];
 
 function userInitials(user: Record<string, unknown> | null): string {
@@ -279,9 +308,14 @@ export function Sidebar({
   user: Record<string, unknown> | null;
   onLogout: () => void;
 }) {
-  const { pathname } = useLocation();
   const { role, can } = useRole();
-  const settingsActive = pathname === "/settings";
+  const canSettings = can("canAccessSettings");
+
+  // Hide Settings from the Operations group when the role lacks access.
+  const groups = NAV_GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter((it) => it.path !== "/settings" || canSettings),
+  }));
 
   return (
     <aside
@@ -340,9 +374,9 @@ export function Sidebar({
         }}
         aria-label="Application sections"
       >
-        <NavGroup label="Posture" items={POSTURE} />
-        <NavGroup label="Governance" items={GOVERNANCE} />
-        <NavGroup label="Operations" items={OPERATIONS} />
+        {groups.map((g) => (
+          <NavGroup key={g.label} label={g.label} items={g.items} />
+        ))}
       </nav>
 
       <div style={{ marginTop: "auto", flexShrink: 0 }}>
@@ -360,32 +394,6 @@ export function Sidebar({
             gap: 2,
           }}
         >
-          {can("canAccessSettings") ? (
-            <NavLink
-              to="/settings"
-              end
-              aria-current={settingsActive ? "page" : undefined}
-              className="cortex-sidebar-link"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "8px 10px",
-                borderRadius: 6,
-                textDecoration: "none",
-                fontSize: "13px",
-                fontWeight: settingsActive ? 600 : 500,
-                color: settingsActive ? "var(--text)" : "var(--text-secondary)",
-                background: settingsActive ? "var(--card)" : "transparent",
-                borderLeft: settingsActive ? "2px solid var(--blue)" : "2px solid transparent",
-              }}
-            >
-              <span style={{ width: 22, textAlign: "center" }} aria-hidden>
-                ⚙
-              </span>
-              Settings
-            </NavLink>
-          ) : null}
           <NavLink
             to="/help"
             className={({ isActive }) => (isActive ? "cortex-sidebar-link-active" : undefined)}

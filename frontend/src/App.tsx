@@ -32,6 +32,7 @@ import Settings from "./pages/Settings";
 import { FrameworksList } from "./pages/FrameworksList";
 import ComplianceGraph from "./pages/ComplianceGraph";
 import FindingDetail from "./pages/FindingDetail";
+import EvidenceVault from "./pages/EvidenceVault";
 import HelpDocs from "./pages/HelpDocs";
 
 function MainChrome() {
@@ -225,13 +226,16 @@ function AppRoutes() {
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
             <Route path="/graph" element={<ComplianceGraph />} />
             <Route path="/intelligence" element={<Intelligence />} />
+            <Route path="/intelligence/:tab" element={<Intelligence />} />
             <Route path="/ai-systems" element={<AISystems />} />
             <Route path="/review-queue" element={<HumanReview />} />
             <Route path="/audit-report" element={<AuditReport />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/cloud-scans" element={<CloudScans />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
-            <Route path="/evidence" element={<RemediationTracker />} />
+            <Route path="/evidence" element={<EvidenceVault />} />
+            <Route path="/findings" element={<RemediationTracker />} />
+            <Route path="/remediation" element={<RemediationTracker />} />
             <Route path="/findings/:id" element={<FindingDetail />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/help" element={<HelpDocs />} />

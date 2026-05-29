@@ -154,7 +154,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Triage findings",
         body:
-          "Open Findings (/evidence) for NON_COMPLIANT controls. Open a finding for remediation detail, linked controls, and evidence. Prioritise HIGH and CRITICAL risk.",
+          "Open Findings (/findings) for NON_COMPLIANT controls. Open a finding for remediation detail, linked controls, and evidence. Prioritise HIGH and CRITICAL risk.",
         snapshot: "findings",
       },
       {
@@ -199,7 +199,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
           "Visual map of relationships between frameworks, controls, entities, and evidence. Use for cross-regulation impact analysis.",
       },
       {
-        title: "Findings (/evidence)",
+        title: "Findings (/findings)",
         body:
           "Remediation tracker for gaps surfaced by assessments and scans. Filter by risk, framework, and status.",
         snapshot: "findings",
