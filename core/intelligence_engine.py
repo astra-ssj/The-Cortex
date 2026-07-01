@@ -167,7 +167,7 @@ def _days_until(when: datetime) -> int:
 
 
 def _stable_id(category: str, *parts: str) -> str:
-    digest = hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()[:10]
+    digest = hashlib.sha1("|".join(parts).encode("utf-8"), usedforsecurity=False).hexdigest()[:10]
     return f"{category.lower()}-{digest}"
 
 
