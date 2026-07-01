@@ -486,7 +486,7 @@ def detect_deadline_risks(graph: _GraphView, *, score_threshold: int = 60) -> li
                     f"open controls on this framework now."
                 ),
                 related_nodes=related,
-                action={"label": "Open framework", "href": f"/frameworks"},
+                action={"label": "Open framework", "href": "/frameworks"},
                 computed_at=now.isoformat(),
                 # Lower score + sooner deadline = more urgent.
                 rank_hint=(score_threshold - score) * 100 - days,
