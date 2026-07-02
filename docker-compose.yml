@@ -35,7 +35,10 @@ services:
       timeout: 5s
       retries: 5
 
-  # GraphQL read layer: same DB as FastAPI. Dev auth disabled — do not expose 8080 to the internet. See services/graphjin/README.md
+  # GraphQL read layer: same DB as FastAPI. Dev auth is disabled, so the port is
+  # bound to 127.0.0.1 only — reachable from the host for debugging, never from the
+  # network. The frontend/API reach it over the internal Docker network by service
+  # name (`graphjin:8080`), which is unaffected by the host bind. See services/graphjin/README.md
   graphjin:
     image: dosco/graphjin:3.18.10
     container_name: cortex-graphjin
@@ -53,7 +56,7 @@ services:
       GJ_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       GJ_DATABASE_NAME: ${POSTGRES_DB:-cortex}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -67,10 +70,12 @@ services:
       # When set (e.g. redis://redis:6379/0 with profile ``queue``), Shasta scans enqueue to Redis instead of in-process BackgroundTasks.
       REDIS_URL: ${REDIS_URL:-}
       SHASTA_REDIS_URL: ${SHASTA_REDIS_URL:-}
-      # Local/demo only — override in production (see README security defaults).
-      CORTEX_LEGACY_DEMO_PASSWORD: ${CORTEX_LEGACY_DEMO_PASSWORD:-admin}
-      COMPLIANCE_ENGINE_STUB_PASSWORD: ${COMPLIANCE_ENGINE_STUB_PASSWORD:-demo}
-      COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN: ${COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN:-compliance-stub-dev-token}
+      # No insecure defaults: these must be set explicitly (in .env for local dev).
+      # Using :? makes the stack refuse to start rather than silently shipping
+      # admin/admin or a well-known stub token. See .env.example.
+      CORTEX_LEGACY_DEMO_PASSWORD: ${CORTEX_LEGACY_DEMO_PASSWORD:?set CORTEX_LEGACY_DEMO_PASSWORD in .env}
+      COMPLIANCE_ENGINE_STUB_PASSWORD: ${COMPLIANCE_ENGINE_STUB_PASSWORD:?set COMPLIANCE_ENGINE_STUB_PASSWORD in .env}
+      COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN: ${COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN:?set COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN in .env}
       # LLM provider chain (Track B ingest) — set keys in .env or shell; stub used when unset.
       CORTEX_LLM_PROVIDERS: ${CORTEX_LLM_PROVIDERS:-anthropic,openai,stub}
       CORTEX_LLM_TIMEOUT_SECONDS: ${CORTEX_LLM_TIMEOUT_SECONDS:-90}

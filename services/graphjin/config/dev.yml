@@ -42,12 +42,17 @@ tables:
   - name: framework_entities
   - name: assessment_results
   - name: entities
-  - name: rel_people
   - name: rel_teams
   - name: rel_systems
   - name: rel_risks
-  - name: relationship_edges
 
+# Never expose over GraphJin (dev auth is none): auth/PII/audit tables.
+# - users: credential hashes
+# - audit_log: append-only compliance record (must not be reachable read layer)
+# - rel_people: carries person names + emails (PII)
+# - relationship_edges: wires person identities into the org graph (PII by association)
 blocklist:
   - users
   - audit_log
+  - rel_people
+  - relationship_edges

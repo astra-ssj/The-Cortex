@@ -30,6 +30,7 @@ dependencies = [
     # Security: minimum versions to avoid known CVEs in transitive deps (pip-audit)
     "filelock>=3.29.4",
     "future>=1.0.0",
+    "idna>=3.15",  # GHSA-jjg7-2v4v-x38h — DoS via crafted domain in idna.encode
     "marshmallow>=4.3.0",
     "slowapi>=0.1.10",
     "reportlab>=5.0.0",
