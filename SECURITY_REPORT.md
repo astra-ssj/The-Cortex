@@ -1,5 +1,20 @@
 # CORTEX Compliance Engine — Security & QA Report
 
+## Remediation — `fix/security-critical`
+
+**Posture:** moving **AMBER → GREEN** on the critical findings.
+
+| Finding | Status | Fix |
+|---------|--------|-----|
+| GraphJin published on `0.0.0.0:8080` (dev auth `none`) | **Fixed** | Port bound to `127.0.0.1:8080:8080`; internal Docker network unchanged. `dev.yml` blocklist extended to `rel_people` + `relationship_edges` (PII) alongside `users` + `audit_log`. |
+| Default secrets in `docker-compose.yml` | **Fixed** | `CORTEX_LEGACY_DEMO_PASSWORD`, `COMPLIANCE_ENGINE_STUB_PASSWORD`, `COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN` now use `:?` (required) — no `admin`/stub-token defaults. `.env.example` documents them. |
+| `idna` 3.13 CVE (GHSA-jjg7-2v4v-x38h) | **Fixed** | Pinned `idna>=3.15` in `pyproject.toml` + `requirements.txt`; environment on 3.18. `pip-audit` reports no `idna` finding. Remaining `pip-audit` hits are OS/base-image packages (ansible, jinja2, pip, pyjwt, setuptools, urllib3, wheel) under `/usr/lib/python3/dist-packages`, not CORTEX deps. |
+| Audit fabric not durable | **Already resolved on main** | `core/audit_fabric.append_audit_log()` writes to the append-only `audit_log` table on the caller's transaction; human-review queue persisted in `human_review_pending` / `human_review_reviewed`. |
+| Cosmetic rate-limit headers | **Already resolved on main** | Real SlowAPI enforcement (`@limiter.limit` on auth routes + `SlowAPIMiddleware`); the header-only `RateLimitHeadersMiddleware` no longer exists. |
+| Two failing tests + flaky SSE smoke | **Green** | Full suite: 145 passed / 6 skipped against a Compose-equivalent Postgres. Assessment SSE terminates with the `run_done` event (`services/assessment_engine.py`). |
+
+---
+
 ## Verification run — 2026-05-21
 
 **Scope:** CI-aligned SAST, dependency audit, pytest (Compose DB), HTTP smokes.  
