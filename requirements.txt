@@ -2,5 +2,5 @@
 python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.32
-# Security: pin idna >= 3.15 (GHSA-jjg7-2v4v-x38h — DoS in idna.encode)
+# Security: pin idna >= 3.18 (GHSA-jjg7-2v4v-x38h — DoS in idna.encode)
 idna>=3.15
