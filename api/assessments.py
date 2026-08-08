@@ -162,7 +162,7 @@ def _sse_event(event_kind: str, data: dict) -> str:
 async def _run_assessment_stream(organization_id: str, framework_ids: list[FrameworkId]):
     """Stream AssessmentEvent-shaped events from assessment_engine; emit as SSE (event=kind, data=payload)."""
     from db.session import async_session_factory
-    from services.assessment_engine import run_assessment_stream
+    from core.assessment_engine import run_assessment_stream
 
     async with async_session_factory() as session:
         async for event in run_assessment_stream(session, organization_id, framework_ids):

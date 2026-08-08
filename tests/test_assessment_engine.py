@@ -11,7 +11,7 @@ import pytest
 pytest.importorskip("sqlalchemy")
 
 from compliance import FrameworkId
-from services.assessment_engine import run_assessment_stream
+from core.assessment_engine import run_assessment_stream
 
 
 def _mock_control_result(**kwargs: object) -> dict:
@@ -35,19 +35,19 @@ def _stream_session_mocks(context_return: dict[str, str]) -> None:
     org = MagicMock()
     org.metadata_ = {"maturity_score": 0.5, "employees": 100}
     org.industry = "Technology"
-    with patch("services.assessment_engine.get_org_profile", new_callable=AsyncMock) as m_org:
+    with patch("core.assessment_engine.get_org_profile", new_callable=AsyncMock) as m_org:
         m_org.return_value = org
         with patch(
-            "services.posture_calculator.PostureCalculator.save_assessment_result",
+            "core.posture_calculator.PostureCalculator.save_assessment_result",
             new_callable=AsyncMock,
         ):
             with patch(
-                "services.assessment_engine.get_context_for_control",
+                "core.assessment_engine.get_context_for_control",
                 new_callable=AsyncMock,
             ) as m_ctx:
                 m_ctx.return_value = context_return
                 with patch(
-                    "services.assessment_engine.assess_control_with_llm",
+                    "core.assessment_engine.assess_control_with_llm",
                     new_callable=AsyncMock,
                 ) as m_llm:
 
@@ -120,9 +120,9 @@ def test_run_assessment_stream_unknown_framework_skipped() -> None:
     org = MagicMock()
     org.metadata_ = {}
     org.industry = "Technology"
-    with patch("services.assessment_engine.get_org_profile", new_callable=AsyncMock) as m_org:
+    with patch("core.assessment_engine.get_org_profile", new_callable=AsyncMock) as m_org:
         m_org.return_value = org
-        with patch("services.assessment_engine.get") as m_get:
+        with patch("core.assessment_engine.get") as m_get:
             m_get.return_value = None
             events: list[dict] = []
 

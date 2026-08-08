@@ -1,6 +1,6 @@
-import type { AssessmentEvent, FrameworkPosture } from "./types/compliance";
-import type { BadgeVariant } from "./components/ui/Badge";
-import type { TableColumn } from "./components/ui/Table";
+import type { AssessmentEvent, FrameworkPosture } from "../types/compliance";
+import type { BadgeVariant } from "../components/ui/Badge";
+import type { TableColumn } from "../components/ui/Table";
 
 export type FrameworkSortKey =
   | "name"

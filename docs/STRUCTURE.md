@@ -1,6 +1,6 @@
 # CORTEX repository structure
 
-Maintained map of the monorepo after Phase 0–1 cleanup. See also [`REPO_STRUCTURE_REFACTOR.md`](REPO_STRUCTURE_REFACTOR.md).
+Maintained map of the monorepo. See also [`REPO_STRUCTURE_REFACTOR.md`](REPO_STRUCTURE_REFACTOR.md).
 
 ```text
 .
@@ -9,21 +9,26 @@ Maintained map of the monorepo after Phase 0–1 cleanup. See also [`REPO_STRUCT
 │   ├── connectors/      # AWS, Azure, Microsoft, Shasta adapters
 │   ├── ingestion/       # Document → evidence pipeline
 │   ├── llm/             # Provider chain + circuit breakers
+│   ├── assessment_*.py  # Assessment engine / LLM / context / posture
 │   └── skills_loader.py
 ├── compliance/          # Framework registry (nist, gdpr, …)
 ├── ontology/            # SovereignModel entities
 ├── db/                  # Async SQLAlchemy session helpers
-├── workers/             # Optional background consumers
-├── services/
-│   ├── assessment_*.py  # Assessment engine / LLM helpers (imported as services.*)
-│   ├── ingestion/       # Thin compat re-exports → core.ingestion
-│   ├── skills/          # Bundled GRC skill packs (content)
-│   └── graphjin/        # GraphJin config (sidecar)
+├── workers/             # Optional background consumers (Shasta)
+├── content/
+│   └── skills/          # Bundled GRC skill packs (content only)
+├── infra/
+│   └── graphjin/        # GraphJin sidecar config
 ├── frontend/            # Vite + React SPA
-├── migrations/          # Single SQL lane (002–015)
+│   └── src/
+│       ├── pages/       # Route screens
+│       ├── components/  # Shared UI / panels
+│       ├── lib/         # Client helpers + feature flags
+│       └── api/         # HTTP client
+├── migrations/          # Single SQL lane (002–015) + ../init.sql
 ├── scripts/             # Smokes, schema apply, local runners
 ├── tests/               # Pytest suite
-├── docs/                # Living docs + archive/ snapshots
+├── docs/                # Index in README.md; archive/ for snapshots
 ├── docker-compose.yml
 ├── Dockerfile
 └── pyproject.toml
@@ -34,14 +39,25 @@ Maintained map of the monorepo after Phase 0–1 cleanup. See also [`REPO_STRUCT
 | Put it in… | When |
 |------------|------|
 | `api/` | HTTP route, request/response schema, FastAPI deps |
-| `core/` | Reusable domain logic, connectors, persistence helpers |
+| `core/` | Reusable domain logic, connectors, assessment, persistence helpers |
 | `compliance/` | Framework definitions / registry |
-| `services/` | Assessment orchestration modules or **content** (skills), sidecars |
+| `content/` | Static packs (skills) — not Python packages |
+| `infra/` | Sidecar configs (GraphJin), future deploy helpers |
 | `docs/archive/` | Dated QA/SAST/audit reports (never grow the repo root) |
 | `migrations/` | All DDL — never a second migration folder |
 
-## Removed (Phase 1)
+## Doc roles
 
-- `services/compliance-engine/` nested FastAPI app and `sys.path` mount
-- Dual stub routers (auth/frameworks/assessments/findings/groups/organisations)
-- Dual `FINDINGS_STORE` in the engine (canonical store remains `api/findings.py` until Phase 3)
+| Doc | Job |
+|-----|-----|
+| [`../README.md`](../README.md) | Product pitch + quickstart |
+| [`STRUCTURE.md`](STRUCTURE.md) | Directory map (this file) |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Runtime topology |
+| [`CORTEX_SETUP.md`](CORTEX_SETUP.md) | Local/Cursor/Shasta operator setup |
+| [`REPO_STRUCTURE_REFACTOR.md`](REPO_STRUCTURE_REFACTOR.md) | Phase checklist |
+| [`archive/`](archive/) | Historical snapshots only |
+
+## Removed
+
+- `services/compliance-engine/` nested FastAPI app (Phase 1)
+- `services/` package hybrid (Phase 2) — assessment → `core/`, skills → `content/`, GraphJin → `infra/`

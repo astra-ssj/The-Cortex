@@ -3,7 +3,7 @@ CORTEX Skills Loader — GRC skill content for the assessment engine.
 
 Skills source:
   https://github.com/Sushegaad/Claude-Skills-Governance-Risk-and-Compliance
-License: MIT (see services/skills/index.json).
+License: MIT (see content/skills/index.json).
 """
 
 from __future__ import annotations
@@ -16,8 +16,8 @@ import structlog
 
 logger = structlog.get_logger()
 
-# Repo-root services/skills (bundled GRC skill packs).
-_SKILLS_ROOT = Path(__file__).resolve().parent.parent / "services" / "skills"
+# Repo-root content/skills (bundled GRC skill packs).
+_SKILLS_ROOT = Path(__file__).resolve().parent.parent / "content" / "skills"
 SKILLS_ROOT = _SKILLS_ROOT
 SKILLS_INDEX = SKILLS_ROOT / "index.json"
 

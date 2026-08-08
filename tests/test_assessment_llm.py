@@ -11,7 +11,7 @@ pytest.importorskip("sqlalchemy")
 from compliance import FrameworkId, get
 from core.llm.assessment_schema import AssessmentLLMOutput
 from core.llm.types import StructuredCompletionRequest, StructuredCompletionResult
-from services.assessment_llm import assess_control_with_llm
+from core.assessment_llm import assess_control_with_llm
 
 
 @pytest.mark.asyncio
@@ -40,7 +40,7 @@ async def test_assess_control_uses_llm_stub_output(monkeypatch: pytest.MonkeyPat
             usage={},
         )
 
-    with patch("services.assessment_llm.complete_structured", side_effect=_fake_complete):
+    with patch("core.assessment_llm.complete_structured", side_effect=_fake_complete):
         result = await assess_control_with_llm(
             session,
             org_id="demo-org-001",

@@ -39,7 +39,7 @@ services:
   # GraphQL read layer: same DB as FastAPI. Dev auth is disabled, so the port is
   # bound to 127.0.0.1 only — reachable from the host for debugging, never from the
   # network. The frontend/API reach it over the internal Docker network by service
-  # name (`graphjin:8080`), which is unaffected by the host bind. See services/graphjin/README.md
+  # name (`graphjin:8080`), which is unaffected by the host bind. See infra/graphjin/README.md
   graphjin:
     image: dosco/graphjin:3.18.10
     container_name: cortex-graphjin
@@ -48,7 +48,7 @@ services:
     command: ["serve", "--path", "/app/config"]
     working_dir: /app
     volumes:
-      - ./services/graphjin/config:/app/config:ro
+      - ./infra/graphjin/config:/app/config:ro
     environment:
       GO_ENV: development
       GJ_DATABASE_HOST: postgres

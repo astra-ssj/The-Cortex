@@ -62,7 +62,7 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 | Data/API    | FastAPI REST (`/api/v1`), same process as assessments and auth |
 | GraphQL     | GraphJin sidecar (port **8080**) — auto-generated reads on Postgres; compliance graph tables in `migrations/013_compliance_graph.sql` |
 | Async jobs  | Optional Redis + worker (`docker compose --profile queue`) for durable Shasta scan jobs — see [docs/CORTEX_SETUP.md](docs/CORTEX_SETUP.md) |
-| GRC Skills  | Loaded examples include GDPR, ISO 27001, DORA, ISO 42001 (`core/skills_loader.py`) |
+| GRC Skills  | Bundled under `content/skills/`; loaded by `core/skills_loader.py` |
 | Auth        | JWT (HS256), bcrypt passwords                           |
 | Container   | Docker Compose (Postgres + API + GraphJin by default)   |
 
@@ -149,11 +149,12 @@ Browser (React, :3000)
 | `api/` | All REST routers (auth, assessments, findings, ingest, connectors, reports, …) |
 | `core/` | Domain: security, RBAC, audit, LLM, connectors, ingestion, skills loader |
 | `compliance/` | Framework registry and posture primitives |
-| `services/` | Assessment engine helpers, GRC skill packs, GraphJin config (not a second API) |
 | `workers/` | Optional Redis consumers (Shasta) |
+| `content/skills/` | Bundled GRC skill packs |
+| `infra/graphjin/` | GraphJin sidecar config |
 | `frontend/` | Vite + React SPA |
 | `init.sql`, `migrations/` | PostgreSQL schema — **single ordered lane** `002`–`015` |
-| `docs/` | Setup, architecture, refactor plan; dated reports in `docs/archive/` |
+| `docs/` | Index in `docs/README.md`; dated reports in `docs/archive/` |
 
 See [`docs/STRUCTURE.md`](docs/STRUCTURE.md) for the maintained layout map.
 
@@ -188,7 +189,7 @@ See `.cursorrules` for non‑negotiable ZTAIP conventions when extending the cod
 ## Development notes
 
 - **Workflow audit & fixture phases** (login → nine primary nav areas → gaps → phased fixes): [`docs/WORKFLOW_AUDIT_AND_FIXTURE_PHASES.md`](docs/WORKFLOW_AUDIT_AND_FIXTURE_PHASES.md).
-- **Repo structure refactor** (absorb compliance-engine, migrate lane, CI gates): [`docs/REPO_STRUCTURE_REFACTOR.md`](docs/REPO_STRUCTURE_REFACTOR.md).
+- **Docs index:** [`docs/README.md`](docs/README.md). Layout map: [`docs/STRUCTURE.md`](docs/STRUCTURE.md). Refactor phases: [`docs/REPO_STRUCTURE_REFACTOR.md`](docs/REPO_STRUCTURE_REFACTOR.md).
 - **Python:** `pip install -e ".[dev]"` (requires Python **≥ 3.12**).
 - **Tests:** `pytest tests/ -v`
 - **Frontend audit:** After `npm install`, run `npm audit --audit-level=high`. There is no committed lockfile by default; generate `package-lock.json` locally if you want reproducible audits.

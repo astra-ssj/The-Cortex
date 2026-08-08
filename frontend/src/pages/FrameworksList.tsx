@@ -7,7 +7,7 @@ import {
   scoreRingStroke,
   statusBadgeVariant,
   statusCompare,
-} from "../complianceDashboardUtils";
+} from "../lib/complianceDashboardUtils";
 import { Badge, Button, Select, Table, Tooltip } from "../components/ui";
 import type { TableColumn } from "../components/ui/Table";
 import { useFilterParams } from "../hooks/useSearchParams";

@@ -9,8 +9,8 @@ Track A wires **per-control compliance assessment** through the same multi-provi
 | Component | Location |
 |-----------|----------|
 | Assessment schema + prompts | `core/llm/assessment_schema.py`, `assessment_prompt.py` |
-| Assessment service | `services/assessment_llm.py` |
-| Stream integration | `services/assessment_engine.py` |
+| Assessment service | `core/assessment_llm.py` |
+| Stream integration | `core/assessment_engine.py` |
 | Human review enqueue | `core/human_review.py` → `human_review_pending` |
 | Ops metadata | `GET /api/v1/system/llm-providers` (`assessment_llm_enabled`, `assessment_max_controls_per_run`) |
 | UI | `assessmentLlmLive` flag, TopBar **LLM: Anthropic**, stream shows confidence + provider |

@@ -196,7 +196,7 @@ async def build_executive_summary(
         scores = [float(r["score"]) for r in fw_results if r.get("score") is not None]
         if scores:
             avg = sum(scores) / len(scores)
-            from services.posture_calculator import _risk
+            from core.posture_calculator import _risk
 
             risk = _risk(float(round(avg)))
 

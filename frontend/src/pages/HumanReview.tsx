@@ -7,17 +7,17 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { getUser, useReviewQueue, approveControl, overrideControl } from "./api/client";
-import { useOrgContext } from "./hooks/useOrgContext";
-import { useRole } from "./hooks/useRole";
+import { getUser, useReviewQueue, approveControl, overrideControl } from "../api/client";
+import { useOrgContext } from "../hooks/useOrgContext";
+import { useRole } from "../hooks/useRole";
 import {
   FRAMEWORK_FILTER_OPTIONS,
   type FrameworkFilterOption,
-} from "./lib/frameworkRegistry";
-import { useFilterParams } from "./hooks/useSearchParams";
-import { invalidateComplianceData } from "./store/complianceStore";
-import { Skeleton, TableRowSkeleton } from "./components/Skeleton";
-import { ReviewQueueEmpty } from "./components/ui/EmptyState";
+} from "../lib/frameworkRegistry";
+import { useFilterParams } from "../hooks/useSearchParams";
+import { invalidateComplianceData } from "../store/complianceStore";
+import { Skeleton, TableRowSkeleton } from "../components/Skeleton";
+import { ReviewQueueEmpty } from "../components/ui/EmptyState";
 
 const SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM"] as const;
 const SORT_OPTIONS = [

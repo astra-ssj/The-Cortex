@@ -48,12 +48,13 @@ Goal: one FastAPI process without `sys.path` hacks.
 
 ---
 
-## Phase 2 — Rename / thin `services/`
+## Phase 2 — Rename / thin `services/` ✅
 
-- [ ] Move `services/assessment_*.py`, `posture_calculator.py`, `context_builder.py` → `core/` (or `packages/assessment/`)
-- [ ] Keep GraphJin config under `services/graphjin/` or relocate to `infra/graphjin/`
-- [ ] Keep GRC skills under a clear path (`packages/skills/` or `content/skills/`)
-- [ ] Stop using `services/` as both a Python package and a sidecar folder
+- [x] Move `assessment_*.py`, `posture_calculator.py`, `context_builder.py` → `core/`
+- [x] Relocate GraphJin config → `infra/graphjin/`
+- [x] Relocate GRC skills → `content/skills/`
+- [x] Delete `services/` (no longer a hybrid Python package + sidecar folder)
+- [x] Delete dead `services/ingestion` shims and empty GraphJin migrations folder
 
 ---
 
