@@ -59,7 +59,7 @@ def test_post_shasta_scan_501_when_not_installed(
 ) -> None:
     """Missing optional extra → 501 before any scan row is created."""
     with patch(
-        "app.connectors.shasta.shasta_adapter.is_shasta_installed",
+        "core.connectors.shasta.shasta_adapter.is_shasta_installed",
         return_value=False,
     ):
         r = client.post(
@@ -76,7 +76,7 @@ def test_post_shasta_scan_501_when_not_installed(
 @patch("api.shasta_cloud._run_shasta_scan_background", new_callable=AsyncMock)
 @patch("api.shasta_cloud._create_running_scan_row", new_callable=AsyncMock)
 @patch(
-    "app.connectors.shasta.shasta_adapter.is_shasta_installed",
+    "core.connectors.shasta.shasta_adapter.is_shasta_installed",
     return_value=True,
 )
 def test_post_shasta_scan_returns_running_immediately(
@@ -114,7 +114,7 @@ def test_get_shasta_contract_unauthenticated(client: TestClient) -> None:
 """
 Manual verification (local):
 
-1. **Happy path:** ``export PYTHONPATH=".:services/compliance-engine"``, apply ``migrations/009_shasta_cloud.sql``,
+1. **Happy path:** ``export PYTHONPATH="."``, apply ``migrations/009_shasta_cloud.sql``,
    run uvicorn, store connector creds, POST ``/api/v1/shasta/scans`` → immediate ``running``;
    poll GET ``/api/v1/shasta/scans?org_id=...`` until ``completed``; GET findings lists populate.
 

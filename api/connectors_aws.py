@@ -11,9 +11,9 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from core.audit_fabric import audit_fabric
-from app.connectors.aws import AWSConnector
-from app.connectors.aws.aws_connector import store_connector_credentials
-from app.connectors.aws.aws_evidence import create_evidence_from_control_findings
+from core.connectors.aws import AWSConnector
+from core.connectors.aws.aws_connector import store_connector_credentials
+from core.connectors.aws.aws_evidence import create_evidence_from_control_findings
 
 logger = structlog.get_logger()
 
@@ -99,7 +99,7 @@ async def aws_connect(body: AWSConnectBody) -> dict:
 
 async def _run_sync_stream():
     """Re-run discovery with stored credentials; yield SSE progress."""
-    from app.connectors.aws.aws_connector import create_connector_from_store
+    from core.connectors.aws.aws_connector import create_connector_from_store
 
     audit_fabric.log("aws_sync_start", entity_type="connector", entity_id="aws")
     connector = create_connector_from_store()
@@ -156,7 +156,7 @@ async def aws_sync() -> StreamingResponse:
 @router.get("/shasta-contract")
 async def aws_shasta_contract() -> dict:
     """Shasta (Transilience) import contract; same as GET /connectors/shasta/contract scoped to AWS context."""
-    from app.connectors.shasta.shasta_adapter import shasta_contract_payload
+    from core.connectors.shasta.shasta_adapter import shasta_contract_payload
 
     return shasta_contract_payload("aws")
 

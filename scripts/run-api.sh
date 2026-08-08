@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Start CORTEX API with compliance-engine on path. Run from repo root with venv active.
-# Usage: ./scripts/run-api.sh   or   bash scripts/run-api.sh
+# Start CORTEX API from repo root (venv active). Usage: bash scripts/run-api.sh
 
 set -e
 cd "$(dirname "$0")/.."
-export PYTHONPATH=.:services/compliance-engine
+export PYTHONPATH="${PYTHONPATH:-.}"
 PY="$(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
 if [[ -z "$PY" ]]; then
   echo "run-api.sh: need python3 or python on PATH" >&2

@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from core.security import create_access_token
-from app.connectors.microsoft.mock_adapter import (
+from core.connectors.microsoft.mock_adapter import (
     _mock_findings,
     is_m365_mock_mode,
     run_microsoft365_sync,

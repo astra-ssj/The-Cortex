@@ -115,7 +115,7 @@ async def run_assessment_stream(
 
             skill = None
             try:
-                from app.core.skills_loader import get_skill_for_framework
+                from core.skills_loader import get_skill_for_framework
 
                 skill = get_skill_for_framework(fid.value)
             except Exception as e:

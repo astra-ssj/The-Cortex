@@ -8,7 +8,7 @@ Run before tagging a release or merging main-facing work. Commands assume repo r
 |------|--------|-------|
 | Frontend `tsc` / lint / test / build | ✅ | 5 Vitest tests; 56 ESLint security warnings (0 errors) |
 | `npm audit --audit-level=high` | ✅ | 6 moderate (dev-only) |
-| Ruff + Bandit | ✅ | 4 unused imports auto-fixed; see [`SAST-REPORT.md`](../SAST-REPORT.md) |
+| Ruff + Bandit | ✅ | 4 unused imports auto-fixed; see [`SAST-REPORT.md`](archive/SAST-REPORT.md) |
 | Pytest (Compose DB via `docker compose run … api`) | ⚠️ | 135 passed, **2 failed**, 10 skipped |
 | `pip-audit` | ❌ | `idna` 3.13 → upgrade ≥ 3.15 |
 | `smoke_happy_path.sh` | ✅ | |
@@ -16,7 +16,7 @@ Run before tagging a release or merging main-facing work. Commands assume repo r
 | `smoke_assessment_llm.sh` | ❌ | SSE missing `run_done` |
 | Mypy `api core` | ⚠️ | 33 errors — advisory only |
 
-Full log: [`QA-REPORT.md`](../QA-REPORT.md).
+Full log: [`QA-REPORT.md`](archive/QA-REPORT.md).
 
 ## 1. Environment
 
@@ -25,7 +25,7 @@ Full log: [`QA-REPORT.md`](../QA-REPORT.md).
 | Python 3.12 | Matches `pyproject.toml` |
 | Node 20 | Matches CI |
 | Postgres 16 | Local Docker Compose or CI service container |
-| `PYTHONPATH` | `.:services/compliance-engine` for API / pytest |
+| `PYTHONPATH` | `.` for API / pytest |
 
 Apply schema (includes Shasta **009** + evidence links **010**):
 
@@ -54,8 +54,8 @@ npm audit --audit-level=high
 
 ```bash
 python -m pip install -e ".[dev]"
-ruff check api core compliance db ontology services/compliance-engine/app tests --ignore E501
-bandit -r api core compliance db ontology services/compliance-engine/app -ll --skip B101
+ruff check api core compliance db ontology services workers tests --ignore E501
+bandit -r api core compliance db ontology services workers -ll --skip B101
 pytest -q --tb=short
 ```
 
@@ -89,7 +89,7 @@ bash scripts/smoke_assessment_llm.sh
 ```bash
 docker compose run --rm --no-deps \
   -e DATABASE_URL=postgresql+asyncpg://cortex:cortex-dev@postgres:5432/cortex \
-  -e PYTHONPATH=/app:.:/app/services/compliance-engine \
+  -e PYTHONPATH=/app \
   -e CORTEX_DISABLE_RATE_LIMIT=1 -e CORTEX_TESTING=1 \
   -v "$(pwd)":/app -w /app api \
   sh -c 'pip install -q pytest pytest-asyncio psycopg2-binary && python -m pytest -q --tb=short'
@@ -129,6 +129,6 @@ SELECT 1 FROM shasta_evidence_control_links LIMIT 0;
 
 | Document | Contents |
 |----------|----------|
-| [`QA-REPORT.md`](../QA-REPORT.md) | Latest QA + smoke + pytest summary |
-| [`SAST-REPORT.md`](../SAST-REPORT.md) | Ruff, Bandit, ESLint, pip/npm audit |
-| [`SECURITY_REPORT.md`](../SECURITY_REPORT.md) | Historical compliance-engine security review |
+| [`archive/QA-REPORT.md`](archive/QA-REPORT.md) | Latest QA + smoke + pytest summary |
+| [`archive/SAST-REPORT.md`](archive/SAST-REPORT.md) | Ruff, Bandit, ESLint, pip/npm audit |
+| [`archive/SECURITY_REPORT.md`](archive/SECURITY_REPORT.md) | Historical compliance-engine security review |

@@ -25,9 +25,9 @@ cd frontend
 npm run build
 npx tsc --noEmit
 
-# Backend
-cd services/compliance-engine
-python -m pytest
+# Backend (from repo root)
+pytest tests/ -v
+ruff check api core compliance db ontology tests --ignore E501
 ```
 
 ## Architecture rules
@@ -53,7 +53,7 @@ Three rules that must be preserved in all contributions:
 
 - Describe **what** changed and **why** (user-visible behaviour, migrations, or API contract changes).
 - Link related issues when applicable.
-- If you add or change persistence, note schema / migration expectations (`init.sql`, `migrations/`).
+- If you add or change persistence, note schema / migration expectations (`init.sql`, single lane under `migrations/` — see `docs/REPO_STRUCTURE_REFACTOR.md`).
 
 ## Questions
 

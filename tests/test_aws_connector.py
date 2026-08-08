@@ -20,9 +20,9 @@ except ImportError:
 from api.main import app
 from ontology.models import ControlFinding, ControlRef, Evidence, Finding, SystemAsset
 
-from app.connectors.aws import AWSConnector
-from app.connectors.aws.aws_evidence import create_evidence_from_control_findings
-from app.connectors.azure.credential_store import clear_credentials, get_credentials, store_credentials
+from core.connectors.aws import AWSConnector
+from core.connectors.aws.aws_evidence import create_evidence_from_control_findings
+from core.connectors.azure.credential_store import clear_credentials, get_credentials, store_credentials
 
 client = TestClient(app)
 
@@ -206,7 +206,7 @@ def test_create_evidence_from_control_findings_empty_when_no_compliant() -> None
 
 
 # ---- API (mocked connector) ----
-@patch("app.api.v1.aws.AWSConnector")
+@patch("api.connectors_aws.AWSConnector")
 def test_post_connectors_aws_connect_mock(mock_connector_class: MagicMock) -> None:
     """POST /api/v1/connectors/aws/connect returns systems_found, controls_assessed, findings_created."""
     mock_conn = MagicMock()
@@ -259,7 +259,7 @@ def test_post_connectors_aws_connect_mock(mock_connector_class: MagicMock) -> No
     assert "evidence_created" in data
 
 
-@patch("app.connectors.aws.aws_connector.create_connector_from_store")
+@patch("core.connectors.aws.aws_connector.create_connector_from_store")
 def test_post_connectors_aws_sync_stream_mock(mock_create: MagicMock) -> None:
     """POST /api/v1/connectors/aws/sync returns SSE stream with progress/done."""
     mock_conn = MagicMock()
@@ -277,7 +277,7 @@ def test_post_connectors_aws_sync_stream_mock(mock_create: MagicMock) -> None:
     assert "event: done" in text or "event: summary" in text
 
 
-@patch("app.connectors.aws.aws_connector.create_connector_from_store")
+@patch("core.connectors.aws.aws_connector.create_connector_from_store")
 def test_post_connectors_aws_sync_no_credentials_mock(mock_create: MagicMock) -> None:
     """POST /api/v1/connectors/aws/sync returns error event when no stored credentials."""
     mock_create.return_value = None

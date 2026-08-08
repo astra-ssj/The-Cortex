@@ -1,8 +1,8 @@
-# services/ingestion — Shims re-exporting app.services.ingestion (canonical pipeline).
+# services/ingestion — Compatibility shim; canonical pipeline is core.ingestion.
 
 from __future__ import annotations
 
-from app.services.ingestion import (
+from core.ingestion import (
     DocumentChunk,
     create_evidence_from_mapping,
     map_chunks_to_ontology,

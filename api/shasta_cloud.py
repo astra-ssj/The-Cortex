@@ -1,5 +1,4 @@
 # shasta_cloud.py — Org-scoped Shasta scans, Postgres persistence, JSON ingest (ZTAIP: audit_fabric on persist).
-# Requires PYTHONPATH to include services/compliance-engine (see CORTEX_SETUP.md); same as Dockerfile ENV.
 
 from __future__ import annotations
 
@@ -238,7 +237,7 @@ async def _run_shasta_scan_background(
     cloud: Literal["aws", "azure"],
 ) -> None:
     """In-process async job: Shasta already uses ``asyncio.to_thread`` inside the adapter."""
-    from app.connectors.shasta.shasta_adapter import run_shasta_scan_for_stored_credentials
+    from core.connectors.shasta.shasta_adapter import run_shasta_scan_for_stored_credentials
 
     async with async_session_factory() as session:
         try:
@@ -339,7 +338,7 @@ async def _persist_normalized_batch(
 @router.get("/contract")
 async def shasta_contract_public() -> dict[str, Any]:
     """Install / subprocess contract (no auth; static reference)."""
-    from app.connectors.shasta.shasta_adapter import shasta_contract_payload
+    from core.connectors.shasta.shasta_adapter import shasta_contract_payload
 
     return shasta_contract_payload("any")
 
@@ -360,7 +359,7 @@ async def run_shasta_scan_persisted(
     Poll GET ``/api/v1/shasta/scans`` or GET ``/api/v1/shasta/scans/{scan_run_id}`` until
     ``status`` is ``completed`` or ``failed`` (missing credentials and scan errors become ``failed``).
     """
-    from app.connectors.shasta.shasta_adapter import is_shasta_installed
+    from core.connectors.shasta.shasta_adapter import is_shasta_installed
 
     org_id = resolve_scoped_org_id(current_user, body.org_id.strip())
     _mock_scan = os.getenv("CORTEX_SHASTA_MOCK", "").lower() in ("1", "true", "yes")
@@ -424,7 +423,7 @@ async def ingest_shasta_json(
     current_user: dict = Depends(require_permission(Permission.manage_integrations)),
 ) -> dict[str, Any]:
     """Persist externally produced Shasta-shaped finding payloads (subprocess contract)."""
-    from app.connectors.shasta.shasta_adapter import shasta_finding_payload_to_normalized
+    from core.connectors.shasta.shasta_adapter import shasta_finding_payload_to_normalized
 
     org_id = resolve_scoped_org_id(current_user, body.org_id.strip())
     scan_ref = body.engine_scan_id or f"ingest-{uuid.uuid4().hex[:12]}"

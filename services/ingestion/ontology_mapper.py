@@ -1,7 +1,7 @@
-# Shim — canonical implementation: app.services.ingestion.ontology_mapper (compliance-engine).
+# services/ingestion/ontology_mapper.py — re-exports core.ingestion (compat).
 
 from __future__ import annotations
 
-from app.services.ingestion.ontology_mapper import map_chunks_to_ontology
+from core.ingestion.ontology_mapper import map_chunks_to_ontology
 
 __all__ = ["map_chunks_to_ontology"]

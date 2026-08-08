@@ -56,11 +56,11 @@ async def m365_sync(
     actor = _actor_label(current_user)
 
     try:
-        from app.connectors.microsoft.mock_adapter import run_microsoft365_sync
+        from core.connectors.microsoft.mock_adapter import run_microsoft365_sync
     except ImportError as e:
         raise HTTPException(
             status_code=501,
-            detail="Microsoft connector not available (compliance-engine path missing).",
+            detail="Microsoft connector not available (core.connectors.microsoft missing).",
         ) from e
 
     try:

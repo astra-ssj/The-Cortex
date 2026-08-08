@@ -16,6 +16,5 @@
 /core/llm/                  @SristiNative
 /services/assessment_llm.py @SristiNative
 /migrations/                @SristiNative
-/services/graphjin/migrations/ @SristiNative
 /docker-compose.yml         @SristiNative
 /.github/                   @SristiNative

@@ -12,9 +12,9 @@ from api.main import app
 from ontology.models import ControlFinding, ControlRef, Evidence, Finding, SystemAsset
 
 # Compliance-engine app (connectors)
-from app.connectors.azure import AzureConnector
-from app.connectors.azure.azure_evidence import create_evidence_from_control_findings
-from app.connectors.azure.credential_store import clear_credentials, get_credentials, store_credentials
+from core.connectors.azure import AzureConnector
+from core.connectors.azure.azure_evidence import create_evidence_from_control_findings
+from core.connectors.azure.credential_store import clear_credentials, get_credentials, store_credentials
 
 client = TestClient(app)
 
@@ -111,7 +111,7 @@ def test_create_evidence_from_control_findings() -> None:
 # ---- API (mocked connector) ----
 
 
-@patch("app.api.v1.azure.AzureConnector")
+@patch("api.connectors_azure.AzureConnector")
 def test_post_connectors_azure_connect_mock(mock_connector_class: MagicMock) -> None:
     """POST /api/v1/connectors/azure/connect returns systems_found, controls_assessed, findings_created."""
     mock_conn = MagicMock()
@@ -138,7 +138,7 @@ def test_post_connectors_azure_connect_mock(mock_connector_class: MagicMock) -> 
     assert "evidence_created" in data
 
 
-@patch("app.connectors.azure.azure_connector.create_connector_from_store")
+@patch("core.connectors.azure.azure_connector.create_connector_from_store")
 def test_post_connectors_azure_sync_stream_mock(mock_create: MagicMock) -> None:
     """POST /api/v1/connectors/azure/sync returns SSE stream with progress/done."""
     mock_conn = MagicMock()
@@ -156,7 +156,7 @@ def test_post_connectors_azure_sync_stream_mock(mock_create: MagicMock) -> None:
     assert "event: done" in text or "event: summary" in text
 
 
-@patch("app.connectors.azure.azure_connector.create_connector_from_store")
+@patch("core.connectors.azure.azure_connector.create_connector_from_store")
 def test_post_connectors_azure_sync_no_credentials_mock(mock_create: MagicMock) -> None:
     """POST /api/v1/connectors/azure/sync returns error event when no stored credentials."""
     mock_create.return_value = None

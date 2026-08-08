@@ -1,8 +1,8 @@
-# Shim — canonical implementation: app.services.ingestion.document_processor (compliance-engine).
+# services/ingestion/document_processor.py — re-exports core.ingestion (compat).
 
 from __future__ import annotations
 
-from app.services.ingestion.document_processor import (
+from core.ingestion.document_processor import (
     CHUNK_OVERLAP,
     CHUNK_TOKEN_TARGET,
     CHARS_PER_TOKEN,

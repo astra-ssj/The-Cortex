@@ -14,8 +14,8 @@ from fastapi.testclient import TestClient
 from api.main import app
 from ontology.models import ControlRef, Obligation, OntologyMappingResult
 
-# Compliance-engine ingestion (services/compliance-engine/app/services/ingestion).
-from app.services.ingestion.document_processor import (
+# Ingestion pipeline (core/ingestion).
+from core.ingestion.document_processor import (
     DocumentChunk,
     _chunk_text,
     extract_text_docx,
@@ -23,7 +23,7 @@ from app.services.ingestion.document_processor import (
     extract_text_txt,
     process_document,
 )
-from app.services.ingestion.evidence_creator import content_hash, create_evidence_from_mapping
+from core.ingestion.evidence_creator import content_hash, create_evidence_from_mapping
 
 client = TestClient(app)
 
@@ -127,7 +127,7 @@ def test_ontology_mapping_with_mock_llm() -> None:
     """Map chunks to ontology via CircuitBreaker; mock LLM returns controlled result."""
     import asyncio
 
-    from app.services.ingestion.ontology_mapper import map_chunks_to_ontology
+    from core.ingestion.ontology_mapper import map_chunks_to_ontology
 
     chunks = [
         DocumentChunk(content="We process data under lawful basis.", chunk_index=0, document_type="pdf"),
@@ -263,7 +263,7 @@ def test_ingest_document_accepts_finding_metadata(auth_headers: dict[str, str]) 
 
 def test_ingest_document_pipeline_error_emits_error_event(auth_headers: dict[str, str]) -> None:
     """When mapping raises, stream emits error event (audit ingest_done still runs)."""
-    with patch("app.api.v1.ingest.map_chunks_to_ontology", new_callable=AsyncMock) as mock_map:
+    with patch("api.ingest.map_chunks_to_ontology", new_callable=AsyncMock) as mock_map:
         mock_map.side_effect = RuntimeError("LLM unavailable")
         r = client.post(
             "/api/v1/ingest/document",

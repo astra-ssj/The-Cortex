@@ -99,5 +99,6 @@ Plugins: `eslint-plugin-security`, `eslint-plugin-no-unsanitized`.
 ## Related
 
 - [`QA-REPORT.md`](QA-REPORT.md) — full QA + smoke run log
+- [`../RELEASE_QA.md`](../RELEASE_QA.md) — release checklist
 - [`docs/RELEASE_QA.md`](docs/RELEASE_QA.md) — pre-release checklist
 - [`SECURITY.md`](SECURITY.md) — security policy

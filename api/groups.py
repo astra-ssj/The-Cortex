@@ -1,4 +1,4 @@
-# api/groups.py — Multi-entity group posture (mirrors compliance-engine endpoint when engine not loaded).
+# api/groups.py — Multi-entity group posture.
 
 from __future__ import annotations
 

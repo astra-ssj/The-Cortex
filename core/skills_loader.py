@@ -16,8 +16,8 @@ import structlog
 
 logger = structlog.get_logger()
 
-# services/skills — from this file: app/core → app → compliance-engine → services
-_SKILLS_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "skills"
+# Repo-root services/skills (bundled GRC skill packs).
+_SKILLS_ROOT = Path(__file__).resolve().parent.parent / "services" / "skills"
 SKILLS_ROOT = _SKILLS_ROOT
 SKILLS_INDEX = SKILLS_ROOT / "index.json"
 

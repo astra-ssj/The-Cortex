@@ -128,16 +128,17 @@ Then work on feature branches and merge via PRs.
 
 ---
 
-## Local API (uvicorn) — `PYTHONPATH`
+## Local API (uvicorn)
 
-The FastAPI app imports **`app.*`** from **`services/compliance-engine`** (Shasta adapter, compliance-engine routes). Match the Docker image:
+From the repo root (editable install or ``PYTHONPATH=.``):
 
 ```bash
-export PYTHONPATH=".:services/compliance-engine"
+export PYTHONPATH=.
 uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
+# or: bash scripts/run-api.sh
 ```
 
-If Shasta or connector endpoints fail with **`No module named 'app'`**, the compliance-engine path is missing — fix **`PYTHONPATH`** before debugging Postgres or JWT.
+Connectors, ingest, and Shasta adapters live under **`core/connectors/`** and **`core/ingestion/`** — no nested compliance-engine path is required.
 
 **Shasta `POST /api/v1/shasta/scans`** enqueues a run and returns immediately with `status: "running"`; poll **`GET /api/v1/shasta/scans?org_id=...`** (or **`GET /api/v1/shasta/scans/{scan_run_id}`**) until the row is `completed` or `failed` (see `error_message` when failed).
 
@@ -149,7 +150,7 @@ Local / CI Postgres bootstrap via **`scripts/apply_cortex_schema.sh`** includes 
 
 Use when validating **running → completed/failed** against a real uvicorn (not TestClient):
 
-1. Apply **`migrations/009_shasta_cloud.sql`** to your Postgres; **`export PYTHONPATH=".:services/compliance-engine"`**.
+1. Apply **`migrations/009_shasta_cloud.sql`** to your Postgres; **`export PYTHONPATH="."`**.
 2. **`pip install -e ".[shasta-scan,aws,azure]"`** (or omit cloud extras if only testing mock).
 3. Connect AWS/Azure via **`POST /api/v1/connectors/aws/connect`** (or Azure) so stored credentials exist — **or** set **`CORTEX_SHASTA_MOCK=1`** for a synthetic finding row without cloud access (**never** in production).
 4. Obtain a JWT (**login** or **`create_access_token`** in dev); **`POST /api/v1/shasta/scans`** with `{"cloud":"aws","org_id":"demo-org-001"}`.
@@ -163,7 +164,7 @@ Use when validating **running → completed/failed** against a real uvicorn (not
 When **`REDIS_URL`** (or **`SHASTA_REDIS_URL`**) is set and **`pip install -e ".[redis-queue]"`** is installed, **`POST /api/v1/shasta/scans`** **LPUSH**es a job and returns **`delivery: "redis"`**. Run a consumer:
 
 ```bash
-export PYTHONPATH=".:services/compliance-engine"
+export PYTHONPATH=.
 export REDIS_URL=redis://localhost:6379/0
 python workers/shasta_worker.py
 ```
@@ -177,8 +178,8 @@ The UI uses **`@microsoft/fetch-event-source`** with **`Authorization: Bearer`**
 ## Shasta cloud scan contract (operators)
 
 - **Canonical:** `GET /api/v1/shasta/contract` — machine-readable install/subprocess contract.
-- **Legacy (when compliance-engine v1 loads):** `GET /api/v1/connectors/shasta/contract` — same payload shape; prefer the canonical URL for new docs and automation.
+- **Legacy alias:** `GET /api/v1/connectors/shasta/contract` — same payload as the canonical URL (prefer `/api/v1/shasta/contract`).
 
 ## Docker API image (`Dockerfile`)
 
-The API Dockerfile copies **`api/`, `core/`, `compliance/`, `ontology/`** and **`CORTEX_SETUP.md`** before **`pip install -e ".[shasta-scan,aws,azure]"`** so the editable install succeeds. It installs **`git`** (Shasta is a git dependency), plus **`build-essential`**, **`pkg-config`**, **`libcairo2-dev`** so **`pycairo`** can build (transitive via Shasta’s PDF stack). Runtime layers then add **`db/`**, **`services/`**, migrations.
+The API Dockerfile copies **`api/`, `core/`, `compliance/`, `ontology/`** and **`docs/CORTEX_SETUP.md`** (pyproject `readme`) before **`pip install -e ".[shasta-scan,aws,azure]"`** so the editable install succeeds. It installs **`git`** (Shasta is a git dependency), plus **`build-essential`**, **`pkg-config`**, **`libcairo2-dev`** so **`pycairo`** can build (transitive via Shasta’s PDF stack). Runtime layers then add **`db/`**, **`services/`**, and the single **`migrations/`** lane.

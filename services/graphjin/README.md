@@ -8,7 +8,7 @@
 |--------|--------|
 | **Read/write split** | **FastAPI** owns mutations, JWT, rate limits, audit, assessments, and human review. The **current React app** still calls **REST** on FastAPI. **GraphJin** adds an optional **GraphQL read** path on the same tables so you can add tools, admin panels, or reporting that need flexible joins without hand-writing every endpoint. |
 | **Less boilerplate** | New screens that need `organizations` + `users` + `assessment_results` in one round-trip can use GraphQL instead of many bespoke `/api/v1/...` endpoints. |
-| **Same schema** | Migrations under `migrations/` and `services/graphjin/migrations/` already apply to Postgres; GraphJin introspects those tables. |
+| **Same schema** | All SQL lives in the single lane [`migrations/`](../../migrations/); GraphJin introspects those tables. |
 | **Dev UX** | With `web_ui: true`, the container serves a small UI to try queries (localhost only; lock down in production). |
 
 ## Compose

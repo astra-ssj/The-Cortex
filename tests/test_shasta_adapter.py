@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from ontology.models import Finding
-from app.connectors.shasta.shasta_adapter import (
+from core.connectors.shasta.shasta_adapter import (
     normalized_to_finding,
     shasta_finding_payload_to_normalized,
 )
@@ -35,6 +35,6 @@ def test_normalized_to_legacy_finding() -> None:
 
 
 def test_is_shasta_installed_is_boolean() -> None:
-    from app.connectors.shasta.shasta_adapter import is_shasta_installed
+    from core.connectors.shasta.shasta_adapter import is_shasta_installed
 
     assert isinstance(is_shasta_installed(), bool)

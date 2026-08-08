@@ -15,7 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Editable install needs package trees + readme (pyproject metadata). Runtime copies db/migrations after.
-COPY pyproject.toml CORTEX_SETUP.md ./
+COPY pyproject.toml ./
+COPY docs/CORTEX_SETUP.md ./docs/CORTEX_SETUP.md
 COPY api/ ./api/
 COPY core/ ./core/
 COPY compliance/ ./compliance/
@@ -29,8 +30,7 @@ COPY workers/ ./workers/
 COPY init.sql ./
 COPY migrations/ ./
 
-# Compliance engine app lives under services/compliance-engine; api/main adds it to path.
-ENV PYTHONPATH=/app:/app/services/compliance-engine
+ENV PYTHONPATH=/app
 EXPOSE 8000
 
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
