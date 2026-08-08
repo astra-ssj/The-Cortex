@@ -25,7 +25,7 @@ Full log: [`QA-REPORT.md`](archive/QA-REPORT.md).
 | Python 3.12 | Matches `pyproject.toml` |
 | Node 20 | Matches CI |
 | Postgres 16 | Local Docker Compose or CI service container |
-| `PYTHONPATH` | `.:services/compliance-engine` for API / pytest |
+| `PYTHONPATH` | `.` for API / pytest |
 
 Apply schema (includes Shasta **009** + evidence links **010**):
 
@@ -54,8 +54,8 @@ npm audit --audit-level=high
 
 ```bash
 python -m pip install -e ".[dev]"
-ruff check api core compliance db ontology services/compliance-engine/app tests --ignore E501
-bandit -r api core compliance db ontology services/compliance-engine/app -ll --skip B101
+ruff check api core compliance db ontology services workers tests --ignore E501
+bandit -r api core compliance db ontology services workers -ll --skip B101
 pytest -q --tb=short
 ```
 
@@ -89,7 +89,7 @@ bash scripts/smoke_assessment_llm.sh
 ```bash
 docker compose run --rm --no-deps \
   -e DATABASE_URL=postgresql+asyncpg://cortex:cortex-dev@postgres:5432/cortex \
-  -e PYTHONPATH=/app:.:/app/services/compliance-engine \
+  -e PYTHONPATH=/app \
   -e CORTEX_DISABLE_RATE_LIMIT=1 -e CORTEX_TESTING=1 \
   -v "$(pwd)":/app -w /app api \
   sh -c 'pip install -q pytest pytest-asyncio psycopg2-binary && python -m pytest -q --tb=short'

@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from app.core.skills_loader import get_skills_loader
+from core.skills_loader import get_skills_loader
 
 router = APIRouter(tags=["skills"])
 

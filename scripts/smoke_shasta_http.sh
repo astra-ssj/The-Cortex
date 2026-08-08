@@ -3,7 +3,7 @@
 # Requires: DATABASE_URL (Postgres with migration 009), PYTHONPATH, repo deps on PYTHONPATH.
 #
 #   export DATABASE_URL="postgresql+asyncpg://..."
-#   export PYTHONPATH=".:services/compliance-engine"
+#   export PYTHONPATH="."
 #   export CORTEX_SHASTA_MOCK=1
 #   bash scripts/smoke_shasta_http.sh
 #
@@ -12,7 +12,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-export PYTHONPATH="${PYTHONPATH:-.:services/compliance-engine}"
+export PYTHONPATH="${PYTHONPATH:-.}"
 export CORTEX_SHASTA_MOCK="${CORTEX_SHASTA_MOCK:-1}"
 
 if [[ -z "${DATABASE_URL:-}" ]]; then

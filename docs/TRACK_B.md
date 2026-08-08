@@ -9,7 +9,7 @@ Assessment LLM is **Track A** — see [TRACK_A.md](./TRACK_A.md).
 | Component | Location |
 |-----------|----------|
 | Provider gateway | `core/llm/` (Anthropic, OpenAI, stub) |
-| Ingest mapping | `services/compliance-engine/.../ontology_mapper.py` |
+| Ingest mapping | `core/ingestion/ontology_mapper.py` |
 | HTTP + SSE | `POST /api/v1/ingest/document` |
 | Ops | `GET /api/v1/system/llm-providers` |
 | RBAC | `ingest_document` (admin + analyst) |

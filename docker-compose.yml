@@ -109,7 +109,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cortex}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      PYTHONPATH: /app:/app/services/compliance-engine
+      PYTHONPATH: /app
     depends_on:
       postgres:
         condition: service_healthy

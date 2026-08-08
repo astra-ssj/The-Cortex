@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import os
 import secrets
-import sys
 import uuid
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Callable
 
 import structlog
@@ -40,33 +38,20 @@ from api.organisations import router as organisations_router
 from api.microsoft_cloud import router as microsoft_cloud_router
 from api.shasta_cloud import router as shasta_cloud_router
 from api.system import router as system_router
+from api.ingest import router as ingest_router
+from api.connectors_aws import router as connectors_aws_router
+from api.connectors_azure import router as connectors_azure_router
+from api.connectors_shasta import router as connectors_shasta_router
+from api.reports import router as reports_router
+from api.integrations import router as integrations_router
+from api.skills import router as skills_router
 from core.circuit_breaker import load_circuit_breaker_states_from_db
 from db.session import database_ready, ensure_org_onboarding_schema, ensure_security_auth_schema
-
-# Compliance-engine app (document ingestion at services/compliance-engine/app/).
-_compliance_engine = Path(__file__).resolve().parent.parent / "services" / "compliance-engine"
-if _compliance_engine.exists() and str(_compliance_engine) not in sys.path:
-    sys.path.insert(0, str(_compliance_engine))
-try:
-    from app.api.v1 import router as v1_router
-    _has_v1 = True
-    _v1_import_error: str | None = None
-except ImportError as _v1_import_err:
-    v1_router = None
-    _has_v1 = False
-    _v1_import_error = str(_v1_import_err)
 
 logger = structlog.get_logger()
 
 _MAX_BODY_BYTES = int(os.getenv("CORTEX_MAX_BODY_BYTES", str(2 * 1024 * 1024)))
 _CSRF_PROTECT = os.getenv("CORTEX_CSRF_PROTECT", "0").lower() in ("1", "true", "yes")
-
-if not _has_v1:
-    logger.warning(
-        "compliance_engine_v1_import_failed",
-        detail=_v1_import_error,
-        hint="Fix the venv (e.g. pip install -e . from repo root); Shasta extra does not load until import succeeds.",
-    )
 
 
 @asynccontextmanager
@@ -78,20 +63,19 @@ async def lifespan(app: FastAPI):
     await ensure_security_auth_schema()
     await load_circuit_breaker_states_from_db()
 
-    if _has_v1:
-        try:
-            from app.core.skills_loader import get_skills_loader
+    try:
+        from core.skills_loader import get_skills_loader
 
-            loader = get_skills_loader()
-            summary = loader.summary()
-            logger.info(
-                "grc_skills_ready",
-                loaded=summary["loaded"],
-                total=summary["total"],
-                skills=summary.get("skills", []),
-            )
-        except Exception as e:
-            logger.warning("grc_skills_load_failed", error=str(e))
+        loader = get_skills_loader()
+        summary = loader.summary()
+        logger.info(
+            "grc_skills_ready",
+            loaded=summary["loaded"],
+            total=summary["total"],
+            skills=summary.get("skills", []),
+        )
+    except Exception as e:
+        logger.warning("grc_skills_load_failed", error=str(e))
 
     yield
     # Shasta optional Redis queue: see core/shasta_queue.py + workers/shasta_worker.py (no API pool here).
@@ -247,6 +231,7 @@ app.add_middleware(ApiVersionEnforcementMiddleware)
 app.add_middleware(CsrfProtectionMiddleware)
 app.add_middleware(RequestBodySizeLimitMiddleware)
 
+# Canonical routers — single FastAPI surface (no nested compliance-engine mount).
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessments_router)
 app.include_router(shasta_cloud_router)
@@ -255,10 +240,14 @@ app.include_router(findings_router, prefix="/api/v1/findings")
 app.include_router(graph_router)
 app.include_router(intelligence_router)
 app.include_router(groups_router)
-# Prefer root api.organisations (DB-backed posture) over compliance-engine stub when both register /api/v1/organisations.
 app.include_router(organisations_router)
-if _has_v1:
-    app.include_router(v1_router)
+app.include_router(reports_router, prefix="/api/v1/reports")
+app.include_router(integrations_router, prefix="/api/v1/integrations")
+app.include_router(skills_router, prefix="/api/v1/skills")
+app.include_router(ingest_router, prefix="/api/v1")
+app.include_router(connectors_aws_router, prefix="/api/v1")
+app.include_router(connectors_azure_router, prefix="/api/v1")
+app.include_router(connectors_shasta_router, prefix="/api/v1")
 app.include_router(system_router)
 
 

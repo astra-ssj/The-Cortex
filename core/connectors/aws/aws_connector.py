@@ -15,7 +15,7 @@ from core.audit_fabric import audit_fabric
 from core.circuit_breaker import CircuitBreaker, register_circuit_breaker
 from ontology.models import ControlFinding, ControlRef, Finding, SystemAsset
 
-from app.connectors.azure.credential_store import get_credentials, store_credentials
+from core.connectors.azure.credential_store import get_credentials, store_credentials
 
 logger = structlog.get_logger()
 

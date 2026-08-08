@@ -62,7 +62,7 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 | Data/API    | FastAPI REST (`/api/v1`), same process as assessments and auth |
 | GraphQL     | GraphJin sidecar (port **8080**) — auto-generated reads on Postgres; compliance graph tables in `migrations/013_compliance_graph.sql` |
 | Async jobs  | Optional Redis + worker (`docker compose --profile queue`) for durable Shasta scan jobs — see [docs/CORTEX_SETUP.md](docs/CORTEX_SETUP.md) |
-| GRC Skills  | Loaded examples include GDPR, ISO 27001, DORA, ISO 42001 (via compliance-engine loader) |
+| GRC Skills  | Loaded examples include GDPR, ISO 27001, DORA, ISO 42001 (`core/skills_loader.py`) |
 | Auth        | JWT (HS256), bcrypt passwords                           |
 | Container   | Docker Compose (Postgres + API + GraphJin by default)   |
 
@@ -137,23 +137,25 @@ Open http://localhost:3000/register, fill company details, complete the three-st
 
 ```text
 Browser (React, :3000)
-    → FastAPI (`api.main`, :8000) — REST, JWT, tenancy, assessments, audit paths
+    → FastAPI (`api.main`, :8000) — single REST surface (auth, assessments, ingest, connectors, …)
         → PostgreSQL (:5432, internal to Compose network)
-
-compliance-engine routers: mounted from `services/compliance-engine` under FastAPI
+    → GraphJin (:8080, localhost) — optional GraphQL reads on the same DB
 ```
 
 ### Repository layout (high level)
 
 | Area | Role |
 |------|------|
-| `api/` | REST routers: auth, assessments, organisations, findings, groups, system |
-| `core/` | Security (JWT, bcrypt), tenant scoping, shared helpers |
+| `api/` | All REST routers (auth, assessments, findings, ingest, connectors, reports, …) |
+| `core/` | Domain: security, RBAC, audit, LLM, connectors, ingestion, skills loader |
 | `compliance/` | Framework registry and posture primitives |
-| `services/` | Assessment helpers, compliance-engine (to be absorbed — see `docs/REPO_STRUCTURE_REFACTOR.md`), GraphJin config |
-| `frontend/` | Vite + React SPA, dashboards, Intelligence, AI Systems |
+| `services/` | Assessment engine helpers, GRC skill packs, GraphJin config (not a second API) |
+| `workers/` | Optional Redis consumers (Shasta) |
+| `frontend/` | Vite + React SPA |
 | `init.sql`, `migrations/` | PostgreSQL schema — **single ordered lane** `002`–`015` |
-| `docs/` | Setup, architecture, workflow audit; dated reports in `docs/archive/` |
+| `docs/` | Setup, architecture, refactor plan; dated reports in `docs/archive/` |
+
+See [`docs/STRUCTURE.md`](docs/STRUCTURE.md) for the maintained layout map.
 
 ### Security defaults
 

@@ -1,5 +1,5 @@
 # api/findings.py — Remediation tracker findings. Mounted at /api/v1/findings so the route
-# is always available (root API), independent of compliance-engine v1 loading.
+# is always available on the root API.
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ logger = structlog.get_logger()
 
 router = APIRouter(tags=["findings"])
 
-# In-memory store for remediation findings (same seed as compliance-engine).
+# In-memory store for remediation findings (Phase 3: persist to Postgres).
 FINDINGS_STORE: list[dict[str, Any]] = [
     {"org_id": "demo-org-001", "id": "finding-001", "title": "72-hour breach notification procedure not tested", "severity": "CRITICAL", "framework": "GDPR 2016/679", "framework_id": "gdpr-2016-679", "control_id": "GDPR-BN-02", "control_name": "Breach notification procedure", "reference": "GDPR Art.33(1)", "entity": "AstraLabs DE", "entity_code": "DE", "status": "OPEN", "current_state": "Procedure documented but never exercised", "required_state": "Tested with demonstrated 72h capability", "actions": ["Conduct tabletop breach exercise", "Test supervisory authority notification", "Assign breach notification owner", "Document evidence of test"], "completed_actions": [], "owner": "CISO", "due_date": "2026-03-15", "days_open": 45, "priority": "P0", "notes": []},
     {"org_id": "demo-org-001", "id": "finding-002", "title": "NIS2 24-hour CSIRT notification process undefined", "severity": "CRITICAL", "framework": "NIS2 Directive", "framework_id": "nis2-2022-2555", "control_id": "NIS2-IR-01", "control_name": "Incident reporting", "reference": "NIS2 Art.23(4)(a)", "entity": "AstraLabs DE", "entity_code": "DE", "status": "IN_PROGRESS", "current_state": "General IRP exists, missing NIS2 steps", "required_state": "Documented 24h CSIRT notification process", "actions": ["Identify national competent authority per jurisdiction", "Add NIS2 steps to IRP", "Test in next incident drill"], "completed_actions": [0], "owner": "Security Lead DE", "due_date": "2026-03-01", "days_open": 45, "priority": "P0", "notes": []},

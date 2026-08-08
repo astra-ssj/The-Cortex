@@ -30,8 +30,7 @@ COPY workers/ ./workers/
 COPY init.sql ./
 COPY migrations/ ./
 
-# Compliance engine app lives under services/compliance-engine; api/main adds it to path.
-ENV PYTHONPATH=/app:/app/services/compliance-engine
+ENV PYTHONPATH=/app
 EXPOSE 8000
 
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

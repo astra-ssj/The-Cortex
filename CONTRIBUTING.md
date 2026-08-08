@@ -25,9 +25,9 @@ cd frontend
 npm run build
 npx tsc --noEmit
 
-# Backend
-cd services/compliance-engine
-python -m pytest
+# Backend (from repo root)
+pytest tests/ -v
+ruff check api core compliance db ontology tests --ignore E501
 ```
 
 ## Architecture rules

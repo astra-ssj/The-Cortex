@@ -33,16 +33,16 @@ docs/                  # product docs + archive/ for dated audits
 
 ---
 
-## Phase 1 — Absorb compliance-engine (high value)
+## Phase 1 — Absorb compliance-engine ✅
 
 Goal: one FastAPI process without `sys.path` hacks.
 
-- [ ] Move live routers from `services/compliance-engine/app/api/v1/endpoints/` into `api/` (ingest, connectors, integrations, reports, skills)
-- [ ] Delete stub routers that duplicate root `api/` (`auth`, `frameworks`, `assessments` stubs)
-- [ ] Move connector + ingestion domain code into `core/` or `packages/`
-- [ ] Remove `sys.path.insert` from `api/main.py` and `PYTHONPATH=.../compliance-engine` from Dockerfile
-- [ ] Deduplicate dual `FINDINGS_STORE` (engine vs `api/findings.py`)
-- [ ] Update tests `pythonpath` / imports; keep CI green
+- [x] Move live routers into `api/` (ingest, connectors AWS/Azure/Shasta legacy, integrations, reports, skills)
+- [x] Delete stub routers that duplicated root `api/`
+- [x] Move connectors → `core/connectors/`, ingestion → `core/ingestion/`, skills loader → `core/skills_loader.py`
+- [x] Remove `sys.path.insert` from `api/main.py` and `PYTHONPATH=.../compliance-engine` from Dockerfile / Compose / CI
+- [x] Remove engine `FINDINGS_STORE` (canonical: `api/findings.py` until Phase 3 Postgres)
+- [x] Update tests, scripts, docs; layout map in [`STRUCTURE.md`](STRUCTURE.md)
 
 **Risk:** route order / OpenAPI path collisions — smoke `scripts/smoke_happy_path.sh` + ingest smoke after merge.
 

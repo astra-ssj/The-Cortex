@@ -10,9 +10,9 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from core.audit_fabric import audit_fabric
-from app.connectors.azure import AzureConnector
-from app.connectors.azure.azure_connector import store_connector_credentials
-from app.connectors.azure.azure_evidence import create_evidence_from_control_findings
+from core.connectors.azure import AzureConnector
+from core.connectors.azure.azure_connector import store_connector_credentials
+from core.connectors.azure.azure_evidence import create_evidence_from_control_findings
 
 logger = structlog.get_logger()
 
@@ -92,7 +92,7 @@ async def azure_connect(body: AzureConnectBody) -> dict:
 
 async def _run_sync_stream():
     """Re-run discovery with stored credentials; yield SSE progress."""
-    from app.connectors.azure.azure_connector import create_connector_from_store
+    from core.connectors.azure.azure_connector import create_connector_from_store
 
     audit_fabric.log("azure_sync_start", entity_type="connector", entity_id="azure")
     connector = create_connector_from_store()
@@ -141,7 +141,7 @@ async def azure_sync() -> StreamingResponse:
 @router.get("/shasta-contract")
 async def azure_shasta_contract() -> dict:
     """Shasta import contract for Azure credential flow."""
-    from app.connectors.shasta.shasta_adapter import shasta_contract_payload
+    from core.connectors.shasta.shasta_adapter import shasta_contract_payload
 
     return shasta_contract_payload("azure")
 

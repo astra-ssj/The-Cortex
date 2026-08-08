@@ -61,7 +61,7 @@ export PGUSER=cortex
 export PGPASSWORD=cortex_shasta_verify
 export PGDATABASE=cortex
 export DATABASE_URL="postgresql+asyncpg://cortex:cortex_shasta_verify@127.0.0.1:${PGPORT}/cortex"
-export PYTHONPATH=".:services/compliance-engine"
+export PYTHONPATH="."
 
 apply_schema() {
   if command -v psql >/dev/null 2>&1; then

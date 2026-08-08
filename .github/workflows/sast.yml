@@ -30,11 +30,7 @@ jobs:
 
       - name: Bandit
         run: |
-          if [ -d services/compliance-engine/app ]; then
-            bandit -r services/compliance-engine/app/ -ll --skip B101
-          else
-            echo "Bandit: scan path not found, skipping"
-          fi
+          bandit -r api core compliance db ontology -ll --skip B101
 
       - name: Safety (frozen environment)
         run: |

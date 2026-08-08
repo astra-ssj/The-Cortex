@@ -72,7 +72,7 @@ redis-queue = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-pythonpath = [".", "services/compliance-engine"]
+pythonpath = ["."]
 
 [tool.ruff]
 target-version = "py312"
@@ -87,7 +87,7 @@ warn_unused_ignores = true
 
 # Connectors return third-party SDK objects (boto3.Session, Azure clients); avoid noisy Any warnings
 [[tool.mypy.overrides]]
-module = ["app.connectors.aws.*", "app.connectors.azure.*", "app.connectors.shasta.*"]
+module = ["core.connectors.aws.*", "core.connectors.azure.*", "core.connectors.shasta.*"]
 warn_return_any = false
 
 [tool.bandit]

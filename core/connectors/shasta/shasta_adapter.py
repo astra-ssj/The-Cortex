@@ -253,7 +253,7 @@ async def run_shasta_scan_for_stored_credentials(
         return "mock-engine-scan-id", [mock_nf]
 
     if cloud == "aws":
-        from app.connectors.aws.aws_connector import create_connector_from_store
+        from core.connectors.aws.aws_connector import create_connector_from_store
 
         connector = create_connector_from_store()
         if not connector:
@@ -301,7 +301,7 @@ async def run_shasta_scan_for_stored_credentials(
         return scan_id, normalized
 
     # azure
-    from app.connectors.azure.azure_connector import create_connector_from_store
+    from core.connectors.azure.azure_connector import create_connector_from_store
 
     connector = create_connector_from_store()
     if not connector:

@@ -3,7 +3,7 @@
 
 Run with same ``PYTHONPATH`` and ``DATABASE_URL`` as the API. Requires optional ``redis-queue`` extra.
 
-  export PYTHONPATH=".:services/compliance-engine"
+  export PYTHONPATH="."
   export REDIS_URL=redis://localhost:6379/0
   python workers/shasta_worker.py
 """
@@ -34,7 +34,7 @@ async def _consume_loop() -> None:
     if not url:
         raise SystemExit("SHASTA_REDIS_URL or REDIS_URL is required")
 
-    # Import after env is stable — pulls compliance-engine Shasta adapter path.
+    # Import after env is stable — loads Shasta scan background helper.
     from api.shasta_cloud import _run_shasta_scan_background
 
     r = redis.from_url(url, decode_responses=True)
