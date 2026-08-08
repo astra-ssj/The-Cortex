@@ -41,7 +41,7 @@ async def database_ready() -> bool:
         return False
 
 
-# Mirrors services/graphjin/migrations/004_multi_tenancy.sql — heals DBs created before that migration.
+# Mirrors migrations/005_multi_tenancy.sql — heals DBs created before that migration.
 _ORG_ONBOARDING_ALTER_STATEMENTS: tuple[str, ...] = (
     "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS onboarding_complete BOOLEAN DEFAULT FALSE",
     "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS onboarding_step INTEGER DEFAULT 0",

@@ -10,7 +10,7 @@ include = ["api*", "compliance*", "core*", "db*", "ontology*", "workers*"]
 name = "cortex"
 version = "0.1.0"
 description = "CORTEX — enterprise organizational intelligence (ZTAIP)"
-readme = "CORTEX_SETUP.md"
+readme = "docs/CORTEX_SETUP.md"
 license = "Apache-2.0"
 requires-python = ">=3.12"
 dependencies = [

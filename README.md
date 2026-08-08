@@ -47,10 +47,10 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 
 - **Cloud scans** UI (`/cloud-scans`) — async AWS/Azure scans; Postgres is the source of truth for runs and findings (migration `009_shasta_cloud.sql`).
 - **API:** `POST /api/v1/shasta/scans`, list/detail scan endpoints, findings — see [`api/shasta_cloud.py`](api/shasta_cloud.py). Contract: `GET /api/v1/shasta/contract`.
-- **Optional Redis:** Set `REDIS_URL` or `SHASTA_REDIS_URL` and run `workers/shasta_worker.py`, or `docker compose --profile queue` — details in [`CORTEX_SETUP.md`](CORTEX_SETUP.md).
+- **Optional Redis:** Set `REDIS_URL` or `SHASTA_REDIS_URL` and run `workers/shasta_worker.py`, or `docker compose --profile queue` — details in [`docs/CORTEX_SETUP.md`](docs/CORTEX_SETUP.md).
 - **Assessment SSE:** Browser uses `Authorization: Bearer` for the stream (no JWT in the URL). Help panel → **Cloud scans (Shasta)** for operator notes.
 - **Evidence map (MVP):** `GET /api/v1/shasta/scans/{scan_run_id}/evidence-map` returns finding ↔ control nodes and edges; **Cloud scans** shows a table when Findings for a run is expanded.
-- **QA:** Release checklist, smoke commands, and security audits — [`docs/RELEASE_QA.md`](docs/RELEASE_QA.md). Latest run: [`QA-REPORT.md`](QA-REPORT.md), [`SAST-REPORT.md`](SAST-REPORT.md).
+- **QA:** Release checklist, smoke commands, and security audits — [`docs/RELEASE_QA.md`](docs/RELEASE_QA.md). Latest run: [`docs/archive/QA-REPORT.md`](docs/archive/QA-REPORT.md), [`docs/archive/SAST-REPORT.md`](docs/archive/SAST-REPORT.md).
 
 ## Tech Stack
 
@@ -61,7 +61,7 @@ Built by **AstraLabs Group**, CORTEX is AI-native without being AI-reckless — 
 | Database    | PostgreSQL 16 (Docker Compose)                        |
 | Data/API    | FastAPI REST (`/api/v1`), same process as assessments and auth |
 | GraphQL     | GraphJin sidecar (port **8080**) — auto-generated reads on Postgres; compliance graph tables in `migrations/013_compliance_graph.sql` |
-| Async jobs  | Optional Redis + worker (`docker compose --profile queue`) for durable Shasta scan jobs — see [CORTEX_SETUP.md](CORTEX_SETUP.md) |
+| Async jobs  | Optional Redis + worker (`docker compose --profile queue`) for durable Shasta scan jobs — see [docs/CORTEX_SETUP.md](docs/CORTEX_SETUP.md) |
 | GRC Skills  | Loaded examples include GDPR, ISO 27001, DORA, ISO 42001 (via compliance-engine loader) |
 | Auth        | JWT (HS256), bcrypt passwords                           |
 | Container   | Docker Compose (Postgres + API + GraphJin by default)   |
@@ -150,9 +150,10 @@ compliance-engine routers: mounted from `services/compliance-engine` under FastA
 | `api/` | REST routers: auth, assessments, organisations, findings, groups, system |
 | `core/` | Security (JWT, bcrypt), tenant scoping, shared helpers |
 | `compliance/` | Framework registry and posture primitives |
-| `services/` | Posture calculator, compliance-engine app, SQL fragments mounted into Postgres init (see `docker-compose.yml`) |
+| `services/` | Assessment helpers, compliance-engine (to be absorbed — see `docs/REPO_STRUCTURE_REFACTOR.md`), GraphJin config |
 | `frontend/` | Vite + React SPA, dashboards, Intelligence, AI Systems |
-| `init.sql`, `migrations/` | PostgreSQL schema and incremental DDL |
+| `init.sql`, `migrations/` | PostgreSQL schema — **single ordered lane** `002`–`015` |
+| `docs/` | Setup, architecture, workflow audit; dated reports in `docs/archive/` |
 
 ### Security defaults
 
@@ -185,6 +186,7 @@ See `.cursorrules` for non‑negotiable ZTAIP conventions when extending the cod
 ## Development notes
 
 - **Workflow audit & fixture phases** (login → nine primary nav areas → gaps → phased fixes): [`docs/WORKFLOW_AUDIT_AND_FIXTURE_PHASES.md`](docs/WORKFLOW_AUDIT_AND_FIXTURE_PHASES.md).
+- **Repo structure refactor** (absorb compliance-engine, migrate lane, CI gates): [`docs/REPO_STRUCTURE_REFACTOR.md`](docs/REPO_STRUCTURE_REFACTOR.md).
 - **Python:** `pip install -e ".[dev]"` (requires Python **≥ 3.12**).
 - **Tests:** `pytest tests/ -v`
 - **Frontend audit:** After `npm install`, run `npm audit --audit-level=high`. There is no committed lockfile by default; generate `package-lock.json` locally if you want reproducible audits.

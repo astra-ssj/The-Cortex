@@ -132,7 +132,7 @@ const SECTIONS: HelpSection[] = [
       {
         subtitle: "Operators",
         body:
-          "Machine-readable install contract: GET /api/v1/shasta/contract on the API. Optional Redis queue: when REDIS_URL is set, jobs may show delivery: redis — run the worker process described in CORTEX_SETUP.md.",
+          "Machine-readable install contract: GET /api/v1/shasta/contract on the API. Optional Redis queue: when REDIS_URL is set, jobs may show delivery: redis — run the worker process described in docs/CORTEX_SETUP.md.",
       },
       {
         subtitle: "Compliance evidence map",

@@ -8,7 +8,7 @@ Run before tagging a release or merging main-facing work. Commands assume repo r
 |------|--------|-------|
 | Frontend `tsc` / lint / test / build | ✅ | 5 Vitest tests; 56 ESLint security warnings (0 errors) |
 | `npm audit --audit-level=high` | ✅ | 6 moderate (dev-only) |
-| Ruff + Bandit | ✅ | 4 unused imports auto-fixed; see [`SAST-REPORT.md`](../SAST-REPORT.md) |
+| Ruff + Bandit | ✅ | 4 unused imports auto-fixed; see [`SAST-REPORT.md`](archive/SAST-REPORT.md) |
 | Pytest (Compose DB via `docker compose run … api`) | ⚠️ | 135 passed, **2 failed**, 10 skipped |
 | `pip-audit` | ❌ | `idna` 3.13 → upgrade ≥ 3.15 |
 | `smoke_happy_path.sh` | ✅ | |
@@ -16,7 +16,7 @@ Run before tagging a release or merging main-facing work. Commands assume repo r
 | `smoke_assessment_llm.sh` | ❌ | SSE missing `run_done` |
 | Mypy `api core` | ⚠️ | 33 errors — advisory only |
 
-Full log: [`QA-REPORT.md`](../QA-REPORT.md).
+Full log: [`QA-REPORT.md`](archive/QA-REPORT.md).
 
 ## 1. Environment
 
@@ -129,6 +129,6 @@ SELECT 1 FROM shasta_evidence_control_links LIMIT 0;
 
 | Document | Contents |
 |----------|----------|
-| [`QA-REPORT.md`](../QA-REPORT.md) | Latest QA + smoke + pytest summary |
-| [`SAST-REPORT.md`](../SAST-REPORT.md) | Ruff, Bandit, ESLint, pip/npm audit |
-| [`SECURITY_REPORT.md`](../SECURITY_REPORT.md) | Historical compliance-engine security review |
+| [`archive/QA-REPORT.md`](archive/QA-REPORT.md) | Latest QA + smoke + pytest summary |
+| [`archive/SAST-REPORT.md`](archive/SAST-REPORT.md) | Ruff, Bandit, ESLint, pip/npm audit |
+| [`archive/SECURITY_REPORT.md`](archive/SECURITY_REPORT.md) | Historical compliance-engine security review |

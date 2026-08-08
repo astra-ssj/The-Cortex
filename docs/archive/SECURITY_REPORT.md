@@ -32,7 +32,7 @@
 | `smoke_ingest_llm.sh` | Pass |
 | `smoke_assessment_llm.sh` | Fail (SSE `run_done`) |
 
-**Details:** [`QA-REPORT.md`](QA-REPORT.md), [`SAST-REPORT.md`](SAST-REPORT.md), [`docs/RELEASE_QA.md`](docs/RELEASE_QA.md).
+**Details:** [`QA-REPORT.md`](QA-REPORT.md), [`SAST-REPORT.md`](SAST-REPORT.md), [`../RELEASE_QA.md`](../RELEASE_QA.md).
 
 **Open items:** Upgrade `idna`; fix or isolate LLM provider test env; stabilise assessment SSE smoke + `test_api_assessments`.
 

@@ -14,21 +14,22 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-cortex}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Single migration lane (filename order == apply order). Keep in sync with scripts/apply_cortex_schema.sh.
       - ./init.sql:/docker-entrypoint-initdb.d/01_init.sql
-      - ./migrations/002_cortex_ontology.sql:/docker-entrypoint-initdb.d/02_ontology.sql
-      - ./migrations/003_assessment_results.sql:/docker-entrypoint-initdb.d/03_assessment_results.sql
-      - ./services/graphjin/migrations/003_controls_authoritative.sql:/docker-entrypoint-initdb.d/04_controls_authoritative.sql:ro
-      - ./services/graphjin/migrations/004_multi_tenancy.sql:/docker-entrypoint-initdb.d/05_multi_tenancy.sql:ro
-      - ./migrations/004_assessment_results_status_risk.sql:/docker-entrypoint-initdb.d/06_assessment_results_status_risk.sql:ro
-      - ./services/graphjin/migrations/005_assessment_results_fix.sql:/docker-entrypoint-initdb.d/07_assessment_results_fix.sql:ro
-      - ./migrations/006_human_review_queue.sql:/docker-entrypoint-initdb.d/08_human_review_queue.sql:ro
+      - ./migrations/002_cortex_ontology.sql:/docker-entrypoint-initdb.d/02_cortex_ontology.sql:ro
+      - ./migrations/003_assessment_results.sql:/docker-entrypoint-initdb.d/03_assessment_results.sql:ro
+      - ./migrations/004_controls_authoritative.sql:/docker-entrypoint-initdb.d/04_controls_authoritative.sql:ro
+      - ./migrations/005_multi_tenancy.sql:/docker-entrypoint-initdb.d/05_multi_tenancy.sql:ro
+      - ./migrations/006_assessment_results_status_risk.sql:/docker-entrypoint-initdb.d/06_assessment_results_status_risk.sql:ro
+      - ./migrations/007_assessment_results_fix.sql:/docker-entrypoint-initdb.d/07_assessment_results_fix.sql:ro
+      - ./migrations/008_human_review_queue.sql:/docker-entrypoint-initdb.d/08_human_review_queue.sql:ro
       - ./migrations/009_shasta_cloud.sql:/docker-entrypoint-initdb.d/09_shasta_cloud.sql:ro
       - ./migrations/010_shasta_evidence_control_links.sql:/docker-entrypoint-initdb.d/10_shasta_evidence_links.sql:ro
-      - ./migrations/012_security_auth.sql:/docker-entrypoint-initdb.d/11_security_auth.sql:ro
-      - ./migrations/013_compliance_graph.sql:/docker-entrypoint-initdb.d/12_compliance_graph.sql:ro
-      - ./migrations/014_microsoft_integration.sql:/docker-entrypoint-initdb.d/13_microsoft_integration.sql:ro
-      - ./migrations/015_relationship_graph.sql:/docker-entrypoint-initdb.d/14_relationship_graph.sql:ro
-      - ./services/graphjin/migrations:/graphjin/migrations:ro
+      - ./migrations/011_operational_persistence.sql:/docker-entrypoint-initdb.d/11_operational_persistence.sql:ro
+      - ./migrations/012_security_auth.sql:/docker-entrypoint-initdb.d/12_security_auth.sql:ro
+      - ./migrations/013_compliance_graph.sql:/docker-entrypoint-initdb.d/13_compliance_graph.sql:ro
+      - ./migrations/014_microsoft_integration.sql:/docker-entrypoint-initdb.d/14_microsoft_integration.sql:ro
+      - ./migrations/015_relationship_graph.sql:/docker-entrypoint-initdb.d/15_relationship_graph.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
       interval: 5s

@@ -375,7 +375,7 @@ async def _ensure_human_review_schema(session: AsyncSession) -> None:
             status_code=503,
             detail=(
                 "Human review persistence is unavailable: apply migrations "
-                "006_human_review_queue.sql and 011_operational_persistence.sql."
+                "008_human_review_queue.sql and 011_operational_persistence.sql."
             ),
         ) from e
 

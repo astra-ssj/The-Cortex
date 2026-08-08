@@ -1,5 +1,5 @@
 # shasta_cloud.py — Org-scoped Shasta scans, Postgres persistence, JSON ingest (ZTAIP: audit_fabric on persist).
-# Requires PYTHONPATH to include services/compliance-engine (see CORTEX_SETUP.md); same as Dockerfile ENV.
+# Requires PYTHONPATH to include services/compliance-engine (see docs/CORTEX_SETUP.md); same as Dockerfile ENV.
 
 from __future__ import annotations
 

@@ -181,4 +181,4 @@ The UI uses **`@microsoft/fetch-event-source`** with **`Authorization: Bearer`**
 
 ## Docker API image (`Dockerfile`)
 
-The API Dockerfile copies **`api/`, `core/`, `compliance/`, `ontology/`** and **`CORTEX_SETUP.md`** before **`pip install -e ".[shasta-scan,aws,azure]"`** so the editable install succeeds. It installs **`git`** (Shasta is a git dependency), plus **`build-essential`**, **`pkg-config`**, **`libcairo2-dev`** so **`pycairo`** can build (transitive via Shasta’s PDF stack). Runtime layers then add **`db/`**, **`services/`**, migrations.
+The API Dockerfile copies **`api/`, `core/`, `compliance/`, `ontology/`** and **`docs/CORTEX_SETUP.md`** (pyproject `readme`) before **`pip install -e ".[shasta-scan,aws,azure]"`** so the editable install succeeds. It installs **`git`** (Shasta is a git dependency), plus **`build-essential`**, **`pkg-config`**, **`libcairo2-dev`** so **`pycairo`** can build (transitive via Shasta’s PDF stack). Runtime layers then add **`db/`**, **`services/`**, and the single **`migrations/`** lane.

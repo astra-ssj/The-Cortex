@@ -21,11 +21,11 @@ REL_SQL_FILES=(
   init.sql
   migrations/002_cortex_ontology.sql
   migrations/003_assessment_results.sql
-  services/graphjin/migrations/003_controls_authoritative.sql
-  services/graphjin/migrations/004_multi_tenancy.sql
-  migrations/004_assessment_results_status_risk.sql
-  services/graphjin/migrations/005_assessment_results_fix.sql
-  migrations/006_human_review_queue.sql
+  migrations/004_controls_authoritative.sql
+  migrations/005_multi_tenancy.sql
+  migrations/006_assessment_results_status_risk.sql
+  migrations/007_assessment_results_fix.sql
+  migrations/008_human_review_queue.sql
   migrations/009_shasta_cloud.sql
   migrations/010_shasta_evidence_control_links.sql
 )

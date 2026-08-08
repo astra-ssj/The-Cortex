@@ -119,4 +119,5 @@ Against `http://127.0.0.1:8000` after `smoke_happy_path.sh`:
 - [`docs/RELEASE_QA.md`](docs/RELEASE_QA.md) — repeatable commands before release
 - [`SAST-REPORT.md`](SAST-REPORT.md) — static analysis detail
 - [`SECURITY_REPORT.md`](SECURITY_REPORT.md) — historical security posture
+- [`../RELEASE_QA.md`](../RELEASE_QA.md) — release checklist
 - [`SECURITY.md`](SECURITY.md) — policy and architecture controls

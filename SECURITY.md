@@ -55,9 +55,9 @@ Before release, run the checklist in [docs/RELEASE_QA.md](docs/RELEASE_QA.md). L
 
 | Report | Purpose |
 |--------|---------|
-| [QA-REPORT.md](QA-REPORT.md) | QA, pytest, HTTP smokes |
-| [SAST-REPORT.md](SAST-REPORT.md) | Ruff, Bandit, ESLint, dependency audits |
-| [SECURITY_REPORT.md](SECURITY_REPORT.md) | Security posture history + run log |
+| [docs/archive/QA-REPORT.md](docs/archive/QA-REPORT.md) | QA, pytest, HTTP smokes |
+| [docs/archive/SAST-REPORT.md](docs/archive/SAST-REPORT.md) | Ruff, Bandit, ESLint, dependency audits |
+| [docs/archive/SECURITY_REPORT.md](docs/archive/SECURITY_REPORT.md) | Security posture history + run log |
 
 **Last run (2026-05-21):** Frontend build/tests pass; Ruff/Bandit pass; `smoke_happy_path` + Track B ingest pass; `pip-audit` flags `idna` upgrade; 2 pytest failures on Compose DB; Track A assessment smoke missing `run_done`.
 
