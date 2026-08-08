@@ -42,7 +42,7 @@ Release lines **v0.1.0–v0.7.x** below reflect repository tags and merge histor
 ### Changed
 
 - **License**: MIT → **Apache License 2.0** (see `LICENSE`).
-- Docker Compose: **GraphJin** starts only with **`docker compose --profile graphql`** (port 8080 off by default).
+- Docker Compose: **GraphJin** included in the default stack (localhost:8080); config lives under `infra/graphjin/`.
 
 ## [0.7.4] — 2026-05-01
 

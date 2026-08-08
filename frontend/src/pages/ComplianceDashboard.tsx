@@ -1,20 +1,20 @@
 import { useNavigate } from "react-router-dom";
 import { useRef, useEffect, useMemo, useState } from "react";
-import { useOrgContext } from "./hooks/useOrgContext";
-import { useRole } from "./hooks/useRole";
-import { useFrameworks } from "./hooks/useFrameworks";
+import { useOrgContext } from "../hooks/useOrgContext";
+import { useRole } from "../hooks/useRole";
+import { useFrameworks } from "../hooks/useFrameworks";
 import {
   useAssessmentStream,
   useCompliancePosture,
   useZtaipStatus,
-} from "./store/complianceStore";
-import { Skeleton, StatCardSkeleton } from "./components/Skeleton";
-import { DashboardEmpty, FrameworksEmpty } from "./components/ui/EmptyState";
-import { TrustChip } from "./components/ui/TrustChip";
-import { Button, Card, Table, Tooltip } from "./components/ui";
-import { FrameworkComplianceTable } from "./components/FrameworkComplianceTable";
-import { CompliancePostureStatCards } from "./components/CompliancePostureStatCards";
-import { RunAssessmentModal } from "./components/RunAssessmentModal";
+} from "../store/complianceStore";
+import { Skeleton, StatCardSkeleton } from "../components/Skeleton";
+import { DashboardEmpty, FrameworksEmpty } from "../components/ui/EmptyState";
+import { TrustChip } from "../components/ui/TrustChip";
+import { Button, Card, Table, Tooltip } from "../components/ui";
+import { FrameworkComplianceTable } from "../components/FrameworkComplianceTable";
+import { CompliancePostureStatCards } from "../components/CompliancePostureStatCards";
+import { RunAssessmentModal } from "../components/RunAssessmentModal";
 import {
   eventDisplay,
   FRAMEWORK_TABLE_COLUMNS,
@@ -22,7 +22,7 @@ import {
   riskCompare,
   statusCompare,
   streamEventColor,
-} from "./complianceDashboardUtils";
+} from "../lib/complianceDashboardUtils";
 
 export function ComplianceDashboard() {
   const navigate = useNavigate();

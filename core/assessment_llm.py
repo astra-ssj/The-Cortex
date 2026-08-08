@@ -1,4 +1,4 @@
-# services/assessment_llm.py — Per-control assessment via multi-provider LLM (assessment_llm CircuitBreaker).
+# core/assessment_llm.py — Per-control assessment via multi-provider LLM (assessment_llm CircuitBreaker).
 
 from __future__ import annotations
 

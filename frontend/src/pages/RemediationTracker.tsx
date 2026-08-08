@@ -13,16 +13,16 @@ import {
   type RemediationFinding,
   type FindingStatus,
   type UpdateFindingBody,
-} from "./api/client";
-import { useOrgContext } from "./hooks/useOrgContext";
-import { useRole } from "./hooks/useRole";
+} from "../api/client";
+import { useOrgContext } from "../hooks/useOrgContext";
+import { useRole } from "../hooks/useRole";
 import {
   FRAMEWORK_FILTER_OPTIONS,
   frameworkIdFromFilterLabel,
   type FrameworkFilterOption,
-} from "./lib/frameworkRegistry";
-import { invalidateComplianceData } from "./store/complianceStore";
-import { RemediationEmpty } from "./components/ui/EmptyState";
+} from "../lib/frameworkRegistry";
+import { invalidateComplianceData } from "../store/complianceStore";
+import { RemediationEmpty } from "../components/ui/EmptyState";
 
 const STATUSES: FindingStatus[] = ["OPEN", "IN_PROGRESS", "REMEDIATED", "ACCEPTED"];
 const STATUS_LABELS: Record<FindingStatus, string> = {

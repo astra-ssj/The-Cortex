@@ -1,6 +1,6 @@
 import type { FrameworkSummary } from "../api/frameworks";
 import type { FrameworkPosture } from "../types/compliance";
-import { riskBadgeVariant, scoreRingStroke, statusBadgeVariant } from "../complianceDashboardUtils";
+import { riskBadgeVariant, scoreRingStroke, statusBadgeVariant } from "../lib/complianceDashboardUtils";
 import { Badge, Table, Tooltip } from "./ui";
 import type { TableColumn } from "./ui/Table";
 

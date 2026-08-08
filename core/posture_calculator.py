@@ -1,4 +1,4 @@
-# services/posture_calculator.py — Real posture scores from framework controls and org context.
+# core/posture_calculator.py — Real posture scores from framework controls and org context.
 # Lightweight scoring (no LLM); trend from assessment_results history.
 
 from __future__ import annotations

@@ -51,15 +51,15 @@ See [docs/LLM_PROVIDERS.md](docs/LLM_PROVIDERS.md).
 
 ## Verification reports
 
-Before release, run the checklist in [docs/RELEASE_QA.md](docs/RELEASE_QA.md). Latest automated run summaries:
+Before release, run the living checklist in [docs/RELEASE_QA.md](docs/RELEASE_QA.md).
+
+Historical snapshots (not current posture) live under [docs/archive/](docs/archive/):
 
 | Report | Purpose |
 |--------|---------|
-| [docs/archive/QA-REPORT.md](docs/archive/QA-REPORT.md) | QA, pytest, HTTP smokes |
-| [docs/archive/SAST-REPORT.md](docs/archive/SAST-REPORT.md) | Ruff, Bandit, ESLint, dependency audits |
-| [docs/archive/SECURITY_REPORT.md](docs/archive/SECURITY_REPORT.md) | Security posture history + run log |
-
-**Last run (2026-05-21):** Frontend build/tests pass; Ruff/Bandit pass; `smoke_happy_path` + Track B ingest pass; `pip-audit` flags `idna` upgrade; 2 pytest failures on Compose DB; Track A assessment smoke missing `run_done`.
+| [docs/archive/QA-REPORT.md](docs/archive/QA-REPORT.md) | Dated QA / smoke log |
+| [docs/archive/SAST-REPORT.md](docs/archive/SAST-REPORT.md) | Dated SAST / dependency audit |
+| [docs/archive/SECURITY_REPORT.md](docs/archive/SECURITY_REPORT.md) | Dated security posture note |
 
 ## Known Development Limitations
 

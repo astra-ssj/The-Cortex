@@ -1,6 +1,9 @@
-# Auth dependencies — add to existing project deps (primary: pyproject.toml)
+# Prefer the editable install from pyproject.toml:
+#   pip install -e ".[dev]"
+#
+# This file is kept only for tools that still expect requirements.txt.
+# Pins below mirror a subset of [project] dependencies (auth + idna CVE floor).
 python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.32
-# Security: pin idna >= 3.15 (GHSA-jjg7-2v4v-x38h — DoS in idna.encode)
 idna>=3.15

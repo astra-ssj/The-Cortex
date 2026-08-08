@@ -6,7 +6,7 @@
 !.env.example
 
 # GRC Skills raw binaries
-services/skills/raw/*.skill
+content/skills/raw/*.skill
 
 # Python
 __pycache__/

@@ -69,11 +69,11 @@ Defaults: `CORTEX_LLM_PROVIDERS=anthropic,openai,stub` (stub used when keys are 
 
 ## Assessment LLM (Track A)
 
-Per-control assessment uses the same provider chain via `services/assessment_llm.py` and the `assessment_llm` CircuitBreaker.
+Per-control assessment uses the same provider chain via `core/assessment_llm.py` and the `assessment_llm` CircuitBreaker.
 
 ```bash
 CORTEX_ASSESSMENT_LLM_ENABLED=1
 CORTEX_ASSESSMENT_MAX_CONTROLS=0   # 0 = unlimited; docker-compose default 5 for demos
 ```
 
-Smoke: `bash scripts/smoke_assessment_llm.sh` — see [TRACK_A.md](./TRACK_A.md).
+Smoke: `bash scripts/smoke_assessment_llm.sh` — see [archive/TRACK_A.md](./archive/TRACK_A.md).

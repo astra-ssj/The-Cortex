@@ -233,7 +233,7 @@ async def get_organisation_posture(
     if org_posture is None or org_posture.get("audit_readiness") is None:
         audit_readiness = round(overall_score * 0.92) if overall_score else 0
     if risk_level == "UNKNOWN" and overall_score:
-        from services.posture_calculator import _risk
+        from core.posture_calculator import _risk
 
         risk_level = _risk(float(overall_score))
 

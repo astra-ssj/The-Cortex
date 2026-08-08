@@ -1,4 +1,4 @@
-# services/assessment_engine.py — Assessment run: yields AssessmentEvent-shaped events for SSE.
+# core/assessment_engine.py — Assessment run: yields AssessmentEvent-shaped events for SSE.
 
 from __future__ import annotations
 
@@ -13,9 +13,9 @@ from compliance import FrameworkId, get
 
 from core.audit_fabric import append_audit_log
 from core.llm.config import assessment_max_controls_per_run
-from services.assessment_llm import assess_control_with_llm
-from services.context_builder import get_context_for_control, get_org_profile
-from services.posture_calculator import PostureCalculator
+from core.assessment_llm import assess_control_with_llm
+from core.context_builder import get_context_for_control, get_org_profile
+from core.posture_calculator import PostureCalculator
 
 logger = structlog.get_logger()
 
@@ -27,7 +27,7 @@ async def run_assessment_stream(
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Yield AssessmentEvent-shaped dicts (kind + payload).
-    Per-control assessment uses LLM behind assessment_llm CircuitBreaker (see services/assessment_llm.py).
+    Per-control assessment uses LLM behind assessment_llm CircuitBreaker (see core/assessment_llm.py).
     Each event matches the AssessmentEvent TypeScript union (event type = kind, data = full object).
     """
     run_id = str(uuid.uuid4())

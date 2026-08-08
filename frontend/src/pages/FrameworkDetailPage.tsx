@@ -1,13 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { uploadEvidence } from "./api/client";
-import { Breadcrumb } from "./components/ui/Breadcrumb";
-import { FileUpload } from "./components/ui/FileUpload";
-import { Modal } from "./components/ui/Modal";
-import { useOrgContext } from "./hooks/useOrgContext";
-import { frameworkQueryKey, useFramework } from "./hooks/useFrameworks";
-import { invalidateComplianceData } from "./store/complianceStore";
+import { uploadEvidence } from "../api/client";
+import { Breadcrumb } from "../components/ui/Breadcrumb";
+import { FileUpload } from "../components/ui/FileUpload";
+import { Modal } from "../components/ui/Modal";
+import { useOrgContext } from "../hooks/useOrgContext";
+import { frameworkQueryKey, useFramework } from "../hooks/useFrameworks";
+import { invalidateComplianceData } from "../store/complianceStore";
 
 export function FrameworkDetailPage() {
   const { id } = useParams<{ id: string }>();

@@ -1,4 +1,4 @@
-# services/context_builder.py — Builds structured context for the assessment engine (LLM prompt input).
+# core/context_builder.py — Builds structured context for the assessment engine (LLM prompt input).
 
 from __future__ import annotations
 

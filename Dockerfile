@@ -15,8 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Editable install needs package trees + readme (pyproject metadata). Runtime copies db/migrations after.
-COPY pyproject.toml ./
-COPY docs/CORTEX_SETUP.md ./docs/CORTEX_SETUP.md
+COPY pyproject.toml README.md ./
 COPY api/ ./api/
 COPY core/ ./core/
 COPY compliance/ ./compliance/
@@ -25,7 +24,7 @@ COPY ontology/ ./ontology/
 RUN pip install --no-cache-dir -e ".[shasta-scan,aws,azure]" "redis[hiredis]>=5" "uvicorn[standard]>=0.27"
 
 COPY db/ ./db/
-COPY services/ ./services/
+COPY content/ ./content/
 COPY workers/ ./workers/
 COPY init.sql ./
 COPY migrations/ ./

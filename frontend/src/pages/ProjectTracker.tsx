@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { ComingSoon } from "./components/ui/ComingSoon";
+import { ComingSoon } from "../components/ui/ComingSoon";
 import {
   ROADMAP_EPICS,
   getRoadmapSummary,
@@ -7,8 +7,8 @@ import {
   type RoadmapStory,
   type StoryStatus,
   type EpicStatus,
-} from "./lib/roadmapData";
-import { isFeatureEnabled } from "./lib/featureFlags";
+} from "../lib/roadmapData";
+import { isFeatureEnabled } from "../lib/featureFlags";
 
 const TIMELINE_PHASES = [
   { phase: 2, label: "Phase 2", date: "Apr 2026" },

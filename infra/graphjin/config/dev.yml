@@ -1,5 +1,5 @@
 # GraphJin — CORTEX read layer (GraphQL → SQL). Used with GO_ENV=development.
-# Mutations/DDL: use FastAPI only. See services/graphjin/README.md
+# Mutations/DDL: use FastAPI only. See infra/graphjin/README.md
 
 app_name: "CORTEX GraphJin"
 host_port: "0.0.0.0:8080"
