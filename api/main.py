@@ -80,7 +80,6 @@ async def lifespan(app: FastAPI):
         logger.warning("grc_skills_load_failed", error=str(e))
 
     yield
-    # Shasta optional Redis queue: see core/shasta_queue.py + workers/shasta_worker.py (no API pool here).
 
 
 app = FastAPI(

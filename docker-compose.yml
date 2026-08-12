@@ -71,9 +71,6 @@ services:
     environment:
       # cortex_app is the non-superuser role (migration 016) so RLS + audit grants bind.
       DATABASE_URL: postgresql+asyncpg://cortex_app:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
-      # When set (e.g. redis://redis:6379/0 with profile ``queue``), Shasta scans enqueue to Redis instead of in-process BackgroundTasks.
-      REDIS_URL: ${REDIS_URL:-}
-      SHASTA_REDIS_URL: ${SHASTA_REDIS_URL:-}
       # No insecure defaults: these must be set explicitly (in .env for local dev).
       # Using :? makes the stack refuse to start rather than silently shipping
       # admin/admin or a well-known stub token. See .env.example.
@@ -86,7 +83,6 @@ services:
       CORTEX_LLM_MAX_INGEST_CHARS: ${CORTEX_LLM_MAX_INGEST_CHARS:-24000}
       CORTEX_ASSESSMENT_LLM_ENABLED: ${CORTEX_ASSESSMENT_LLM_ENABLED:-1}
       CORTEX_ASSESSMENT_MAX_CONTROLS: ${CORTEX_ASSESSMENT_MAX_CONTROLS:-5}
-      CORTEX_M365_MOCK: ${CORTEX_M365_MOCK:-1}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -94,31 +90,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
-  # Optional: durable Shasta jobs — ``docker compose --profile queue up -d`` and set REDIS_URL=redis://redis:6379/0 (and run shasta-worker).
-  redis:
-    profiles:
-      - queue
-    image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - redis_queue_data:/data
-
-  shasta-worker:
-    profiles:
-      - queue
-    build: .
-    command: ["python", "workers/shasta_worker.py"]
-    environment:
-      DATABASE_URL: postgresql+asyncpg://cortex_app:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      PYTHONPATH: /app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    restart: unless-stopped
 
   seed:
     image: python:3.12-slim
@@ -135,4 +106,3 @@ services:
 
 volumes:
   postgres_data:
-  redis_queue_data:

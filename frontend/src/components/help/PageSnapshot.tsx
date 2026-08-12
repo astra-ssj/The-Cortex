@@ -11,8 +11,6 @@ export type SnapshotVariant =
   | "sidebar"
   | "frameworks"
   | "findings"
-  | "integrations"
-  | "cloud-scans"
   | "review-queue"
   | "command-palette";
 
@@ -306,8 +304,8 @@ function DashboardSnapshot() {
 function SidebarSnapshot() {
   const sections = [
     { label: "POSTURE", items: ["Dashboard", "Frameworks", "Findings"] },
-    { label: "GOVERNANCE", items: ["Review Queue", "Audit Report"] },
-    { label: "OPERATIONS", items: ["Cloud Scans", "Integrations"] },
+    { label: "GOVERNANCE", items: ["Review Queue", "Remediation"] },
+    { label: "OPERATIONS", items: ["Roadmap", "Settings"] },
   ];
   return (
     <div style={{ display: "flex", minHeight: 160 }}>
@@ -432,8 +430,6 @@ const TITLES: Record<SnapshotVariant, string> = {
   sidebar: "Application layout",
   frameworks: "cortex.app/frameworks",
   findings: "cortex.app/findings",
-  integrations: "cortex.app/integrations",
-  "cloud-scans": "cortex.app/cloud-scans",
   "review-queue": "cortex.app/review-queue",
   "command-palette": "Command palette",
 };
@@ -475,44 +471,6 @@ function SnapshotContent({ variant }: { variant: SnapshotVariant }) {
             ["Incident reporting gap", "NIS2 Art.23", "HIGH"],
             ["Breach procedure missing", "GDPR Art.33", "HIGH"],
             ["MFA not enforced", "ISO A.8.5", "MEDIUM"],
-          ]}
-        />
-      );
-    case "integrations":
-      return (
-        <SnapshotBody>
-          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Connect evidence sources</div>
-          {["Microsoft 365", "GitHub", "AWS", "Azure"].map((name, i) => (
-            <div
-              key={name}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "8px 10px",
-                marginBottom: 6,
-                borderRadius: 6,
-                border: "1px solid var(--border-subtle)",
-                background: "var(--surface)",
-                fontSize: 10,
-              }}
-            >
-              <span>{name}</span>
-              <span style={{ color: i === 0 ? "var(--green)" : "var(--text-tertiary)" }}>
-                {i === 0 ? "Connected" : "Configure"}
-              </span>
-            </div>
-          ))}
-        </SnapshotBody>
-      );
-    case "cloud-scans":
-      return (
-        <GenericListSnapshot
-          title="Cloud scan runs"
-          rows={[
-            ["aws-prod-01", "Completed", "12 findings"],
-            ["azure-eu-02", "Running", "—"],
-            ["aws-staging", "Failed", "Retry"],
           ]}
         />
       );
