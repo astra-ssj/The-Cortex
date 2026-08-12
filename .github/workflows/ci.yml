@@ -123,14 +123,11 @@ jobs:
       - name: Apply database schema
         run: bash scripts/apply_cortex_schema.sh
 
-      - name: Verify Shasta migration (009 tables)
+      - name: Verify migration 018 (decommissioned tables dropped)
         run: |
-          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM shasta_scan_runs LIMIT 0;"
-          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM shasta_cloud_findings LIMIT 0;"
-
-      - name: Verify Shasta migration (010 evidence links)
-        run: |
-          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM shasta_evidence_control_links LIMIT 0;"
+          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM findings LIMIT 0;"
+          remaining=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('shasta_scan_runs','shasta_cloud_findings','shasta_evidence_control_links','microsoft_sync_runs','microsoft_cloud_findings','control_mappings','evidence','evidence_controls','framework_entities','rel_people','rel_teams','rel_systems','rel_risks','relationship_edges')")
+          test "$remaining" = "0" || { echo "decommissioned tables still present: $remaining"; exit 1; }
 
       - name: Install dependencies
         run: |
@@ -180,14 +177,11 @@ jobs:
       - name: Apply database schema
         run: bash scripts/apply_cortex_schema.sh
 
-      - name: Verify Shasta migration (009 tables)
+      - name: Verify migration 018 (decommissioned tables dropped)
         run: |
-          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM shasta_scan_runs LIMIT 0;"
-          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM shasta_cloud_findings LIMIT 0;"
-
-      - name: Verify Shasta migration (010 evidence links)
-        run: |
-          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM shasta_evidence_control_links LIMIT 0;"
+          psql -v ON_ERROR_STOP=1 -c "SELECT 1 FROM findings LIMIT 0;"
+          remaining=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('shasta_scan_runs','shasta_cloud_findings','shasta_evidence_control_links','microsoft_sync_runs','microsoft_cloud_findings','control_mappings','evidence','evidence_controls','framework_entities','rel_people','rel_teams','rel_systems','rel_risks','relationship_edges')")
+          test "$remaining" = "0" || { echo "decommissioned tables still present: $remaining"; exit 1; }
 
       - name: Install dependencies
         run: |
