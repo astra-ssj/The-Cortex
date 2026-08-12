@@ -1,14 +1,12 @@
 import { useNavigate, useParams } from "react-router-dom";
 import AuditSimulator from "../components/AuditSimulator";
 import RegulationIntel from "../components/RegulationIntel";
-import InsightsFeed from "../components/InsightsFeed";
 
-// Insights is the reasoning layer (real backend); the remaining tabs are illustrative
-// demo surfaces. Tabs map 1:1 to sub-routes so the sidebar can deep-link to each.
-type IntelTab = "insights" | "simulator" | "regulation";
+// Both remaining tabs are illustrative demo surfaces. Tabs map 1:1 to sub-routes
+// so the sidebar can deep-link to each.
+type IntelTab = "simulator" | "regulation";
 
 const TAB_DEFS: { key: IntelTab; label: string; path: string; demo: boolean }[] = [
-  { key: "insights", label: "Insights", path: "/intelligence", demo: false },
   { key: "simulator", label: "Audit Simulator", path: "/intelligence/simulator", demo: true },
   { key: "regulation", label: "Regulation Intel", path: "/intelligence/regulation", demo: true },
 ];
@@ -21,10 +19,7 @@ const TAB_BY_SLUG: Record<string, IntelTab> = {
 export default function Intelligence() {
   const navigate = useNavigate();
   const { tab: tabSlug } = useParams<{ tab?: string }>();
-  const tab: IntelTab = tabSlug ? (TAB_BY_SLUG[tabSlug] ?? "insights") : "insights";
-
-  // The demo banner only applies to the three illustrative tabs, never to Insights.
-  const onDemoTab = tab !== "insights";
+  const tab: IntelTab = tabSlug ? (TAB_BY_SLUG[tabSlug] ?? "simulator") : "simulator";
 
   return (
     <div
@@ -72,9 +67,8 @@ export default function Intelligence() {
             AI-powered regulatory intelligence and live control telemetry
           </p>
         </div>
-        {onDemoTab ? (
-          /* TODO(intelligence): Replace labels below with live aggregates from telemetry / regulator / regulation APIs when those services ship. */
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        {/* TODO(intelligence): Replace labels below with live aggregates from regulator / regulation APIs when those services ship. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span
               style={{
                 display: "inline-flex",
@@ -148,28 +142,25 @@ export default function Intelligence() {
               />
               Regulatory horizon
             </span>
-          </div>
-        ) : null}
+        </div>
       </header>
 
-      {onDemoTab ? (
-        <div
-          style={{
-            marginBottom: 20,
-            padding: "12px 14px",
-            borderRadius: 8,
-            border: "1px solid var(--border)",
-            background: "var(--card)",
-            fontSize: 12,
-            color: "var(--text-secondary)",
-            lineHeight: 1.5,
-          }}
-        >
-          <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — Audit Simulator and
-          Regulation Intel use <strong style={{ color: "var(--text)" }}>simulated / demo UX</strong>{" "}
-          for storytelling. The <strong style={{ color: "var(--text)" }}>Insights</strong> tab is live — it reasons over your real compliance graph.
-        </div>
-      ) : null}
+      <div
+        style={{
+          marginBottom: 20,
+          padding: "12px 14px",
+          borderRadius: 8,
+          border: "1px solid var(--border)",
+          background: "var(--card)",
+          fontSize: 12,
+          color: "var(--text-secondary)",
+          lineHeight: 1.5,
+        }}
+      >
+        <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — Audit Simulator and
+        Regulation Intel use <strong style={{ color: "var(--text)" }}>simulated / demo UX</strong>{" "}
+        for storytelling.
+      </div>
 
       <div
         role="tablist"
@@ -210,7 +201,6 @@ export default function Intelligence() {
       </div>
 
       <>
-        {tab === "insights" && <InsightsFeed />}
         {tab === "simulator" && <AuditSimulator />}
         {tab === "regulation" && <RegulationIntel />}
       </>

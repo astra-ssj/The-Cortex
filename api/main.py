@@ -33,7 +33,6 @@ from api.limits import limiter
 from api.findings import router as findings_router
 from api.graph import router as graph_router
 from api.groups import router as groups_router
-from api.intelligence import router as intelligence_router
 from api.organisations import router as organisations_router
 from api.system import router as system_router
 from api.ingest import router as ingest_router
@@ -241,7 +240,6 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessments_router)
 app.include_router(findings_router, prefix="/api/v1/findings")
 app.include_router(graph_router)
-app.include_router(intelligence_router)
 app.include_router(groups_router)
 app.include_router(organisations_router)
 app.include_router(reports_router, prefix="/api/v1/reports")
