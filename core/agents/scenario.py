@@ -1,13 +1,26 @@
 # core/agents/scenario.py — Deterministic Learning Loop scenario controller helpers.
 #
 # The API advances the loop; the agent is consulted via the harness and never free-writes state.
+#
+# Scenario *content* (brief, stage scripts, choices, graded answers) lives in the
+# database from migration 019 onward and is read through load_scenario(). Scenario
+# *control* (risk mapping, stage transitions) stays here in code: the controller
+# owns risk, and a content author must never be able to edit the risk model.
 
 from __future__ import annotations
 
+import os
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
+import structlog
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.agents.harness import DEVOPS_LEAD_ROLE, AgentResponse, call_agent
+
+logger = structlog.get_logger()
 
 SCENARIO_ID = "cloud_access_onboarding"
 
@@ -28,10 +41,230 @@ _AVAILABLE_CHOICES = [
     {"id": k, "label": v} for k, v in CHOICE_LABELS.items()
 ]
 
+# Set to 1 to bypass the database entirely and serve the compiled-in scenario.
+# Keeps harness/controller unit tests runnable without Postgres.
+_HARDCODED_ENV = "CORTEX_SCENARIO_HARDCODED"
 
-def initial_state(*, opening: AgentResponse) -> dict[str, Any]:
+ENTRY_STAGE = "access_request"
+ESCALATION_STAGE = "escalation"
+TERMINAL_STAGE = "complete"
+
+
+class ScenarioNotFound(LookupError):
+    """Requested scenario slug is not present (or not active) in the content model."""
+
+
+@dataclass(frozen=True)
+class ScenarioChoice:
+    choice_id: str
+    label: str
+    consequence: str = ""
+    is_correct: bool = False
+    framework_rationale: str | None = None
+
+
+@dataclass(frozen=True)
+class ScenarioStage:
+    slug: str
+    sequence: int
+    agent_message: str = ""
+    demands: tuple[str, ...] = ()
+    choices: tuple[ScenarioChoice, ...] = ()
+
+
+@dataclass(frozen=True)
+class Scenario:
+    """A scenario definition, whether loaded from the DB or compiled in as fallback."""
+
+    slug: str
+    title: str
+    brief: str
+    track: str
+    frameworks: tuple[str, ...]
+    difficulty: str
+    stages: tuple[ScenarioStage, ...]
+
+    @property
+    def entry_stage(self) -> ScenarioStage | None:
+        return self.stages[0] if self.stages else None
+
+    def stage(self, slug: str) -> ScenarioStage | None:
+        for stage in self.stages:
+            if stage.slug == slug:
+                return stage
+        return None
+
+    def choices_for_stage(self, slug: str) -> list[dict[str, str]]:
+        """
+        Learner-facing options for a stage.
+
+        Unknown stages resolve to the entry stage, matching the pre-content-model
+        behaviour where any unrecognised stage offered the full choice set.
+        """
+        stage = self.stage(slug) or self.entry_stage
+        if stage is None:
+            return []
+        return [{"id": c.choice_id, "label": c.label} for c in stage.choices]
+
+    def valid_choice_ids(self) -> frozenset[str]:
+        return frozenset(c.choice_id for stage in self.stages for c in stage.choices)
+
+
+def _hardcoded_stage(slug: str, sequence: int, choice_ids: tuple[str, ...]) -> ScenarioStage:
+    return ScenarioStage(
+        slug=slug,
+        sequence=sequence,
+        agent_message="",
+        demands=(),
+        choices=tuple(
+            ScenarioChoice(choice_id=cid, label=CHOICE_LABELS[cid]) for cid in choice_ids
+        ),
+    )
+
+
+# Fallback content — byte-identical to what the loop served before migration 019.
+HARDCODED_SCENARIO = Scenario(
+    slug=SCENARIO_ID,
+    title="Friday Cutover: Privileged Cloud Access Request",
+    brief=SCENARIO_BRIEF,
+    track="ai-risk-lead",
+    frameworks=("iso27001-2022", "nist-csf-2.0"),
+    difficulty="foundation",
+    stages=(
+        _hardcoded_stage(ENTRY_STAGE, 1, tuple(CHOICE_LABELS)),
+        _hardcoded_stage(ESCALATION_STAGE, 2, ("approve_all", "least_privilege", "deny")),
+        ScenarioStage(slug=TERMINAL_STAGE, sequence=3),
+    ),
+)
+
+_LOAD_SQL = text(
+    """
+    SELECT s.slug          AS scenario_slug,
+           s.title         AS title,
+           s.brief         AS brief,
+           s.track         AS track,
+           s.frameworks    AS frameworks,
+           s.difficulty    AS difficulty,
+           st.slug         AS stage_slug,
+           st.sequence     AS stage_sequence,
+           st.agent_message AS agent_message,
+           st.demands      AS demands,
+           c.choice_id     AS choice_id,
+           c.label         AS label,
+           c.consequence   AS consequence,
+           c.is_correct    AS is_correct,
+           c.framework_rationale AS framework_rationale
+    FROM scenarios s
+    LEFT JOIN scenario_stages st ON st.scenario_id = s.id
+    LEFT JOIN scenario_choices c ON c.stage_id = st.id
+    WHERE s.slug = :slug AND s.active
+    ORDER BY st.sequence, c.display_order, c.choice_id
+    """
+)
+
+
+def _hardcoded_mode() -> bool:
+    return os.getenv(_HARDCODED_ENV, "").strip().lower() in ("1", "true", "yes")
+
+
+def _rows_to_scenario(rows: list[Any]) -> Scenario:
+    """Fold the stage/choice join back into nested objects, preserving row order."""
+    head = rows[0]
+    stage_meta: dict[str, tuple[int, str, tuple[str, ...]]] = {}
+    stage_choices: dict[str, list[ScenarioChoice]] = {}
+
+    for row in rows:
+        stage_slug = row["stage_slug"]
+        if stage_slug is None:
+            continue
+        stage_slug = str(stage_slug)
+        if stage_slug not in stage_meta:
+            stage_meta[stage_slug] = (
+                int(row["stage_sequence"]),
+                str(row["agent_message"] or ""),
+                tuple(row["demands"] or ()),
+            )
+            stage_choices[stage_slug] = []
+        if row["choice_id"] is not None:
+            stage_choices[stage_slug].append(
+                ScenarioChoice(
+                    choice_id=str(row["choice_id"]),
+                    label=str(row["label"]),
+                    consequence=str(row["consequence"] or ""),
+                    is_correct=bool(row["is_correct"]),
+                    framework_rationale=row["framework_rationale"],
+                )
+            )
+
+    return Scenario(
+        slug=str(head["scenario_slug"]),
+        title=str(head["title"]),
+        brief=str(head["brief"]),
+        track=str(head["track"]),
+        frameworks=tuple(head["frameworks"] or ()),
+        difficulty=str(head["difficulty"]),
+        stages=tuple(
+            ScenarioStage(
+                slug=slug,
+                sequence=meta[0],
+                agent_message=meta[1],
+                demands=meta[2],
+                choices=tuple(stage_choices[slug]),
+            )
+            for slug, meta in stage_meta.items()
+        ),
+    )
+
+
+async def load_scenario(scenario_slug: str, db: AsyncSession | None = None) -> Scenario:
+    """
+    Resolve scenario content by slug, preferring the database.
+
+    Falls back to HARDCODED_SCENARIO when CORTEX_SCENARIO_HARDCODED=1, when no
+    session is supplied, or when the content tables predate migration 019 — the
+    loop must keep running on databases that have not been migrated yet. Any
+    other slug in those conditions raises ScenarioNotFound rather than silently
+    serving the wrong scenario.
+    """
+    slug = (scenario_slug or SCENARIO_ID).strip() or SCENARIO_ID
+
+    def _fallback(reason: str) -> Scenario:
+        if slug != HARDCODED_SCENARIO.slug:
+            raise ScenarioNotFound(slug)
+        logger.info("scenario_content_fallback", slug=slug, reason=reason)
+        return HARDCODED_SCENARIO
+
+    if _hardcoded_mode():
+        return _fallback("env_flag")
+    if db is None:
+        return _fallback("no_session")
+
+    # to_regclass rather than a bare SELECT: a missing table would abort the
+    # caller's transaction, taking the session insert and audit writes with it.
+    present = (
+        await db.execute(text("SELECT to_regclass('public.scenarios') IS NOT NULL"))
+    ).scalar()
+    if not present:
+        return _fallback("table_missing")
+
+    rows = (await db.execute(_LOAD_SQL, {"slug": slug})).mappings().all()
+    if not rows:
+        raise ScenarioNotFound(slug)
+    return _rows_to_scenario(list(rows))
+
+
+def _resolve(scenario: Scenario | None) -> Scenario:
+    return scenario or HARDCODED_SCENARIO
+
+
+def initial_state(
+    *,
+    opening: AgentResponse,
+    scenario: Scenario | None = None,
+) -> dict[str, Any]:
+    active = _resolve(scenario)
     return {
-        "brief": SCENARIO_BRIEF,
+        "brief": active.brief,
         "messages": [
             {
                 "speaker": opening.speaker,
@@ -40,10 +273,10 @@ def initial_state(*, opening: AgentResponse) -> dict[str, Any]:
                 "demands": list(opening.demands),
             }
         ],
-        "choices": list(_AVAILABLE_CHOICES),
+        "choices": active.choices_for_stage(ENTRY_STAGE),
         "decisions": [],
         "last_harness": opening.model_dump(),
-        "scenario_id": SCENARIO_ID,
+        "scenario_id": active.slug,
     }
 
 
@@ -62,32 +295,41 @@ def risk_for_choice(choice: str) -> str:
 
 def stage_after_choice(choice: str, prior_stage: str) -> str:
     if choice == "approve_all":
-        return "complete"
+        return TERMINAL_STAGE
     if choice == "deny":
-        return "complete"
+        return TERMINAL_STAGE
     if choice == "least_privilege":
-        return "complete"
+        return TERMINAL_STAGE
     if choice == "challenge":
-        return "escalation"
-    return prior_stage or "access_request"
+        return ESCALATION_STAGE
+    return prior_stage or ENTRY_STAGE
 
 
-def choices_for_stage(stage: str) -> list[dict[str, str]]:
-    if stage == "complete":
-        return []
-    if stage == "escalation":
-        return [
-            {"id": "approve_all", "label": CHOICE_LABELS["approve_all"]},
-            {"id": "least_privilege", "label": CHOICE_LABELS["least_privilege"]},
-            {"id": "deny", "label": CHOICE_LABELS["deny"]},
-        ]
-    return list(_AVAILABLE_CHOICES)
+def choices_for_stage(stage: str, scenario: Scenario | None = None) -> list[dict[str, str]]:
+    return _resolve(scenario).choices_for_stage(stage)
 
 
-async def open_session_agent_turn(session_row: dict[str, Any]) -> AgentResponse:
+def _situation_for_stage(active: Scenario, stage_slug: str) -> str:
+    """
+    Prompt seed for a stage.
+
+    A DB stage carries a scripted line the agent should open on; the hardcoded
+    fallback has none, so it seeds with the brief exactly as it always did.
+    """
+    stage = active.stage(stage_slug)
+    if stage is not None and stage.agent_message:
+        return stage.agent_message
+    return active.brief
+
+
+async def open_session_agent_turn(
+    session_row: dict[str, Any],
+    scenario: Scenario | None = None,
+) -> AgentResponse:
+    active = _resolve(scenario)
     return await call_agent(
         DEVOPS_LEAD_ROLE,
-        SCENARIO_BRIEF,
+        _situation_for_stage(active, ENTRY_STAGE),
         session_row,
     )
 
@@ -96,6 +338,7 @@ async def advance_after_decision(
     *,
     session_row: dict[str, Any],
     choice: str,
+    scenario: Scenario | None = None,
 ) -> tuple[dict[str, Any], str, str, AgentResponse]:
     """
     Apply learner choice, consult agent, compute risk/stage.
@@ -103,6 +346,7 @@ async def advance_after_decision(
     Returns (new_state, new_stage, new_risk, harness_result).
     Never writes malformed harness data — AgentResponse is always valid.
     """
+    active = _resolve(scenario)
     state = dict(session_row.get("state") or {})
     messages = list(state.get("messages") or [])
     decisions = list(state.get("decisions") or [])
@@ -110,7 +354,7 @@ async def advance_after_decision(
     decisions.append({"choice": choice, "at": now})
 
     risk = risk_for_choice(choice)
-    stage = stage_after_choice(choice, str(session_row.get("stage") or "access_request"))
+    stage = stage_after_choice(choice, str(session_row.get("stage") or ENTRY_STAGE))
 
     interim = {
         **session_row,
@@ -137,11 +381,11 @@ async def advance_after_decision(
     )
     new_state: dict[str, Any] = {
         **state,
-        "brief": state.get("brief") or SCENARIO_BRIEF,
+        "brief": state.get("brief") or active.brief,
         "messages": messages,
-        "choices": choices_for_stage(stage),
+        "choices": active.choices_for_stage(stage),
         "decisions": decisions,
         "last_harness": agent.model_dump(),
-        "scenario_id": SCENARIO_ID,
+        "scenario_id": active.slug,
     }
     return new_state, stage, risk, agent

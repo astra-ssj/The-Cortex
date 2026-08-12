@@ -33,6 +33,8 @@ services:
       - ./migrations/016_rls_and_append_only_audit.sql:/docker-entrypoint-initdb.d/16_rls_and_append_only_audit.sql:ro
       - ./migrations/017_learning_loop.sql:/docker-entrypoint-initdb.d/17_learning_loop.sql:ro
       - ./migrations/018_drop_decommissioned_modules.sql:/docker-entrypoint-initdb.d/18_drop_decommissioned_modules.sql:ro
+      - ./migrations/019_scenario_content.sql:/docker-entrypoint-initdb.d/19_scenario_content.sql:ro
+      - ./migrations/019_scenario_content_seed.sql:/docker-entrypoint-initdb.d/19b_scenario_content_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
       interval: 5s
