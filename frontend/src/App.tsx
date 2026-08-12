@@ -28,7 +28,6 @@ import { TopBar } from "./components/TopBar";
 import { CommandPalette } from "./components/CommandPalette";
 import Settings from "./pages/Settings";
 import { FrameworksList } from "./pages/FrameworksList";
-import ComplianceGraph from "./pages/ComplianceGraph";
 import FindingDetail from "./pages/FindingDetail";
 import EvidenceVault from "./pages/EvidenceVault";
 import HelpDocs from "./pages/HelpDocs";
@@ -220,7 +219,6 @@ function AppRoutes() {
             <Route path="/group" element={<GroupDashboard />} />
             <Route path="/frameworks" element={<FrameworksList />} />
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
-            <Route path="/graph" element={<ComplianceGraph />} />
             <Route path="/intelligence" element={<Intelligence />} />
             <Route path="/intelligence/:tab" element={<Intelligence />} />
             <Route path="/ai-systems" element={<AISystems />} />

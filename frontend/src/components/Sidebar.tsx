@@ -35,7 +35,6 @@ const NAV_GROUPS: NavGroupDef[] = [
       { label: "Dashboard", path: "/dashboard", icon: "◫" },
       { label: "Group View", path: "/group", icon: "⊞" },
       { label: "Frameworks", path: "/frameworks", icon: "▦" },
-      { label: "Graph", path: "/graph", icon: "◎" },
     ],
   },
   {
