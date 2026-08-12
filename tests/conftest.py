@@ -9,7 +9,7 @@ os.environ["CORTEX_DISABLE_RATE_LIMIT"] = "1"
 os.environ["CORTEX_TESTING"] = "1"
 os.environ.setdefault(
     "DATABASE_URL",
-    "postgresql+asyncpg://cortex:cortex_ci_test@127.0.0.1:5432/cortex",
+    "postgresql+asyncpg://cortex_app:cortex_ci_test@127.0.0.1:5432/cortex",
 )
 
 import pytest

@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.deps import get_db
 from core.rbac import Permission, require_permission, require_permission_stream
 from core.security import get_current_user
-from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
+from core.tenant import DEMO_ORG_ID, bind_scoped_org, resolve_scoped_org_id, set_tenant_context
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -163,11 +163,14 @@ async def _run_assessment_stream(organization_id: str, framework_ids: list[Frame
     """Stream AssessmentEvent-shaped events from assessment_engine; emit as SSE (event=kind, data=payload)."""
     from db.session import async_session_factory
     from core.assessment_engine import run_assessment_stream
+    from core.tenant import set_tenant_context
 
     async with async_session_factory() as session:
+        await set_tenant_context(session, organization_id)
         async for event in run_assessment_stream(session, organization_id, framework_ids):
             kind = event.get("kind", "error")
             yield _sse_event(kind, event)
+        await session.commit()
 
 
 def _validate_organization_id(organization_id: str) -> None:
@@ -242,8 +245,9 @@ async def stream_assessment(
 ) -> StreamingResponse:
     """Stream assessment run via SSE. Params: org_id, frameworks (comma-separated)."""
     _validate_organization_id(org_id)
+    effective = resolve_scoped_org_id(current_user, org_id.strip())
     fids = _parse_frameworks(frameworks)
-    return _stream_response(org_id, fids)
+    return _stream_response(effective, fids)
 
 
 @router.get("/assessments/run", include_in_schema=True)
@@ -257,8 +261,9 @@ async def run_assessment(
 ) -> StreamingResponse:
     """Stream assessment run via SSE (alias). Params: organization_id, framework_ids."""
     _validate_organization_id(organization_id)
+    effective = resolve_scoped_org_id(current_user, organization_id.strip())
     fids = _parse_frameworks(framework_ids)
-    return _stream_response(organization_id, fids)
+    return _stream_response(effective, fids)
 
 
 # ---- Human Review Queue (Postgres only — migrations 006 + 011) ----
@@ -477,7 +482,7 @@ async def get_review_queue(
 ) -> ReviewQueueResponse:
     """Return Human Review Queue: pending items (confidence < 0.75) and reviewed items."""
     scope = (org_id or current_user.get("org_id") or DEMO_ORG_ID).strip()
-    effective = resolve_scoped_org_id(current_user, scope)
+    effective = await bind_scoped_org(session, current_user, scope)
     if effective != DEMO_ORG_ID:
         return ReviewQueueResponse(
             items=[],

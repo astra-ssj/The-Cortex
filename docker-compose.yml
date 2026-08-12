@@ -30,6 +30,7 @@ services:
       - ./migrations/013_compliance_graph.sql:/docker-entrypoint-initdb.d/13_compliance_graph.sql:ro
       - ./migrations/014_microsoft_integration.sql:/docker-entrypoint-initdb.d/14_microsoft_integration.sql:ro
       - ./migrations/015_relationship_graph.sql:/docker-entrypoint-initdb.d/15_relationship_graph.sql:ro
+      - ./migrations/016_rls_and_append_only_audit.sql:/docker-entrypoint-initdb.d/16_rls_and_append_only_audit.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
       interval: 5s
@@ -67,7 +68,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cortex}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
+      # cortex_app is the non-superuser role (migration 016) so RLS + audit grants bind.
+      DATABASE_URL: postgresql+asyncpg://cortex_app:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
       # When set (e.g. redis://redis:6379/0 with profile ``queue``), Shasta scans enqueue to Redis instead of in-process BackgroundTasks.
       REDIS_URL: ${REDIS_URL:-}
       SHASTA_REDIS_URL: ${SHASTA_REDIS_URL:-}
@@ -107,7 +109,7 @@ services:
     build: .
     command: ["python", "workers/shasta_worker.py"]
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cortex}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
+      DATABASE_URL: postgresql+asyncpg://cortex_app:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       PYTHONPATH: /app
     depends_on:

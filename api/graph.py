@@ -17,7 +17,7 @@ from core.compliance_graph import (
     trace_accountability_chain,
 )
 from core.security import get_current_user
-from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
+from core.tenant import DEMO_ORG_ID, bind_scoped_org
 
 logger = structlog.get_logger()
 
@@ -221,7 +221,7 @@ async def get_org_graph(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> ComplianceGraphOut:
-    effective = resolve_scoped_org_id(current_user, org_id.strip())
+    effective = await bind_scoped_org(session, current_user, org_id.strip())
     return await _build_org_graph(session, effective)
 
 
@@ -232,7 +232,7 @@ async def get_control_subgraph(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> ComplianceGraphOut:
-    effective = resolve_scoped_org_id(current_user, org_id.strip())
+    effective = await bind_scoped_org(session, current_user, org_id.strip())
     graph = await _build_org_graph(session, effective)
     node_id = _resolve_node_id(graph, control_id, "control")
     if not any(str(n["id"]) == node_id for n in graph.nodes):
@@ -247,7 +247,7 @@ async def get_evidence_coverage(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> ComplianceGraphOut:
-    effective = resolve_scoped_org_id(current_user, org_id.strip())
+    effective = await bind_scoped_org(session, current_user, org_id.strip())
     graph = await _build_org_graph(session, effective)
     node_id = _resolve_node_id(graph, evidence_id, "evidence")
     if not any(str(n["id"]) == node_id for n in graph.nodes):
@@ -262,7 +262,7 @@ async def get_finding_impact(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> ComplianceGraphOut:
-    effective = resolve_scoped_org_id(current_user, org_id.strip())
+    effective = await bind_scoped_org(session, current_user, org_id.strip())
     graph = await _build_org_graph(session, effective)
     node_id = _resolve_node_id(graph, finding_id, "finding")
     if not any(str(n["id"]) == node_id for n in graph.nodes):
@@ -278,7 +278,7 @@ async def get_person_accountability(
     session: AsyncSession = Depends(get_db),
 ) -> ComplianceGraphOut:
     """Everything a person touches: controls owned, team, systems operated, hierarchy."""
-    effective = resolve_scoped_org_id(current_user, org_id.strip())
+    effective = await bind_scoped_org(session, current_user, org_id.strip())
     graph = await _build_org_graph(session, effective)
     node_id = _resolve_node_id(graph, person_id, "person")
     if not any(str(n["id"]) == node_id for n in graph.nodes):
@@ -294,7 +294,7 @@ async def get_finding_trace(
     session: AsyncSession = Depends(get_db),
 ) -> ComplianceGraphOut:
     """The full chain: finding → control → owner → team → system → entity → risk."""
-    effective = resolve_scoped_org_id(current_user, org_id.strip())
+    effective = await bind_scoped_org(session, current_user, org_id.strip())
     graph = await _build_org_graph(session, effective)
     node_id = _resolve_node_id(graph, finding_id, "finding")
     if not any(str(n["id"]) == node_id for n in graph.nodes):

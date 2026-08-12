@@ -46,7 +46,13 @@ from api.reports import router as reports_router
 from api.integrations import router as integrations_router
 from api.skills import router as skills_router
 from core.circuit_breaker import load_circuit_breaker_states_from_db
-from db.session import database_ready, ensure_org_onboarding_schema, ensure_security_auth_schema
+from core.audit_fabric import audit_fabric
+from db.session import (
+    database_ready,
+    ensure_org_onboarding_schema,
+    ensure_security_auth_schema,
+    ensure_zero_trust_schema,
+)
 
 logger = structlog.get_logger()
 
@@ -61,6 +67,8 @@ async def lifespan(app: FastAPI):
 
     await ensure_org_onboarding_schema()
     await ensure_security_auth_schema()
+    await ensure_zero_trust_schema()
+    await audit_fabric.load_tail()
     await load_circuit_breaker_states_from_db()
 
     try:

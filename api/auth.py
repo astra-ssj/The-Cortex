@@ -88,27 +88,67 @@ def _db_email_for_login(username: str) -> str:
 
 
 async def _try_load_db_user(session: AsyncSession, email: str) -> dict[str, Any] | None:
+    """
+    Load an active user for login.
+
+    Users is not RLS-scoped, but organizations is — so we resolve org_id from the
+    user row first, bind app.current_org, then read org onboarding/demo flags.
+    """
+    from core.tenant import set_tenant_context
+
     try:
         res = await session.execute(
             text(
                 """
                 SELECT u.id::text AS id, u.email::text AS email, u.password_hash::text AS password_hash,
                        u.role::text AS role, u.org_id::text AS org_id,
-                       COALESCE(o.is_demo, FALSE) AS is_demo,
-                       COALESCE(o.onboarding_complete, FALSE) AS onboarding_complete,
-                       COALESCE(o.onboarding_step, 0) AS onboarding_step,
                        COALESCE(u.token_version, 1) AS token_version,
                        COALESCE(u.failed_login_attempts, 0) AS failed_login_attempts,
                        u.locked_until AS locked_until
                 FROM users u
-                JOIN organizations o ON o.id = u.org_id
                 WHERE u.email = :email AND u.is_active = TRUE
                 """
             ),
             {"email": email},
         )
         row = res.mappings().one_or_none()
-        return dict(row) if row else None
+        if row is None:
+            return None
+        user = dict(row)
+        org_id = str(user.get("org_id") or "")
+        if org_id:
+            await set_tenant_context(session, org_id)
+            org_res = await session.execute(
+                text(
+                    """
+                    SELECT COALESCE(is_demo, FALSE) AS is_demo,
+                           COALESCE(onboarding_complete, FALSE) AS onboarding_complete,
+                           COALESCE(onboarding_step, 0) AS onboarding_step
+                    FROM organizations WHERE id = :id
+                    """
+                ),
+                {"id": org_id},
+            )
+            org = org_res.mappings().one_or_none()
+            if org:
+                user.update(dict(org))
+            else:
+                user.update(
+                    {
+                        "is_demo": False,
+                        "onboarding_complete": False,
+                        "onboarding_step": 0,
+                    }
+                )
+        else:
+            user.update(
+                {
+                    "is_demo": False,
+                    "onboarding_complete": False,
+                    "onboarding_step": 0,
+                }
+            )
+        return user
     except Exception as e:
         await session.rollback()
         logger.warning("auth_db_user_lookup_skipped", error=str(e))
@@ -178,6 +218,10 @@ async def register(
             raise HTTPException(status_code=409, detail="Email already registered")
 
         org_id = f"org-{uuid.uuid4().hex[:12]}"
+        # RLS requires app.current_org before any org-scoped INSERT.
+        from core.tenant import set_tenant_context
+
+        await set_tenant_context(session, org_id)
         await session.execute(
             text(
                 """
@@ -241,6 +285,15 @@ async def register(
         "onboarding_step": 1,
         "token_version": 1,
     }
+    await append_audit_log(
+        session,
+        event_type="organisation_registered",
+        entity_type="organization",
+        entity_id=org_id,
+        org_id=org_id,
+        actor=str(payload.email),
+        payload={"company_name": payload.company_name.strip()},
+    )
     access = _token_for_db_user(user_row)
     refresh = await issue_refresh_token(
         session,
@@ -497,6 +550,8 @@ async def reset_password(body: ResetPasswordBody, session: AsyncSession = Depend
         event_type="password_reset_completed",
         entity_type="user",
         entity_id=uid,
+        org_id=None,
+        actor=uid,
         payload={"source": "reset_token"},
     )
     return {"message": "Password updated. Sign in with your new password."}
@@ -543,6 +598,8 @@ async def change_password(
         event_type="password_changed",
         entity_type="user",
         entity_id=uid,
+        org_id=str(current_user.get("org_id") or "") or None,
+        actor=uid,
         payload={},
     )
     return {"message": "Password updated. Obtain a new access token by signing in again or using refresh."}
@@ -581,6 +638,8 @@ async def create_service_key(
         event_type="service_api_key_created",
         entity_type="service_api_key",
         entity_id=kid,
+        org_id=org_id,
+        actor=str(current_user.get("email") or current_user.get("sub") or "user"),
         payload={"org_id": org_id, "label": body.label},
     )
     logger.info("service_api_key_issued", org_id=org_id, key_id=kid)

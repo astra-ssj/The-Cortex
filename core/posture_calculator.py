@@ -133,6 +133,9 @@ class PostureCalculator:
         risk_level: str,
     ) -> None:
         """Upsert framework posture snapshot with governance fields + audit_log row (same transaction)."""
+        from core.tenant import set_tenant_context
+
+        await set_tenant_context(session, org_id)
         prev = await session.execute(
             text(
                 """
@@ -181,6 +184,8 @@ class PostureCalculator:
             event_type="assessment_result_upsert",
             entity_type="assessment_result",
             entity_id=f"{org_id}:{framework_id}",
+            org_id=org_id,
+            actor="posture_calculator",
             payload={
                 "org_id": org_id,
                 "framework_id": framework_id,
