@@ -222,6 +222,86 @@ async def ensure_zero_trust_schema() -> None:
         logger.warning("zero_trust_schema_guard_failed", error=str(e))
 
 
+async def ensure_learning_loop_schema() -> None:
+    """
+    Apply migration 017 (scenario_sessions + RLS) when missing on existing volumes.
+
+    Fresh docker-entrypoint-initdb.d installs already include 017; this heals DBs
+    that were created before Learning Loop v1 without requiring a volume wipe.
+    """
+    import asyncio
+    import pathlib
+    from urllib.parse import urlparse, unquote
+
+    migration = (
+        pathlib.Path(__file__).resolve().parent.parent
+        / "migrations"
+        / "017_learning_loop.sql"
+    )
+    try:
+        async with engine.connect() as conn:
+            has_table = (
+                await conn.execute(
+                    text(
+                        """
+                        SELECT 1 FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                          AND table_name = 'scenario_sessions'
+                        LIMIT 1
+                        """
+                    )
+                )
+            ).first()
+            has_policy = (
+                await conn.execute(
+                    text(
+                        """
+                        SELECT 1 FROM pg_policies
+                        WHERE schemaname = 'public'
+                          AND tablename = 'scenario_sessions'
+                          AND policyname = 'tenant_isolation'
+                        LIMIT 1
+                        """
+                    )
+                )
+            ).first()
+            if has_table and has_policy:
+                return
+
+        if not migration.is_file():
+            logger.warning("learning_loop_migration_missing", path=str(migration))
+            return
+
+        def _apply() -> None:
+            import psycopg2
+
+            url = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://", 1)
+            parsed = urlparse(url)
+            # Prefer migration owner (cortex) so FORCE RLS / GRANT land correctly.
+            admin_user = os.environ.get("PGUSER", unquote(parsed.username or "cortex"))
+            admin_password = os.environ.get(
+                "PGPASSWORD", unquote(parsed.password or "")
+            )
+            conn = psycopg2.connect(
+                host=parsed.hostname or "localhost",
+                port=parsed.port or 5432,
+                user=admin_user,
+                password=admin_password,
+                dbname=(parsed.path or "/cortex").lstrip("/") or "cortex",
+            )
+            conn.autocommit = True
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(migration.read_text(encoding="utf-8"))
+            finally:
+                conn.close()
+
+        await asyncio.to_thread(_apply)
+        logger.info("learning_loop_schema_applied", path=migration.name)
+    except Exception as e:
+        logger.warning("learning_loop_schema_guard_failed", error=str(e))
+
+
 class Base(DeclarativeBase):
     pass
 

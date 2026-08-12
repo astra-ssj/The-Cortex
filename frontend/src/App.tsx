@@ -34,6 +34,7 @@ import ComplianceGraph from "./pages/ComplianceGraph";
 import FindingDetail from "./pages/FindingDetail";
 import EvidenceVault from "./pages/EvidenceVault";
 import HelpDocs from "./pages/HelpDocs";
+import LearningLoop from "./pages/LearningLoop";
 
 function MainChrome() {
   const [user, setUser] = useState(() => getUser() as Record<string, unknown> | null);
@@ -238,6 +239,7 @@ function AppRoutes() {
             <Route path="/remediation" element={<RemediationTracker />} />
             <Route path="/findings/:id" element={<FindingDetail />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/learning" element={<LearningLoop />} />
             <Route path="/help" element={<HelpDocs />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
