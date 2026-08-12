@@ -15,7 +15,7 @@ from core.audit_fabric import audit_fabric
 from core.executive_summary_report import build_executive_summary
 from core.report_pdf import executive_summary_pdf_filename, render_executive_summary_pdf
 from core.security import get_current_user
-from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
+from core.tenant import DEMO_ORG_ID, bind_scoped_org, resolve_scoped_org_id
 
 logger = structlog.get_logger()
 
@@ -71,6 +71,7 @@ async def get_executive_summary(
     scoped_org, as_at_date, scope_upper = _resolve_report_params(
         current_user, org_id, as_at, entity_scope
     )
+    await bind_scoped_org(session, current_user, scoped_org)
     base = str(request.base_url).rstrip("/")
     auth = request.headers.get("Authorization")
     ztaip = await _fetch_json(base, "/api/v1/system/ztaip-status", auth)
@@ -100,6 +101,7 @@ async def export_executive_summary_pdf(
     scoped_org, as_at_date, scope_upper = _resolve_report_params(
         current_user, org_id, as_at, entity_scope
     )
+    await bind_scoped_org(session, current_user, scoped_org)
     base = str(request.base_url).rstrip("/")
     auth = request.headers.get("Authorization")
     ztaip = await _fetch_json(base, "/api/v1/system/ztaip-status", auth)

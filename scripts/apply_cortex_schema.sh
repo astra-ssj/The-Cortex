@@ -7,7 +7,7 @@ export PGPASSWORD="${PGPASSWORD:-}"
 psql() {
   command psql -v ON_ERROR_STOP=1 "$@"
 }
-# Single migration lane: migrations/002 … 015 (filename order == apply order).
+# Single migration lane: migrations/002 … 016 (filename order == apply order).
 for f in \
   "$ROOT/init.sql" \
   "$ROOT/migrations/002_cortex_ontology.sql" \
@@ -23,9 +23,18 @@ for f in \
   "$ROOT/migrations/012_security_auth.sql" \
   "$ROOT/migrations/013_compliance_graph.sql" \
   "$ROOT/migrations/014_microsoft_integration.sql" \
-  "$ROOT/migrations/015_relationship_graph.sql"
+  "$ROOT/migrations/015_relationship_graph.sql" \
+  "$ROOT/migrations/016_rls_and_append_only_audit.sql"
   do
   echo "Applying $(basename "$f")..."
   psql -f "$f"
 done
+
+# App connects as non-superuser cortex_app (RLS + audit grants actually bind).
+# Sync password to the same secret used by migrations / DATABASE_URL.
+if [[ -n "${PGPASSWORD:-}" ]]; then
+  echo "Syncing cortex_app password..."
+  psql -v ON_ERROR_STOP=1 -c "ALTER ROLE cortex_app WITH PASSWORD '${PGPASSWORD}';" || true
+fi
+
 echo "Schema apply complete."

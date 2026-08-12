@@ -12,7 +12,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql+asyncpg://localhost/cortex",
+    "postgresql+asyncpg://cortex_app@localhost/cortex",
 ).replace("postgresql://", "postgresql+asyncpg://", 1)
 
 _engine_kwargs: dict = {"echo": False}
@@ -113,6 +113,113 @@ async def ensure_security_auth_schema() -> None:
                 await conn.execute(text(stmt))
     except Exception as e:
         logger.warning("security_auth_schema_guard_failed", error=str(e))
+
+
+async def ensure_zero_trust_schema() -> None:
+    """
+    Apply migration 016 (RLS + append-only audit) when missing on existing volumes.
+
+    Fresh docker-entrypoint-initdb.d installs already include 016; this heals DBs
+    that were created before Phase 2 without requiring a volume wipe.
+    """
+    import asyncio
+    import pathlib
+    from urllib.parse import urlparse, unquote
+
+    migration = (
+        pathlib.Path(__file__).resolve().parent.parent
+        / "migrations"
+        / "016_rls_and_append_only_audit.sql"
+    )
+    try:
+        async with engine.connect() as conn:
+            has_policy = (
+                await conn.execute(
+                    text(
+                        """
+                        SELECT 1 FROM pg_policies
+                        WHERE schemaname = 'public'
+                          AND tablename = 'findings'
+                          AND policyname = 'tenant_isolation'
+                        LIMIT 1
+                        """
+                    )
+                )
+            ).first()
+            has_hash = (
+                await conn.execute(
+                    text(
+                        """
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = 'audit_log'
+                          AND column_name = 'hash'
+                        LIMIT 1
+                        """
+                    )
+                )
+            ).first()
+            if has_policy and has_hash:
+                return
+
+        if not migration.is_file():
+            logger.warning("zero_trust_migration_missing", path=str(migration))
+            return
+
+        def _apply() -> None:
+            import psycopg2
+
+            url = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://", 1)
+            parsed = urlparse(url)
+            conn = psycopg2.connect(
+                host=parsed.hostname or "localhost",
+                port=parsed.port or 5432,
+                user=unquote(parsed.username or "cortex"),
+                password=unquote(parsed.password or ""),
+                dbname=(parsed.path or "/cortex").lstrip("/") or "cortex",
+            )
+            conn.autocommit = True
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(migration.read_text(encoding="utf-8"))
+            finally:
+                conn.close()
+
+        await asyncio.to_thread(_apply)
+        # Keep cortex_app password aligned with the app DATABASE_URL secret.
+        def _sync_app_role_password() -> None:
+            import psycopg2
+            from urllib.parse import urlparse, unquote
+
+            url = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://", 1)
+            parsed = urlparse(url)
+            password = unquote(parsed.password or "")
+            if not password:
+                return
+            # Connect as migration owner (cortex / superuser) when possible.
+            admin_user = os.environ.get("PGUSER", "cortex")
+            admin_password = os.environ.get("PGPASSWORD", password)
+            conn = psycopg2.connect(
+                host=parsed.hostname or "localhost",
+                port=parsed.port or 5432,
+                user=admin_user,
+                password=admin_password,
+                dbname=(parsed.path or "/cortex").lstrip("/") or "cortex",
+            )
+            conn.autocommit = True
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("ALTER ROLE cortex_app WITH PASSWORD %s", (password,))
+            finally:
+                conn.close()
+
+        try:
+            await asyncio.to_thread(_sync_app_role_password)
+        except Exception as e:
+            logger.warning("cortex_app_password_sync_failed", error=str(e))
+        logger.info("zero_trust_schema_applied", path=migration.name)
+    except Exception as e:
+        logger.warning("zero_trust_schema_guard_failed", error=str(e))
 
 
 class Base(DeclarativeBase):

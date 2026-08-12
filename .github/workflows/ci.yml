@@ -107,7 +107,7 @@ jobs:
       PGUSER: cortex
       PGPASSWORD: cortex_ci_test
       PGDATABASE: cortex
-      DATABASE_URL: postgresql+asyncpg://cortex:cortex_ci_test@localhost:5432/cortex
+      DATABASE_URL: postgresql+asyncpg://cortex_app:cortex_ci_test@localhost:5432/cortex
       PYTHONPATH: "."
     steps:
       - uses: actions/checkout@v7
@@ -164,7 +164,7 @@ jobs:
       PGUSER: cortex
       PGPASSWORD: cortex_ci_test
       PGDATABASE: cortex
-      DATABASE_URL: postgresql+asyncpg://cortex:cortex_ci_test@localhost:5432/cortex
+      DATABASE_URL: postgresql+asyncpg://cortex_app:cortex_ci_test@localhost:5432/cortex
       PYTHONPATH: "."
     steps:
       - uses: actions/checkout@v7

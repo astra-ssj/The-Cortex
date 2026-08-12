@@ -9,6 +9,7 @@ All incremental DDL lives here. **Filename order is apply order.**
 | `009`–`010` | Shasta CSPM |
 | `011`–`012` | Operational persistence + security/auth |
 | `013`–`015` | Compliance graph, Microsoft integration, relationship graph |
+| `016` | RLS tenant isolation + durable append-only hash-chained `audit_log` |
 
 Apply via:
 

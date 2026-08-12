@@ -9,22 +9,21 @@ other in docs, PRs, or customer-facing claims.
 
 | Control | Status |
 |---|---|
-| RLS tenant isolation (DB-enforced, Postgres row-level security policies) | **TARGET — Phase 2** |
+| RLS tenant isolation (DB-enforced, Postgres row-level security policies) | LIVE |
 | Tenant scoping (app-layer `org_id` filter on every query) | LIVE |
-| Append-only `audit_log` (DB-enforced — no `UPDATE`/`DELETE` grants or trigger) | **TARGET — Phase 2** |
+| Append-only `audit_log` (DB-enforced — no `UPDATE`/`DELETE` grants or trigger) | LIVE |
 | Audit writes on consequential actions (app-layer, `core/audit_fabric.py`) | LIVE |
 | Conventional commits | LIVE *(as of this change — enforced by `commitlint` CI, see `sdlc.md`)* |
 | Branch protection on `main` (require PR + 1 approval + passing checks) | **PENDING — manual GitHub Settings step, not yet applied** (see `sdlc.md` § Status) |
 | Secret scanning gate (gitleaks in CI) | LIVE *(as of this change)* |
 
 Read this table before writing anything that says "CORTEX enforces
-row-level tenant isolation" or "audit logs are immutable" — today, neither
-is true at the database layer. What *is* true: every query is meant to be
-scoped by `org_id` in application code, and every consequential mutation
-is meant to call `audit_fabric.append_audit_log(...)` in the same
-transaction. Those are real, current, code-reviewed conventions — just not
-database-enforced yet. Phase 2 is about closing that gap (RLS policies +
-a `REVOKE UPDATE, DELETE ON audit_log` / trigger), not re-describing it.
+row-level tenant isolation" or "audit logs are immutable." Phase 2 is
+**LIVE**: migration `016` enables FORCE RLS + `tenant_isolation` policies
+(session GUC `app.current_org`), and `audit_log` is hash-chained with
+UPDATE/DELETE blocked by grants on `cortex_app` plus a statement-level
+trigger. App-layer `org_id` scoping and `audit_fabric.append_audit_log(...)`
+in the same transaction remain required as defense in depth.
 
 ## Rules for new code (MUST)
 

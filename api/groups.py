@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
 from core.security import get_current_user
-from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
+from core.tenant import DEMO_ORG_ID, bind_scoped_org
 
 router = APIRouter(prefix="/api/v1", tags=["groups"])
 
@@ -157,7 +157,7 @@ async def get_group_posture(
     current_user: dict = Depends(get_current_user),
 ) -> dict:
     scope = (org_id or current_user.get("org_id") or DEMO_ORG_ID).strip()
-    effective = resolve_scoped_org_id(current_user, scope)
+    effective = await bind_scoped_org(session, current_user, scope)
     if effective == DEMO_ORG_ID:
         return _demo_group_posture()
 

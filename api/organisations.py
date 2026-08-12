@@ -15,7 +15,7 @@ from api.deps import get_db
 from api.schemas import CompliancePosture, FrameworkPosture, OrgProfile
 from compliance import FrameworkId
 from core.security import get_current_user
-from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
+from core.tenant import DEMO_ORG_ID, bind_scoped_org
 
 logger = structlog.get_logger()
 
@@ -130,7 +130,7 @@ async def get_organisation(
     session: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> OrgProfile:
-    effective = resolve_scoped_org_id(current_user, org_id)
+    effective = await bind_scoped_org(session, current_user, org_id)
     row = await _fetch_org(session, effective)
     if row:
         return OrgProfile(
@@ -157,7 +157,7 @@ async def get_organisation_posture(
     session: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> CompliancePosture:
-    effective = resolve_scoped_org_id(current_user, org_id)
+    effective = await bind_scoped_org(session, current_user, org_id)
     row = await _fetch_org(session, effective)
     org_posture = await _fetch_org_posture_row(session, effective)
 

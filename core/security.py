@@ -16,6 +16,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.canonical_roles import normalize_canonical_role
+from core.tenant import set_tenant_context
 from db.deps import get_db
 
 logger = structlog.get_logger()
@@ -194,13 +195,20 @@ async def get_current_user(
     if x_api_key:
         from core.api_key_service import resolve_api_key_principal
 
-        return await resolve_api_key_principal(session, x_api_key)
-    if not credentials or not credentials.credentials:
+        principal = await resolve_api_key_principal(session, x_api_key)
+    elif not credentials or not credentials.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
-    return await decode_access_token_async(session, credentials.credentials)
+    else:
+        principal = await decode_access_token_async(session, credentials.credentials)
+
+    # Bind RLS to JWT/API-key org for this transaction (demo re-bind happens via bind_scoped_org).
+    org_id = str(principal.get("org_id") or "").strip()
+    if org_id:
+        await set_tenant_context(session, org_id)
+    return principal
 
 
 async def get_current_user_query_or_header(
@@ -218,7 +226,11 @@ async def get_current_user_query_or_header(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
-    return await decode_access_token_async(session, token)
+    principal = await decode_access_token_async(session, token)
+    org_id = str(principal.get("org_id") or "").strip()
+    if org_id:
+        await set_tenant_context(session, org_id)
+    return principal
 
 
 async def get_current_user_stream(
@@ -244,4 +256,8 @@ async def get_current_user_optional(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
-    return await decode_access_token_async(session, token)
+    principal = await decode_access_token_async(session, token)
+    org_id = str(principal.get("org_id") or "").strip()
+    if org_id:
+        await set_tenant_context(session, org_id)
+    return principal
