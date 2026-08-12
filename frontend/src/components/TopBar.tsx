@@ -34,7 +34,6 @@ const ROUTE_TITLES: Record<string, string> = {
   "/ai-systems": "AI Systems",
   "/intelligence": "Intelligence",
   "/intelligence/simulator": "Intelligence",
-  "/intelligence/regulation": "Intelligence",
   "/roadmap": "Roadmap",
   "/settings": "Settings",
   "/help": "Help & Documentation",

@@ -1,19 +1,16 @@
 import { useNavigate, useParams } from "react-router-dom";
 import AuditSimulator from "../components/AuditSimulator";
-import RegulationIntel from "../components/RegulationIntel";
 
-// Both remaining tabs are illustrative demo surfaces. Tabs map 1:1 to sub-routes
-// so the sidebar can deep-link to each.
-type IntelTab = "simulator" | "regulation";
+// Audit Simulator is the only remaining surface and is illustrative. The tab bar is
+// kept so the sidebar deep-link and sub-route shape survive future additions.
+type IntelTab = "simulator";
 
 const TAB_DEFS: { key: IntelTab; label: string; path: string; demo: boolean }[] = [
   { key: "simulator", label: "Audit Simulator", path: "/intelligence/simulator", demo: true },
-  { key: "regulation", label: "Regulation Intel", path: "/intelligence/regulation", demo: true },
 ];
 
 const TAB_BY_SLUG: Record<string, IntelTab> = {
   simulator: "simulator",
-  regulation: "regulation",
 };
 
 export default function Intelligence() {
@@ -64,84 +61,34 @@ export default function Intelligence() {
               lineHeight: 1.5,
             }}
           >
-            AI-powered regulatory intelligence and live control telemetry
+            Regulator-style audit rehearsal against your framework controls
           </p>
         </div>
-        {/* TODO(intelligence): Replace labels below with live aggregates from regulator / regulation APIs when those services ship. */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 14px",
+              borderRadius: 999,
+              background: "var(--surface)",
+              border: "1px solid color-mix(in srgb, var(--amber) 50%, var(--border))",
+              fontSize: 12,
+              color: "var(--amber)",
+            }}
+          >
             <span
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 14px",
-                borderRadius: 999,
-                background: "var(--surface)",
-                border: "1px solid color-mix(in srgb, var(--cyan) 45%, var(--border))",
-                fontSize: 12,
-                color: "var(--cyan)",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "var(--amber)",
+                flexShrink: 0,
               }}
-            >
-              <span
-                className="intelligence-live-dot"
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: "var(--cyan)",
-                  flexShrink: 0,
-                }}
-              />
-              Telemetry signals
-            </span>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 14px",
-                borderRadius: 999,
-                background: "var(--surface)",
-                border: "1px solid color-mix(in srgb, var(--amber) 50%, var(--border))",
-                fontSize: 12,
-                color: "var(--amber)",
-              }}
-            >
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: "var(--amber)",
-                  flexShrink: 0,
-                }}
-              />
-              Regulator scenarios
-            </span>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 14px",
-                borderRadius: 999,
-                background: "var(--surface)",
-                border: "1px solid color-mix(in srgb, var(--blue) 45%, var(--border))",
-                fontSize: 12,
-                color: "var(--blue)",
-              }}
-            >
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: "var(--blue)",
-                  flexShrink: 0,
-                }}
-              />
-              Regulatory horizon
-            </span>
+            />
+            Regulator scenarios
+          </span>
         </div>
       </header>
 
@@ -157,9 +104,8 @@ export default function Intelligence() {
           lineHeight: 1.5,
         }}
       >
-        <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — Audit Simulator and
-        Regulation Intel use <strong style={{ color: "var(--text)" }}>simulated / demo UX</strong>{" "}
-        for storytelling.
+        <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — Audit Simulator uses{" "}
+        <strong style={{ color: "var(--text)" }}>simulated / demo UX</strong> for storytelling.
       </div>
 
       <div
@@ -200,10 +146,7 @@ export default function Intelligence() {
         ))}
       </div>
 
-      <>
-        {tab === "simulator" && <AuditSimulator />}
-        {tab === "regulation" && <RegulationIntel />}
-      </>
+      <>{tab === "simulator" && <AuditSimulator />}</>
     </div>
   );
 }

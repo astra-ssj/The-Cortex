@@ -1,6 +1,5 @@
 export const FEATURES = {
   evidenceVault: false, // Mock chain — no real evidence storage
-  regulationIntel: false, // Hardcoded regulatory data
   auditSimulator: false, // Client-side simulation
   aiSystemsLive: false, // Static SYSTEMS constant
   projectTracker: false, // Static ROADMAP_EPICS
@@ -26,11 +25,7 @@ export function isFeatureEnabled(key: FeatureKey): boolean {
 export function showNavSoonForPath(path: string): boolean {
   switch (path) {
     case "/intelligence":
-      return !(
-        FEATURES.auditSimulator &&
-        FEATURES.regulationIntel &&
-        FEATURES.evidenceVault
-      );
+      return !(FEATURES.auditSimulator && FEATURES.evidenceVault);
     case "/ai-systems":
       return !FEATURES.aiSystemsLive;
     case "/roadmap":

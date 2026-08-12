@@ -41,7 +41,6 @@ const NAV_GROUPS: NavGroupDef[] = [
     label: "Intelligence",
     items: [
       { label: "Audit Simulator", path: "/intelligence/simulator", icon: "▷" },
-      { label: "Regulation Intel", path: "/intelligence/regulation", icon: "§" },
     ],
   },
   {
