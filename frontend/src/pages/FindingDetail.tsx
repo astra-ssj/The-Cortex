@@ -273,14 +273,6 @@ export default function FindingDetail() {
                       className="rounded-lg border border-cortex-border bg-cortex-surface px-3 py-2 font-ui text-sm text-cortex-text"
                     >
                       <span>{title}</span>
-                      {eid ? (
-                        <Link
-                          to={`/graph?highlight=${encodeURIComponent(eid)}`}
-                          className="mt-1 block font-ui text-xs text-cortex-blue hover:underline"
-                        >
-                          View on compliance graph →
-                        </Link>
-                      ) : null}
                     </li>
                   );
                 })}
@@ -313,8 +305,8 @@ export default function FindingDetail() {
                     const linked = result.controlsLinked ?? 0;
                     return {
                       successMessage: result.evidenceId
-                        ? `Linked to ${linked} control${linked === 1 ? "" : "s"} on the compliance graph. Open Graph to explore.`
-                        : "Document processed (graph tables unavailable in this environment).",
+                        ? `Linked to ${linked} control${linked === 1 ? "" : "s"}.`
+                        : "Document processed (evidence tables unavailable in this environment).",
                     };
                   }}
                 />

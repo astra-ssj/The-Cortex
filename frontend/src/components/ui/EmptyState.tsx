@@ -156,55 +156,6 @@ export function RemediationEmpty({
   );
 }
 
-export function AuditReportEmpty({ onGenerate }: { onGenerate: () => void }) {
-  return (
-    <EmptyState
-      badge="REPORT NOT GENERATED"
-      badgeColor="var(--blue)"
-      icon="📄"
-      title="Generate your board report"
-      description="Select report type and entity, then click Generate. CORTEX produces a board-ready executive summary with framework scores, critical findings, and regulatory exposure in one click."
-      cta="Generate Report"
-      onCta={onGenerate}
-    />
-  );
-}
-
-export function IntegrationsEmpty() {
-  return (
-    <EmptyState
-      badge="NO INTEGRATIONS CONNECTED"
-      badgeColor="var(--amber)"
-      icon="🔌"
-      title="Connect your first integration"
-      description="Connect Microsoft 365, GitHub, AWS or Azure to start receiving live control telemetry. Real signals replace mock data automatically."
-      cta="Connect Integration"
-    />
-  );
-}
-
-export function AISystemsEmpty({
-  onAddSystem,
-  onViewObligations,
-}: {
-  onAddSystem?: () => void;
-  onViewObligations?: () => void;
-}) {
-  return (
-    <EmptyState
-      badge="EU AI ACT — 94 DAYS"
-      badgeColor="var(--red)"
-      icon="🤖"
-      title="No AI systems inventoried"
-      description="Add your AI systems to assess EU AI Act compliance. High-risk system obligations apply from 2 August 2026. Classification is grounded in ISO 42001 Annex III."
-      cta="Add AI System"
-      ctaSecondary="View Obligations"
-      onCta={onAddSystem}
-      onCtaSecondary={onViewObligations}
-    />
-  );
-}
-
 export function GroupEmpty({
   onAddEntities,
   onLearnMore,

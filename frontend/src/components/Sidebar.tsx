@@ -35,16 +35,12 @@ const NAV_GROUPS: NavGroupDef[] = [
       { label: "Dashboard", path: "/dashboard", icon: "◫" },
       { label: "Group View", path: "/group", icon: "⊞" },
       { label: "Frameworks", path: "/frameworks", icon: "▦" },
-      { label: "Graph", path: "/graph", icon: "◎" },
     ],
   },
   {
     label: "Intelligence",
     items: [
-      { label: "Insights", path: "/intelligence", icon: "✦" },
       { label: "Audit Simulator", path: "/intelligence/simulator", icon: "▷" },
-      { label: "Live Signals", path: "/intelligence/signals", icon: "≈" },
-      { label: "Regulation Intel", path: "/intelligence/regulation", icon: "§" },
     ],
   },
   {
@@ -59,21 +55,17 @@ const NAV_GROUPS: NavGroupDef[] = [
       { label: "Review Queue", path: "/review-queue", icon: "⇌", badge: "review" },
       { label: "Findings", path: "/findings", icon: "⚑", badge: "findings" },
       { label: "Remediation", path: "/remediation", icon: "↻" },
-      { label: "Audit Report", path: "/audit-report", icon: "⊡" },
     ],
   },
   {
     label: "Inventory",
     items: [
-      { label: "AI Systems", path: "/ai-systems", icon: "◈", soon: showNavSoonForPath("/ai-systems") },
       { label: "Evidence Vault", path: "/evidence", icon: "▤" },
-      { label: "Integrations", path: "/integrations", icon: "⚡" },
     ],
   },
   {
     label: "Operations",
     items: [
-      { label: "Cloud Scans", path: "/cloud-scans", icon: "☁" },
       { label: "Roadmap", path: "/roadmap", icon: "▸", soon: showNavSoonForPath("/roadmap") },
       { label: "Settings", path: "/settings", icon: "⚙" },
     ],

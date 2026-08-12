@@ -358,111 +358,6 @@ export const assessmentsApi = {
     ),
 };
 
-/** Transilience Shasta cloud CSPM — Postgres-backed via API (not Shasta SQLite). */
-export interface ShastaScanRunRow {
-  id: string;
-  org_id: string;
-  cloud: string;
-  engine_scan_id: string | null;
-  findings_count: number;
-  status: string;
-  created_by: string | null;
-  started_at: string;
-  completed_at: string | null;
-  error_message?: string | null;
-}
-
-export interface ShastaCloudFindingRow {
-  id: number;
-  scan_run_id: string;
-  org_id: string;
-  finding_key: string;
-  title: string | null;
-  severity_normalized: string | null;
-  cloud_provider: string | null;
-  region: string | null;
-  check_id: string | null;
-  resource_id: string | null;
-  created_at: string;
-}
-
-/** GET /shasta/scans/{id}/evidence-map — finding ↔ framework-control graph. */
-export interface ShastaEvidenceMapSummary {
-  findings: number;
-  control_nodes: number;
-  edges: number;
-}
-
-export interface ShastaEvidenceMapOut {
-  source: "shasta";
-  scan_run_id: string;
-  org_id: string;
-  scan_status: string;
-  cloud: string | null;
-  summary: ShastaEvidenceMapSummary;
-  nodes: Array<Record<string, unknown>>;
-  edges: Array<Record<string, unknown>>;
-}
-
-/** GET …/evidence-links — append-only rows derived from ``framework_controls``. */
-export interface ShastaEvidenceLinkRow {
-  id: number;
-  scan_run_id: string;
-  org_id: string;
-  finding_id: number;
-  framework_family: string;
-  control_ref: string;
-  source_engine: string;
-  created_at: string;
-}
-
-export const shastaCloudApi = {
-  contract: () => fetchApi<Record<string, unknown>>("/api/v1/shasta/contract"),
-  runScan: (body: { cloud: "aws" | "azure"; org_id: string }) =>
-    postApi<{
-      scan_run_id: string;
-      status: "running";
-      org_id: string;
-      delivery?: "redis" | "in_process";
-    }>("/api/v1/shasta/scans", body),
-  getScan: (orgId: string, scanRunId: string) =>
-    fetchApi<ShastaScanRunRow>(
-      `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}?org_id=${encodeURIComponent(orgId)}`
-    ),
-  listScans: (orgId: string) =>
-    fetchApi<PaginatedJsonRows<ShastaScanRunRow>>(
-      `/api/v1/shasta/scans?org_id=${encodeURIComponent(orgId)}`
-    ),
-  listRecentFindings: (orgId: string, severity?: string) => {
-    const q = new URLSearchParams({ org_id: orgId });
-    if (severity?.trim()) q.set("severity", severity.trim());
-    return fetchApi<PaginatedJsonRows<ShastaCloudFindingRow>>(
-      `/api/v1/shasta/findings?${q.toString()}`
-    );
-  },
-  listFindingsForScan: (orgId: string, scanRunId: string, limit = 500) => {
-    const q = new URLSearchParams({
-      org_id: orgId,
-      limit: String(limit),
-    });
-    return fetchApi<PaginatedJsonRows<ShastaCloudFindingRow>>(
-      `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}/findings?${q.toString()}`
-    );
-  },
-  getEvidenceMap: (orgId: string, scanRunId: string) => {
-    const q = new URLSearchParams({ org_id: orgId });
-    return fetchApi<ShastaEvidenceMapOut>(
-      `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}/evidence-map?${q.toString()}`
-    );
-  },
-  getEvidenceLinks: (orgId: string, scanRunId: string, limit = 5000) => {
-    const q = new URLSearchParams({ org_id: orgId, limit: String(limit) });
-    return fetchApi<ShastaEvidenceLinkRow[]>(
-      `/api/v1/shasta/scans/${encodeURIComponent(scanRunId)}/evidence-links?${q.toString()}`
-    );
-  },
-};
-
 export const groupsApi = {
   getPosture: (orgId?: string) => {
     const qs =
@@ -492,80 +387,6 @@ export const systemApi = {
   getLlmProviders: () =>
     fetchApi<LlmPlatformStatusResponse>("/api/v1/system/llm-providers"),
 };
-
-export const integrationsApi = {
-  list: () => fetchApi<IntegrationSummary[]>("/api/v1/integrations"),
-  get: (id: string) => fetchApi<IntegrationDetail>(`/api/v1/integrations/${encodeURIComponent(id)}`),
-  test: (id: string) => fetchApi<{ status: string; message?: string }>(`/api/v1/integrations/${encodeURIComponent(id)}/test`, { method: "POST" }),
-  m365Status: (orgId: string) =>
-    fetchApi<M365ConnectionStatus>(
-      `/api/v1/integrations/microsoft-365/status?org_id=${encodeURIComponent(orgId)}`
-    ),
-  m365Sync: (orgId: string) =>
-    postApi<M365SyncResult>("/api/v1/integrations/microsoft-365/sync", { org_id: orgId }),
-  m365Findings: (orgId: string) =>
-    fetchApi<PaginatedJsonRows<M365FindingRow>>(
-      `/api/v1/integrations/microsoft-365/findings?org_id=${encodeURIComponent(orgId)}&limit=20`
-    ),
-};
-
-export interface M365ConnectionStatus {
-  connected: boolean;
-  status: string;
-  mock_mode?: boolean;
-  last_sync_at?: string | null;
-  findings_count?: number;
-  sync_run_id?: string;
-}
-
-export interface M365SyncResult {
-  org_id: string;
-  sync_run_id: string;
-  findings_count: number;
-  evidence_created: number;
-  mock_mode: boolean;
-  status: string;
-  engine_sync_id: string;
-}
-
-export interface M365FindingRow {
-  id: number;
-  title?: string;
-  severity_normalized?: string;
-  check_id?: string;
-  compliance_status?: string;
-  framework_controls?: Record<string, string[]>;
-}
-
-export interface IntegrationSetupStep {
-  step: number;
-  title: string;
-  description: string;
-  docs_url: string | null;
-}
-
-export interface IntegrationCredentialField {
-  key: string;
-  label: string;
-  placeholder: string;
-  secret?: boolean;
-  multiline?: boolean;
-}
-
-export interface IntegrationSummary {
-  id: string;
-  name: string;
-  category: string;
-  icon: string;
-  color: string;
-  status: "not_connected" | "connected" | "coming_soon";
-  description: string;
-  compliance_value: string[];
-  data_collected: string[];
-  setup_steps: IntegrationSetupStep[];
-  credentials_required: IntegrationCredentialField[];
-}
-export type IntegrationDetail = IntegrationSummary;
 
 // ---- Group posture (multi-entity dashboard) ----
 export interface GroupFrameworkEntry {
@@ -629,110 +450,6 @@ export function buildStreamUrl(
       : frameworkIds.join(",");
   url.searchParams.set("frameworks", fw);
   return url.toString();
-}
-
-// ---- Audit Report (Executive Summary) — for components/AuditReport.tsx ----
-export interface ExecutiveSummaryParams {
-  org_id?: string;
-  as_at?: string;
-  entity_scope?: string;
-}
-
-export interface ExecutiveSummaryReport {
-  as_at?: string;
-  org_id?: string;
-  org_name?: string;
-  overall_posture: {
-    group_compliance_score?: number;
-    audit_readiness?: number;
-    overall_risk_level?: string;
-    frameworks_active?: number;
-    total_controls_assessed?: number;
-    critical_gaps?: number;
-    findings_open?: number;
-    findings_overdue?: number;
-    [key: string]: unknown;
-  };
-  framework_summary: Array<{ framework_name: string; score: number | null; status: string; risk_level: string }>;
-  top_critical_findings: Array<{
-    title: string;
-    framework: string;
-    owner: string;
-    due_date: string;
-    days_open: number;
-    [key: string]: unknown;
-  }>;
-  regulatory_exposure?:
-    | Record<string, string>
-    | Array<{
-        regulation?: string;
-        max_fine?: string;
-        likely_fine?: string;
-        basis?: string;
-        status?: string;
-      }>;
-  management_attention?: string[];
-  recommendations?: string[];
-  next_review?: string;
-  [key: string]: unknown;
-}
-
-export async function fetchExecutiveSummary(
-  params?: ExecutiveSummaryParams
-): Promise<ExecutiveSummaryReport> {
-  const search = new URLSearchParams();
-  if (params?.org_id) search.set("org_id", params.org_id);
-  if (params?.as_at) search.set("as_at", params.as_at);
-  if (params?.entity_scope) search.set("entity_scope", params.entity_scope);
-  const qs = search.toString();
-  return fetchApi<ExecutiveSummaryReport>(
-    `/api/v1/reports/executive-summary${qs ? `?${qs}` : ""}`
-  );
-}
-
-function executiveSummarySearchParams(params?: ExecutiveSummaryParams): URLSearchParams {
-  const search = new URLSearchParams();
-  if (params?.org_id) search.set("org_id", params.org_id);
-  if (params?.as_at) search.set("as_at", params.as_at);
-  if (params?.entity_scope) search.set("entity_scope", params.entity_scope);
-  search.set("format", "pdf");
-  return search;
-}
-
-/** Download server-generated executive summary PDF (auditor pack). */
-export async function downloadExecutiveSummaryPdf(
-  params?: ExecutiveSummaryParams
-): Promise<void> {
-  const search = executiveSummarySearchParams(params);
-  const token = getToken();
-  const url = `${API_BASE || ""}/api/v1/reports/executive-summary/export?${search.toString()}`;
-  const headers: HeadersInit = { Accept: "application/pdf" };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  const res = await fetch(url, { method: "GET", headers });
-  if (!res.ok) {
-    if (res.status === 401) {
-      clearCortexBrowserSession();
-      window.dispatchEvent(new CustomEvent("cortex:auth-expired"));
-    }
-    const errText = await res.text().catch(() => "");
-    throw new Error(errText.trim() || `PDF export failed (HTTP ${res.status})`);
-  }
-
-  const blob = await res.blob();
-  const disposition = res.headers.get("Content-Disposition") || "";
-  const match = /filename="?([^";\n]+)"?/i.exec(disposition);
-  const filename = match?.[1]?.trim() || `Executive-Summary-${params?.as_at || "report"}.pdf`;
-
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = objectUrl;
-  anchor.download = filename;
-  anchor.rel = "noopener";
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(objectUrl);
 }
 
 // ---- Remediation / Findings (for RemediationTracker) ----
@@ -901,169 +618,47 @@ export async function overrideControl(
 
 export const reviewQueueQueryKey = (orgId: string) => ["reviewQueue", orgId] as const;
 
-export type ComplianceGraphNodeType =
-  | "control"
-  | "evidence"
-  | "finding"
-  | "framework"
-  | "entity"
-  | "person"
-  | "team"
-  | "system"
-  | "risk";
-
-export type ComplianceGraphNode = {
+/** Learning Loop v1 — org-scoped scenario session. */
+export interface LearningSession {
   id: string;
-  type: ComplianceGraphNodeType;
-  label: string;
-  framework_id?: string;
-  status?: string;
-  severity?: string;
-  metadata?: Record<string, unknown>;
-};
-
-export type ComplianceGraphEdge = {
-  from: string;
-  to: string;
-  type:
-    | "contains"
-    | "maps_to"
-    | "proves"
-    | "violates"
-    | "affects"
-    | "applies_to"
-    | "owns"
-    | "responsible_for"
-    | "operates"
-    | "exposes_to"
-    | "reports_to"
-    | "member_of"
-    | "processes_data_on"
-    | "subject_to"
-    | "mitigates";
-  relationship?: string;
-  confidence?: number;
-  strength?: string;
-  basis?: string;
-  scope?: string;
-  weight?: number;
-};
-
-export type ComplianceGraphStats = {
-  total_nodes: number;
-  total_edges: number;
-  shared_evidence: number;
-  work_reduction_pct: number;
-  naive_assessments?: number;
-  effective_assessments?: number;
-  framework_coverage: Record<string, { proven: number; total: number }>;
-  node_type_counts?: Record<string, number>;
-  ownership_coverage_pct?: number;
-  owned_controls?: number;
-  unowned_controls?: number;
-  total_controls?: number;
-  total_risk_exposure_eur?: number;
-};
-
-export type ComplianceGraphResponse = {
   org_id: string;
-  nodes: ComplianceGraphNode[];
-  edges: ComplianceGraphEdge[];
-  stats: ComplianceGraphStats;
-};
-
-export const complianceGraphQueryKey = (orgId: string) => ["complianceGraph", orgId] as const;
-
-export function fetchComplianceGraph(orgId: string): Promise<ComplianceGraphResponse> {
-  return fetchApi<ComplianceGraphResponse>(`/api/v1/graph/${encodeURIComponent(orgId)}`);
+  scenario: string;
+  learner_id: string;
+  state: Record<string, unknown>;
+  stage: string;
+  risk: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  jurisdiction?: string;
+  purpose_tags?: string[];
 }
 
-export function useComplianceGraph(orgId: string) {
-  return useQuery({
-    queryKey: complianceGraphQueryKey(orgId),
-    queryFn: () => fetchComplianceGraph(orgId),
-    enabled: Boolean(orgId),
-  });
+export function createLearningSession(body?: {
+  org_id?: string;
+  scenario?: string;
+}): Promise<LearningSession> {
+  return postApi<LearningSession>("/api/v1/learning/sessions", body ?? {});
 }
 
-export function fetchFindingTrace(
-  orgId: string,
-  findingId: string
-): Promise<ComplianceGraphResponse> {
-  return fetchApi<ComplianceGraphResponse>(
-    `/api/v1/graph/${encodeURIComponent(orgId)}/trace/${encodeURIComponent(findingId)}`
+export function getLearningSession(
+  sessionId: string,
+  orgId?: string
+): Promise<LearningSession> {
+  const qs = orgId ? `?org_id=${encodeURIComponent(orgId)}` : "";
+  return fetchApi<LearningSession>(
+    `/api/v1/learning/sessions/${encodeURIComponent(sessionId)}${qs}`
   );
 }
 
-export function fetchPersonAccountability(
-  orgId: string,
-  personId: string
-): Promise<ComplianceGraphResponse> {
-  return fetchApi<ComplianceGraphResponse>(
-    `/api/v1/graph/${encodeURIComponent(orgId)}/person/${encodeURIComponent(personId)}`
-  );
-}
-
-// ── Intelligence Engine ──────────────────────────────────────────────────────
-export type InsightSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "WIN";
-
-export type InsightCategory =
-  | "CASCADE_RISK"
-  | "ACCOUNTABILITY_GAP"
-  | "SINGLE_POINT_OF_FAILURE"
-  | "EFFICIENCY_WIN"
-  | "DEADLINE_RISK"
-  | "EVIDENCE_DECAY"
-  | "EXPOSURE";
-
-export type Insight = {
-  id: string;
-  severity: InsightSeverity;
-  category: InsightCategory | string;
-  title: string;
-  detail: string;
-  related_nodes: string[];
-  action: { label?: string; href?: string };
-  computed_at: string;
-};
-
-export type InsightsSummary = {
-  critical: number;
-  high: number;
-  medium: number;
-  wins: number;
-  low: number;
-  total_exposure_eur: number;
-  generated_at: string;
-};
-
-export type InsightsResponse = {
-  insights: Insight[];
-  summary: InsightsSummary;
-};
-
-export const insightsQueryKey = (orgId: string) => ["insights", orgId] as const;
-
-export function fetchInsights(orgId: string): Promise<InsightsResponse> {
-  return fetchApi<InsightsResponse>(
-    `/api/v1/intelligence/insights?org_id=${encodeURIComponent(orgId)}`
-  );
-}
-
-export function useInsights(orgId: string) {
-  return useQuery({
-    queryKey: insightsQueryKey(orgId),
-    queryFn: () => fetchInsights(orgId),
-    enabled: Boolean(orgId),
-  });
-}
-
-export function fetchInsightTrace(
-  orgId: string,
-  insightId: string
-): Promise<ComplianceGraphResponse> {
-  return fetchApi<ComplianceGraphResponse>(
-    `/api/v1/intelligence/insights/${encodeURIComponent(insightId)}/trace?org_id=${encodeURIComponent(orgId)}`
+export function decideLearningSession(
+  sessionId: string,
+  choice: string,
+  orgId?: string
+): Promise<LearningSession> {
+  const qs = orgId ? `?org_id=${encodeURIComponent(orgId)}` : "";
+  return postApi<LearningSession>(
+    `/api/v1/learning/sessions/${encodeURIComponent(sessionId)}/decide${qs}`,
+    { choice }
   );
 }
 

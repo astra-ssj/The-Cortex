@@ -33,7 +33,6 @@ dependencies = [
     "idna>=3.18",  # GHSA-jjg7-2v4v-x38h — DoS via crafted domain in idna.encode
     "marshmallow>=4.3.0",
     "slowapi>=0.1.10",
-    "reportlab>=5.0.0",
 ]
 
 [project.optional-dependencies]
@@ -46,27 +45,6 @@ dev = [
     "ruff>=0.16.1",
     "mypy>=2.3.0",
     "bandit[toml]>=1.9.4",
-]
-azure = [
-    "azure-identity>=1.25.3",
-    "azure-mgmt-resource>=26.0.0",
-    "cryptography>=50.0.0",
-]
-aws = [
-    "boto3>=1.43.63",
-    "cryptography>=50.0.0",
-]
-# Transilience Shasta (cloud CSPM). NOT the unrelated PyPI package `shasta` (PaSh shell AST).
-# Install: pip install -e ".[shasta-scan]"  (requires git/network).
-shasta-scan = [
-    "shasta @ git+https://github.com/transilienceai/shasta.git",
-]
-dev-aws = [
-    "moto[aws]>=5.2.2",
-]
-# Redis-backed Shasta scan worker (optional; API uses in-process BackgroundTasks when unset).
-redis-queue = [
-    "redis[hiredis]>=8.1.0",
 ]
 
 [tool.pytest.ini_options]
@@ -84,11 +62,6 @@ python_version = "3.12"
 ignore_missing_imports = true
 warn_return_any = true
 warn_unused_ignores = true
-
-# Connectors return third-party SDK objects (boto3.Session, Azure clients); avoid noisy Any warnings
-[[tool.mypy.overrides]]
-module = ["core.connectors.aws.*", "core.connectors.azure.*", "core.connectors.shasta.*"]
-warn_return_any = false
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "venv"]

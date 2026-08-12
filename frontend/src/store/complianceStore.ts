@@ -10,7 +10,6 @@ import type { AssessmentEvent, CompliancePosture, ZTAIPStatus } from "../types/c
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import {
   buildStreamUrl,
-  complianceGraphQueryKey,
   getToken,
   organisationsApi,
   reviewQueueQueryKey,
@@ -29,7 +28,6 @@ export function invalidateComplianceData(queryClient: QueryClient, orgId: string
   if (id) {
     void queryClient.invalidateQueries({ queryKey: postureQueryKey(id) });
     void queryClient.invalidateQueries({ queryKey: reviewQueueQueryKey(id) });
-    void queryClient.invalidateQueries({ queryKey: complianceGraphQueryKey(id) });
   }
 }
 

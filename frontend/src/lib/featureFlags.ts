@@ -1,9 +1,6 @@
 export const FEATURES = {
-  telemetryFusion: false, // No backend integration exists
   evidenceVault: false, // Mock chain — no real evidence storage
-  regulationIntel: false, // Hardcoded regulatory data
   auditSimulator: false, // Client-side simulation
-  aiSystemsLive: false, // Static SYSTEMS constant
   projectTracker: false, // Static ROADMAP_EPICS
   // These are TRUE — they have real backends:
   dashboard: true,
@@ -11,10 +8,7 @@ export const FEATURES = {
   findings: true,
   assessmentStream: true,
   reviewQueue: true,
-  auditReport: true,
   groupDashboard: true,
-  cloudScans: true,
-  integrations: true,
   evidenceIngestLive: true, // POST /api/v1/ingest/document + multi-provider LLM (core/llm)
   assessmentLlmLive: true, // GET /api/v1/assessments/stream uses assessment_llm CircuitBreaker
 } as const;
@@ -29,14 +23,7 @@ export function isFeatureEnabled(key: FeatureKey): boolean {
 export function showNavSoonForPath(path: string): boolean {
   switch (path) {
     case "/intelligence":
-      return !(
-        FEATURES.auditSimulator &&
-        FEATURES.telemetryFusion &&
-        FEATURES.regulationIntel &&
-        FEATURES.evidenceVault
-      );
-    case "/ai-systems":
-      return !FEATURES.aiSystemsLive;
+      return !(FEATURES.auditSimulator && FEATURES.evidenceVault);
     case "/roadmap":
       return !FEATURES.projectTracker;
     default:

@@ -16,13 +16,9 @@ import { ComplianceDashboard } from "./pages/ComplianceDashboard";
 import { GroupDashboard } from "./components/GroupDashboard";
 import { RemediationTracker } from "./pages/RemediationTracker";
 import { HumanReview } from "./pages/HumanReview";
-import { AuditReport } from "./components/AuditReport";
-import { Integrations } from "./components/Integrations";
 import { ProjectTracker } from "./pages/ProjectTracker";
 import { FrameworkDetailPage } from "./pages/FrameworkDetailPage";
 import Intelligence from "./pages/Intelligence";
-import CloudScans from "./pages/CloudScans";
-import AISystems from "./pages/AISystems";
 import { HelpPanel } from "./components/HelpPanel";
 import { clearCortexBrowserSession } from "./lib/cortexSession";
 import { Sidebar, SIDEBAR_WIDTH_PX } from "./components/Sidebar";
@@ -30,7 +26,6 @@ import { TopBar } from "./components/TopBar";
 import { CommandPalette } from "./components/CommandPalette";
 import Settings from "./pages/Settings";
 import { FrameworksList } from "./pages/FrameworksList";
-import ComplianceGraph from "./pages/ComplianceGraph";
 import FindingDetail from "./pages/FindingDetail";
 import EvidenceVault from "./pages/EvidenceVault";
 import HelpDocs from "./pages/HelpDocs";
@@ -179,14 +174,8 @@ function AppRoutes() {
         case "g":
           navigate("/group");
           break;
-        case "c":
-          navigate("/cloud-scans");
-          break;
         case "i":
           navigate("/intelligence");
-          break;
-        case "a":
-          navigate("/ai-systems");
           break;
         case "r":
           navigate("/review-queue");
@@ -225,14 +214,9 @@ function AppRoutes() {
             <Route path="/group" element={<GroupDashboard />} />
             <Route path="/frameworks" element={<FrameworksList />} />
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
-            <Route path="/graph" element={<ComplianceGraph />} />
             <Route path="/intelligence" element={<Intelligence />} />
             <Route path="/intelligence/:tab" element={<Intelligence />} />
-            <Route path="/ai-systems" element={<AISystems />} />
             <Route path="/review-queue" element={<HumanReview />} />
-            <Route path="/audit-report" element={<AuditReport />} />
-            <Route path="/integrations" element={<Integrations />} />
-            <Route path="/cloud-scans" element={<CloudScans />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/evidence" element={<EvidenceVault />} />
             <Route path="/findings" element={<RemediationTracker />} />

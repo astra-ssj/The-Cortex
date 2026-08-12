@@ -6,12 +6,8 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Git: clone Shasta from git. pkg-config + libcairo + gcc: build pycairo (Shasta → xhtml2pdf → svglib).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
     build-essential \
-    pkg-config \
-    libcairo2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Editable install needs package trees + readme (pyproject metadata). Runtime copies db/migrations after.
@@ -20,8 +16,7 @@ COPY api/ ./api/
 COPY core/ ./core/
 COPY compliance/ ./compliance/
 COPY ontology/ ./ontology/
-# Shasta: Transilience engine from Git; aws/azure extras for connector alignment.
-RUN pip install --no-cache-dir -e ".[shasta-scan,aws,azure]" "redis[hiredis]>=5" "uvicorn[standard]>=0.27"
+RUN pip install --no-cache-dir -e "." "uvicorn[standard]>=0.27"
 
 COPY db/ ./db/
 COPY content/ ./content/
