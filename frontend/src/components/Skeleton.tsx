@@ -133,67 +133,6 @@ export function TableRowSkeleton({ cols = 6 }: { cols?: number }) {
   );
 }
 
-export function ReportSkeleton() {
-  return (
-    <div style={{ padding: "40px" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: "32px",
-          paddingBottom: "24px",
-          borderBottom: "1px solid var(--border)",
-        }}
-      >
-        <div>
-          <Skeleton width="160px" height="24px" style={{ marginBottom: "6px" }} />
-          <Skeleton width="100px" height="11px" />
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <Skeleton width="120px" height="18px" borderRadius="4px" style={{ marginBottom: "8px" }} />
-          <Skeleton width="140px" height="11px" style={{ marginBottom: "4px" }} />
-          <Skeleton width="100px" height="11px" />
-        </div>
-      </div>
-
-      <Skeleton width="140px" height="10px" style={{ marginBottom: "12px" }} />
-      {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-        <div
-          key={i}
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "5px 0",
-            borderBottom: "1px solid var(--border)",
-          }}
-        >
-          <Skeleton width="160px" height="11px" />
-          <Skeleton width="60px" height="11px" />
-        </div>
-      ))}
-
-      <Skeleton width="180px" height="10px" style={{ marginTop: "24px", marginBottom: "12px" }} />
-      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-        <div
-          key={i}
-          style={{
-            display: "flex",
-            gap: "16px",
-            padding: "7px 0",
-            borderBottom: "1px solid var(--card)",
-          }}
-        >
-          <Skeleton width="160px" height="11px" />
-          <Skeleton width="40px" height="11px" />
-          <Skeleton width="80px" height="11px" />
-          <Skeleton width="60px" height="11px" />
-          <Skeleton width="30px" height="11px" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function AISystemCardSkeleton() {
   return (
     <div

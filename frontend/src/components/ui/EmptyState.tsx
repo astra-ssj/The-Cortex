@@ -156,20 +156,6 @@ export function RemediationEmpty({
   );
 }
 
-export function AuditReportEmpty({ onGenerate }: { onGenerate: () => void }) {
-  return (
-    <EmptyState
-      badge="REPORT NOT GENERATED"
-      badgeColor="var(--blue)"
-      icon="📄"
-      title="Generate your board report"
-      description="Select report type and entity, then click Generate. CORTEX produces a board-ready executive summary with framework scores, critical findings, and regulatory exposure in one click."
-      cta="Generate Report"
-      onCta={onGenerate}
-    />
-  );
-}
-
 export function AISystemsEmpty({
   onAddSystem,
   onViewObligations,

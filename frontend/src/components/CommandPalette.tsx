@@ -39,7 +39,6 @@ const PAGE_ITEMS: PageItem[] = [
   { title: "Review Queue", route: "/review-queue", icon: "⇌" },
   { title: "Findings", route: "/findings", icon: "⚑" },
   { title: "Remediation", route: "/remediation", icon: "↻" },
-  { title: "Audit Report", route: "/audit-report", icon: "⊡" },
   { title: "AI Systems", route: "/ai-systems", icon: "◈" },
   { title: "Evidence Vault", route: "/evidence", icon: "▤" },
   { title: "Roadmap", route: "/roadmap", icon: "▸" },
@@ -147,14 +146,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           }
           navigate("/dashboard");
         },
-      },
-      {
-        id: "action:generate-report",
-        icon: "▸",
-        type: "Action",
-        title: "Generate Report",
-        subtitle: "Open audit report workspace",
-        onSelect: () => navigate("/audit-report"),
       },
     ],
     [frameworks, navigate, orgId, startStream],

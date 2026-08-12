@@ -16,7 +16,6 @@ import { ComplianceDashboard } from "./pages/ComplianceDashboard";
 import { GroupDashboard } from "./components/GroupDashboard";
 import { RemediationTracker } from "./pages/RemediationTracker";
 import { HumanReview } from "./pages/HumanReview";
-import { AuditReport } from "./components/AuditReport";
 import { ProjectTracker } from "./pages/ProjectTracker";
 import { FrameworkDetailPage } from "./pages/FrameworkDetailPage";
 import Intelligence from "./pages/Intelligence";
@@ -223,7 +222,6 @@ function AppRoutes() {
             <Route path="/intelligence/:tab" element={<Intelligence />} />
             <Route path="/ai-systems" element={<AISystems />} />
             <Route path="/review-queue" element={<HumanReview />} />
-            <Route path="/audit-report" element={<AuditReport />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/evidence" element={<EvidenceVault />} />
             <Route path="/findings" element={<RemediationTracker />} />

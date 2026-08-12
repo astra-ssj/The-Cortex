@@ -9,7 +9,6 @@ export const FEATURES = {
   findings: true,
   assessmentStream: true,
   reviewQueue: true,
-  auditReport: true,
   groupDashboard: true,
   evidenceIngestLive: true, // POST /api/v1/ingest/document + multi-provider LLM (core/llm)
   assessmentLlmLive: true, // GET /api/v1/assessments/stream uses assessment_llm CircuitBreaker

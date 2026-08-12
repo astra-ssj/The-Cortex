@@ -55,7 +55,6 @@ const NAV_GROUPS: NavGroupDef[] = [
       { label: "Review Queue", path: "/review-queue", icon: "⇌", badge: "review" },
       { label: "Findings", path: "/findings", icon: "⚑", badge: "findings" },
       { label: "Remediation", path: "/remediation", icon: "↻" },
-      { label: "Audit Report", path: "/audit-report", icon: "⊡" },
     ],
   },
   {

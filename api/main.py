@@ -35,7 +35,6 @@ from api.groups import router as groups_router
 from api.organisations import router as organisations_router
 from api.system import router as system_router
 from api.ingest import router as ingest_router
-from api.reports import router as reports_router
 from api.skills import router as skills_router
 from api.learning import router as learning_router
 from core.circuit_breaker import load_circuit_breaker_states_from_db
@@ -240,7 +239,6 @@ app.include_router(assessments_router)
 app.include_router(findings_router, prefix="/api/v1/findings")
 app.include_router(groups_router)
 app.include_router(organisations_router)
-app.include_router(reports_router, prefix="/api/v1/reports")
 app.include_router(skills_router, prefix="/api/v1/skills")
 app.include_router(learning_router)
 app.include_router(ingest_router, prefix="/api/v1")

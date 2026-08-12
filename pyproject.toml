@@ -33,7 +33,6 @@ dependencies = [
     "idna>=3.18",  # GHSA-jjg7-2v4v-x38h — DoS via crafted domain in idna.encode
     "marshmallow>=4.3.0",
     "slowapi>=0.1.10",
-    "reportlab>=5.0.0",
 ]
 
 [project.optional-dependencies]
