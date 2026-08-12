@@ -82,8 +82,10 @@ ON CONFLICT (scenario_id, slug) DO NOTHING;
 -- ─────────────────────────────────────────────
 -- 'complete' is terminal and intentionally has no rows, matching
 -- choices_for_stage() returning [] for that stage.
-INSERT INTO scenario_choices (stage_id, choice_id, label, consequence, is_correct, framework_rationale)
-SELECT st.id, v.choice_id, v.label, v.consequence, v.is_correct, v.framework_rationale
+-- display_order reproduces the CHOICE_LABELS insertion order the learner saw before:
+-- approve_all, least_privilege, challenge, deny.
+INSERT INTO scenario_choices (stage_id, choice_id, label, consequence, is_correct, framework_rationale, display_order)
+SELECT st.id, v.choice_id, v.label, v.consequence, v.is_correct, v.framework_rationale, v.display_order
 FROM scenario_stages st
 JOIN scenarios s ON s.id = st.scenario_id
 CROSS JOIN (
@@ -97,7 +99,8 @@ CROSS JOIN (
       'admin, staging, and shared CI now sit outside any reviewed entitlement set.',
       FALSE,
       'Fails ISO 27001:2022 a.8.2 — privileged access rights must be managed and restricted — '
-      'and NIST CSF 2.0 PR.AA-4, because permissions are granted well beyond the task need.'
+      'and NIST CSF 2.0 PR.AA-4, because permissions are granted well beyond the task need.',
+      1
     ),
     (
       'access_request',
@@ -108,7 +111,8 @@ CROSS JOIN (
       TRUE,
       'Satisfies ISO 27001:2022 a.8.2 and a.5.18 by provisioning access proportionate to the '
       'task and removing it after the window, and NIST CSF 2.0 PR.AA-4 by managing '
-      'permissions against a defined need.'
+      'permissions against a defined need.',
+      2
     ),
     (
       'access_request',
@@ -118,7 +122,8 @@ CROSS JOIN (
       'clock keeps running, so the access question is still open.',
       FALSE,
       'Sound evidence-gathering under ISO 27001:2022 a.5.15, but the control objective is '
-      'unmet until an access decision is recorded — challenging alone restricts nothing.'
+      'unmet until an access decision is recorded — challenging alone restricts nothing.',
+      3
     ),
     (
       'access_request',
@@ -128,7 +133,8 @@ CROSS JOIN (
       'block by borrowing another engineer''s session.',
       FALSE,
       'Disproportionate under ISO 27001:2022 a.5.15: access rules must still serve legitimate '
-      'business need, and a flat denial pushes the same work into unmonitored paths.'
+      'business need, and a flat denial pushes the same work into unmonitored paths.',
+      4
     ),
     -- escalation (reached via 'challenge'; 'challenge' is not offered again)
     (
@@ -139,7 +145,8 @@ CROSS JOIN (
       'challenge produced evidence but no control.',
       FALSE,
       'Fails ISO 27001:2022 a.8.2 and NIST CSF 2.0 PR.AA-4: a documented justification does '
-      'not licence access wider than the justification itself supports.'
+      'not licence access wider than the justification itself supports.',
+      1
     ),
     (
       'escalation',
@@ -149,7 +156,8 @@ CROSS JOIN (
       'time-bound and tied to a named approver. The decision is evidenced end to end.',
       TRUE,
       'Satisfies ISO 27001:2022 a.8.2 with a.5.18 review, and NIST CSF 2.0 PR.AA-4/PR.AA-5: '
-      'privileged rights are restricted to the justified scope and revoked when the window closes.'
+      'privileged rights are restricted to the justified scope and revoked when the window closes.',
+      2
     ),
     (
       'escalation',
@@ -159,9 +167,10 @@ CROSS JOIN (
       'management rather than to a scoped grant.',
       FALSE,
       'Disproportionate under ISO 27001:2022 a.5.15 once a business justification exists — the '
-      'documented need should be scoped, not refused.'
+      'documented need should be scoped, not refused.',
+      3
     )
-) AS v(stage_slug, choice_id, label, consequence, is_correct, framework_rationale)
+) AS v(stage_slug, choice_id, label, consequence, is_correct, framework_rationale, display_order)
 WHERE s.slug = 'cloud_access_onboarding'
   AND st.slug = v.stage_slug
 ON CONFLICT (stage_id, choice_id) DO NOTHING;

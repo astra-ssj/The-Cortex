@@ -56,6 +56,9 @@ CREATE INDEX IF NOT EXISTS idx_scenario_stages_scenario_seq
 -- choice_id is the stable identifier the API validates against
 -- (api/learning.py::_VALID_CHOICES). UNIQUE(stage_id, choice_id) is what makes
 -- seed re-runs idempotent via ON CONFLICT DO NOTHING.
+-- display_order fixes the order choices are presented to the learner. Without it
+-- the API would have to sort by choice_id, which would silently reorder the
+-- buttons relative to the hardcoded CHOICE_LABELS dict it replaces.
 CREATE TABLE IF NOT EXISTS scenario_choices (
   id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   stage_id             UUID NOT NULL REFERENCES scenario_stages(id) ON DELETE CASCADE,
@@ -64,8 +67,12 @@ CREATE TABLE IF NOT EXISTS scenario_choices (
   consequence          TEXT NOT NULL,
   is_correct           BOOLEAN NOT NULL,
   framework_rationale  TEXT,
+  display_order        INT NOT NULL DEFAULT 0,
   UNIQUE (stage_id, choice_id)
 );
+
+ALTER TABLE scenario_choices
+  ADD COLUMN IF NOT EXISTS display_order INT NOT NULL DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_scenario_choices_stage
   ON scenario_choices (stage_id);
