@@ -618,50 +618,6 @@ export async function overrideControl(
 
 export const reviewQueueQueryKey = (orgId: string) => ["reviewQueue", orgId] as const;
 
-/** Learning Loop v1 — org-scoped scenario session. */
-export interface LearningSession {
-  id: string;
-  org_id: string;
-  scenario: string;
-  learner_id: string;
-  state: Record<string, unknown>;
-  stage: string;
-  risk: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-  jurisdiction?: string;
-  purpose_tags?: string[];
-}
-
-export function createLearningSession(body?: {
-  org_id?: string;
-  scenario?: string;
-}): Promise<LearningSession> {
-  return postApi<LearningSession>("/api/v1/learning/sessions", body ?? {});
-}
-
-export function getLearningSession(
-  sessionId: string,
-  orgId?: string
-): Promise<LearningSession> {
-  const qs = orgId ? `?org_id=${encodeURIComponent(orgId)}` : "";
-  return fetchApi<LearningSession>(
-    `/api/v1/learning/sessions/${encodeURIComponent(sessionId)}${qs}`
-  );
-}
-
-export function decideLearningSession(
-  sessionId: string,
-  choice: string,
-  orgId?: string
-): Promise<LearningSession> {
-  const qs = orgId ? `?org_id=${encodeURIComponent(orgId)}` : "";
-  return postApi<LearningSession>(
-    `/api/v1/learning/sessions/${encodeURIComponent(sessionId)}/decide${qs}`,
-    { choice }
-  );
-}
-
 export function useReviewQueue(orgId?: string | null): {
   items: ReviewQueueItem[] | null;
   reviewed: ReviewedItem[] | null;
