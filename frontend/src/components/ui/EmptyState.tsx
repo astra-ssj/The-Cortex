@@ -156,28 +156,6 @@ export function RemediationEmpty({
   );
 }
 
-export function AISystemsEmpty({
-  onAddSystem,
-  onViewObligations,
-}: {
-  onAddSystem?: () => void;
-  onViewObligations?: () => void;
-}) {
-  return (
-    <EmptyState
-      badge="EU AI ACT — 94 DAYS"
-      badgeColor="var(--red)"
-      icon="🤖"
-      title="No AI systems inventoried"
-      description="Add your AI systems to assess EU AI Act compliance. High-risk system obligations apply from 2 August 2026. Classification is grounded in ISO 42001 Annex III."
-      cta="Add AI System"
-      ctaSecondary="View Obligations"
-      onCta={onAddSystem}
-      onCtaSecondary={onViewObligations}
-    />
-  );
-}
-
 export function GroupEmpty({
   onAddEntities,
   onLearnMore,

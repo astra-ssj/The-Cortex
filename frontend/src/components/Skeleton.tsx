@@ -133,64 +133,6 @@ export function TableRowSkeleton({ cols = 6 }: { cols?: number }) {
   );
 }
 
-export function AISystemCardSkeleton() {
-  return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        borderLeft: "3px solid var(--border)",
-        borderRadius: "10px",
-        padding: "20px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: "12px",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              marginBottom: "8px",
-              alignItems: "center",
-            }}
-          >
-            <Skeleton width="24px" height="24px" borderRadius="50%" />
-            <Skeleton width="160px" height="14px" />
-          </div>
-          <div style={{ display: "flex", gap: "6px" }}>
-            <Skeleton width="72px" height="18px" borderRadius="4px" />
-            <Skeleton width="100px" height="18px" borderRadius="4px" />
-          </div>
-        </div>
-      </div>
-      {[1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          style={{
-            display: "flex",
-            gap: "8px",
-            marginBottom: "6px",
-            alignItems: "center",
-          }}
-        >
-          <Skeleton width="80px" height="10px" />
-          <Skeleton width="140px" height="10px" />
-        </div>
-      ))}
-      <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-        <Skeleton width="80px" height="28px" borderRadius="6px" />
-        <Skeleton width="120px" height="28px" borderRadius="6px" />
-      </div>
-    </div>
-  );
-}
-
 export function PageHeaderSkeleton() {
   return (
     <div style={{ marginBottom: "24px" }}>

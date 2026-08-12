@@ -60,7 +60,6 @@ const NAV_GROUPS: NavGroupDef[] = [
   {
     label: "Inventory",
     items: [
-      { label: "AI Systems", path: "/ai-systems", icon: "◈", soon: showNavSoonForPath("/ai-systems") },
       { label: "Evidence Vault", path: "/evidence", icon: "▤" },
     ],
   },

@@ -19,7 +19,6 @@ import { HumanReview } from "./pages/HumanReview";
 import { ProjectTracker } from "./pages/ProjectTracker";
 import { FrameworkDetailPage } from "./pages/FrameworkDetailPage";
 import Intelligence from "./pages/Intelligence";
-import AISystems from "./pages/AISystems";
 import { HelpPanel } from "./components/HelpPanel";
 import { clearCortexBrowserSession } from "./lib/cortexSession";
 import { Sidebar, SIDEBAR_WIDTH_PX } from "./components/Sidebar";
@@ -178,9 +177,6 @@ function AppRoutes() {
         case "i":
           navigate("/intelligence");
           break;
-        case "a":
-          navigate("/ai-systems");
-          break;
         case "r":
           navigate("/review-queue");
           break;
@@ -220,7 +216,6 @@ function AppRoutes() {
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
             <Route path="/intelligence" element={<Intelligence />} />
             <Route path="/intelligence/:tab" element={<Intelligence />} />
-            <Route path="/ai-systems" element={<AISystems />} />
             <Route path="/review-queue" element={<HumanReview />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/evidence" element={<EvidenceVault />} />

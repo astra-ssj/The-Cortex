@@ -15,7 +15,6 @@ export {
   DashboardEmpty,
   ReviewQueueEmpty,
   RemediationEmpty,
-  AISystemsEmpty,
   GroupEmpty,
   FrameworksEmpty,
 } from "./EmptyState";

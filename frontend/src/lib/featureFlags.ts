@@ -1,7 +1,6 @@
 export const FEATURES = {
   evidenceVault: false, // Mock chain — no real evidence storage
   auditSimulator: false, // Client-side simulation
-  aiSystemsLive: false, // Static SYSTEMS constant
   projectTracker: false, // Static ROADMAP_EPICS
   // These are TRUE — they have real backends:
   dashboard: true,
@@ -25,8 +24,6 @@ export function showNavSoonForPath(path: string): boolean {
   switch (path) {
     case "/intelligence":
       return !(FEATURES.auditSimulator && FEATURES.evidenceVault);
-    case "/ai-systems":
-      return !FEATURES.aiSystemsLive;
     case "/roadmap":
       return !FEATURES.projectTracker;
     default:

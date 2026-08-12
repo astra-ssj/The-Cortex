@@ -172,31 +172,6 @@ const SECTIONS: HelpSection[] = [
     ],
   },
   {
-    id: "ai-systems",
-    title: "AI Systems",
-    blocks: [
-      {
-        subtitle: "EU AI Act Compliance (August 2026)",
-        body: "",
-      },
-      {
-        subtitle: "Inventory",
-        body:
-          "Lists all AI systems deployed across your organisation. Each system is classified against EU AI Act Annex III risk categories.",
-      },
-      {
-        subtitle: "Classification",
-        body:
-          "AI-grounded classification reasoning using ISO 42001 skill content. Explains WHY a system is high-risk with article citations.",
-      },
-      {
-        subtitle: "Obligations",
-        body:
-          "What each high-risk system must comply with before August 2, 2026. Track readiness per article (Art.9, Art.11, Art.14, etc.)",
-      },
-    ],
-  },
-  {
     id: "review",
     title: "Review Queue",
     blocks: [

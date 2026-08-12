@@ -30,7 +30,6 @@ const ROUTE_TITLES: Record<string, string> = {
   "/remediation": "Remediation",
   "/evidence": "Evidence Vault",
   "/review-queue": "Review Queue",
-  "/ai-systems": "AI Systems",
   "/intelligence": "Intelligence",
   "/intelligence/simulator": "Intelligence",
   "/roadmap": "Roadmap",
