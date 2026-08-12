@@ -5,30 +5,6 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ─────────────────────────────────────────────
--- 0. Ensure org_id on join / scope tables lacking it
--- ─────────────────────────────────────────────
-ALTER TABLE evidence_controls
-  ADD COLUMN IF NOT EXISTS org_id TEXT;
-
-UPDATE evidence_controls ec
-SET org_id = e.org_id
-FROM evidence e
-WHERE ec.evidence_id = e.id
-  AND (ec.org_id IS NULL OR ec.org_id = '');
-
--- Orphan links (should not exist after FK integrity) stay NULL until cleaned.
-ALTER TABLE framework_entities
-  ADD COLUMN IF NOT EXISTS org_id TEXT;
-
--- Demo graph entities belong to the shared demo tenant.
-UPDATE framework_entities
-SET org_id = 'demo-org-001'
-WHERE org_id IS NULL OR org_id = '';
-
-CREATE INDEX IF NOT EXISTS idx_evidence_controls_org ON evidence_controls(org_id);
-CREATE INDEX IF NOT EXISTS idx_framework_entities_org ON framework_entities(org_id);
-
--- ─────────────────────────────────────────────
 -- 1. Rebuild audit_log as UUID + hash-chain schema
 -- ─────────────────────────────────────────────
 DO $$
@@ -185,15 +161,7 @@ BEGIN
   FOREACH t IN ARRAY ARRAY[
     'organizations',
     'assessment_results',
-    'findings',
-    'evidence',
-    'evidence_controls',
-    'rel_people',
-    'rel_teams',
-    'rel_systems',
-    'rel_risks',
-    'relationship_edges',
-    'framework_entities'
+    'findings'
   ]
   LOOP
     IF NOT EXISTS (
