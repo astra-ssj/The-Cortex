@@ -30,7 +30,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Core concepts",
         body:
-          "Organisation → frameworks → controls → assessments → findings. Evidence comes from documents, integrations, and cloud scans. Every consequential AI action is confidence-scored; scores below 0.75 go to the Review Queue.",
+          "Organisation → frameworks → controls → assessments → findings. Evidence comes from uploaded documents. Every consequential AI action is confidence-scored; scores below 0.75 go to the Review Queue.",
         tips: [
           "Posture score: weighted compliance across active frameworks.",
           "Audit readiness: likelihood of passing an external audit today.",
@@ -112,7 +112,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Sidebar sections",
         body:
-          "POSTURE: Dashboard, Frameworks, Graph, Findings, Group View. GOVERNANCE: Review Queue, Audit Report, AI Systems, Intelligence. OPERATIONS: Cloud Scans, Integrations, Roadmap. Footer: Settings and Help (this page).",
+          "POSTURE: Dashboard, Frameworks, Findings, Group View. GOVERNANCE: Review Queue, Intelligence. OPERATIONS: Roadmap. Footer: Settings and Help (this page).",
         snapshot: "sidebar",
         snapshotCaption: "Badge counts on Findings and Review Queue reflect open items.",
       },
@@ -125,7 +125,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Keyboard shortcuts",
         body:
-          "D Dashboard · G Group · C Cloud scans · I Intelligence · A AI Systems · R Review queue · S Settings · H Help docs. Press Esc to close overlays.",
+          "D Dashboard · G Group · I Intelligence · R Review queue · S Settings · H Help docs. Press Esc to close overlays.",
       },
     ],
   },
@@ -139,12 +139,6 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
         body:
           "Review overall posture score, audit readiness, and critical gaps. Scan framework cards for declining trends (↑ / ↓).",
         snapshot: "dashboard",
-      },
-      {
-        title: "Connect evidence — Integrations",
-        body:
-          "Configure Microsoft 365, GitHub, AWS, or Azure under Integrations so live signals and documents feed assessments. Without connectors, demo/mock telemetry may be shown.",
-        snapshot: "integrations",
       },
       {
         title: "Run or refresh assessment",
@@ -162,17 +156,6 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
         body:
           "Process Review Queue items where AI confidence is below 0.75. Approve to confirm the assessment, or Override with a mandatory note — both are logged to the evidence chain.",
         snapshot: "review-queue",
-      },
-      {
-        title: "Cloud posture — Cloud Scans",
-        body:
-          "Start AWS/Azure scans when connectors are configured. Expand runs for findings mapped to framework controls (CIS, SOC 2, etc.).",
-        snapshot: "cloud-scans",
-      },
-      {
-        title: "Executive output — Audit Report",
-        body:
-          "Generate audit-ready summaries and PDF exports for leadership or external auditors from Audit Report.",
       },
     ],
   },
@@ -194,11 +177,6 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
         snapshot: "frameworks",
       },
       {
-        title: "Graph (/graph)",
-        body:
-          "Visual map of relationships between frameworks, controls, entities, and evidence. Use for cross-regulation impact analysis.",
-      },
-      {
         title: "Findings (/findings)",
         body:
           "Remediation tracker for gaps surfaced by assessments and scans. Filter by risk, framework, and status.",
@@ -216,31 +194,9 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
         snapshot: "review-queue",
       },
       {
-        title: "Audit Report (/audit-report)",
-        body:
-          "Executive summaries and exportable reports for audit preparation.",
-      },
-      {
         title: "Intelligence (/intelligence)",
         body:
-          "Audit Simulator, live integration signals, regulation intel feed, and Evidence Vault chain verification.",
-      },
-      {
-        title: "AI Systems (/ai-systems)",
-        body:
-          "EU AI Act inventory: classify systems against Annex III, track high-risk obligations before August 2026 deadlines.",
-      },
-      {
-        title: "Cloud Scans (/cloud-scans)",
-        body:
-          "Shasta CSPM runs for AWS/Azure; findings stored in CORTEX with framework control tags.",
-        snapshot: "cloud-scans",
-      },
-      {
-        title: "Integrations (/integrations)",
-        body:
-          "Step-by-step connector setup for cloud and SaaS evidence sources.",
-        snapshot: "integrations",
+          "Audit Simulator — regulator-style audit rehearsal against your framework controls.",
       },
       {
         title: "Settings (/settings)",
@@ -259,7 +215,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
           "Your role (e.g. Admin, Compliance Lead, Viewer) controls actions such as running assessments, approving review items, and exporting reports. If a button is missing, your role may not allow that action.",
         tips: [
           "Admins: full configuration and assessment runs.",
-          "Compliance Lead: assessments, review, integrations.",
+          "Compliance Lead: assessments and review.",
           "Viewer: read-only posture and reports.",
         ],
       },
