@@ -23,6 +23,9 @@ database:
   password: ""
   schema: public
   pool_size: 10
+  # /health wraps its ping in this timeout; unset means zero, so the context is
+  # already expired and the endpoint 500s even against a healthy database.
+  ping_timeout: 5s
 
 mcp:
   disable: true
