@@ -29,7 +29,8 @@ for f in \
   "$ROOT/migrations/016_rls_and_append_only_audit.sql" \
   "$ROOT/migrations/017_learning_loop.sql" \
   "$ROOT/migrations/018_drop_decommissioned_modules.sql" \
-  "$ROOT/migrations/019_scenario_content.sql"
+  "$ROOT/migrations/019_scenario_content.sql" \
+  "$ROOT/migrations/019_scenario_content_seed.sql"
   do
   echo "Applying $(basename "$f")..."
   psql -f "$f"
