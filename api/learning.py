@@ -15,10 +15,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.deps import get_db
 from compliance.models import SovereignModel
 from core.agents.scenario import (
-    SCENARIO_BRIEF,
     SCENARIO_ID,
+    Scenario,
+    ScenarioNotFound,
     advance_after_decision,
     initial_state,
+    load_scenario,
     open_session_agent_turn,
 )
 from core.audit_fabric import append_audit_log
@@ -33,8 +35,18 @@ _VALID_CHOICES = frozenset({"approve_all", "least_privilege", "challenge", "deny
 
 
 class CreateSessionRequest(BaseModel):
-    scenario: str = Field(default=SCENARIO_ID, description="Scenario id (v1: cloud_access_onboarding)")
+    scenario: str = Field(default=SCENARIO_ID, description="Deprecated alias for scenario_slug")
+    scenario_slug: Optional[str] = Field(
+        default=None,
+        description="Scenario slug in the content model (defaults to cloud_access_onboarding)",
+    )
     org_id: Optional[str] = Field(default=None, description="Scoped org (JWT org or demo)")
+
+    def resolved_slug(self) -> str:
+        for candidate in (self.scenario_slug, self.scenario):
+            if candidate and candidate.strip():
+                return candidate.strip()
+        return SCENARIO_ID
 
 
 class DecideRequest(BaseModel):
@@ -82,6 +94,17 @@ def _row_to_out(row: Any) -> SessionOut:
     )
 
 
+async def _load_content(session: AsyncSession, slug: str) -> Scenario:
+    """Resolve scenario content, mapping an unknown slug to a 400 rather than a 500."""
+    try:
+        return await load_scenario(slug, session)
+    except ScenarioNotFound:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown scenario '{slug}'",
+        ) from None
+
+
 async def _fetch_session(session: AsyncSession, session_id: uuid.UUID) -> Any | None:
     result = await session.execute(
         text(
@@ -103,12 +126,8 @@ async def create_session(
     db: AsyncSession = Depends(get_db),
 ) -> SessionOut:
     effective = await bind_scoped_org(db, current_user, _resolve_org(current_user, body.org_id))
-    scenario = (body.scenario or SCENARIO_ID).strip() or SCENARIO_ID
-    if scenario != SCENARIO_ID:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported scenario '{scenario}' (v1 supports {SCENARIO_ID})",
-        )
+    scenario = body.resolved_slug()
+    content = await _load_content(db, scenario)
     learner_id = str(current_user.get("sub") or current_user.get("email") or "anonymous")
 
     await append_audit_log(
@@ -123,7 +142,7 @@ async def create_session(
 
     # Seed row then consult agent so opening message is harness-validated.
     seed_state = {
-        "brief": SCENARIO_BRIEF,
+        "brief": content.brief,
         "messages": [],
         "choices": [],
         "decisions": [],
@@ -159,9 +178,10 @@ async def create_session(
             "stage": "access_request",
             "risk": None,
             "state": seed_state,
-        }
+        },
+        content,
     )
-    full_state = initial_state(opening=opening)
+    full_state = initial_state(opening=opening, scenario=content)
 
     updated = await db.execute(
         text(
@@ -234,17 +254,22 @@ async def decide(
 ) -> SessionOut:
     effective = await bind_scoped_org(db, current_user, _resolve_org(current_user, org_id))
     choice = body.choice.strip()
-    if choice not in _VALID_CHOICES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid choice '{choice}'. Expected one of: {sorted(_VALID_CHOICES)}",
-        )
 
     row = await _fetch_session(db, session_id)
     if row is None or str(row["org_id"]) != effective:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this learning session",
+        )
+
+    # The session's own scenario defines what is choosable; _VALID_CHOICES only
+    # backstops content that carries no choices at all.
+    content = await _load_content(db, str(row["scenario"]))
+    allowed = content.valid_choice_ids() or _VALID_CHOICES
+    if choice not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid choice '{choice}'. Expected one of: {sorted(allowed)}",
         )
 
     actor = str(current_user.get("sub") or current_user.get("email") or "anonymous")
@@ -273,6 +298,7 @@ async def decide(
     new_state, new_stage, new_risk, agent = await advance_after_decision(
         session_row=session_row,
         choice=choice,
+        scenario=content,
     )
 
     updated = await db.execute(
