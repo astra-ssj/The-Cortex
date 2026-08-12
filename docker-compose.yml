@@ -31,6 +31,7 @@ services:
       - ./migrations/014_microsoft_integration.sql:/docker-entrypoint-initdb.d/14_microsoft_integration.sql:ro
       - ./migrations/015_relationship_graph.sql:/docker-entrypoint-initdb.d/15_relationship_graph.sql:ro
       - ./migrations/016_rls_and_append_only_audit.sql:/docker-entrypoint-initdb.d/16_rls_and_append_only_audit.sql:ro
+      - ./migrations/017_learning_loop.sql:/docker-entrypoint-initdb.d/17_learning_loop.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
       interval: 5s

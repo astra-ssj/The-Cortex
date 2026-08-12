@@ -1,0 +1,249 @@
+# tests/test_learning_loop.py — Black-box proof: RLS, decide→risk, audit, harness fallback, persistence.
+
+from __future__ import annotations
+
+import os
+import uuid
+from typing import Any
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import text
+
+from core.security import create_access_token
+from core.tenant import set_tenant_context
+from db.session import async_session_factory, database_ready, ensure_learning_loop_schema
+
+
+def _jwt(org_id: str, *, email: str | None = None, sub: str | None = None) -> str:
+    return create_access_token(
+        {
+            "sub": sub or str(uuid.uuid4()),
+            "email": email or f"learn-{org_id}@example.com",
+            "org_id": org_id,
+            "role": "ADMIN",
+            "onboarding_complete": True,
+            "onboarding_step": 5,
+        }
+    )
+
+
+def _headers(org_id: str, **kwargs: Any) -> dict[str, str]:
+    return {"Authorization": f"Bearer {_jwt(org_id, **kwargs)}"}
+
+
+async def _ensure_org(org_id: str, name: str) -> None:
+    async with async_session_factory() as session:
+        await set_tenant_context(session, org_id)
+        await session.execute(
+            text(
+                """
+                INSERT INTO organizations (id, name, jurisdiction, purpose_tags)
+                VALUES (:id, :name, 'EU', '[]'::jsonb)
+                ON CONFLICT (id) DO NOTHING
+                """
+            ),
+            {"id": org_id, "name": name},
+        )
+        await session.commit()
+
+
+@pytest.fixture(autouse=True)
+async def _learning_schema() -> None:
+    if await database_ready():
+        await ensure_learning_loop_schema()
+
+
+@pytest.mark.asyncio
+async def test_cross_tenant_session_returns_403(client: TestClient) -> None:
+    """Org A creates a session; org B must get 403 on GET (RLS + app guard)."""
+    if not await database_ready():
+        pytest.skip("database not reachable")
+
+    org_a = f"org-learn-a-{uuid.uuid4().hex[:8]}"
+    org_b = f"org-learn-b-{uuid.uuid4().hex[:8]}"
+    await _ensure_org(org_a, "Learn Tenant A")
+    await _ensure_org(org_b, "Learn Tenant B")
+
+    created = client.post(
+        "/api/v1/learning/sessions",
+        headers=_headers(org_a),
+        json={"org_id": org_a, "scenario": "cloud_access_onboarding"},
+    )
+    assert created.status_code == 200, created.text
+    session_id = created.json()["id"]
+
+    # Org B JWT requesting org A's session id → 403 (row invisible under RLS).
+    denied = client.get(
+        f"/api/v1/learning/sessions/{session_id}",
+        headers=_headers(org_b),
+    )
+    assert denied.status_code == 403
+
+    # Explicit cross-tenant org_id on create path → 403 from bind_scoped_org.
+    cross = client.post(
+        "/api/v1/learning/sessions",
+        headers=_headers(org_b),
+        json={"org_id": org_a},
+    )
+    assert cross.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_decide_approve_all_sets_over_provisioned_and_audits(
+    client: TestClient,
+) -> None:
+    if not await database_ready():
+        pytest.skip("database not reachable")
+
+    org_id = f"org-learn-dec-{uuid.uuid4().hex[:8]}"
+    await _ensure_org(org_id, "Learn Decide Org")
+    hdrs = _headers(org_id)
+
+    created = client.post(
+        "/api/v1/learning/sessions",
+        headers=hdrs,
+        json={"org_id": org_id},
+    )
+    assert created.status_code == 200, created.text
+    session_id = created.json()["id"]
+
+    decided = client.post(
+        f"/api/v1/learning/sessions/{session_id}/decide",
+        headers=hdrs,
+        json={"choice": "approve_all"},
+    )
+    assert decided.status_code == 200, decided.text
+    body = decided.json()
+    assert body["risk"] == "over-provisioned"
+    assert body["stage"] == "complete"
+    decisions = body["state"].get("decisions") or []
+    assert decisions and decisions[-1]["choice"] == "approve_all"
+
+    async with async_session_factory() as session:
+        rows = (
+            await session.execute(
+                text(
+                    """
+                    SELECT action FROM audit_log
+                    WHERE resource_id = :rid
+                      AND action = 'learning.session.decide.complete'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    """
+                ),
+                {"rid": session_id},
+            )
+        ).scalars().all()
+        assert rows, "expected learning.session.decide.complete audit entry"
+
+
+@pytest.mark.asyncio
+async def test_session_persists_across_reload(client: TestClient) -> None:
+    """GET after create returns the same persisted state (survives 'API restart' via new read)."""
+    if not await database_ready():
+        pytest.skip("database not reachable")
+
+    org_id = f"org-learn-persist-{uuid.uuid4().hex[:8]}"
+    await _ensure_org(org_id, "Learn Persist Org")
+    hdrs = _headers(org_id)
+
+    created = client.post(
+        "/api/v1/learning/sessions",
+        headers=hdrs,
+        json={"org_id": org_id},
+    )
+    assert created.status_code == 200, created.text
+    session_id = created.json()["id"]
+    stage = created.json()["stage"]
+
+    # Simulate process boundary: new client + GET must hit Postgres, not memory.
+    client2 = TestClient(client.app)
+    got = client2.get(
+        f"/api/v1/learning/sessions/{session_id}?org_id={org_id}",
+        headers=hdrs,
+    )
+    assert got.status_code == 200, got.text
+    assert got.json()["id"] == session_id
+    assert got.json()["stage"] == stage
+    assert got.json()["state"].get("brief")
+
+
+@pytest.mark.asyncio
+async def test_harness_fallback_does_not_corrupt_state(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    if not await database_ready():
+        pytest.skip("database not reachable")
+
+    org_id = f"org-learn-bad-{uuid.uuid4().hex[:8]}"
+    await _ensure_org(org_id, "Learn Bad Model Org")
+    hdrs = _headers(org_id)
+
+    created = client.post(
+        "/api/v1/learning/sessions",
+        headers=hdrs,
+        json={"org_id": org_id},
+    )
+    assert created.status_code == 200, created.text
+    session_id = created.json()["id"]
+    messages_before = list(created.json()["state"].get("messages") or [])
+
+    monkeypatch.setenv("CORTEX_LEARNING_FORCE_BAD_OUTPUT", "1")
+    decided = client.post(
+        f"/api/v1/learning/sessions/{session_id}/decide",
+        headers=hdrs,
+        json={"choice": "challenge"},
+    )
+    monkeypatch.delenv("CORTEX_LEARNING_FORCE_BAD_OUTPUT", raising=False)
+
+    assert decided.status_code == 200, decided.text
+    body = decided.json()
+    # Risk/stage still advanced by the deterministic controller.
+    assert body["risk"] == "under_review"
+    assert body["stage"] == "escalation"
+    # Harness fallback message — never raw malformed model text in state.
+    messages = body["state"].get("messages") or []
+    assert len(messages) == len(messages_before) + 1
+    last = messages[-1]
+    assert "NOT_JSON" not in str(last.get("message") or "")
+    assert last.get("speaker") == "DevOps Lead"
+    harness = body["state"].get("last_harness") or {}
+    assert harness.get("speaker") == "DevOps Lead"
+    assert "demands" in harness
+
+
+@pytest.mark.asyncio
+async def test_rls_hides_scenario_sessions_without_where() -> None:
+    """DB-enforced isolation on scenario_sessions (same Phase 2 pattern as findings)."""
+    if not await database_ready():
+        pytest.skip("database not reachable")
+
+    org_a = f"org-learn-rls-a-{uuid.uuid4().hex[:8]}"
+    org_b = f"org-learn-rls-b-{uuid.uuid4().hex[:8]}"
+    await _ensure_org(org_a, "RLS Learn A")
+    await _ensure_org(org_b, "RLS Learn B")
+
+    async with async_session_factory() as session:
+        await set_tenant_context(session, org_a)
+        await session.execute(
+            text(
+                """
+                INSERT INTO scenario_sessions (org_id, scenario, learner_id, state, stage)
+                VALUES (:org, 'cloud_access_onboarding', 'probe', '{}'::jsonb, 'access_request')
+                """
+            ),
+            {"org": org_a},
+        )
+        await session.commit()
+
+    async with async_session_factory() as session:
+        await set_tenant_context(session, org_b)
+        rows = (
+            await session.execute(
+                text("SELECT id, org_id FROM scenario_sessions")
+            )
+        ).mappings().all()
+        leaked = [r for r in rows if r["org_id"] == org_a]
+        assert leaked == []

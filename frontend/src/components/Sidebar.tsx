@@ -26,8 +26,8 @@ type NavItem = {
 
 type NavGroupDef = { label: string; items: NavItem[] };
 
-// Five top-level categories. Order mirrors the user's compliance workflow:
-// understand posture → reason about it → govern it → know what you own → operate.
+// Top-level categories. Order mirrors the user's compliance workflow:
+// understand posture → reason about it → learn → govern it → know what you own → operate.
 const NAV_GROUPS: NavGroupDef[] = [
   {
     label: "Posture",
@@ -45,6 +45,12 @@ const NAV_GROUPS: NavGroupDef[] = [
       { label: "Audit Simulator", path: "/intelligence/simulator", icon: "▷" },
       { label: "Live Signals", path: "/intelligence/signals", icon: "≈" },
       { label: "Regulation Intel", path: "/intelligence/regulation", icon: "§" },
+    ],
+  },
+  {
+    label: "Learn",
+    items: [
+      { label: "Learning Loop", path: "/learning", icon: "↻" },
     ],
   },
   {
