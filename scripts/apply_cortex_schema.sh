@@ -7,7 +7,9 @@ export PGPASSWORD="${PGPASSWORD:-}"
 psql() {
   command psql -v ON_ERROR_STOP=1 "$@"
 }
-# Single migration lane: migrations/002 … 017 (filename order == apply order).
+# Single migration lane: migrations/002 … 018 (filename order == apply order).
+# 009/010/013/014/015 still run before 018 drops their tables: replaying history
+# keeps fresh installs and pre-018 databases converging on the same end state.
 for f in \
   "$ROOT/init.sql" \
   "$ROOT/migrations/002_cortex_ontology.sql" \
@@ -15,7 +17,7 @@ for f in \
   "$ROOT/migrations/004_controls_authoritative.sql" \
   "$ROOT/migrations/005_multi_tenancy.sql" \
   "$ROOT/migrations/006_assessment_results_status_risk.sql" \
-  "$ROOT/migrations/007_assessment_results_form.sql" \
+  "$ROOT/migrations/007_assessment_results_fix.sql" \
   "$ROOT/migrations/008_human_review_queue.sql" \
   "$ROOT/migrations/009_shasta_cloud.sql" \
   "$ROOT/migrations/010_shasta_evidence_control_links.sql" \
@@ -25,7 +27,8 @@ for f in \
   "$ROOT/migrations/014_microsoft_integration.sql" \
   "$ROOT/migrations/015_relationship_graph.sql" \
   "$ROOT/migrations/016_rls_and_append_only_audit.sql" \
-  "$ROOT/migrations/017_learning_loop.sql"
+  "$ROOT/migrations/017_learning_loop.sql" \
+  "$ROOT/migrations/018_drop_decommissioned_modules.sql"
   do
   echo "Applying $(basename "$f")..."
   psql -f "$f"
