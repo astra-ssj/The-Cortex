@@ -170,19 +170,6 @@ export function AuditReportEmpty({ onGenerate }: { onGenerate: () => void }) {
   );
 }
 
-export function IntegrationsEmpty() {
-  return (
-    <EmptyState
-      badge="NO INTEGRATIONS CONNECTED"
-      badgeColor="var(--amber)"
-      icon="🔌"
-      title="Connect your first integration"
-      description="Connect Microsoft 365, GitHub, AWS or Azure to start receiving live control telemetry. Real signals replace mock data automatically."
-      cta="Connect Integration"
-    />
-  );
-}
-
 export function AISystemsEmpty({
   onAddSystem,
   onViewObligations,

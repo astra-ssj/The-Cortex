@@ -1,5 +1,4 @@
 export const FEATURES = {
-  telemetryFusion: false, // No backend integration exists
   evidenceVault: false, // Mock chain — no real evidence storage
   regulationIntel: false, // Hardcoded regulatory data
   auditSimulator: false, // Client-side simulation
@@ -13,8 +12,6 @@ export const FEATURES = {
   reviewQueue: true,
   auditReport: true,
   groupDashboard: true,
-  cloudScans: true,
-  integrations: true,
   evidenceIngestLive: true, // POST /api/v1/ingest/document + multi-provider LLM (core/llm)
   assessmentLlmLive: true, // GET /api/v1/assessments/stream uses assessment_llm CircuitBreaker
 } as const;
@@ -31,7 +28,6 @@ export function showNavSoonForPath(path: string): boolean {
     case "/intelligence":
       return !(
         FEATURES.auditSimulator &&
-        FEATURES.telemetryFusion &&
         FEATURES.regulationIntel &&
         FEATURES.evidenceVault
       );

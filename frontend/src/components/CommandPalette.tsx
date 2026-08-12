@@ -43,8 +43,6 @@ const PAGE_ITEMS: PageItem[] = [
   { title: "Audit Report", route: "/audit-report", icon: "⊡" },
   { title: "AI Systems", route: "/ai-systems", icon: "◈" },
   { title: "Evidence Vault", route: "/evidence", icon: "▤" },
-  { title: "Cloud Scans", route: "/cloud-scans", icon: "☁" },
-  { title: "Integrations", route: "/integrations", icon: "⚡" },
   { title: "Roadmap", route: "/roadmap", icon: "▸" },
   { title: "Settings", route: "/settings", icon: "⚙" },
   { title: "Help & Documentation", route: "/help", icon: "?" },

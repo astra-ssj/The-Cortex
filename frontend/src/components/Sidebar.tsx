@@ -43,7 +43,6 @@ const NAV_GROUPS: NavGroupDef[] = [
     items: [
       { label: "Insights", path: "/intelligence", icon: "✦" },
       { label: "Audit Simulator", path: "/intelligence/simulator", icon: "▷" },
-      { label: "Live Signals", path: "/intelligence/signals", icon: "≈" },
       { label: "Regulation Intel", path: "/intelligence/regulation", icon: "§" },
     ],
   },
@@ -67,13 +66,11 @@ const NAV_GROUPS: NavGroupDef[] = [
     items: [
       { label: "AI Systems", path: "/ai-systems", icon: "◈", soon: showNavSoonForPath("/ai-systems") },
       { label: "Evidence Vault", path: "/evidence", icon: "▤" },
-      { label: "Integrations", path: "/integrations", icon: "⚡" },
     ],
   },
   {
     label: "Operations",
     items: [
-      { label: "Cloud Scans", path: "/cloud-scans", icon: "☁" },
       { label: "Roadmap", path: "/roadmap", icon: "▸", soon: showNavSoonForPath("/roadmap") },
       { label: "Settings", path: "/settings", icon: "⚙" },
     ],

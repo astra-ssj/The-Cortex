@@ -17,11 +17,9 @@ import { GroupDashboard } from "./components/GroupDashboard";
 import { RemediationTracker } from "./pages/RemediationTracker";
 import { HumanReview } from "./pages/HumanReview";
 import { AuditReport } from "./components/AuditReport";
-import { Integrations } from "./components/Integrations";
 import { ProjectTracker } from "./pages/ProjectTracker";
 import { FrameworkDetailPage } from "./pages/FrameworkDetailPage";
 import Intelligence from "./pages/Intelligence";
-import CloudScans from "./pages/CloudScans";
 import AISystems from "./pages/AISystems";
 import { HelpPanel } from "./components/HelpPanel";
 import { clearCortexBrowserSession } from "./lib/cortexSession";
@@ -179,9 +177,6 @@ function AppRoutes() {
         case "g":
           navigate("/group");
           break;
-        case "c":
-          navigate("/cloud-scans");
-          break;
         case "i":
           navigate("/intelligence");
           break;
@@ -231,8 +226,6 @@ function AppRoutes() {
             <Route path="/ai-systems" element={<AISystems />} />
             <Route path="/review-queue" element={<HumanReview />} />
             <Route path="/audit-report" element={<AuditReport />} />
-            <Route path="/integrations" element={<Integrations />} />
-            <Route path="/cloud-scans" element={<CloudScans />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/evidence" element={<EvidenceVault />} />
             <Route path="/findings" element={<RemediationTracker />} />

@@ -16,7 +16,6 @@ export {
   ReviewQueueEmpty,
   RemediationEmpty,
   AuditReportEmpty,
-  IntegrationsEmpty,
   AISystemsEmpty,
   GroupEmpty,
   FrameworksEmpty,

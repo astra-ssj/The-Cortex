@@ -1,23 +1,20 @@
 import { useNavigate, useParams } from "react-router-dom";
 import AuditSimulator from "../components/AuditSimulator";
-import TelemetryFusion from "../components/TelemetryFusion";
 import RegulationIntel from "../components/RegulationIntel";
 import InsightsFeed from "../components/InsightsFeed";
 
-// Insights is the reasoning layer (real backend); the remaining three are illustrative
+// Insights is the reasoning layer (real backend); the remaining tabs are illustrative
 // demo surfaces. Tabs map 1:1 to sub-routes so the sidebar can deep-link to each.
-type IntelTab = "insights" | "simulator" | "signals" | "regulation";
+type IntelTab = "insights" | "simulator" | "regulation";
 
 const TAB_DEFS: { key: IntelTab; label: string; path: string; demo: boolean }[] = [
   { key: "insights", label: "Insights", path: "/intelligence", demo: false },
   { key: "simulator", label: "Audit Simulator", path: "/intelligence/simulator", demo: true },
-  { key: "signals", label: "Live Signals", path: "/intelligence/signals", demo: true },
   { key: "regulation", label: "Regulation Intel", path: "/intelligence/regulation", demo: true },
 ];
 
 const TAB_BY_SLUG: Record<string, IntelTab> = {
   simulator: "simulator",
-  signals: "signals",
   regulation: "regulation",
 };
 
@@ -168,8 +165,8 @@ export default function Intelligence() {
             lineHeight: 1.5,
           }}
         >
-          <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — Audit Simulator, Live Signals,
-          and Regulation Intel use <strong style={{ color: "var(--text)" }}>simulated / demo UX</strong>{" "}
+          <span style={{ color: "var(--amber)", fontWeight: 700 }}>Illustrative</span> — Audit Simulator and
+          Regulation Intel use <strong style={{ color: "var(--text)" }}>simulated / demo UX</strong>{" "}
           for storytelling. The <strong style={{ color: "var(--text)" }}>Insights</strong> tab is live — it reasons over your real compliance graph.
         </div>
       ) : null}
@@ -215,7 +212,6 @@ export default function Intelligence() {
       <>
         {tab === "insights" && <InsightsFeed />}
         {tab === "simulator" && <AuditSimulator />}
-        {tab === "signals" && <TelemetryFusion />}
         {tab === "regulation" && <RegulationIntel />}
       </>
     </div>
