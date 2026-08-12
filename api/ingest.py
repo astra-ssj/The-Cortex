@@ -13,16 +13,13 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
 from core.audit_fabric import audit_fabric
-from core.evidence_persistence import IngestLinkHints, persist_ingested_evidence
 from core.rbac import Permission, require_permission
 from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
-from db.session import async_session_factory
 from core.ingestion import (
     create_evidence_from_mapping,
     map_chunks_to_ontology,
     process_document,
 )
-from core.ingestion.evidence_creator import content_hash
 
 logger = structlog.get_logger()
 
@@ -44,8 +41,6 @@ async def _run_ingest_stream(
     document_id: str,
     org_id: str,
     actor: str,
-    hints: IngestLinkHints,
-    filename: str,
 ):
     """Pipeline: process → map → evidence; yield SSE events. Audit before and after."""
     tmp_path = None
@@ -89,45 +84,12 @@ async def _run_ingest_stream(
         evidence_list = create_evidence_from_mapping(mapping, full_content, document_id)
         yield _sse("evidence_created", {"count": len(evidence_list)})
 
-        digest = content_hash(full_content)
-        link_hints = IngestLinkHints(
-            finding_id=hints.finding_id,
-            control_id=hints.control_id or None,
-            framework_id=hints.framework_id or None,
-            filename=filename or hints.filename,
-            description=hints.description,
-        )
-        persisted = None
-        async with async_session_factory() as session:
-            persisted = await persist_ingested_evidence(
-                session,
-                org_id=org_id,
-                document_id=document_id,
-                mapping=mapping,
-                evidence_list=evidence_list,
-                content_digest=digest,
-                hints=link_hints,
-                actor=actor,
-            )
-        if persisted:
-            yield _sse(
-                "persisted",
-                {
-                    "evidence_id": persisted.evidence_id,
-                    "title": persisted.title,
-                    "controls_linked": persisted.controls_linked,
-                    "finding_linked": persisted.finding_linked,
-                },
-            )
-
         yield _sse(
             "summary",
             {
                 "controls_mapped": len(mapping.controls),
                 "evidence_created": len(evidence_list),
                 "confidence_scores": [mapping.confidence_score],
-                "persisted": persisted is not None,
-                "evidence_id": persisted.evidence_id if persisted else None,
             },
         )
         yield _sse("done", {})
@@ -193,13 +155,6 @@ async def ingest_document(
         str(org_id or current_user.get("org_id") or DEMO_ORG_ID).strip(),
     )
     actor = _actor_label(current_user)
-    hints = IngestLinkHints(
-        finding_id=(finding_id or "").strip() or None,
-        control_id=(control_id or "").strip() or None,
-        framework_id=(framework_id or "").strip() or None,
-        filename=file.filename,
-        description=(description or "").strip() or None,
-    )
     return StreamingResponse(
         _run_ingest_stream(
             content,
@@ -208,8 +163,6 @@ async def ingest_document(
             document_id,
             scoped_org,
             actor,
-            hints,
-            file.filename or "document",
         ),
         media_type="text/event-stream",
         headers={
