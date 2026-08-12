@@ -12,6 +12,17 @@
 
 ---
 
+## PR checklist
+
+- [ ] Conventional commit + story ID (e.g. `feat(...): ... [CORTEX-104]`) — see `.cursor/rules/sdlc.md`
+- [ ] Tests added/updated and passing
+- [ ] No secrets committed (gitleaks CI gate is authoritative; this is a sanity check, not a substitute)
+- [ ] Tenant-scoped DB access (if applicable) — every new query filters by `org_id`
+- [ ] Audit entry written (if state-changing) — via `core/audit_fabric.py`, same transaction
+- [ ] AI asset change → eval run attached (if this touches prompts, rubrics, confidence scoring, or the ZTAIP threshold — see `.cursor/rules/adlc.md`)
+
+---
+
 ## Reviewer checklist (ZTAIP non-negotiables)
 
 Reviewer confirms before approving:

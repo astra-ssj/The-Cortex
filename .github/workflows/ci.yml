@@ -231,3 +231,19 @@ jobs:
           cd frontend
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
           npm audit --audit-level=high
+
+  secret-scan:
+    name: Security — Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Only required if this repo ever moves under a GitHub Organization —
+          # personal-account repos don't need a license key. See gitleaks.io.
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
