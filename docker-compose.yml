@@ -36,6 +36,7 @@ services:
       - ./migrations/019_scenario_content.sql:/docker-entrypoint-initdb.d/19_scenario_content.sql:ro
       - ./migrations/019_scenario_content_seed.sql:/docker-entrypoint-initdb.d/19b_scenario_content_seed.sql:ro
       - ./migrations/020_competency_scores.sql:/docker-entrypoint-initdb.d/20_competency_scores.sql:ro
+      - ./migrations/021_scenario_cx1002_seed.sql:/docker-entrypoint-initdb.d/21_scenario_cx1002_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
       interval: 5s
