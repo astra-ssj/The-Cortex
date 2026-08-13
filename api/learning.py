@@ -7,12 +7,13 @@ import uuid
 from typing import Any, Optional
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
+from api.limits import limiter
 from compliance.models import SovereignModel
 from core.agents.scenario import (
     SCENARIO_ID,
@@ -121,7 +122,9 @@ async def _fetch_session(session: AsyncSession, session_id: uuid.UUID) -> Any | 
 
 
 @router.post("/sessions", response_model=SessionOut, summary="Create a learning scenario session")
+@limiter.limit("30/minute")
 async def create_session(
+    request: Request,
     body: CreateSessionRequest,
     current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -246,7 +249,9 @@ async def get_session(
     response_model=SessionOut,
     summary="Advance the learning loop with a learner choice",
 )
+@limiter.limit("30/minute")
 async def decide(
+    request: Request,
     session_id: uuid.UUID,
     body: DecideRequest,
     org_id: Optional[str] = Query(None, description="Scoped organisation id"),
