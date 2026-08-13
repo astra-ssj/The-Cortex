@@ -27,9 +27,23 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return fetchApi<T>(path, { method: "POST", body: JSON.stringify(body) });
 }
 
+export interface ScenarioSummary {
+  slug: string;
+  title: string;
+  brief: string;
+  track: string;
+  frameworks: string[];
+  difficulty: string;
+}
+
+export function getScenarios(): Promise<ScenarioSummary[]> {
+  return fetchApi<ScenarioSummary[]>("/api/v1/learning/scenarios");
+}
+
 export function createLearningSession(body?: {
   org_id?: string;
   scenario?: string;
+  scenario_slug?: string;
 }): Promise<LearningSession> {
   return postJson<LearningSession>("/api/v1/learning/sessions", body ?? {});
 }
