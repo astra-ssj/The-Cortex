@@ -50,38 +50,36 @@ without a database.
 
 ### Learning loop tables
 
-**scenario_sessions** — one row per learner session
+```
+scenario_sessions — one row per learner session
+id uuid PK
+org_id uuid — tenant scope (RLS enforced)
+scenario text — scenario slug
+learner_id uuid
+state jsonb — messages, choices, decisions, brief
+stage text — current stage slug
+risk text — current risk level
+competency jsonb — four-dimension scores (DEFAULT '{}')
+created_at / updated_at
 
-- `id` uuid PK
-- `org_id` uuid — tenant scope (RLS enforced)
-- `scenario` text — scenario slug
-- `learner_id` uuid
-- `state` jsonb — messages, choices, decisions, brief
-- `stage` text — current stage slug
-- `risk` text — current risk level
-- `competency` jsonb — four-dimension scores (DEFAULT `'{}'`)
-- `created_at` / `updated_at`
+scenarios — shared content, no RLS
+id uuid PK
+slug text UNIQUE
+title / brief / track / frameworks / difficulty / active
 
-**scenarios** — shared content, no RLS
+scenario_stages — one row per stage per scenario
+id uuid PK
+scenario_id uuid FK
+slug / sequence / agent_message / demands
 
-- `id` uuid PK
-- `slug` text UNIQUE
-- `title` / `brief` / `track` / `frameworks` / `difficulty` / `active`
-
-**scenario_stages** — one row per stage per scenario
-
-- `id` uuid PK
-- `scenario_id` uuid FK
-- `slug` / `sequence` / `agent_message` / `demands`
-
-**scenario_choices** — graded reference answers
-
-- `id` uuid PK
-- `stage_id` uuid FK
-- `choice_id` / `label` / `consequence`
-- `is_correct` boolean — reference answer flag
-- `framework_rationale` text — cited control and rationale
-- `display_order` int
+scenario_choices — graded reference answers
+id uuid PK
+stage_id uuid FK
+choice_id / label / consequence
+is_correct boolean — reference answer flag
+framework_rationale text — cited control and rationale
+display_order int
+```
 
 ### Session state shape (JSONB)
 
