@@ -6,10 +6,10 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Annotated, Any
 
 import structlog
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, StringConstraints, ValidationError
 
 from core.agents.model import call_model
 
@@ -37,13 +37,31 @@ _FALLBACK = {
 }
 
 
+# Upper bounds on a single agent turn. Model output is persisted into
+# scenario_sessions.state and replayed into the next prompt, so an unbounded turn
+# grows the row and the context window on every decision. Generous enough that a
+# well-behaved turn is never refused.
+_MAX_SPEAKER_CHARS = 120
+_MAX_STANCE_CHARS = 60
+_MAX_MESSAGE_CHARS = 4000
+_MAX_DEMANDS = 10
+_MAX_DEMAND_CHARS = 240
+
+# How many prior turns are replayed to the model. Caps prompt growth over a long
+# session and limits how far earlier model output can carry an injected instruction.
+_MAX_HISTORY_TURNS = 12
+
+
 class AgentResponse(BaseModel):
     """Validated agent turn — harness refuses anything outside this schema."""
 
-    speaker: str = Field(..., min_length=1)
-    stance: str = Field(..., min_length=1)
-    message: str = Field(..., min_length=1)
-    demands: list[str] = Field(default_factory=list)
+    speaker: str = Field(..., min_length=1, max_length=_MAX_SPEAKER_CHARS)
+    stance: str = Field(..., min_length=1, max_length=_MAX_STANCE_CHARS)
+    message: str = Field(..., min_length=1, max_length=_MAX_MESSAGE_CHARS)
+    demands: list[Annotated[str, StringConstraints(max_length=_MAX_DEMAND_CHARS)]] = Field(
+        default_factory=list,
+        max_length=_MAX_DEMANDS,
+    )
 
 
 def _safe_fallback(*, reason: str) -> AgentResponse:
@@ -73,6 +91,8 @@ async def call_agent(
         if isinstance(last, dict):
             last_choice = str(last.get("choice") or "")
 
+    history = state.get("messages") if isinstance(state.get("messages"), list) else []
+
     context: dict[str, Any] = {
         "situation": situation,
         "stage": session.get("stage") or state.get("stage") or "brief",
@@ -80,7 +100,7 @@ async def call_agent(
         "last_choice": last_choice,
         "decision_count": len(decisions),
         "scenario": session.get("scenario"),
-        "messages": state.get("messages") if isinstance(state.get("messages"), list) else [],
+        "messages": history[-_MAX_HISTORY_TURNS:],
     }
 
     try:
