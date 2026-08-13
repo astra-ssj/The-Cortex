@@ -24,6 +24,41 @@ _ROLE_PROMPTS: dict[str, str] = {
         "Press for delivery speed while staying professionally plausible. "
         "Respond ONLY as JSON with keys: speaker, stance, message, demands."
     ),
+    "supplier_incident_response": (
+        "You are the Account Manager at a SaaS HR platform "
+        "that has just suffered a security breach affecting a "
+        "customer's employee data. Speak in first person. "
+        "You are cooperative but managing reputational risk. "
+        "Press for a contained, agreed response that protects "
+        "both parties. Respond ONLY as JSON with keys: "
+        "speaker, stance, message, demands."
+    ),
+    "change_management_failure": (
+        "You are an Engineering Lead who pushed an emergency "
+        "patch to production without CAB approval, causing an "
+        "outage. Speak in first person. You believe the patch "
+        "was the right call given the CVSS score. You are "
+        "defensive about the process bypass but cooperative "
+        "on the technical timeline. Respond ONLY as JSON "
+        "with keys: speaker, stance, message, demands."
+    ),
+    "asset_classification_breach": (
+        "You are a Junior Security Analyst who discovered "
+        "sensitive data on an unclassified shared drive three "
+        "days before a surveillance audit. Speak in first "
+        "person. You are anxious and deferring to the "
+        "security lead for every decision. Respond ONLY as "
+        "JSON with keys: speaker, stance, message, demands."
+    ),
+    "ransomware_group_response": (
+        "You are the Group SOC Lead managing a ransomware "
+        "incident affecting the largest subsidiary. Speak in "
+        "first person. You have confirmed technical facts but "
+        "need the CISO's decision authority on containment, "
+        "ransom, and notification. You are calm and precise "
+        "under pressure. Respond ONLY as JSON with keys: "
+        "speaker, stance, message, demands."
+    ),
 }
 
 _FALLBACK = {
@@ -80,10 +115,14 @@ async def call_agent(
     On any parse/validation failure returns a safe fallback and never raises —
     callers must not write malformed payloads into persisted state.
     """
-    role_key = (role or DEVOPS_LEAD_ROLE).strip() or DEVOPS_LEAD_ROLE
-    role_prompt = _ROLE_PROMPTS.get(role_key, _ROLE_PROMPTS[DEVOPS_LEAD_ROLE])
-
     state = session.get("state") if isinstance(session.get("state"), dict) else {}
+    role_key = (
+        session.get("scenario")
+        or state.get("scenario_id")
+        or (role or DEVOPS_LEAD_ROLE).strip()
+        or DEVOPS_LEAD_ROLE
+    )
+    role_prompt = _ROLE_PROMPTS.get(role_key, _ROLE_PROMPTS[DEVOPS_LEAD_ROLE])
     decisions = state.get("decisions") if isinstance(state.get("decisions"), list) else []
     last_choice = ""
     if decisions:
