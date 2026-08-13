@@ -7,7 +7,7 @@ export PGPASSWORD="${PGPASSWORD:-}"
 psql() {
   command psql -v ON_ERROR_STOP=1 "$@"
 }
-# Single migration lane: migrations/002 … 020 (filename order == apply order).
+# Single migration lane: migrations/002 … 021 (filename order == apply order).
 # 009/010/013/014/015 still run before 018 drops their tables: replaying history
 # keeps fresh installs and pre-018 databases converging on the same end state.
 for f in \
@@ -31,7 +31,8 @@ for f in \
   "$ROOT/migrations/018_drop_decommissioned_modules.sql" \
   "$ROOT/migrations/019_scenario_content.sql" \
   "$ROOT/migrations/019_scenario_content_seed.sql" \
-  "$ROOT/migrations/020_competency_scores.sql"
+  "$ROOT/migrations/020_competency_scores.sql" \
+  "$ROOT/migrations/021_scenario_cx1002_seed.sql"
   do
   echo "Applying $(basename "$f")..."
   psql -f "$f"
