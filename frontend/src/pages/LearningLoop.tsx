@@ -4,8 +4,10 @@ import {
   createLearningSession,
   decideLearningSession,
   getLearningSession,
+  getScenarios,
   type CompetencyDimension,
   type LearningSession,
+  type ScenarioSummary,
 } from "../api/learning";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Button } from "../components/ui/Button";
@@ -131,6 +133,137 @@ function LearningLoopSkeleton() {
   );
 }
 
+function difficultyColor(difficulty: string): string {
+  if (difficulty === "foundation") return "var(--cyan)";
+  if (difficulty === "practitioner") return "var(--amber)";
+  if (difficulty === "expert") return "var(--red)";
+  return "var(--text-secondary)";
+}
+
+function truncateBrief(brief: string, max = 120): string {
+  const trimmed = brief.trim();
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max).trimEnd()}…`;
+}
+
+function ScenarioSelectorSkeleton() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {[0, 1].map((i) => (
+        <div key={i} style={panel}>
+          <Skeleton height="18px" width="55%" style={{ marginBottom: 12 }} />
+          <Skeleton height="14px" width="28%" style={{ marginBottom: 12 }} />
+          <Skeleton height="48px" style={{ marginBottom: 16 }} />
+          <Skeleton height="36px" width="140px" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ScenarioSelector({
+  onStart,
+  startingSlug,
+}: {
+  onStart: (slug: string) => void;
+  startingSlug: string | null;
+}) {
+  const query = useQuery({
+    queryKey: ["learning-scenarios"],
+    queryFn: getScenarios,
+  });
+
+  if (query.isPending) return <ScenarioSelectorSkeleton />;
+  if (query.isError) {
+    return (
+      <EmptyState
+        icon="⚠"
+        title="Scenarios unavailable"
+        description="The scenario catalogue could not be loaded. Check your connection and try again."
+        badge="ACCESS"
+        badgeColor="var(--amber)"
+        cta="Retry"
+        onCta={() => { void query.refetch(); }}
+      />
+    );
+  }
+
+  const scenarios: ScenarioSummary[] = query.data ?? [];
+  if (scenarios.length === 0) {
+    return (
+      <EmptyState
+        icon="↻"
+        title="No scenarios available"
+        description="There are no active scenarios to start right now."
+        badge="LEARNING LOOP"
+        badgeColor="var(--cyan)"
+      />
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {scenarios.map((s) => {
+        const color = difficultyColor(s.difficulty);
+        const starting = startingSlug === s.slug;
+        return (
+          <article key={s.slug} style={panel} aria-label={s.title}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 10 }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
+                {s.title}
+              </h2>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color,
+                  border: `1px solid color-mix(in srgb, ${color} 40%, transparent)`,
+                  borderRadius: 999,
+                  padding: "2px 8px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {s.difficulty}
+              </span>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+              {s.frameworks.map((fw) => (
+                <span
+                  key={fw}
+                  style={{
+                    fontSize: 11,
+                    color: "var(--text-secondary)",
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 4,
+                    padding: "2px 8px",
+                  }}
+                >
+                  {fw}
+                </span>
+              ))}
+            </div>
+            <p style={{ margin: "0 0 16px", fontSize: 13, lineHeight: 1.55, color: "var(--text-secondary)" }}>
+              {truncateBrief(s.brief)}
+            </p>
+            <Button
+              variant="primary"
+              size="md"
+              type="button"
+              disabled={startingSlug !== null}
+              onClick={() => onStart(s.slug)}
+            >
+              {starting ? "Starting…" : "Start scenario"}
+            </Button>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function LearningLoop() {
   const { orgId } = useOrgContext();
   const qc = useQueryClient();
@@ -146,7 +279,8 @@ export default function LearningLoop() {
   });
 
   const createMut = useMutation({
-    mutationFn: () => createLearningSession({ org_id: orgId }),
+    mutationFn: (slug: string) =>
+      createLearningSession({ org_id: orgId, scenario_slug: slug }),
     onSuccess: (s) => {
       localStorage.setItem("cortex_learning_session_id", s.id);
       setSessionId(s.id);
@@ -162,9 +296,12 @@ export default function LearningLoop() {
     },
   });
 
-  const onStart = useCallback(() => {
-    createMut.mutate();
-  }, [createMut]);
+  const onStart = useCallback(
+    (slug: string) => {
+      createMut.mutate(slug);
+    },
+    [createMut],
+  );
 
   const onReset = useCallback(() => {
     localStorage.removeItem("cortex_learning_session_id");
@@ -234,15 +371,17 @@ export default function LearningLoop() {
       </div>
 
       {!sessionId ? (
-        <EmptyState
-          icon="↻"
-          title="Start the onboarding scenario"
-          description="Create an org-scoped session. Your choices advance a deterministic loop; the DevOps Lead agent is consulted through a schema harness."
-          badge="LEARNING LOOP V1"
-          badgeColor="var(--cyan)"
-          cta={createMut.isPending ? "Starting…" : "Start scenario"}
-          onCta={createMut.isPending ? undefined : onStart}
-        />
+        <>
+          <ScenarioSelector
+            onStart={onStart}
+            startingSlug={createMut.isPending ? (createMut.variables ?? null) : null}
+          />
+          {createMut.isError ? (
+            <p style={{ marginTop: 12, color: "var(--red)", fontSize: 12 }}>
+              Could not start this scenario — try again.
+            </p>
+          ) : null}
+        </>
       ) : sessionQuery.isPending || createMut.isPending ? (
         <LearningLoopSkeleton />
       ) : sessionQuery.isError ? (
