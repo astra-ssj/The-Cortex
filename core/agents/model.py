@@ -1,7 +1,7 @@
 # core/agents/model.py — Single swappable model-call primitive for Learning Loop agents.
 #
-# Signature is final: swap the stub body for Claude (then Kimi/GLM) without touching
-# the harness or controller. Model id comes from AGENT_MODEL env, never hard-coded.
+# Signature is final: Claude is the live path; stub remains for tests and when
+# ANTHROPIC_API_KEY is unset. Model id comes from AGENT_MODEL env, never hard-coded.
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import json
 import os
 from typing import Any
 
+import anthropic
 import structlog
 
 from core.circuit_breaker import CircuitBreaker, register_circuit_breaker
@@ -23,6 +24,10 @@ register_circuit_breaker(_agent_model_breaker)
 # fallback paths can be proven without a live provider.
 _FORCE_BAD_OUTPUT_ENV = "CORTEX_LEARNING_FORCE_BAD_OUTPUT"
 
+_STUB_MODEL_NAME = "stub-devops-lead-v1"
+_DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-6"
+_MAX_TOKENS = 1000
+
 
 def agent_model_name() -> str:
     """Configured model id (env: AGENT_MODEL). Stub ignores the value today."""
@@ -33,17 +38,19 @@ async def call_model(role_prompt: str, context: dict[str, Any]) -> str:
     """
     Invoke the configured agent model and return raw text.
 
-    TODO: Replace the stub body with the real client (Anthropic Claude first,
-    then Kimi/GLM). Keep this the only place that talks to a provider — wrap
-    the HTTP/SDK call in `_agent_model_breaker.execute(...)`. Model selection
-    stays config-driven via AGENT_MODEL.
+    Live Claude is used when AGENT_MODEL is not the stub id and ANTHROPIC_API_KEY
+    is set. Otherwise the deterministic stub runs. Both paths go through
+    `_agent_model_breaker.execute(...)`.
     """
     model = agent_model_name()
+    api_key_present = bool(os.getenv("ANTHROPIC_API_KEY"))
+    use_stub = model == _STUB_MODEL_NAME or not api_key_present
+    path = "stub" if use_stub else "claude"
     logger.info(
         "learning_call_model",
         model=model,
-        role_prompt_chars=len(role_prompt or ""),
-        context_keys=sorted(context.keys()),
+        path=path,
+        api_key_present=api_key_present,
     )
 
     async def _stub_invoke() -> str:
@@ -129,5 +136,25 @@ async def call_model(role_prompt: str, context: dict[str, Any]) -> str:
 
         return json.dumps(payload)
 
-    # Stub path still goes through the breaker so the real client swap keeps the same shape.
-    return await _agent_model_breaker.execute(_stub_invoke)
+    if use_stub:
+        return await _agent_model_breaker.execute(_stub_invoke)
+
+    async def _claude_invoke() -> str:
+        client = anthropic.AsyncAnthropic(
+            api_key=os.getenv("ANTHROPIC_API_KEY")
+        )
+        user_content = (
+            f"Context:\n{json.dumps(context, indent=2)}\n\n"
+            "Respond ONLY as JSON with keys: "
+            "speaker, stance, message, demands. "
+            "No preamble, no markdown, no explanation."
+        )
+        response = await client.messages.create(
+            model=os.getenv("AGENT_MODEL", _DEFAULT_CLAUDE_MODEL),
+            max_tokens=_MAX_TOKENS,
+            system=role_prompt,
+            messages=[{"role": "user", "content": user_content}],
+        )
+        return response.content[0].text
+
+    return await _agent_model_breaker.execute(_claude_invoke)
