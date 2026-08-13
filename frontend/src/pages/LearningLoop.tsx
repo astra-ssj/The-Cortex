@@ -4,6 +4,7 @@ import {
   createLearningSession,
   decideLearningSession,
   getLearningSession,
+  type CompetencyDimension,
   type LearningSession,
 } from "../api/learning";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -24,6 +25,93 @@ function riskColor(risk: string | null | undefined): string {
   if (risk === "blocked") return "var(--amber)";
   if (risk === "under_review") return "var(--cyan)";
   return "var(--text-secondary)";
+}
+
+const DIMENSION_ORDER = [
+  "control_mapping",
+  "evidence",
+  "escalation",
+  "remediation",
+] as const;
+
+const DIMENSION_LABELS: Record<(typeof DIMENSION_ORDER)[number], string> = {
+  control_mapping: "Control Mapping",
+  evidence: "Evidence Quality",
+  escalation: "Escalation Judgment",
+  remediation: "Remediation",
+};
+
+function CompetencyPanel({
+  competency,
+}: {
+  competency: Record<string, CompetencyDimension>;
+}) {
+  return (
+    <div
+      aria-label="Competency scores"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 10,
+        marginBottom: 20,
+      }}
+    >
+      {DIMENSION_ORDER.map((key) => {
+        const dim = competency[key];
+        if (!dim) return null;
+        const score = Math.max(0, Math.min(100, Number(dim.score) || 0));
+        const delta = dim.delta ?? 0;
+        const latest = dim.observations?.length
+          ? dim.observations[dim.observations.length - 1]
+          : "";
+        const mark = delta > 0 ? "▲" : delta < 0 ? "▼" : "—";
+        const color =
+          delta > 0 ? "var(--green)" : delta < 0 ? "var(--red)" : "var(--text-secondary)";
+        return (
+          <div
+            key={key}
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              padding: 12,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "var(--text-secondary)" }}>
+                {DIMENSION_LABELS[key]}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 700, color }} aria-label={`delta ${delta}`}>
+                {mark} {score}
+              </span>
+            </div>
+            <div
+              style={{
+                marginTop: 8,
+                height: 4,
+                borderRadius: 2,
+                background: "var(--border)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${score}%`,
+                  height: "100%",
+                  background: "var(--cyan)",
+                }}
+              />
+            </div>
+            {latest ? (
+              <p style={{ margin: "8px 0 0", fontSize: 11, lineHeight: 1.45, color: "var(--text-secondary)" }}>
+                {latest}
+              </p>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function LearningLoopSkeleton() {
@@ -270,6 +358,10 @@ export default function LearningLoop() {
                 </div>
               ))}
             </div>
+
+            {session.competency && Object.keys(session.competency).length > 0 ? (
+              <CompetencyPanel competency={session.competency} />
+            ) : null}
 
             {choices.length > 0 ? (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
