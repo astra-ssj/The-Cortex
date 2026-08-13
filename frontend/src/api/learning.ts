@@ -2,6 +2,12 @@
 
 import { fetchApi } from "./client";
 
+export interface CompetencyDimension {
+  score: number;
+  delta: number;
+  observations: string[];
+}
+
 export interface LearningSession {
   id: string;
   org_id: string;
@@ -10,6 +16,7 @@ export interface LearningSession {
   state: Record<string, unknown>;
   stage: string;
   risk: string | null;
+  competency?: Record<string, CompetencyDimension>;
   created_at?: string | null;
   updated_at?: string | null;
   jurisdiction?: string;

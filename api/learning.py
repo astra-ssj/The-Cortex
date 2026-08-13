@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.deps import get_db
 from api.limits import limiter
 from compliance.models import SovereignModel
+from core.agents.grading import grade_decision
 from core.agents.scenario import (
     SCENARIO_ID,
     TERMINAL_STAGE,
@@ -65,6 +66,7 @@ class SessionOut(SovereignModel):
     state: dict[str, Any]
     stage: str
     risk: Optional[str] = None
+    competency: dict[str, Any] = Field(default_factory=dict)
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -75,12 +77,19 @@ def _resolve_org(current_user: dict[str, Any], requested: Optional[str]) -> str:
     return str(current_user.get("org_id") or DEMO_ORG_ID).strip()
 
 
+def _json_object(value: Any) -> dict[str, Any]:
+    if isinstance(value, str):
+        value = json.loads(value)
+    return dict(value or {})
+
+
 def _row_to_out(row: Any) -> SessionOut:
     created = row["created_at"]
     updated = row["updated_at"]
-    state = row["state"]
-    if isinstance(state, str):
-        state = json.loads(state)
+    try:
+        raw_competency = row["competency"]
+    except (KeyError, TypeError):
+        raw_competency = {}
     return SessionOut(
         jurisdiction="internal",
         purpose_tags=["learning", "onboarding", "agent-harness"],
@@ -88,9 +97,10 @@ def _row_to_out(row: Any) -> SessionOut:
         org_id=str(row["org_id"]),
         scenario=str(row["scenario"]),
         learner_id=str(row["learner_id"]),
-        state=dict(state or {}),
+        state=_json_object(row["state"]),
         stage=str(row["stage"]),
         risk=str(row["risk"]) if row["risk"] is not None else None,
+        competency=_json_object(raw_competency),
         created_at=created.isoformat() if hasattr(created, "isoformat") else (str(created) if created else None),
         updated_at=updated.isoformat() if hasattr(updated, "isoformat") else (str(updated) if updated else None),
     )
@@ -111,7 +121,7 @@ async def _fetch_session(session: AsyncSession, session_id: uuid.UUID) -> Any | 
     result = await session.execute(
         text(
             """
-            SELECT id, org_id, scenario, learner_id, state, stage, risk, created_at, updated_at
+            SELECT id, org_id, scenario, learner_id, state, stage, risk, competency, created_at, updated_at
             FROM scenario_sessions
             WHERE id = :id
             """
@@ -160,7 +170,7 @@ async def create_session(
             VALUES (
               :org_id, :scenario, :learner_id, CAST(:state AS jsonb), 'access_request', NULL
             )
-            RETURNING id, org_id, scenario, learner_id, state, stage, risk, created_at, updated_at
+            RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency, created_at, updated_at
             """
         ),
         {
@@ -195,7 +205,7 @@ async def create_session(
                 stage = 'access_request',
                 updated_at = NOW()
             WHERE id = :id
-            RETURNING id, org_id, scenario, learner_id, state, stage, risk, created_at, updated_at
+            RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency, created_at, updated_at
             """
         ),
         {"id": session_id, "state": json.dumps(full_state)},
@@ -329,6 +339,30 @@ async def decide(
         scenario=content,
     )
 
+    stage_obj = content.stage(stage_before)
+    scenario_choices = list(stage_obj.choices) if stage_obj is not None else []
+    try:
+        raw_competency = row["competency"]
+    except (KeyError, TypeError):
+        raw_competency = {}
+    result = grade_decision(
+        choice_id=choice,
+        stage=stage_before,
+        scenario_choices=scenario_choices,
+        current_competency=_json_object(raw_competency),
+        decisions_so_far=list(new_state.get("decisions") or []),
+    )
+    decisions = list(new_state.get("decisions") or [])
+    if decisions:
+        last = dict(decisions[-1])
+        last["graded"] = {
+            "correct": result.correct,
+            "rationale": result.framework_rationale,
+            "observations": result.observations,
+        }
+        decisions[-1] = last
+        new_state["decisions"] = decisions
+
     updated = await db.execute(
         text(
             """
@@ -336,9 +370,10 @@ async def decide(
             SET state = CAST(:state AS jsonb),
                 stage = :stage,
                 risk = :risk,
+                competency = CAST(:competency AS jsonb),
                 updated_at = NOW()
             WHERE id = :id
-            RETURNING id, org_id, scenario, learner_id, state, stage, risk, created_at, updated_at
+            RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency, created_at, updated_at
             """
         ),
         {
@@ -346,6 +381,7 @@ async def decide(
             "state": json.dumps(new_state),
             "stage": new_stage,
             "risk": new_risk,
+            "competency": json.dumps(result.updated_competency),
         },
     )
     out_row = updated.mappings().first()
