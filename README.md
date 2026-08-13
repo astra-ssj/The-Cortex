@@ -115,7 +115,7 @@ Optional: set **`VITE_CORTEX_DEPLOY_LABEL`** (for example `staging`) in `fronten
 
 Open http://localhost:3000
 
-**Login (demo tenant):** Use **`admin`** / **`admin`** or **`admin@astralabs.com`** / **`admin`**. The database seed creates the admin row; Docker Compose also sets `CORTEX_LEGACY_DEMO_PASSWORD=admin` so the shorthand works even before DB lookup. If you run the API outside Compose without that env var, either export `CORTEX_LEGACY_DEMO_PASSWORD=admin` or rely on the seeded email above. **No database:** in-memory demo **`ciso@astralabs.com`** / **`cortex-ciso-2026`** (see `tests/test_auth.py`).
+**Login (demo tenant):** Use **`admin`** / **`admin`** or **`admin@astralabs.com`** / **`admin`**. The database seed creates the admin row; Docker Compose also sets `CORTEX_LEGACY_DEMO_PASSWORD=admin` so the shorthand works even before DB lookup. If you run the API outside Compose without that env var, either export `CORTEX_LEGACY_DEMO_PASSWORD=admin` or rely on the seeded email above. **No database:** the in-memory demo account **`ciso@astralabs.com`** / **`cortex-ciso-2026`** (see `tests/test_auth.py`) is **disabled by default** — its password hash is committed to this repo, so it only loads when you set `CORTEX_ENABLE_DEMO_USERS=1`.
 
 ### Register a new tenant
 

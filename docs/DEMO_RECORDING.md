@@ -6,7 +6,9 @@
 
 1. Start stack: `docker compose up -d` (API + Postgres; migration `013_compliance_graph.sql` applied via init).
 2. Frontend: `cd frontend && npm run dev` → http://localhost:3000
-3. Login: **ciso@astralabs.com** / **cortex-ciso-2026** (analyst can ingest).
+3. Login: **ciso@astralabs.com** / **cortex-ciso-2026** (analyst can ingest). This
+   built-in account is off by default; export `CORTEX_ENABLE_DEMO_USERS=1` before
+   starting the API, or log in with the seeded `admin@astralabs.com` instead.
 4. Org: **AstraLabs DE** (`demo-org-001`).
 5. Optional live LLM: `ANTHROPIC_API_KEY` in API env. Without it, **stub** provider still completes the flow (deterministic GDPR mapping + your control hint).
 
