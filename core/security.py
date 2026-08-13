@@ -22,11 +22,26 @@ from db.deps import get_db
 logger = structlog.get_logger()
 
 _DEV_SECRET_DEFAULT = "cortex-dev-jwt-signing-placeholder-not-for-production"  # nosec B105
-SECRET_KEY = (
-    os.getenv("JWT_SECRET")
-    or os.getenv("CORTEX_SECRET_KEY")
-    or _DEV_SECRET_DEFAULT
-)
+
+
+def _dev_secret_opt_in() -> bool:
+    return os.getenv("CORTEX_TESTING", "").lower() in ("1", "true", "yes") or os.getenv(
+        "CORTEX_ALLOW_DEV_JWT_SECRET", ""
+    ).lower() in ("1", "true", "yes")
+
+
+_configured_secret = os.getenv("JWT_SECRET") or os.getenv("CORTEX_SECRET_KEY")
+if not _configured_secret and not _dev_secret_opt_in():
+    # Fail closed rather than fall back to a key that ships in this repo. That key
+    # lets anyone mint a token for any org_id, and because RLS binds app.current_org
+    # from that claim, forged tokens defeat tenant isolation as well as authentication.
+    raise RuntimeError(
+        "JWT_SECRET (or CORTEX_SECRET_KEY) must be set. "
+        "For local development only, set CORTEX_ALLOW_DEV_JWT_SECRET=1 to accept the "
+        "insecure built-in key."
+    )
+
+SECRET_KEY = _configured_secret or _DEV_SECRET_DEFAULT
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
@@ -34,7 +49,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 if SECRET_KEY == _DEV_SECRET_DEFAULT:
     logger.warning(
         "jwt_secret_default",
-        message="JWT_SECRET/CORTEX_SECRET_KEY not set — using dev default. Set JWT_SECRET in production.",
+        message="Using the built-in dev JWT key — tokens are forgeable. Never enable this outside local dev.",
     )
 
 
@@ -48,7 +63,17 @@ def _token_bypass_expected() -> str:
 
 http_bearer_optional = HTTPBearer(auto_error=False)
 
-DEMO_USERS: dict[str, dict[str, Any]] = {
+
+def _demo_users_enabled() -> bool:
+    return os.getenv("CORTEX_TESTING", "").lower() in ("1", "true", "yes") or os.getenv(
+        "CORTEX_ENABLE_DEMO_USERS", ""
+    ).lower() in ("1", "true", "yes")
+
+
+# These accounts authenticate against password hashes committed to this repo, and the
+# plaintext is published in README/tests — so they are a standing credential unless
+# explicitly opted in. Off by default; DEMO_USERS is empty in a default deployment.
+_DEMO_USER_SEED: dict[str, dict[str, Any]] = {
     "ciso@astralabs.com": {
         "name": "Group CISO",
         "email": "ciso@astralabs.com",
@@ -71,6 +96,8 @@ DEMO_USERS: dict[str, dict[str, Any]] = {
         "entity": "External",
     },
 }
+
+DEMO_USERS: dict[str, dict[str, Any]] = _DEMO_USER_SEED if _demo_users_enabled() else {}
 
 
 def hash_password(plain: str) -> str:

@@ -7,15 +7,17 @@ import uuid
 from typing import Any, Optional
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
+from api.limits import limiter
 from compliance.models import SovereignModel
 from core.agents.scenario import (
     SCENARIO_ID,
+    TERMINAL_STAGE,
     Scenario,
     ScenarioNotFound,
     advance_after_decision,
@@ -120,7 +122,9 @@ async def _fetch_session(session: AsyncSession, session_id: uuid.UUID) -> Any | 
 
 
 @router.post("/sessions", response_model=SessionOut, summary="Create a learning scenario session")
+@limiter.limit("30/minute")
 async def create_session(
+    request: Request,
     body: CreateSessionRequest,
     current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -245,7 +249,9 @@ async def get_session(
     response_model=SessionOut,
     summary="Advance the learning loop with a learner choice",
 )
+@limiter.limit("30/minute")
 async def decide(
+    request: Request,
     session_id: uuid.UUID,
     body: DecideRequest,
     org_id: Optional[str] = Query(None, description="Scoped organisation id"),
@@ -254,6 +260,7 @@ async def decide(
 ) -> SessionOut:
     effective = await bind_scoped_org(db, current_user, _resolve_org(current_user, org_id))
     choice = body.choice.strip()
+    actor = str(current_user.get("sub") or current_user.get("email") or "anonymous")
 
     row = await _fetch_session(db, session_id)
     if row is None or str(row["org_id"]) != effective:
@@ -265,14 +272,35 @@ async def decide(
     # The session's own scenario defines what is choosable; _VALID_CHOICES only
     # backstops content that carries no choices at all.
     content = await _load_content(db, str(row["scenario"]))
-    allowed = content.valid_choice_ids() or _VALID_CHOICES
+    stage_before = str(row["stage"])
+
+    # A graded session is final. Without this, any choice from a later stage
+    # reopens it, rewriting the recorded risk and re-running the agent on every
+    # call — so the assessed decision would not be the one that stands.
+    if stage_before == TERMINAL_STAGE:
+        logger.warning(
+            "learning_decide_rejected_terminal",
+            session_id=str(session_id),
+            org_id=effective,
+            actor=actor,
+            choice=choice,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This learning session is complete and cannot be advanced.",
+        )
+
+    # Scope to the current stage: valid_choice_ids() is the union across every
+    # stage, which would let a learner answer a stage they are not on.
+    allowed = {c["id"] for c in content.choices_for_stage(stage_before)}
+    if not allowed:
+        allowed = set(content.valid_choice_ids()) or set(_VALID_CHOICES)
     if choice not in allowed:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid choice '{choice}'. Expected one of: {sorted(allowed)}",
+            detail=f"Invalid choice '{choice}' for stage '{stage_before}'. Expected one of: {sorted(allowed)}",
         )
 
-    actor = str(current_user.get("sub") or current_user.get("email") or "anonymous")
     state = row["state"]
     if isinstance(state, str):
         state = json.loads(state)

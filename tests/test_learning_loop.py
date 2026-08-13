@@ -215,6 +215,98 @@ async def test_harness_fallback_does_not_corrupt_state(
 
 
 @pytest.mark.asyncio
+async def test_completed_session_rejects_further_decisions(client: TestClient) -> None:
+    """A graded session is final — reopening it would rewrite the assessed decision."""
+    if not await database_ready():
+        pytest.skip("database not reachable")
+
+    org_id = f"org-learn-final-{uuid.uuid4().hex[:8]}"
+    await _ensure_org(org_id, "Learn Terminal Org")
+    hdrs = _headers(org_id)
+
+    created = client.post(
+        "/api/v1/learning/sessions",
+        headers=hdrs,
+        json={"org_id": org_id},
+    )
+    assert created.status_code == 200, created.text
+    session_id = created.json()["id"]
+
+    done = client.post(
+        f"/api/v1/learning/sessions/{session_id}/decide",
+        headers=hdrs,
+        json={"choice": "approve_all"},
+    )
+    assert done.status_code == 200, done.text
+    assert done.json()["stage"] == "complete"
+    settled = done.json()
+
+    reopened = client.post(
+        f"/api/v1/learning/sessions/{session_id}/decide",
+        headers=hdrs,
+        json={"choice": "challenge"},
+    )
+    assert reopened.status_code == 409, reopened.text
+
+    # The graded outcome is untouched: same stage, risk, and no extra agent turn.
+    after = client.get(
+        f"/api/v1/learning/sessions/{session_id}?org_id={org_id}",
+        headers=hdrs,
+    ).json()
+    assert after["stage"] == "complete"
+    assert after["risk"] == settled["risk"]
+    assert len(after["state"]["messages"]) == len(settled["state"]["messages"])
+    assert len(after["state"]["decisions"]) == len(settled["state"]["decisions"])
+
+
+@pytest.mark.asyncio
+async def test_decide_rejects_choice_from_another_stage(client: TestClient) -> None:
+    """`challenge` belongs to the entry stage only — it must not be replayable at escalation."""
+    if not await database_ready():
+        pytest.skip("database not reachable")
+
+    org_id = f"org-learn-stage-{uuid.uuid4().hex[:8]}"
+    await _ensure_org(org_id, "Learn Stage Org")
+    hdrs = _headers(org_id)
+
+    created = client.post(
+        "/api/v1/learning/sessions",
+        headers=hdrs,
+        json={"org_id": org_id},
+    )
+    assert created.status_code == 200, created.text
+    session_id = created.json()["id"]
+
+    escalated = client.post(
+        f"/api/v1/learning/sessions/{session_id}/decide",
+        headers=hdrs,
+        json={"choice": "challenge"},
+    )
+    assert escalated.status_code == 200, escalated.text
+    assert escalated.json()["stage"] == "escalation"
+    offered = {c["id"] for c in escalated.json()["state"]["choices"]}
+
+    if "challenge" in offered:
+        pytest.skip("scenario content offers 'challenge' at escalation")
+
+    replayed = client.post(
+        f"/api/v1/learning/sessions/{session_id}/decide",
+        headers=hdrs,
+        json={"choice": "challenge"},
+    )
+    assert replayed.status_code == 400, replayed.text
+    assert "escalation" in replayed.json()["error"]["message"]
+
+    # A choice the stage does offer still works.
+    ok = client.post(
+        f"/api/v1/learning/sessions/{session_id}/decide",
+        headers=hdrs,
+        json={"choice": sorted(offered)[0]},
+    )
+    assert ok.status_code == 200, ok.text
+
+
+@pytest.mark.asyncio
 async def test_rls_hides_scenario_sessions_without_where() -> None:
     """DB-enforced isolation on scenario_sessions (same Phase 2 pattern as findings)."""
     if not await database_ready():

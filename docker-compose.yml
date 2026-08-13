@@ -77,6 +77,7 @@ services:
       # No insecure defaults: these must be set explicitly (in .env for local dev).
       # Using :? makes the stack refuse to start rather than silently shipping
       # admin/admin or a well-known stub token. See .env.example.
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       CORTEX_LEGACY_DEMO_PASSWORD: ${CORTEX_LEGACY_DEMO_PASSWORD:?set CORTEX_LEGACY_DEMO_PASSWORD in .env}
       COMPLIANCE_ENGINE_STUB_PASSWORD: ${COMPLIANCE_ENGINE_STUB_PASSWORD:?set COMPLIANCE_ENGINE_STUB_PASSWORD in .env}
       COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN: ${COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN:?set COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN in .env}

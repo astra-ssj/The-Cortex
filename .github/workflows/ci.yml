@@ -213,7 +213,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip pip-audit
           pip install -e "."
-          pip-audit
+          # PYSEC-2026-1325 (CVE-2024-23342): Minerva timing attack on P-256 in
+          # ecdsa, reachable only via ECDSA signing/keygen/ECDH. Every published
+          # version is affected and upstream treats side channels as out of
+          # scope, so no upgrade exists. ecdsa is transitive via python-jose;
+          # core/security.py signs and verifies with HS256 only, so the
+          # vulnerable paths are unreachable. Revisit if we adopt ES*/ECDH.
+          pip-audit --ignore-vuln PYSEC-2026-1325
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
