@@ -243,8 +243,9 @@ async def ensure_learning_loop_schema() -> None:
 
         url = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://", 1)
         parsed = urlparse(url)
-        # Prefer migration owner (cortex) so FORCE RLS / GRANT land correctly.
-        admin_user = os.environ.get("PGUSER", unquote(parsed.username or "cortex"))
+        # DDL must run as table owner (cortex). DATABASE_URL is usually cortex_app,
+        # which cannot ALTER scenario_sessions.
+        admin_user = os.environ.get("PGUSER", "cortex")
         admin_password = os.environ.get(
             "PGPASSWORD", unquote(parsed.password or "")
         )
