@@ -34,7 +34,8 @@ for f in \
   "$ROOT/migrations/020_competency_scores.sql" \
   "$ROOT/migrations/021_scenario_cx1002_seed.sql" \
   "$ROOT/migrations/022_scenario_cx1003_seed.sql" \
-  "$ROOT/migrations/023_scenario_cx1004_seed.sql"
+  "$ROOT/migrations/023_scenario_cx1004_seed.sql" \
+  "$ROOT/migrations/024_scenario_cx1005_seed.sql"
   do
   echo "Applying $(basename "$f")..."
   psql -f "$f"
