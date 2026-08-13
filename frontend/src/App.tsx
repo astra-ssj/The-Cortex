@@ -5,7 +5,6 @@ import {
   Route,
   Navigate,
   Outlet,
-  useLocation,
   useNavigate,
 } from "react-router-dom";
 import { getToken, getUser } from "./api/client";
@@ -72,7 +71,6 @@ function MainChrome() {
 }
 
 function AuthGate() {
-  const loc = useLocation();
   const [authTick, setAuthTick] = useState(0);
 
   useEffect(() => {
@@ -90,17 +88,6 @@ function AuthGate() {
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  const onboardingRaw = localStorage.getItem("cortex_onboarding");
-  const onboardingState = onboardingRaw
-    ? (JSON.parse(onboardingRaw) as { complete?: boolean })
-    : null;
-  const needsOnboarding = onboardingState?.complete === false;
-  if (needsOnboarding && loc.pathname !== "/onboarding") {
-    return <Navigate to="/onboarding" replace />;
-  }
-  if (!needsOnboarding && loc.pathname === "/onboarding") {
-    return <Navigate to="/dashboard" replace />;
-  }
   return <Outlet />;
 }
 
@@ -108,37 +95,18 @@ function RootRedirect() {
   if (!getToken()) {
     return <Navigate to="/login" replace />;
   }
-  const onboardingRaw = localStorage.getItem("cortex_onboarding");
-  const onboardingState = onboardingRaw
-    ? (JSON.parse(onboardingRaw) as { complete?: boolean })
-    : null;
-  if (onboardingState?.complete === false) {
-    return <Navigate to="/onboarding" replace />;
-  }
-  return <Navigate to="/dashboard" replace />;
+  return <Navigate to="/learning" replace />;
 }
 
 function LoginScreen() {
   const navigate = useNavigate();
   if (getToken()) {
-    const onboardingRaw = localStorage.getItem("cortex_onboarding");
-    const onboardingState = onboardingRaw
-      ? (JSON.parse(onboardingRaw) as { complete?: boolean })
-      : null;
-    if (onboardingState?.complete === false) {
-      return <Navigate to="/onboarding" replace />;
-    }
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/learning" replace />;
   }
   return (
     <Login
-      onSuccess={(_token, user) => {
-        const u = user as { onboarding_complete?: boolean };
-        if (u.onboarding_complete === false) {
-          navigate("/onboarding", { replace: true });
-        } else {
-          navigate("/dashboard", { replace: true });
-        }
+      onSuccess={(_token, _user) => {
+        navigate("/learning", { replace: true });
       }}
     />
   );
