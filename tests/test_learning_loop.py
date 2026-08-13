@@ -339,3 +339,38 @@ async def test_rls_hides_scenario_sessions_without_where() -> None:
         ).mappings().all()
         leaked = [r for r in rows if r["org_id"] == org_a]
         assert leaked == []
+
+
+@pytest.mark.asyncio
+async def test_list_scenarios_auth_and_difficulty_order(client: TestClient) -> None:
+    """Shared catalogue: 401 without JWT; active rows ordered foundation → practitioner."""
+    if not await database_ready():
+        pytest.skip("database not reachable")
+
+    denied = client.get("/api/v1/learning/scenarios")
+    assert denied.status_code in (401, 403)
+
+    org_id = f"org-learn-list-{uuid.uuid4().hex[:8]}"
+    await _ensure_org(org_id, "Learn List Tenant")
+
+    listed = client.get("/api/v1/learning/scenarios", headers=_headers(org_id))
+    assert listed.status_code == 200, listed.text
+    rows = listed.json()
+    assert isinstance(rows, list)
+    if not rows:
+        pytest.skip("scenarios table empty or unmigrated")
+
+    order = {"foundation": 1, "practitioner": 2, "expert": 3}
+    ranks = [order.get(str(r["difficulty"]), 4) for r in rows]
+    assert ranks == sorted(ranks)
+
+    slugs = [r["slug"] for r in rows]
+    if "cloud_access_onboarding" in slugs and "supplier_incident_response" in slugs:
+        assert slugs.index("cloud_access_onboarding") < slugs.index(
+            "supplier_incident_response"
+        )
+
+    sample = rows[0]
+    for key in ("slug", "title", "brief", "track", "frameworks", "difficulty"):
+        assert key in sample
+    assert isinstance(sample["frameworks"], list)

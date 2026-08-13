@@ -56,6 +56,17 @@ class DecideRequest(BaseModel):
     choice: str = Field(..., min_length=1, description="Learner choice id")
 
 
+class ScenarioSummary(BaseModel):
+    """Shared curriculum row — not tenant-owned (no org_id / RLS)."""
+
+    slug: str
+    title: str
+    brief: str
+    track: str
+    frameworks: list[str]
+    difficulty: str
+
+
 class SessionOut(SovereignModel):
     """Org-scoped learning session — inherits jurisdiction + purpose tags (ZTAIP)."""
 
@@ -129,6 +140,61 @@ async def _fetch_session(session: AsyncSession, session_id: uuid.UUID) -> Any | 
         {"id": str(session_id)},
     )
     return result.mappings().first()
+
+
+def _frameworks_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        return [str(item) for item in value]
+    return [str(value)]
+
+
+@router.get(
+    "/scenarios",
+    response_model=list[ScenarioSummary],
+    summary="List active learning scenarios",
+)
+async def list_scenarios(
+    current_user: dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[ScenarioSummary]:
+    # Auth is the gate; catalogue rows are shared content (no tenant filter).
+    _ = current_user
+    present = (
+        await db.execute(text("SELECT to_regclass('public.scenarios') IS NOT NULL"))
+    ).scalar()
+    if not present:
+        return []
+
+    result = await db.execute(
+        text(
+            """
+            SELECT slug, title, brief, track, frameworks, difficulty
+            FROM scenarios
+            WHERE active = true
+            ORDER BY
+              CASE difficulty
+                WHEN 'foundation' THEN 1
+                WHEN 'practitioner' THEN 2
+                WHEN 'expert' THEN 3
+                ELSE 4
+              END,
+              title
+            """
+        )
+    )
+    return [
+        ScenarioSummary(
+            slug=str(row["slug"]),
+            title=str(row["title"]),
+            brief=str(row["brief"]),
+            track=str(row["track"]),
+            frameworks=_frameworks_list(row["frameworks"]),
+            difficulty=str(row["difficulty"]),
+        )
+        for row in result.mappings().all()
+    ]
 
 
 @router.post("/sessions", response_model=SessionOut, summary="Create a learning scenario session")
