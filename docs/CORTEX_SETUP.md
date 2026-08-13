@@ -1,185 +1,197 @@
-# CORTEX — Cursor setup & first session
+# CORTEX — Cursor Setup & Development Guide
 
-One-time Cursor configuration and how to use Composer for every multi-file change.
+One-time Cursor configuration and daily development workflow
+for the CORTEX learning platform.
 
----
-
-## Checklist before your first CORTEX session
+## Checklist Before Your First Session
 
 | Item | Status | Where |
-|------|--------|--------|
+|------|--------|-------|
 | Privacy Mode | ✅ ON | Cursor Settings |
-| `.cursorrules` | ✅ | Repo root |
+| `.cursor/rules/` | ✅ | Repo root |
 | `.cursorignore` | ✅ | Repo root |
 | Default model | ✅ claude-sonnet-4-6 | Cursor Settings → Models |
-| Composer context | ⬜ **Codebase** | Cursor Settings → Features → Composer |
-| Auto Run Mode | ⬜ **OFF** | Cursor Settings → Features → Agent |
-| Repo on GitHub & indexed | ⬜ | Push repo, let Cursor index |
+| Agent Auto Run | ⬜ OFF | Cursor Settings → Features → Agent |
 
-**Composer:** Enable **“Always show composer”** and set **Composer context → Codebase** (not just current file).
+**Agent Auto Run OFF**: Every terminal command is proposed
+before execution. Human-in-the-loop by default.
 
-**Agent:** Set **Auto Run Mode → OFF**. Every terminal command is then proposed first; you approve or reject. Human-in-the-loop, as in ZTAIP.
-
----
-
-## Composer workflow (multi-file changes)
-
-Composer is for every multi-file feature or refactor.
-
-1. **Open Composer**  
-   `Cmd+Shift+I` (macOS) or `Ctrl+Shift+I` (Windows/Linux).
-
-2. **Write a concrete spec and tag pattern files with `@filename`**  
-   Example:
-
-   ```
-   Add the GDPR framework to the compliance engine.
-   Follow the exact pattern in @nist_csf.py.
-   Register it in @registry.py.
-   Add the framework ID to the FrameworkId enum in @compliance.py.
-   Write 3 pytest tests covering: framework loads successfully,
-   all controls have at least one requirement, all requirements
-   have at least one evidence_type.
-   ```
-
-   The `@filename` references are critical — always tag the pattern files you want Cursor to follow.
-
-3. **Review the diff**  
-   Cursor will propose changes across the relevant files. Review, then approve or ask for edits.
-
----
-
-## First Composer prompt after setup
-
-Once the repo is indexed, open Composer and run:
-
-```
-@codebase I need to add the GDPR framework next.
-Show me the current state of the framework registry
-and confirm you understand the pattern before I give
-you the build instruction.
-```
-
-Then give the full build instruction (as in the example above) when you’re ready.
-
----
-
-## Clone and open the repo (new machine)
-
-In Cursor’s terminal (`Ctrl+\`` or **View → Terminal**):
+## Environment Setup
 
 ```bash
-git clone https://github.com/AstraLabs-AI/The-Cortex
+# Clone
+git clone https://github.com/astra-ssj/The-Cortex
 cd The-Cortex
+
+# Python environment
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e "."
+
+# Database
+docker compose up -d postgres
+bash scripts/apply_cortex_schema.sh
+
+# Verify schema
+docker exec -it the-cortex-1-postgres-1 \
+  psql -U cortex -d cortex -c "\dt"
+# Should show 26 tables through migration 024
 ```
 
-Then **File → Open Folder** and select the `The-Cortex` folder (or open it from the command line so Cursor opens that folder).
+## Running the Stack
 
----
-
-## Let Cursor index the repo
-
-Once the folder is open, Cursor starts indexing automatically. You’ll see a progress indicator in the bottom bar. **Wait for indexing to finish** before using your first Agent session — that’s what makes `@codebase` work accurately.
-
----
-
-## What the GitHub connection is for
-
-- Cloning and pushing via the **Source Control** panel
-- **@codebase** indexing across the full repo
-- Agent being able to read any file when you use **@filename**
-
----
-
-## Daily workflow once connected
-
-```
-Start session
-    ↓
-Cmd+I → Composer → Agent mode
-    ↓
-Build something with Cursor
-    ↓
-Review the diff
-    ↓
-Cursor’s terminal:
-  git add .
-  git commit -m "feat: add GDPR framework"
-  git push
-    ↓
-GitHub CI pipeline runs automatically
+**Terminal 1 — API:**
+```bash
+source .venv/bin/activate
+export PYTHONPATH=.
+export DATABASE_URL="postgresql+asyncpg://cortex_app:cortex_ci_test@127.0.0.1:5432/cortex"
+export JWT_SECRET="dev-secret-key-minimum-32-characters-long-xx"
+export CORTEX_LEGACY_DEMO_PASSWORD="admin"
+export COMPLIANCE_ENGINE_STUB_PASSWORD="dev-stub"
+export COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN="dev-stub-token"
+uvicorn api.main:app --port 8000
 ```
 
-You can also use Cursor’s **Source Control** panel (`Ctrl+Shift+G`) to stage, commit, and push — same as VS Code’s git panel.
+Do NOT use `--reload` when running the test suite —
+`--reload` holds advisory locks on the audit chain and
+causes pytest to hang.
 
----
+**Terminal 2 — Frontend:**
+```bash
+cd frontend && npm install && npm run dev
+```
 
-## One thing to configure after connecting
+Open http://localhost:3000. Log in with
+`admin@astralabs.com` / `admin`.
 
-**Branch protection on GitHub** so neither you nor Cursor can push directly to `main`:
-
-1. **GitHub** → **The-Cortex** repo → **Settings** → **Branches**
-2. **Add branch protection rule**
-3. **Branch name pattern:** `main`
-4. **Require a pull request before merging** → ON
-5. **Require status checks to pass** → ON (your CI pipeline)
-
-Then work on feature branches and merge via PRs.
-
----
-
-## Local API (uvicorn)
-
-From the repo root (editable install or ``PYTHONPATH=.``):
+## Running Tests
 
 ```bash
-export PYTHONPATH=.
-uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
-# or: bash scripts/run-api.sh
+# Full suite (API must not be running with --reload)
+pytest --tb=short -q
+
+# Learning loop only
+pytest tests/test_learning_loop.py tests/test_grading.py \
+       tests/test_learning_harness.py -v
+
+# Frontend
+cd frontend && npm run typecheck && npm run build
 ```
 
-Connectors, ingest, and Shasta adapters live under **`core/connectors/`** and **`core/ingestion/`** — no nested compliance-engine path is required.
+Pre-existing failure: `test_review_queue_demo_has_eight_pending`
+— review queue fixture count mismatch, unrelated to learning
+platform. Not a blocker.
 
-**Shasta `POST /api/v1/shasta/scans`** enqueues a run and returns immediately with `status: "running"`; poll **`GET /api/v1/shasta/scans?org_id=...`** (or **`GET /api/v1/shasta/scans/{scan_run_id}`**) until the row is `completed` or `failed` (see `error_message` when failed).
+## Commit Standards
 
-Local / CI Postgres bootstrap via **`scripts/apply_cortex_schema.sh`** includes **`migrations/009_shasta_cloud.sql`** (same order as `docker-compose` init scripts), so Shasta tables exist without a separate manual step when you use that script.
+All commits follow Phase 1+2 governance rules in `.cursor/rules/`.
+commitlint enforces a bracketed story ID in every commit subject:
 
-**One-shot local check (Docker + schema + Shasta pytest):** `bash scripts/verify_shasta_stack.sh` — ephemeral Postgres on **:5433**, applies schema, probes **`shasta_*`** tables, runs **`tests/test_api_shasta_cloud.py`** (same assumptions as CI **`backend-tests`**).
+```
+feat(learning): add grading engine [CORTEX-LEARN-8]
+```
 
-### Manual Shasta job lifecycle (pytest does not cover BackgroundTasks → DB end-to-end)
+Story ID series:
 
-Use when validating **running → completed/failed** against a real uvicorn (not TestClient):
+- `CORTEX-LEARN-*` — learning platform features
+- `CORTEX-SEC-*` — security fixes
+- `CORTEX-PIVOT-*` — compliance platform removal
 
-1. Apply **`migrations/009_shasta_cloud.sql`** to your Postgres; **`export PYTHONPATH="."`**.
-2. **`pip install -e ".[shasta-scan,aws,azure]"`** (or omit cloud extras if only testing mock).
-3. Connect AWS/Azure via **`POST /api/v1/connectors/aws/connect`** (or Azure) so stored credentials exist — **or** set **`CORTEX_SHASTA_MOCK=1`** for a synthetic finding row without cloud access (**never** in production).
-4. Obtain a JWT (**login** or **`create_access_token`** in dev); **`POST /api/v1/shasta/scans`** with `{"cloud":"aws","org_id":"demo-org-001"}`.
-5. Poll **`GET /api/v1/shasta/scans?org_id=...`** or **`GET /api/v1/shasta/scans/{id}?org_id=...`** until **`status`** is **`completed`** or **`failed`**; check **`error_message`** on failure.
-6. Open **Cloud scans** in the UI or call **`GET /api/v1/shasta/findings`** for org-wide rows; use per-run **Findings** in the table for a single **`scan_run_id`**.
+## Branch Strategy
 
-**HTTP smoke (mock scan, subprocess API):** `CORTEX_SHASTA_MOCK=1 bash scripts/smoke_shasta_http.sh` — starts uvicorn on port **8899**, posts a scan, polls until **`completed`**. Requires **`DATABASE_URL`** and schema **009**.
-
-### Optional Redis queue (multi-replica API / survive API restarts)
-
-When **`REDIS_URL`** (or **`SHASTA_REDIS_URL`**) is set and **`pip install -e ".[redis-queue]"`** is installed, **`POST /api/v1/shasta/scans`** **LPUSH**es a job and returns **`delivery: "redis"`**. Run a consumer:
+Trunk-based. Short-lived feature branches off main.
+One agent worktree per branch. PRs required — no direct
+pushes to main.
 
 ```bash
-export PYTHONPATH=.
-export REDIS_URL=redis://localhost:6379/0
-python workers/shasta_worker.py
+git checkout main && git pull origin main
+git checkout -b feat/your-feature
+# ... build ...
+git push origin feat/your-feature
+# Open PR → merge → tag if milestone
 ```
 
-**Docker Compose:** `docker compose --profile queue up -d` starts **redis** + **shasta-worker**; set **`REDIS_URL=redis://redis:6379/0`** on the **api** service so enqueue matches the worker.
+## Release Tags
 
-### Assessment SSE (Run Assessment)
+Tag every milestone on main:
 
-The UI uses **`@microsoft/fetch-event-source`** with **`Authorization: Bearer`** — the stream URL **does not** embed the JWT in the query string. Backend **`get_current_user_optional`** accepts **header first**, then query **`token`** for legacy clients.
+```bash
+git tag v2.x-description
+git push origin v2.x-description
+```
 
-## Shasta cloud scan contract (operators)
+See README.md for the full tag history.
 
-- **Canonical:** `GET /api/v1/shasta/contract` — machine-readable install/subprocess contract.
-- **Legacy alias:** `GET /api/v1/connectors/shasta/contract` — same payload as the canonical URL (prefer `/api/v1/shasta/contract`).
+## Cursor Agent Workflow
 
-## Docker API image (`Dockerfile`)
+Every multi-file change goes through a Cursor Agent prompt.
+Structure every prompt with:
 
-The API Dockerfile copies **`api/`, `core/`, `compliance/`, `ontology/`** and **`README.md`** (pyproject `readme`) before **`pip install -e ".[shasta-scan,aws,azure]"`** so the editable install succeeds. It installs **`git`** (Shasta is a git dependency), plus **`build-essential`**, **`pkg-config`**, **`libcairo2-dev`** so **`pycairo`** can build (transitive via Shasta’s PDF stack). Runtime layers then add **`db/`**, **`content/`**, **`workers/`**, and the single **`migrations/`** lane.
+```
+═══════════════════════════════════════════
+AGENT: NAME
+PURPOSE: What this agent does
+BRANCH: feat/branch-name
+RULES: .cursor/rules/ (Phase 1+2)
+INVARIANTS: what must not change
+═══════════════════════════════════════════
+GIT SETUP
+
+git checkout main && git pull origin main
+git checkout -b feat/branch-name
+
+... work ...
+VERIFY
+
+npm run typecheck && npm run build
+pytest --tb=short -q
+
+COMMIT
+
+git add <specific files>
+git commit -m "type(scope): description [STORY-ID]"
+git push origin feat/branch-name
+
+FINAL REPORT
+
+Always paste discovery output here before confirming
+destructive or architectural steps.
+```
+
+## Adding a Scenario
+
+Scenarios are database content, not code. To add a scenario:
+
+1. Create `migrations/0NN_scenario_CXNNNN_seed.sql`
+   following the pattern in `021_scenario_cx1002_seed.sql`
+2. Register in `scripts/apply_cortex_schema.sh`
+3. Mount in `docker-compose.yml`
+4. Apply: `docker exec -i the-cortex-1-postgres-1 psql
+   -U cortex -d cortex -f /path/to/migration.sql`
+5. Verify: DB query confirms scenario/stage/choice counts
+6. Commit and PR
+
+No application code changes required for new scenarios.
+
+## GraphJin (Optional)
+
+GraphJin provides a GraphQL read layer on port 8080.
+Health check may time out on first startup — this is a
+one-off pool warmup issue, not a failure.
+
+Blocked tables (by design): `users`, `audit_log`.
+Allowed tables: `organizations`, `frameworks`, `controls`,
+`findings`, `assessment_results`, `entities`.
+
+Dev auth is bound to `127.0.0.1:8080` only — never
+reachable off-host.
+
+## Security Notes
+
+- Connect as `cortex_app`, not `cortex` — RLS only binds
+  for `cortex_app`
+- `cortex_app` password: `cortex_ci_test` (local dev)
+- Audit log is append-only — no UPDATE or DELETE
+- Do not run `--reload` with pytest (advisory lock conflict)
+- PYSEC-2026-1325 suppressed in pip-audit — see
+  `.github/workflows/ci.yml` for documented justification
