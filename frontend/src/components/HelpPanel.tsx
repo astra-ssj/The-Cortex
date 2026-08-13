@@ -10,44 +10,64 @@ type HelpSection = {
 
 const GLOSSARY: { term: string; definition: string }[] = [
   {
-    term: "NIS2",
+    term: "Scenario",
     definition:
-      "Network and Information Security Directive 2022/2555. EU cybersecurity law mandatory for essential and important entities. In force: October 2024.",
+      "A case-based learning exercise presenting a realistic GRC decision under time or stakeholder pressure. Each scenario has 2-3 decision stages and a graded reference answer per stage.",
   },
   {
-    term: "GDPR",
+    term: "Competency Dimension",
     definition:
-      "General Data Protection Regulation 2016/679. EU data protection law. Max fine: €20M or 4% global turnover.",
+      "One of four independently scored aspects of GRC judgment: Control Mapping, Evidence Quality, Escalation Judgment, and Remediation. Each scores 0-100 and updates after every decision.",
   },
   {
-    term: "EU AI Act",
+    term: "Control Mapping",
     definition:
-      "Regulation (EU) 2024/1689. World's first comprehensive AI law. High-risk obligations apply from 2 August 2026. Max fine: €35M or 7% global turnover.",
+      "The ability to identify which framework control applies to a given situation and why. Scored on whether your decision aligns with the reference control and its rationale.",
   },
   {
-    term: "NIS2 Essential Entity",
+    term: "Evidence Quality",
     definition:
-      "Large organisations in critical sectors (energy, transport, health, digital infra). Stricter obligations than Important Entities.",
+      "The ability to make decisions that are supportable by documented evidence. Penalised for repeated wrong answers that suggest evidence blindness.",
   },
   {
-    term: "ZTAIP",
+    term: "Escalation Judgment",
     definition:
-      "Zero Trust AI Intelligence Protocol. CORTEX's AI assessment engine. Every decision confidence-scored. Items below 0.75 confidence routed to human review.",
+      "The ability to seek more information before committing to a decision under uncertainty. Rewarded for challenging and demanding justification where appropriate.",
   },
   {
-    term: "Annex III",
+    term: "Remediation",
     definition:
-      "EU AI Act list of high-risk AI system categories including biometrics, critical infrastructure, employment, education, law enforcement, and more.",
+      "The ability to identify and scope corrective action at the remediation stage of a scenario. Only scored at escalation and later stages.",
   },
   {
-    term: "NIS2 Art.23",
+    term: "Foundation",
     definition:
-      "Incident reporting obligation. Early warning: 24 hours. Full notification: 72 hours. Final report: 1 month.",
+      "Entry difficulty. Single-entity scenarios with one primary framework. Suitable for practitioners new to GRC or a specific standard.",
+  },
+  {
+    term: "Practitioner",
+    definition:
+      "Intermediate difficulty. Multi-obligation scenarios with intersecting frameworks and stakeholder pressure. For practitioners with 1-3 years GRC experience.",
+  },
+  {
+    term: "Expert",
+    definition:
+      "Advanced difficulty. Multi-entity, multi-jurisdiction scenarios with board-level communication and regulatory notification decisions. For senior GRC and security leads.",
+  },
+  {
+    term: "ISO 27001:2022",
+    definition:
+      "International standard for information security management systems. Annex A controls referenced in scenarios include A.5.9 (asset inventory), A.5.12 (classification), A.5.26 (incident response), A.5.29 (BCP), A.8.32 (change management), A.10.1 (nonconformity).",
   },
   {
     term: "GDPR Art.33",
     definition:
-      "Breach notification to supervisory authority within 72 hours of becoming aware. Applies when breach risks individuals' rights.",
+      "Breach notification to supervisory authority within 72 hours of becoming aware. Applies when a breach risks individuals' rights and freedoms. Appears in CX-1002 and CX-1005.",
+  },
+  {
+    term: "NIS2 Art.19",
+    definition:
+      "Incident reporting for essential and important entities. Early warning within 24 hours, full notification within 72 hours. Appears in CX-1005.",
   },
 ];
 
@@ -57,92 +77,115 @@ const SECTIONS: HelpSection[] = [
     title: "Getting Started",
     blocks: [
       {
-        subtitle: "Getting Started with CORTEX",
+        subtitle: "Welcome to the CORTEX Learning Platform",
         body: "",
       },
       {
-        subtitle: "1. Register your organisation",
+        subtitle: "1. Choose a scenario",
         body:
-          "Go to /register, enter your company details, choose your jurisdiction. CORTEX will pre-select relevant frameworks based on your location. See Help → full onboarding guide.",
+          "The scenario selector shows all available cases organised by difficulty. Foundation scenarios are single-entity with one primary framework. Practitioner and expert scenarios involve multiple obligations, stakeholder pressure, and cross-entity decisions. Start with foundation if you are new to the standard.",
       },
       {
-        subtitle: "2. Complete the setup wizard",
-        body: "Three steps: org structure → frameworks → first assessment. Takes under 3 min.",
+        subtitle: "2. Read the brief",
+        body:
+          "Each scenario opens with a situation brief and an agent turn from a stakeholder pressing for a decision. Read both before choosing. The agent's demands tell you what they expect — that is not always what the right answer is.",
       },
       {
-        subtitle: "3. Understand your posture score",
+        subtitle: "3. Make your decision",
         body:
-          "Your score is a weighted average across all active frameworks. 0% = not assessed, 100% = fully compliant. Target: >70%.",
+          "Choose from the available options. There is one reference answer per stage, grounded in a specific framework control. Wrong answers are not penalised uniformly — some wrong answers reflect worse judgment than others.",
+      },
+      {
+        subtitle: "4. Read the competency panel",
+        body:
+          "After your first decision, the competency panel appears below the agent thread. Four dimensions update independently. A ▲ means you moved in the right direction. A ▼ means the decision cost you on that dimension. The observation text explains why.",
       },
     ],
   },
   {
-    id: "dashboard",
-    title: "Dashboard",
+    id: "scenarios",
+    title: "Scenarios",
     blocks: [
       {
-        subtitle: "Reading Your Compliance Dashboard",
+        subtitle: "Current ISO 27001:2022 Track",
         body: "",
       },
       {
-        subtitle: "Overall Posture Score",
+        subtitle: "CX-1001 · Foundation",
         body:
-          "Weighted compliance score across all active frameworks. Updates after each assessment run.",
+          "Friday Cutover: Privileged Cloud Access Request. A DevOps Lead needs broad cloud access before a production cutover. Tests A.8.2, A.5.18, A.5.15. Two decision stages: access_request, escalation.",
       },
       {
-        subtitle: "Audit Readiness",
+        subtitle: "CX-1002 · Practitioner",
         body:
-          "Probability of passing an external audit today. Considers evidence quality and recency, not just control status.",
+          "Third-Party Breach: Supplier Security Incident. Your SaaS HR provider reports a breach affecting 340 employee records. Tests A.5.19, A.5.20, A.5.26, A.5.28. 72-hour GDPR clock running.",
       },
       {
-        subtitle: "Critical Gaps",
+        subtitle: "CX-1003 · Practitioner",
         body:
-          "Controls assessed as NON_COMPLIANT with HIGH or CRITICAL risk. These require immediate remediation action.",
+          "Emergency Patch: Change Management Bypass. An engineer pushes a CVSS 9.8 patch without CAB approval and takes production down. Tests A.5.26, A.8.32, A.10.1.",
       },
       {
-        subtitle: "Framework Cards",
+        subtitle: "CX-1004 · Practitioner",
         body:
-          "Each card shows score, status (PARTIAL / NON_COMPLIANT / COMPLIANT), risk level, and trend (↑ improving, ↓ declining).",
+          "Audit Prep: Sensitive Data on Unclassified Storage. Three days before surveillance audit, sensitive data is found on an open shared drive. Tests A.5.9, A.5.12, A.5.13, A.5.28, A.10.1.",
+      },
+      {
+        subtitle: "CX-1005 · Expert",
+        body:
+          "Ransomware: Group-Wide Business Continuity Invocation. Ransomware hits your largest subsidiary. Three connected entities at risk. Board convenes in four hours. Tests A.5.26, A.5.28, A.5.29, A.5.30, A.8.13. Multi-jurisdiction notification decision.",
       },
     ],
   },
   {
-    id: "intelligence",
-    title: "Intelligence",
+    id: "competency",
+    title: "Competency Panel",
     blocks: [
       {
-        subtitle: "Using the Intelligence Section",
-        body: "",
+        subtitle: "How Scoring Works",
+        body:
+          "Scores start at 50 on your first decision and update after each stage. Each dimension scores independently — you can map controls correctly while showing poor escalation judgment. The panel shows your current score, the direction of your last move (▲ ▼ —), and one observation sentence explaining the move.",
       },
       {
-        subtitle: "Audit Simulator",
+        subtitle: "Control Mapping (0-100)",
         body:
-          "Simulates a real regulatory audit based on published enforcement decisions. Select your regulator, framework, and entity to see likely questions and your weak points.",
+          "Scored at every decision stage. +15 for a correct answer at access_request, +10 at escalation. Wrong answers cost proportionally. The observation cites the specific control your decision satisfied or violated.",
       },
       {
-        subtitle: "Evidence Vault",
+        subtitle: "Evidence Quality (0-100)",
         body:
-          "Every assessment and approval is SHA-256 hashed and chain-linked. Use 'Verify Entire Chain' to confirm integrity. Suitable for NIS2 Art.20 liability defence.",
+          "Scored on whether your decision is supportable by documented evidence. Penalised additionally for repeated wrong answers — a second wrong answer on the same scenario suggests evidence blindness, not just a single misjudgment.",
+      },
+      {
+        subtitle: "Escalation Judgment (0-100)",
+        body:
+          "Scored on your information-seeking behaviour. Challenging and demanding justification scores highest (+20). Controlled approval scores well (+10). Approving everything without scrutiny scores worst (-15). Denial is valid but avoidant (0).",
+      },
+      {
+        subtitle: "Remediation (0-100)",
+        body:
+          "Only scored at the escalation stage and later. Starts at 50 and does not move at the access_request stage. Tests whether you can scope corrective action correctly once a situation has escalated.",
       },
     ],
   },
   {
-    id: "review",
-    title: "Review Queue",
+    id: "difficulty",
+    title: "Difficulty Levels",
     blocks: [
       {
-        subtitle: "Human Review Queue — GDPR Art.22 / EU AI Act Art.14",
+        subtitle: "Foundation",
         body:
-          "Items appear here when ZTAIP confidence is below 0.75 — meaning the AI is genuinely uncertain and requires human judgement.",
+          "Single-entity scenarios. One primary framework. One agent role. Two decision stages. Reference answers are directly grounded in one or two controls. Suitable for practitioners new to the standard or returning after a gap.",
       },
       {
-        subtitle: "Approve",
-        body: "Confirms the AI assessment is correct. Logged to Evidence Vault.",
+        subtitle: "Practitioner",
+        body:
+          "Multi-obligation scenarios. Two or more intersecting frameworks. Stakeholder pressure is higher. Reference answers require balancing competing obligations — the wrong answer often satisfies one obligation while failing another.",
       },
       {
-        subtitle: "Override",
+        subtitle: "Expert",
         body:
-          "Disagrees with AI assessment. Requires a review note. Both action and note logged to Evidence Vault for audit trail.",
+          "Multi-entity, multi-jurisdiction scenarios. Board-level communication decisions. Regulatory notification across multiple authorities. Reference answers require sequencing decisions correctly across parallel tracks (forensic, legal, operational, regulatory). Three or more decision stages.",
       },
     ],
   },
@@ -166,11 +209,8 @@ const SECTIONS: HelpSection[] = [
     blocks: [
       {
         body: [
-          "D → Dashboard",
-          "G → Group",
-          "I → Intelligence",
-          "R → Review Queue",
-          "H → Help & Documentation (full page)",
+          "L → Learning (scenario selector)",
+          "H → Help & Documentation",
           "Esc → Close panel",
         ].join("\n"),
       },
@@ -181,9 +221,8 @@ const SECTIONS: HelpSection[] = [
     title: "Support",
     blocks: [
       {
-        subtitle: "CORTEX v0.7.0 · AstraLabs Group",
-        body:
-          "Built with FastAPI, PostgreSQL, GraphJin, React, DSPy (Epic 4). Links below open in a new tab.",
+        subtitle: "CORTEX Learning Platform · AstraLabs Group",
+        body: "Built with FastAPI, PostgreSQL, React. Report issues via GitHub Issues.",
       },
     ],
   },
