@@ -6,7 +6,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   fetchFindings,
   updateFinding,
@@ -103,6 +103,12 @@ function progressPercent(f: RemediationFinding): number {
 export function RemediationTracker() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isControlGaps = pathname === "/findings";
+  const pageTitle = isControlGaps ? "Control Gaps" : "Remediation Tracker";
+  const pageSubtitle = isControlGaps
+    ? "Active control gaps identified across your organisation. As you complete scenarios in the Learning Loop, your decisions surface findings like these."
+    : "Track owners, due dates and progress for each active finding.";
   const { orgId } = useOrgContext();
   const { can } = useRole();
   const canEditFindings = can("canEditFindings");
@@ -327,9 +333,9 @@ export function RemediationTracker() {
     return (
       <div style={{ padding: "28px" }}>
         <div className="mb-6">
-          <h1 className="font-ui text-2xl font-semibold text-cortex-text">Remediation Tracker</h1>
+          <h1 className="font-ui text-2xl font-semibold text-cortex-text">{pageTitle}</h1>
           <p className="mt-1 font-ui text-sm text-cortex-muted">
-            Active findings across AstraLabs Group — track owners, due dates and progress
+            {pageSubtitle}
           </p>
         </div>
         <div
@@ -352,11 +358,11 @@ export function RemediationTracker() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header — Control Gaps at /findings, Remediation Tracker at /remediation */}
       <div>
-        <h1 className="font-ui text-2xl font-semibold text-cortex-text">Remediation Tracker</h1>
+        <h1 className="font-ui text-2xl font-semibold text-cortex-text">{pageTitle}</h1>
         <p className="mt-1 font-ui text-sm text-cortex-muted">
-          Active findings across AstraLabs Group — track owners, due dates and progress
+          {pageSubtitle}
         </p>
       </div>
 
