@@ -155,6 +155,13 @@ async def call_model(role_prompt: str, context: dict[str, Any]) -> str:
             system=role_prompt,
             messages=[{"role": "user", "content": user_content}],
         )
-        return response.content[0].text
+        # Models often wrap JSON in markdown fences; the harness json.loads the
+        # raw string and rejects a leading ``` as schema_invalid.
+        raw = response.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        return raw.strip()
 
     return await _agent_model_breaker.execute(_claude_invoke)
