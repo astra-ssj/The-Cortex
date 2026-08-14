@@ -17,6 +17,7 @@ from api.limits import limiter
 from compliance.models import SovereignModel
 from core.agents.grading import grade_decision
 from core.agents.scenario import (
+    ENTRY_STAGE,
     SCENARIO_ID,
     TERMINAL_STAGE,
     Scenario,
@@ -209,6 +210,7 @@ async def create_session(
     scenario = body.resolved_slug()
     content = await _load_content(db, scenario)
     learner_id = str(current_user.get("sub") or current_user.get("email") or "anonymous")
+    entry_stage = content.entry_stage.slug if content.entry_stage is not None else ENTRY_STAGE
 
     await append_audit_log(
         db,
@@ -234,7 +236,7 @@ async def create_session(
             """
             INSERT INTO scenario_sessions (org_id, scenario, learner_id, state, stage, risk)
             VALUES (
-              :org_id, :scenario, :learner_id, CAST(:state AS jsonb), 'access_request', NULL
+              :org_id, :scenario, :learner_id, CAST(:state AS jsonb), :stage, NULL
             )
             RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency, created_at, updated_at
             """
@@ -244,6 +246,7 @@ async def create_session(
             "scenario": scenario,
             "learner_id": learner_id,
             "state": json.dumps(seed_state),
+            "stage": entry_stage,
         },
     )
     row = insert.mappings().first()
@@ -255,7 +258,7 @@ async def create_session(
             "id": session_id,
             "org_id": effective,
             "scenario": scenario,
-            "stage": "access_request",
+            "stage": entry_stage,
             "risk": None,
             "state": seed_state,
         },
@@ -268,13 +271,13 @@ async def create_session(
             """
             UPDATE scenario_sessions
             SET state = CAST(:state AS jsonb),
-                stage = 'access_request',
+                stage = :stage,
                 updated_at = NOW()
             WHERE id = :id
             RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency, created_at, updated_at
             """
         ),
-        {"id": session_id, "state": json.dumps(full_state)},
+        {"id": session_id, "state": json.dumps(full_state), "stage": entry_stage},
     )
     out_row = updated.mappings().first()
     assert out_row is not None
@@ -289,7 +292,7 @@ async def create_session(
         payload={
             "scenario": scenario,
             "org_id": effective,
-            "stage": "access_request",
+            "stage": entry_stage,
             "harness_speaker": opening.speaker,
         },
     )
