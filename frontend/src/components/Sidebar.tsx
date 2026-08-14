@@ -349,7 +349,7 @@ export function Sidebar({
                 letterSpacing: "0.02em",
               }}
             >
-              by AstraLabs
+              Community Edition
             </div>
           </div>
         </div>
