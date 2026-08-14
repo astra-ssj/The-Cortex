@@ -40,6 +40,23 @@ export function getScenarios(): Promise<ScenarioSummary[]> {
   return fetchApi<ScenarioSummary[]>("/api/v1/learning/scenarios");
 }
 
+export interface SessionSummary {
+  session_id: string;
+  scenario_slug: string;
+  scenario_title: string;
+  difficulty: string;
+  stage: string;
+  risk: string | null;
+  competency: Record<string, CompetencyDimension>;
+  created_at: string;
+  updated_at: string;
+}
+
+export function getSessions(org_id: string): Promise<SessionSummary[]> {
+  const qs = org_id ? `?org_id=${encodeURIComponent(org_id)}` : "";
+  return fetchApi<SessionSummary[]>(`/api/v1/learning/sessions${qs}`);
+}
+
 export function createLearningSession(body?: {
   org_id?: string;
   scenario?: string;
