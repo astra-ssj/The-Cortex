@@ -2,10 +2,12 @@
 #
 # The API advances the loop; the agent is consulted via the harness and never free-writes state.
 #
-# Scenario *content* (brief, stage scripts, choices, graded answers) lives in the
-# database from migration 019 onward and is read through load_scenario(). Scenario
-# *control* (risk mapping, stage transitions) stays here in code: the controller
-# owns risk, and a content author must never be able to edit the risk model.
+# Scenario *content* (brief, stage scripts, choices, graded answers, next_stage,
+# risk_outcome) lives in the database from migration 019 onward (transition
+# columns from 025) and is read through load_scenario(). The controller *applies*
+# those columns — scenario_choices stays SELECT-only, so a content author still
+# cannot rewrite the risk model through the API. HARDCODED_SCENARIO keeps the
+# compiled-in CX-1001 maps when the DB is unavailable or CORTEX_SCENARIO_HARDCODED=1.
 
 from __future__ import annotations
 
@@ -61,6 +63,8 @@ class ScenarioChoice:
     consequence: str = ""
     is_correct: bool = False
     framework_rationale: str | None = None
+    next_stage: str | None = None
+    risk_outcome: str | None = None
 
 
 @dataclass(frozen=True)
@@ -153,6 +157,35 @@ _LOAD_SQL = text(
            c.label         AS label,
            c.consequence   AS consequence,
            c.is_correct    AS is_correct,
+           c.framework_rationale AS framework_rationale,
+           c.next_stage    AS next_stage,
+           c.risk_outcome  AS risk_outcome
+    FROM scenarios s
+    LEFT JOIN scenario_stages st ON st.scenario_id = s.id
+    LEFT JOIN scenario_choices c ON c.stage_id = st.id
+    WHERE s.slug = :slug AND s.active
+    ORDER BY st.sequence, c.display_order, c.choice_id
+    """
+)
+
+# Pre-025 content tables have no transition columns; selecting them would abort
+# the caller's transaction the same way a missing table would.
+_LOAD_SQL_PRE_025 = text(
+    """
+    SELECT s.slug          AS scenario_slug,
+           s.title         AS title,
+           s.brief         AS brief,
+           s.track         AS track,
+           s.frameworks    AS frameworks,
+           s.difficulty    AS difficulty,
+           st.slug         AS stage_slug,
+           st.sequence     AS stage_sequence,
+           st.agent_message AS agent_message,
+           st.demands      AS demands,
+           c.choice_id     AS choice_id,
+           c.label         AS label,
+           c.consequence   AS consequence,
+           c.is_correct    AS is_correct,
            c.framework_rationale AS framework_rationale
     FROM scenarios s
     LEFT JOIN scenario_stages st ON st.scenario_id = s.id
@@ -186,6 +219,8 @@ def _rows_to_scenario(rows: list[Any]) -> Scenario:
             )
             stage_choices[stage_slug] = []
         if row["choice_id"] is not None:
+            next_stage = row["next_stage"] if "next_stage" in row else None
+            risk_outcome = row["risk_outcome"] if "risk_outcome" in row else None
             stage_choices[stage_slug].append(
                 ScenarioChoice(
                     choice_id=str(row["choice_id"]),
@@ -193,6 +228,8 @@ def _rows_to_scenario(rows: list[Any]) -> Scenario:
                     consequence=str(row["consequence"] or ""),
                     is_correct=bool(row["is_correct"]),
                     framework_rationale=row["framework_rationale"],
+                    next_stage=str(next_stage) if next_stage is not None else None,
+                    risk_outcome=str(risk_outcome) if risk_outcome is not None else None,
                 )
             )
 
@@ -247,7 +284,22 @@ async def load_scenario(scenario_slug: str, db: AsyncSession | None = None) -> S
     if not present:
         return _fallback("table_missing")
 
-    rows = (await db.execute(_LOAD_SQL, {"slug": slug})).mappings().all()
+    has_transitions = (
+        await db.execute(
+            text(
+                """
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = 'scenario_choices'
+                      AND column_name = 'next_stage'
+                )
+                """
+            )
+        )
+    ).scalar()
+    load_sql = _LOAD_SQL if has_transitions else _LOAD_SQL_PRE_025
+    rows = (await db.execute(load_sql, {"slug": slug})).mappings().all()
     if not rows:
         raise ScenarioNotFound(slug)
     return _rows_to_scenario(list(rows))
@@ -280,29 +332,42 @@ def initial_state(
     }
 
 
-def risk_for_choice(choice: str) -> str:
+def risk_for_choice(
+    choice: str,
+    scenario_choices: list[ScenarioChoice] | None = None,
+) -> str:
     """Deterministic risk mapping — controller owns risk, not the agent."""
-    if choice == "approve_all":
-        return "over-provisioned"
-    if choice == "least_privilege":
-        return "controlled"
-    if choice == "deny":
-        return "blocked"
-    if choice == "challenge":
-        return "under_review"
-    return "unknown"
+    if scenario_choices:
+        for sc in scenario_choices:
+            if sc.choice_id == choice:
+                return sc.risk_outcome or "unknown"
+    # Hardcoded fallback for HARDCODED_SCENARIO (CX-1001 only)
+    _HARDCODED_RISK = {
+        "approve_all": "over-provisioned",
+        "least_privilege": "controlled",
+        "deny": "blocked",
+        "challenge": "under_review",
+    }
+    return _HARDCODED_RISK.get(choice, "unknown")
 
 
-def stage_after_choice(choice: str, prior_stage: str) -> str:
-    if choice == "approve_all":
-        return TERMINAL_STAGE
-    if choice == "deny":
-        return TERMINAL_STAGE
-    if choice == "least_privilege":
-        return TERMINAL_STAGE
-    if choice == "challenge":
-        return ESCALATION_STAGE
-    return prior_stage or ENTRY_STAGE
+def stage_after_choice(
+    choice: str,
+    prior_stage: str,
+    scenario_choices: list[ScenarioChoice] | None = None,
+) -> str:
+    if scenario_choices:
+        for sc in scenario_choices:
+            if sc.choice_id == choice:
+                return sc.next_stage or TERMINAL_STAGE
+    # Hardcoded fallback for HARDCODED_SCENARIO (CX-1001 only)
+    _HARDCODED_STAGE = {
+        "approve_all": TERMINAL_STAGE,
+        "least_privilege": TERMINAL_STAGE,
+        "deny": TERMINAL_STAGE,
+        "challenge": ESCALATION_STAGE,
+    }
+    return _HARDCODED_STAGE.get(choice, prior_stage or ENTRY_STAGE)
 
 
 def choices_for_stage(stage: str, scenario: Scenario | None = None) -> list[dict[str, str]]:
@@ -353,8 +418,16 @@ async def advance_after_decision(
     now = datetime.now(timezone.utc).isoformat()
     decisions.append({"choice": choice, "at": now})
 
-    risk = risk_for_choice(choice)
-    stage = stage_after_choice(choice, str(session_row.get("stage") or ENTRY_STAGE))
+    all_choices = [c for stage in active.stages for c in stage.choices]
+    # HARDCODED_SCENARIO choices have no transition columns — pass None so the
+    # CX-1001 maps still apply. Content-loaded rows carry next_stage/risk_outcome.
+    content_driven = any(
+        c.next_stage is not None or c.risk_outcome is not None for c in all_choices
+    )
+    choice_rows = all_choices if content_driven else None
+    prior_stage = str(session_row.get("stage") or ENTRY_STAGE)
+    risk = risk_for_choice(choice, choice_rows)
+    stage = stage_after_choice(choice, prior_stage, choice_rows)
 
     interim = {
         **session_row,
