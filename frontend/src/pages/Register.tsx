@@ -147,14 +147,7 @@ export default function Register() {
       setStoredOrgId(data.org_id);
       localStorage.setItem("cortex_jurisdiction", form.jurisdiction);
       localStorage.setItem("cortex_demo_mode", "false");
-      localStorage.setItem(
-        "cortex_onboarding",
-        JSON.stringify({
-          complete: false,
-          step: 1,
-        })
-      );
-      navigate("/onboarding", { replace: true });
+      navigate("/learning", { replace: true });
     } catch (error) {
       setBannerError(error instanceof Error ? error.message : "Registration failed.");
     } finally {
@@ -206,7 +199,7 @@ export default function Register() {
               color: "var(--cyan)",
             }}
           >
-            Zero Trust AI Platform
+            Community Edition
           </span>
         </div>
 
