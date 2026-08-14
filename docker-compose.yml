@@ -33,7 +33,10 @@ services:
       - ./migrations/016_rls_and_append_only_audit.sql:/docker-entrypoint-initdb.d/16_rls_and_append_only_audit.sql:ro
       - ./migrations/017_learning_loop.sql:/docker-entrypoint-initdb.d/17_learning_loop.sql:ro
       - ./migrations/018_drop_decommissioned_modules.sql:/docker-entrypoint-initdb.d/18_drop_decommissioned_modules.sql:ro
-      - ./migrations/019_scenario_content.sql:/docker-entrypoint-initdb.d/19_scenario_content.sql:ro
+      # 19a/19b, not 19/19b: the entrypoint globs this directory under the image's
+      # en_US.utf8 locale, which ignores "_", so "19b_" would sort before "19_" and
+      # the seed would run before its tables exist.
+      - ./migrations/019_scenario_content.sql:/docker-entrypoint-initdb.d/19a_scenario_content.sql:ro
       - ./migrations/019_scenario_content_seed.sql:/docker-entrypoint-initdb.d/19b_scenario_content_seed.sql:ro
       - ./migrations/020_competency_scores.sql:/docker-entrypoint-initdb.d/20_competency_scores.sql:ro
       - ./migrations/021_scenario_cx1002_seed.sql:/docker-entrypoint-initdb.d/21_scenario_cx1002_seed.sql:ro
