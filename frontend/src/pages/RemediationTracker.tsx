@@ -100,6 +100,130 @@ function progressPercent(f: RemediationFinding): number {
   return Math.round((done / total) * 100);
 }
 
+const GAP_SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
+const GAP_PANEL: React.CSSProperties = {
+  background: "var(--panel)",
+  border: "1px solid var(--border)",
+  borderRadius: 12,
+};
+const GAP_ROW: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "88px 128px minmax(140px, 1.4fr) 120px 88px 72px 110px 108px",
+  gap: 12,
+  alignItems: "center",
+  width: "100%",
+  padding: "10px 16px",
+  border: "none",
+  borderBottom: "1px solid var(--border)",
+  background: "transparent",
+  cursor: "pointer",
+  textAlign: "left",
+  color: "var(--text)",
+};
+const GAP_FILTER = "rounded border border-cortex-border bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text";
+const GAP_LABEL = "font-data text-xs uppercase tracking-wider text-cortex-muted";
+
+type ControlGapsViewProps = {
+  findings: RemediationFinding[];
+  search: string;
+  setSearch: React.Dispatch<React.SetStateAction<string>>;
+  severityFilter: string;
+  setSeverityFilter: React.Dispatch<React.SetStateAction<string>>;
+  frameworkFilter: FrameworkFilterOption;
+  setFrameworkFilter: React.Dispatch<React.SetStateAction<FrameworkFilterOption>>;
+  entityFilter: string;
+  setEntityFilter: React.Dispatch<React.SetStateAction<string>>;
+  pageTitle: string;
+  pageSubtitle: string;
+  navigate: ReturnType<typeof useNavigate>;
+  canRunAssessment: boolean;
+};
+
+function ControlGapsView({
+  findings, search, setSearch, severityFilter, setSeverityFilter,
+  frameworkFilter, setFrameworkFilter, entityFilter, setEntityFilter,
+  pageTitle, pageSubtitle, navigate, canRunAssessment,
+}: ControlGapsViewProps) {
+  const list = useMemo(() => {
+    let next = findings;
+    if (severityFilter !== "All") next = next.filter((f) => f.severity === severityFilter);
+    if (frameworkFilter !== "All") {
+      const fid = frameworkIdFromFilterLabel(frameworkFilter) ?? frameworkFilter;
+      next = next.filter((f) => f.framework_id === fid);
+    }
+    if (entityFilter !== "All") next = next.filter((f) => f.entity_code === entityFilter);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      next = next.filter((f) => f.title.toLowerCase().includes(q));
+    }
+    return next;
+  }, [findings, search, severityFilter, frameworkFilter, entityFilter]);
+
+  const groups = GAP_SEVERITIES.map((severity) => ({
+    severity,
+    items: list.filter((f) => f.severity === severity),
+  })).filter((g) => g.items.length > 0);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div>
+        <h1 className="font-ui text-2xl font-semibold text-cortex-text">{pageTitle}</h1>
+        <p className="mt-1 font-ui text-sm text-cortex-muted">{pageSubtitle}</p>
+      </div>
+      <div style={{ ...GAP_PANEL, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, padding: 16 }}>
+        <input
+          type="text"
+          placeholder="Search by finding name"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-56 rounded border border-cortex-border bg-cortex-surface px-3 py-1.5 font-ui text-sm text-cortex-text placeholder:text-cortex-muted"
+        />
+        <span className={GAP_LABEL}>Severity</span>
+        <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} className={GAP_FILTER}>
+          {SEVERITIES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <span className={GAP_LABEL}>Framework</span>
+        <select value={frameworkFilter} onChange={(e) => setFrameworkFilter(e.target.value as FrameworkFilterOption)} className={GAP_FILTER}>
+          {FRAMEWORK_FILTER_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+        </select>
+        <span className={GAP_LABEL}>Entity</span>
+        <select value={entityFilter} onChange={(e) => setEntityFilter(e.target.value)} className={GAP_FILTER}>
+          {ENTITIES.map((e) => <option key={e} value={e}>{e}</option>)}
+        </select>
+      </div>
+      {list.length === 0 ? (
+        <div style={GAP_PANEL}>
+          <RemediationEmpty
+            onViewFindings={() => navigate("/review-queue")}
+            onRunAssessment={canRunAssessment ? () => navigate("/onboarding") : undefined}
+          />
+        </div>
+      ) : groups.map(({ severity, items }) => (
+        <div key={severity} style={{ ...GAP_PANEL, overflow: "hidden" }}>
+          <div
+            className={`px-4 py-3 font-data text-sm font-semibold uppercase tracking-wider ${severityBadgeClass(severity)}`}
+            style={{ borderBottom: "1px solid var(--border)" }}
+          >
+            {severity} · {items.length}
+          </div>
+          {items.map((f) => (
+            <button key={f.id} type="button" onClick={() => navigate(`/findings/${encodeURIComponent(f.id)}`)} style={GAP_ROW}>
+              <span className={`rounded border px-2 py-0.5 font-data text-xs ${severityBadgeClass(f.severity)}`}>{f.severity}</span>
+              <span className="font-data text-xs text-cortex-blue">{f.id}</span>
+              <span className="font-ui text-sm font-medium text-cortex-text" title={f.title}>{truncate(f.title, 72)}</span>
+              <span className="font-data text-xs text-cortex-muted">{f.framework}</span>
+              <span className="font-data text-xs text-cortex-muted">{f.control_id}</span>
+              <span className="font-data text-xs text-cortex-muted">{f.entity}</span>
+              <span className="font-ui text-xs text-cortex-muted">{f.owner}</span>
+              <span className={`font-data text-xs ${dueDateClass(f.due_date)}`}>{f.due_date || "—"}</span>
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function RemediationTracker() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -353,6 +477,26 @@ export function RemediationTracker() {
           />
         </div>
       </div>
+    );
+  }
+
+  if (isControlGaps) {
+    return (
+      <ControlGapsView
+        findings={findings}
+        search={search}
+        setSearch={setSearch}
+        severityFilter={severityFilter}
+        setSeverityFilter={setSeverityFilter}
+        frameworkFilter={frameworkFilter}
+        setFrameworkFilter={setFrameworkFilter}
+        entityFilter={entityFilter}
+        setEntityFilter={setEntityFilter}
+        pageTitle={pageTitle}
+        pageSubtitle={pageSubtitle}
+        navigate={navigate}
+        canRunAssessment={can("canRunAssessment")}
+      />
     );
   }
 
