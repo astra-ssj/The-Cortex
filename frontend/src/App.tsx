@@ -29,6 +29,7 @@ import FindingDetail from "./pages/FindingDetail";
 import EvidenceVault from "./pages/EvidenceVault";
 import HelpDocs from "./pages/HelpDocs";
 import LearningLoop from "./pages/LearningLoop";
+import CompetencyHistory from "./pages/CompetencyHistory";
 
 function MainChrome() {
   const [user, setUser] = useState(() => getUser() as Record<string, unknown> | null);
@@ -189,6 +190,7 @@ function AppRoutes() {
             <Route path="/findings/:id" element={<FindingDetail />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/learning" element={<LearningLoop />} />
+            <Route path="/progress" element={<CompetencyHistory />} />
             <Route path="/help" element={<HelpDocs />} />
             <Route path="*" element={<Navigate to="/learning" replace />} />
           </Route>
