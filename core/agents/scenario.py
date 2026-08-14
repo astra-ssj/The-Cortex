@@ -315,6 +315,7 @@ def initial_state(
     scenario: Scenario | None = None,
 ) -> dict[str, Any]:
     active = _resolve(scenario)
+    entry = active.entry_stage.slug if active.entry_stage is not None else ENTRY_STAGE
     return {
         "brief": active.brief,
         "messages": [
@@ -325,7 +326,7 @@ def initial_state(
                 "demands": list(opening.demands),
             }
         ],
-        "choices": active.choices_for_stage(ENTRY_STAGE),
+        "choices": active.choices_for_stage(entry),
         "decisions": [],
         "last_harness": opening.model_dump(),
         "scenario_id": active.slug,
@@ -392,9 +393,10 @@ async def open_session_agent_turn(
     scenario: Scenario | None = None,
 ) -> AgentResponse:
     active = _resolve(scenario)
+    entry = active.entry_stage.slug if active.entry_stage is not None else ENTRY_STAGE
     return await call_agent(
         DEVOPS_LEAD_ROLE,
-        _situation_for_stage(active, ENTRY_STAGE),
+        _situation_for_stage(active, entry),
         session_row,
     )
 
