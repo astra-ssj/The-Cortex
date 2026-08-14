@@ -18,166 +18,316 @@ export type HelpDocSection = {
 export const HELP_DOC_SECTIONS: HelpDocSection[] = [
   {
     id: "overview",
-    title: "What is the CORTEX Learning Platform?",
+    title: "What is CORTEX?",
     intro:
-      "CORTEX is a case-based GRC competency training platform. It presents realistic security and compliance scenarios drawn from ISO 27001:2022 and other frameworks, grades your decisions against a reference answer, and tracks your competency across four independent dimensions. The goal is judgment under pressure — not recall.",
+      "CORTEX Community Edition is a case-based GRC competency training platform built by AstraLabs Group. It places you inside realistic security and compliance scenarios, grades your decisions against framework-grounded reference answers, and tracks your competency across four independent dimensions. The goal is judgment under pressure — not recall.",
     steps: [
       {
-        title: "Who should use it",
+        title: "Who it is for",
         body:
-          "Security leads, GRC practitioners, compliance officers, and risk managers who want to build and verify decision-making competency in realistic scenarios. Also used for team training and new-hire onboarding into GRC roles.",
+          "Security leads, GRC practitioners, compliance officers, and risk managers who want to build and verify decision-making competency in realistic scenarios. CORTEX is also used for team training, new-hire onboarding into GRC roles, and CPD evidence for security certifications.",
       },
       {
-        title: "How it differs from a course",
+        title: "How it differs from a course or certification",
         body:
-          "CORTEX does not test knowledge recall. It tests judgment — whether you make the right decision when a stakeholder is pressing you, the clock is running, and the correct answer is not obvious. Every scenario has a reference answer grounded in a specific framework control, with the rationale visible after your decision.",
+          "Courses test whether you can recall a framework. CORTEX tests whether you make the right decision when a stakeholder is pressing you, the clock is running, and the correct answer is not obvious. Every scenario has a reference answer grounded in a specific framework control. You see the rationale after your decision — win or lose.",
         tips: [
-          "Scenarios are graded, not just presented.",
-          "Four competency dimensions update independently.",
-          "Wrong answers cost different amounts depending on how wrong they are.",
+          "Scenarios are graded against a reference answer, not multiple choice recall.",
+          "Four competency dimensions update independently after each decision.",
+          "Wrong answers cost different amounts — some reflect worse judgment than others.",
+          "The AI agent responds differently depending on what you decided.",
         ],
+      },
+      {
+        title: "What you will be able to do after the ISO 27001:2022 track",
+        body:
+          "After completing all five scenarios you will have made graded decisions on: access control under pressure (A.8.2, A.5.18), supplier incident response (A.5.19, A.5.20), change management failure (A.8.32, A.10.1), asset classification and audit disclosure (A.5.9, A.5.12, A.10.1), and group-wide business continuity invocation (A.5.29, A.5.30) with multi-jurisdiction notification. Your competency panel will show your scored performance across all four dimensions.",
+      },
+    ],
+  },
+  {
+    id: "getting-started",
+    title: "1. Getting Started",
+    steps: [
+      {
+        title: "Create your account",
+        body:
+          "Go to /register. Enter your company name, jurisdiction, industry, full name, and work email. Choose a password of at least 8 characters. Click Create Account. You will be taken directly to the scenario selector.",
+        tips: [
+          "Jurisdiction is used to contextualise scenario briefings in future tracks — choose your primary operating jurisdiction.",
+          "Your account is private. No scenario results are shared with other users.",
+        ],
+      },
+      {
+        title: "Sign in to an existing account",
+        body:
+          "Go to /login. Enter your work email and password. You will land on the scenario selector at /learning. If you have an active scenario session, it will resume automatically.",
+      },
+      {
+        title: "Demo account",
+        body:
+          "The platform ships with a demo account: admin@astralabs.com / admin. This account is pre-seeded with AstraLabs Group org data and is suitable for evaluating the platform before registering.",
+        tips: [
+          "Do not use the demo account for personal competency tracking — create your own account.",
+          "Demo account sessions may be reset between versions.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "platform",
+    title: "2. Platform Overview",
+    steps: [
+      {
+        title: "Navigation",
+        body:
+          "The sidebar has one primary section: LEARN → Learning Loop. Press H anywhere to open the quick reference panel. Press L to go to the scenario selector. Press Esc to close any open panel.",
+      },
+      {
+        title: "The scenario selector",
+        body:
+          "The scenario selector is your home screen. It shows all available scenarios organised by difficulty — foundation first, then practitioner, then expert. Each card shows the scenario title, difficulty badge, frameworks tested, and a brief description. Click Start scenario to begin.",
+        tips: [
+          "Foundation scenarios are the right starting point if you are new to ISO 27001:2022.",
+          "You can only run one scenario at a time. Starting a new scenario clears your current session.",
+        ],
+      },
+      {
+        title: "The scenario workspace",
+        body:
+          "Once you start a scenario the workspace opens. It shows: the stage and risk badge at the top, the scenario brief, the AI agent message thread, the competency panel (after your first decision), and the choice buttons at the bottom. Read the brief and the agent message before choosing.",
+      },
+      {
+        title: "Difficulty badges",
+        body:
+          "Foundation (cyan) — single-entity, one primary framework, two decision stages. Practitioner (amber) — multi-obligation, intersecting frameworks, stakeholder pressure. Expert (red) — multi-entity, multi-jurisdiction, board-level decisions, three or more stages.",
       },
     ],
   },
   {
     id: "how-it-works",
-    title: "1. How It Works",
+    title: "3. How Scenarios Work",
     steps: [
       {
         title: "The scenario loop",
         body:
-          "Each scenario has 2-4 decision stages. At each stage you read an agent turn, see the stakeholder's demands, and choose from 3-4 options. After your choice, the agent responds, the next stage opens, and your competency panel updates. The loop ends at the terminal stage.",
+          "Each scenario runs through 2-4 decision stages. At each stage: read the agent message and their demands, then choose one of 3-4 options. After your choice the agent responds in character based on what you decided, the next stage opens, and your competency panel updates. The loop ends at the terminal stage.",
         tips: [
-          "The agent's demands are pressure, not instructions.",
+          "The agent is AI-driven — its response changes based on your decision.",
+          "The agent's demands are stakeholder pressure, not instructions. They are often wrong.",
+          "You cannot go back. Decisions are final per stage.",
           "The competency panel only appears after your first decision.",
-          "You cannot go back — decisions are final per stage.",
         ],
       },
       {
-        title: "Grading",
+        title: "The brief",
         body:
-          "Each choice is scored against a reference answer stored in the platform. The reference answer is the choice that best satisfies the applicable framework control. After your decision, the observation text in the competency panel cites the specific control your decision satisfied or violated.",
+          "The brief at the top of the workspace sets the scene. Read it carefully — it tells you your role, the organisation context, what has happened, and what is at stake. The brief does not change during the scenario.",
       },
       {
-        title: "Starting a new scenario",
+        title: "The agent",
         body:
-          "If you have an active session, the scenario workspace opens automatically. To start a different scenario, use the reset option to clear your session and return to the selector.",
+          "The agent represents a stakeholder in the scenario — a DevOps Lead demanding access, a supplier managing a breach, an engineer defending a process bypass. The agent responds to your decisions in real time. It is not neutral — it has its own interests and will press you. Your job is to make the right decision for the organisation, not to satisfy the agent.",
+      },
+      {
+        title: "Making a decision",
+        body:
+          "The choice buttons appear at the bottom of the workspace. Each button is a possible response to the current stage. There is one reference answer per stage — the choice that best satisfies the applicable framework control. Other choices may partially satisfy the control or fail it entirely. Some wrong answers are worse than others.",
+      },
+      {
+        title: "After your decision",
+        body:
+          "After choosing, the agent responds in character, the stage advances, new choices appear for the next stage, and the competency panel updates with your scores and an observation explaining what moved and why. The observation cites the specific control your decision satisfied or violated.",
+      },
+      {
+        title: "The terminal stage",
+        body:
+          "The scenario ends when the terminal stage is reached. The agent gives a closing message acknowledging your decision position. Your final competency scores are shown in the panel. To start a new scenario, return to the selector using the navigation or the reset option.",
       },
     ],
   },
   {
     id: "competency",
-    title: "2. Competency Dimensions",
+    title: "4. Competency Panel",
     intro:
-      "Four dimensions are scored independently. A strong decision on control mapping does not compensate for poor escalation judgment — each dimension reflects a distinct failure mode.",
+      "The competency panel tracks your GRC judgment across four independent dimensions. Each dimension reflects a distinct failure mode — a strong score on control mapping does not compensate for poor escalation judgment.",
     steps: [
+      {
+        title: "Reading the panel",
+        body:
+          "Each dimension card shows: the dimension name, your current score (0-100), a progress bar, a delta indicator (▲ improved, ▼ declined, — unchanged), and an observation sentence explaining what moved and why. The panel is hidden before your first decision and updates after each subsequent decision.",
+      },
       {
         title: "Control Mapping",
         body:
-          "Can you identify the right control for the situation? Scored at every decision stage. The observation cites the specific Annex A control or framework clause your decision satisfied or violated.",
+          "Can you identify the right framework control for the situation and apply it correctly? Scored at every decision stage. The observation cites the specific Annex A control or framework clause your decision satisfied or violated. This is the primary dimension — it reflects whether you understand what the standard actually requires.",
+        tips: [
+          "Correct decisions score +15 at the opening stage, +10 at later stages.",
+          "Wrong decisions cost -10 at the opening stage, -8 at later stages.",
+        ],
       },
       {
         title: "Evidence Quality",
         body:
-          "Are your decisions supportable by documented evidence? A single wrong answer reflects a misjudgment. Repeated wrong answers on the same scenario incur an additional penalty — that pattern suggests you are not grounding decisions in evidence.",
+          "Are your decisions supportable by documented evidence? A single wrong answer reflects a misjudgment. Repeated wrong answers on the same scenario incur an additional penalty — that pattern suggests you are not grounding decisions in evidence, which is a more serious failure than a one-off error.",
+        tips: [
+          "First wrong answer: -5 on evidence.",
+          "Repeated wrong answers: additional -5 per repeat.",
+          "Correct answers: +10 on evidence.",
+        ],
       },
       {
         title: "Escalation Judgment",
         body:
-          "Do you seek more information before committing under uncertainty? Challenging and demanding justification scores highest. Approving everything without scrutiny scores worst. This dimension measures information-seeking behaviour, not just the final decision.",
+          "Do you seek more information before committing under uncertainty? This dimension measures information-seeking behaviour, not just the final call. Challenging a request and demanding justification scores highest. Approving everything without scrutiny scores worst. A flat denial is valid but avoidant — it scores neutrally.",
+        tips: [
+          "Challenge / demand justification: +20.",
+          "Least privilege / controlled approval: +10.",
+          "Deny: 0 (avoidant but not harmful).",
+          "Approve all without scrutiny: -15.",
+        ],
       },
       {
         title: "Remediation",
         body:
-          "Can you scope corrective action correctly once a situation has escalated? This dimension only moves at the escalation stage and later — it is not scored on the opening decision. Expert scenarios weight remediation more heavily.",
+          "Can you scope corrective action correctly once a situation has escalated? This dimension only moves at the escalation stage and later — it does not score on the opening decision. Expert scenarios test remediation more heavily. Starting at 50, it reflects your ability to define what needs to change after a control failure, not just whether you identified the failure.",
+        tips: [
+          "Not scored at the opening stage — stays at 50.",
+          "Correct at escalation: +15.",
+          "Wrong at escalation: -10.",
+        ],
+      },
+      {
+        title: "Score interpretation",
+        body:
+          "All scores start at 50 and clamp between 0 and 100. A score above 70 on a dimension indicates consistent correct judgment. A score below 40 indicates a pattern of poor judgment on that dimension worth reviewing. Scores are per-session — they reset when you start a new scenario.",
       },
     ],
   },
   {
     id: "scenarios",
-    title: "3. Scenario Library",
-    intro: "All current scenarios cover ISO 27001:2022. Additional frameworks will be added in future tracks.",
+    title: "5. Scenario Library",
+    intro:
+      "CORTEX Community Edition launches with five ISO 27001:2022 scenarios across three difficulty levels. Additional framework tracks will be added in future releases.",
     steps: [
       {
-        title: "CX-1001 · Foundation",
+        title: "Recommended order",
         body:
-          "Friday Cutover: Privileged Cloud Access Request. A DevOps Lead needs broad cloud access before a production cutover. Tests A.8.2, A.5.18, A.5.15. Two decision stages: access_request, escalation.",
+          "Start with CX-1001 (foundation) to understand the scenario loop and competency panel before moving to practitioner difficulty. Complete the three practitioner scenarios in any order. Attempt CX-1005 (expert) last — it requires sequencing decisions across parallel tracks and spans three decision stages.",
       },
       {
-        title: "CX-1002 · Practitioner",
+        title: "CX-1001 · Foundation · Friday Cutover",
         body:
-          "Third-Party Breach: Supplier Security Incident. Your SaaS HR provider reports a breach affecting 340 employee records. Tests A.5.19, A.5.20, A.5.26, A.5.28. 72-hour GDPR clock running.",
+          "You are the security reviewer for a Friday production cutover. The DevOps Lead needs broad cloud access — prod admin, staging, and shared CI. Two decision stages: access_request and escalation. Tests ISO 27001:2022 A.8.2 (privileged access rights), A.5.18 (access rights), A.5.15 (access control). Reference answers: least_privilege at both stages. Good starting point for anyone new to access control scenarios.",
+        tips: [
+          "The DevOps Lead will push hard — that is the point.",
+          "Challenge at the first stage to reach the escalation stage where the justification is tested.",
+        ],
       },
       {
-        title: "CX-1003 · Practitioner",
+        title: "CX-1002 · Practitioner · Supplier Breach",
         body:
-          "Emergency Patch: Change Management Bypass. An engineer pushes a CVSS 9.8 patch without CAB approval and takes production down. Tests A.5.26, A.8.32, A.10.1.",
+          "Your SaaS HR platform provider has reported a breach affecting 340 employee records. You have 72 hours under GDPR Article 33. Two decision stages: initial_assessment and notification_decision. Tests A.5.19 (supplier relationships), A.5.20 (supplier agreements), A.5.26 (incident response), A.5.28 (evidence collection). Reference answers: invoke_supplier_contract, notify_authority_assess_subjects.",
+        tips: [
+          "The GDPR clock runs independently of forensic completion.",
+          "Article 34 individual notification requires a risk assessment first — it is not automatic.",
+        ],
       },
       {
-        title: "CX-1004 · Practitioner",
+        title: "CX-1003 · Practitioner · Change Management",
         body:
-          "Audit Prep: Sensitive Data on Unclassified Storage. Three days before surveillance audit, sensitive data is found on an open shared drive. Tests A.5.9, A.5.12, A.5.13, A.5.28, A.10.1.",
+          "An engineer pushed a CVSS 9.8 patch without CAB approval and took production down. Two decision stages: initial_response and root_cause_decision. Tests A.5.26 (incident response), A.8.32 (change management), A.10.1 (nonconformity and corrective action). Reference answers: invoke_incident_process, raise_nonconformity.",
+        tips: [
+          "The patch being correct does not excuse bypassing change governance.",
+          "Both the technical gap and the process gap require corrective action.",
+        ],
       },
       {
-        title: "CX-1005 · Expert",
+        title: "CX-1004 · Practitioner · Asset Classification",
         body:
-          "Ransomware: Group-Wide Business Continuity Invocation. Ransomware hits your largest subsidiary. Three connected entities at risk. Board convenes in four hours. Tests A.5.26, A.5.28, A.5.29, A.5.30, A.8.13. Multi-jurisdiction notification decision.",
+          "Three days before your ISO 27001:2022 surveillance audit, sensitive data is found on an unclassified shared drive accessible to all 340 staff. Two decision stages: initial_assessment and audit_disclosure_decision. Tests A.5.9 (asset inventory), A.5.12 (classification), A.5.13 (labelling), A.5.28 (evidence), A.10.1 (nonconformity). Reference answers: restrict_and_log, disclose_and_self_raise.",
+        tips: [
+          "Deleting files destroys evidence — do not do it.",
+          "Proactive disclosure to an auditor demonstrates ISMS maturity, not weakness.",
+          "GDPR Article 33 applies independently of the ISO audit.",
+        ],
+      },
+      {
+        title: "CX-1005 · Expert · Ransomware Response",
+        body:
+          "Ransomware hits your largest subsidiary at 06:15 on a Monday. Three connected entities share network segments. The board convenes in four hours. Three decision stages: invocation_decision, containment_strategy, and board_communication. Tests A.5.26, A.5.28, A.5.29 (business continuity), A.5.30 (ICT readiness), A.8.13 (backup). Multi-jurisdiction notification decision. Reference answers: invoke_and_isolate, image_then_restore, board_brief_staged_notify.",
+        tips: [
+          "BCP invocation is triggered by disruption, not by forensic confirmation of scope.",
+          "Forensics and containment run in parallel — not sequentially.",
+          "Notification obligations are jurisdiction-specific — staged notification by confirmed scope.",
+          "Paying the ransom destroys evidence and funds the next attack.",
+        ],
       },
     ],
   },
   {
-    id: "difficulty",
-    title: "4. Difficulty Guide",
+    id: "track",
+    title: "6. The ISO 27001:2022 Track",
     steps: [
       {
-        title: "Foundation",
+        title: "What the track covers",
         body:
-          "Single-entity scenarios. One primary framework. One agent role. Two decision stages. Reference answers are directly grounded in one or two controls. Suitable for practitioners new to the standard or returning after a gap.",
-        tips: [
-          "One primary framework control per stage.",
-          "Two decision stages.",
-          "Good starting point: CX-1001.",
-        ],
+          "The ISO 27001:2022 track is a structured progression through five scenarios covering the control domains most frequently tested in surveillance audits and enforcement actions: access control, supplier management, incident response, asset management, and business continuity. Each scenario is independently completable — you do not need to complete them in order, but the recommended sequence builds complexity progressively.",
       },
       {
-        title: "Practitioner",
+        title: "Controls exercised across the track",
         body:
-          "Multi-obligation scenarios. Two or more intersecting frameworks. Stakeholder pressure is higher. Reference answers require balancing competing obligations — the wrong answer often satisfies one obligation while failing another.",
-        tips: [
-          "Reference answers balance two or more obligations.",
-          "Wrong answers often satisfy one obligation while failing another.",
-          "Three scenarios available: CX-1002, CX-1003, CX-1004.",
-        ],
+          "By completing all five scenarios you will have made graded decisions on 14 distinct Annex A controls: A.5.9, A.5.10, A.5.12, A.5.13, A.5.15, A.5.18, A.5.19, A.5.20, A.5.26, A.5.28, A.5.29, A.5.30, A.8.13, A.8.32, A.10.1. These map directly to audit questions in BSI, UKAS, and DAkkS surveillance audits.",
       },
       {
-        title: "Expert",
+        title: "Using CORTEX for CPD",
         body:
-          "Multi-entity, multi-jurisdiction scenarios. Board-level communication decisions. Regulatory notification across multiple authorities. Reference answers require sequencing decisions correctly across parallel tracks (forensic, legal, operational, regulatory). Three or more decision stages.",
-        tips: [
-          "Three decision stages including board communication.",
-          "Notification decisions span multiple jurisdictions.",
-          "One scenario available: CX-1005.",
-        ],
+          "Scenario completions and competency scores provide evidence of structured GRC practice for CPD purposes. Screenshot your competency panel at the terminal stage of each scenario as a timestamped record. CORTEX does not yet issue certificates — that is on the roadmap.",
+      },
+      {
+        title: "What comes next",
+        body:
+          "Future tracks planned: GDPR enforcement decisions track (data subject requests, breach notification, DPO obligations), NIS2 track (essential entity incident reporting, supply chain, governance), and ISO 42001 track (AI system classification, risk assessment, conformity). Track releases follow scenario content availability.",
       },
     ],
   },
   {
     id: "support",
-    title: "5. Support & Resources",
+    title: "7. Support & Resources",
     steps: [
       {
-        title: "Getting help",
+        title: "In-app quick reference",
         body:
-          "Press H anywhere in the app for the quick reference panel. This page covers the platform in depth.",
+          "Press H anywhere in the app to open the quick reference panel. It contains the scenario descriptions, competency dimension explanations, difficulty guide, keyboard shortcuts, and a GRC glossary covering ISO 27001:2022, GDPR, and NIS2 terms used in the scenarios.",
       },
       {
-        title: "Reporting issues",
+        title: "Keyboard shortcuts",
         body:
-          "Report product issues via GitHub Issues at github.com/astra-ssj/The-Cortex.",
+          "L — scenario selector. H — help page (this page). Esc — close any open panel. Shortcuts work from any authenticated page.",
+      },
+      {
+        title: "Reporting a content issue",
+        body:
+          "If a scenario brief, agent message, choice label, or framework rationale contains an error, report it via GitHub Issues at github.com/astra-ssj/The-Cortex. Include the scenario ID (e.g. CX-1004), the stage slug, and the specific text you believe is incorrect.",
         tips: [
-          "Include the scenario ID and stage when reporting a content issue.",
-          "Include your browser console output when reporting a technical issue.",
+          "Include the scenario ID and stage slug.",
+          "Quote the exact text you believe is wrong.",
+          "Suggest the correction if you can.",
         ],
+      },
+      {
+        title: "Reporting a technical issue",
+        body:
+          "For login failures, blank pages, or unexpected behaviour: include your browser name and version, the URL where the issue occurred, and any error text from the browser console (F12 → Console tab). Report via GitHub Issues.",
+        tips: [
+          "Open F12 → Console before reproducing the issue.",
+          "Screenshot the console output alongside the page.",
+        ],
+      },
+      {
+        title: "CORTEX Community Edition",
+        body:
+          "CORTEX CE is open source under the Apache License 2.0. The source is at github.com/astra-ssj/The-Cortex. Enterprise features, commercial licensing, and support are available separately from AstraLabs Group.",
       },
     ],
   },

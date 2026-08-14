@@ -8,7 +8,7 @@ type HelpSection = {
   blocks: { subtitle?: string; body: string }[];
 };
 
-const GLOSSARY: { term: string; definition: string }[] = [
+export const GLOSSARY: { term: string; definition: string }[] = [
   {
     term: "Scenario",
     definition:
@@ -77,28 +77,23 @@ const SECTIONS: HelpSection[] = [
     title: "Getting Started",
     blocks: [
       {
-        subtitle: "Welcome to the CORTEX Learning Platform",
+        subtitle: "New to CORTEX?",
         body: "",
       },
       {
-        subtitle: "1. Choose a scenario",
+        subtitle: "Create an account",
         body:
-          "The scenario selector shows all available cases organised by difficulty. Foundation scenarios are single-entity with one primary framework. Practitioner and expert scenarios involve multiple obligations, stakeholder pressure, and cross-entity decisions. Start with foundation if you are new to the standard.",
+          "Go to /register. Enter your company details and work email. After registering you land directly on the scenario selector. The demo account is admin@astralabs.com / admin.",
       },
       {
-        subtitle: "2. Read the brief",
+        subtitle: "Sign in",
         body:
-          "Each scenario opens with a situation brief and an agent turn from a stakeholder pressing for a decision. Read both before choosing. The agent's demands tell you what they expect — that is not always what the right answer is.",
+          "Go to /login. You land on the scenario selector at /learning. An active session resumes automatically.",
       },
       {
-        subtitle: "3. Make your decision",
+        subtitle: "First time here?",
         body:
-          "Choose from the available options. There is one reference answer per stage, grounded in a specific framework control. Wrong answers are not penalised uniformly — some wrong answers reflect worse judgment than others.",
-      },
-      {
-        subtitle: "4. Read the competency panel",
-        body:
-          "After your first decision, the competency panel appears below the agent thread. Four dimensions update independently. A ▲ means you moved in the right direction. A ▼ means the decision cost you on that dimension. The observation text explains why.",
+          "Start with CX-1001 (foundation). Read the brief, read the agent message, then choose. The competency panel appears after your first decision. Press H for the full guide.",
       },
     ],
   },
@@ -107,33 +102,62 @@ const SECTIONS: HelpSection[] = [
     title: "Scenarios",
     blocks: [
       {
-        subtitle: "Current ISO 27001:2022 Track",
+        subtitle: "ISO 27001:2022 Track — 5 scenarios",
         body: "",
       },
       {
         subtitle: "CX-1001 · Foundation",
         body:
-          "Friday Cutover: Privileged Cloud Access Request. A DevOps Lead needs broad cloud access before a production cutover. Tests A.8.2, A.5.18, A.5.15. Two decision stages: access_request, escalation.",
+          "Friday Cutover: cloud access request. Tests A.8.2, A.5.18, A.5.15. Two stages. Start here.",
       },
       {
         subtitle: "CX-1002 · Practitioner",
         body:
-          "Third-Party Breach: Supplier Security Incident. Your SaaS HR provider reports a breach affecting 340 employee records. Tests A.5.19, A.5.20, A.5.26, A.5.28. 72-hour GDPR clock running.",
+          "Supplier breach: 340 records, 72h GDPR clock. Tests A.5.19, A.5.20, A.5.26, A.5.28.",
       },
       {
         subtitle: "CX-1003 · Practitioner",
         body:
-          "Emergency Patch: Change Management Bypass. An engineer pushes a CVSS 9.8 patch without CAB approval and takes production down. Tests A.5.26, A.8.32, A.10.1.",
+          "Change management bypass: CVSS 9.8 patch, production down. Tests A.5.26, A.8.32, A.10.1.",
       },
       {
         subtitle: "CX-1004 · Practitioner",
         body:
-          "Audit Prep: Sensitive Data on Unclassified Storage. Three days before surveillance audit, sensitive data is found on an open shared drive. Tests A.5.9, A.5.12, A.5.13, A.5.28, A.10.1.",
+          "Audit prep: sensitive data on unclassified drive, 3 days to audit. Tests A.5.9, A.5.12, A.5.13, A.10.1.",
       },
       {
         subtitle: "CX-1005 · Expert",
         body:
-          "Ransomware: Group-Wide Business Continuity Invocation. Ransomware hits your largest subsidiary. Three connected entities at risk. Board convenes in four hours. Tests A.5.26, A.5.28, A.5.29, A.5.30, A.8.13. Multi-jurisdiction notification decision.",
+          "Ransomware: group-wide BCP, board in 4 hours, multi-jurisdiction notification. Tests A.5.26–A.5.30, A.8.13. Three stages.",
+      },
+    ],
+  },
+  {
+    id: "workspace",
+    title: "Scenario Workspace",
+    blocks: [
+      {
+        subtitle: "Reading the workspace",
+        body: "",
+      },
+      {
+        subtitle: "Brief",
+        body: "Your role and the situation. Read it before anything else. It does not change.",
+      },
+      {
+        subtitle: "Agent message",
+        body:
+          "The stakeholder pressing for a decision. AI-driven — responds differently based on what you chose. Their demands are pressure, not instructions.",
+      },
+      {
+        subtitle: "Choice buttons",
+        body:
+          "One reference answer per stage. Some wrong answers are worse than others. Decisions are final.",
+      },
+      {
+        subtitle: "Stage and risk badges",
+        body:
+          "Stage: where you are in the scenario. Risk: the label assigned to your current decision position. Both update after each decision.",
       },
     ],
   },
@@ -142,29 +166,33 @@ const SECTIONS: HelpSection[] = [
     title: "Competency Panel",
     blocks: [
       {
-        subtitle: "How Scoring Works",
-        body:
-          "Scores start at 50 on your first decision and update after each stage. Each dimension scores independently — you can map controls correctly while showing poor escalation judgment. The panel shows your current score, the direction of your last move (▲ ▼ —), and one observation sentence explaining the move.",
+        subtitle: "Four independent dimensions",
+        body: "",
       },
       {
-        subtitle: "Control Mapping (0-100)",
+        subtitle: "Control Mapping",
         body:
-          "Scored at every decision stage. +15 for a correct answer at access_request, +10 at escalation. Wrong answers cost proportionally. The observation cites the specific control your decision satisfied or violated.",
+          "Right control for the situation? +15 correct, -10 wrong at opening stage. Observation cites the specific Annex A control.",
       },
       {
-        subtitle: "Evidence Quality (0-100)",
+        subtitle: "Evidence Quality",
         body:
-          "Scored on whether your decision is supportable by documented evidence. Penalised additionally for repeated wrong answers — a second wrong answer on the same scenario suggests evidence blindness, not just a single misjudgment.",
+          "Decision supportable by evidence? Repeated wrong answers add an extra penalty — pattern matters.",
       },
       {
-        subtitle: "Escalation Judgment (0-100)",
+        subtitle: "Escalation Judgment",
         body:
-          "Scored on your information-seeking behaviour. Challenging and demanding justification scores highest (+20). Controlled approval scores well (+10). Approving everything without scrutiny scores worst (-15). Denial is valid but avoidant (0).",
+          "Seek information before committing? Challenge: +20. Least privilege: +10. Approve all: -15. Deny: 0.",
       },
       {
-        subtitle: "Remediation (0-100)",
+        subtitle: "Remediation",
         body:
-          "Only scored at the escalation stage and later. Starts at 50 and does not move at the access_request stage. Tests whether you can scope corrective action correctly once a situation has escalated.",
+          "Scope corrective action correctly? Only scores at escalation stage and later. Starts at 50.",
+      },
+      {
+        subtitle: "Score guide",
+        body:
+          "All start at 50. Above 70: consistent correct judgment. Below 40: pattern worth reviewing. Resets on new scenario.",
       },
     ],
   },
@@ -173,34 +201,20 @@ const SECTIONS: HelpSection[] = [
     title: "Difficulty Levels",
     blocks: [
       {
-        subtitle: "Foundation",
+        subtitle: "Foundation (cyan)",
         body:
-          "Single-entity scenarios. One primary framework. One agent role. Two decision stages. Reference answers are directly grounded in one or two controls. Suitable for practitioners new to the standard or returning after a gap.",
+          "Single entity, one framework, two stages. One or two controls per stage. Start here.",
       },
       {
-        subtitle: "Practitioner",
+        subtitle: "Practitioner (amber)",
         body:
-          "Multi-obligation scenarios. Two or more intersecting frameworks. Stakeholder pressure is higher. Reference answers require balancing competing obligations — the wrong answer often satisfies one obligation while failing another.",
+          "Multi-obligation, intersecting frameworks. Wrong answers often satisfy one obligation while failing another.",
       },
       {
-        subtitle: "Expert",
+        subtitle: "Expert (red)",
         body:
-          "Multi-entity, multi-jurisdiction scenarios. Board-level communication decisions. Regulatory notification across multiple authorities. Reference answers require sequencing decisions correctly across parallel tracks (forensic, legal, operational, regulatory). Three or more decision stages.",
+          "Multi-entity, multi-jurisdiction, three+ stages. Board communication and regulatory notification. Attempt last.",
       },
-    ],
-  },
-  {
-    id: "glossary",
-    title: "Regulatory Glossary",
-    blocks: [
-      {
-        subtitle: "Searchable glossary",
-        body: "Use the search bar above to filter terms below.",
-      },
-      ...GLOSSARY.map((g) => ({
-        subtitle: g.term,
-        body: g.definition,
-      })),
     ],
   },
   {
@@ -208,11 +222,7 @@ const SECTIONS: HelpSection[] = [
     title: "Keyboard Shortcuts",
     blocks: [
       {
-        body: [
-          "L → Learning (scenario selector)",
-          "H → Help & Documentation",
-          "Esc → Close panel",
-        ].join("\n"),
+        body: "L → Scenario selector\nH → Help page\nEsc → Close panel",
       },
     ],
   },
@@ -221,8 +231,9 @@ const SECTIONS: HelpSection[] = [
     title: "Support",
     blocks: [
       {
-        subtitle: "CORTEX Learning Platform · AstraLabs Group",
-        body: "Built with FastAPI, PostgreSQL, React. Report issues via GitHub Issues.",
+        subtitle: "CORTEX Community Edition · AstraLabs Group",
+        body:
+          "Open source — Apache 2.0. github.com/astra-ssj/The-Cortex Report issues via GitHub Issues. Include scenario ID and stage for content issues; browser console output for technical issues.",
       },
     ],
   },
