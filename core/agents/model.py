@@ -152,7 +152,15 @@ async def call_model(role_prompt: str, context: dict[str, Any]) -> str:
         response = await client.messages.create(
             model=os.getenv("AGENT_MODEL", _DEFAULT_CLAUDE_MODEL),
             max_tokens=_MAX_TOKENS,
-            system=role_prompt,
+            # Role prompt is stable across stages in a session; cache it so
+            # repeated turns pay cache-read rates instead of full input tokens.
+            system=[
+                {
+                    "type": "text",
+                    "text": role_prompt,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
             messages=[{"role": "user", "content": user_content}],
         )
         # Models often wrap JSON in markdown fences; the harness json.loads the
