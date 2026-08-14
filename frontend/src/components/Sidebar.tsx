@@ -26,17 +26,9 @@ type NavItem = {
 
 type NavGroupDef = { label: string; items: NavItem[] };
 
-// Top-level categories. Order mirrors the user's compliance workflow:
-// understand posture → reason about it → learn → govern it → know what you own → operate.
+// Top-level categories. Learning is the primary surface; remaining groups
+// stay for pages that are still directly routable.
 const NAV_GROUPS: NavGroupDef[] = [
-  {
-    label: "Posture",
-    items: [
-      { label: "Dashboard", path: "/dashboard", icon: "◫" },
-      { label: "Group View", path: "/group", icon: "⊞" },
-      { label: "Frameworks", path: "/frameworks", icon: "▦" },
-    ],
-  },
   {
     label: "Intelligence",
     items: [
