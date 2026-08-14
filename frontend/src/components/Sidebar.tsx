@@ -30,27 +30,27 @@ type NavGroupDef = { label: string; items: NavItem[] };
 // stay for pages that are still directly routable.
 const NAV_GROUPS: NavGroupDef[] = [
   {
-    label: "Intelligence",
+    label: "Explore",
     items: [
       { label: "Audit Simulator", path: "/intelligence/simulator", icon: "▷" },
     ],
   },
   {
-    label: "Learn",
+    label: "Train",
     items: [
       { label: "Learning Loop", path: "/learning", icon: "↻" },
     ],
   },
   {
-    label: "Governance",
+    label: "Discover",
     items: [
       { label: "Review Queue", path: "/review-queue", icon: "⇌", badge: "review" },
-      { label: "Findings", path: "/findings", icon: "⚑", badge: "findings" },
-      { label: "Remediation", path: "/remediation", icon: "↻" },
+      { label: "Control Gaps", path: "/findings", icon: "⚑", badge: "findings" },
+      { label: "Remediation Tracker", path: "/remediation", icon: "↻" },
     ],
   },
   {
-    label: "Inventory",
+    label: "Evidence",
     items: [
       { label: "Evidence Vault", path: "/evidence", icon: "▤" },
     ],
