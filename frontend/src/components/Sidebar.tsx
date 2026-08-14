@@ -39,6 +39,7 @@ const NAV_GROUPS: NavGroupDef[] = [
     label: "Train",
     items: [
       { label: "Learning Loop", path: "/learning", icon: "↻" },
+      { label: "My Progress", path: "/progress", icon: "▲" },
     ],
   },
   {

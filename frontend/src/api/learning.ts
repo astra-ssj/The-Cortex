@@ -48,8 +48,8 @@ export interface SessionSummary {
   stage: string;
   risk: string | null;
   competency: Record<string, CompetencyDimension>;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export function getSessions(org_id: string): Promise<SessionSummary[]> {
