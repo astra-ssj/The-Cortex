@@ -58,6 +58,13 @@ target-version = "py312"
 line-length = 120
 exclude = [".git", ".venv", "venv", "__pycache__"]
 
+# Pin the historical Ruff default. CI installs ruff unpinned; without an
+# explicit select, newer Ruff enables extra rule families (I/UP/B/…) and
+# the lint job fails on pre-existing style, not defects.
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = ["E501"]
+
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true

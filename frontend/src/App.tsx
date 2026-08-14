@@ -105,7 +105,7 @@ function LoginScreen() {
   }
   return (
     <Login
-      onSuccess={(_token, _user) => {
+      onSuccess={() => {
         navigate("/learning", { replace: true });
       }}
     />

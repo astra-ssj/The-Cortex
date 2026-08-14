@@ -56,6 +56,9 @@ AUTH=( -H "Authorization: Bearer $TOKEN" )
 code_fw=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/api/v1/frameworks" "${AUTH[@]}") || die "curl frameworks failed"
 [[ "$code_fw" == "200" ]] || die "/api/v1/frameworks expected 200, got $code_fw"
 
+code_sc=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/api/v1/learning/scenarios" "${AUTH[@]}") || die "curl learning/scenarios failed"
+[[ "$code_sc" == "200" ]] || die "/api/v1/learning/scenarios expected 200, got $code_sc"
+
 RQ=$(curl -sS "$BASE/api/v1/assessments/review-queue" "${AUTH[@]}") || die "curl review-queue failed"
 code_rq=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/api/v1/assessments/review-queue" "${AUTH[@]}")
 [[ "$code_rq" == "200" ]] || die "/api/v1/assessments/review-queue expected 200, got $code_rq"
@@ -86,4 +89,4 @@ rid=$(curl -sS -D - -o /dev/null "$BASE/health" -H "X-Request-ID: smoke-test-rid
 [[ -n "$rid" ]] || die "missing X-Request-ID response header on /health"
 [[ "$rid" == "smoke-test-rid" ]] || die "X-Request-ID not echoed (got '$rid')"
 
-echo "Smoke OK: health → ready → system/ready → login → frameworks → review-queue → ztaip-status → approve → X-Request-ID"
+echo "Smoke OK: health → ready → system/ready → login → frameworks → learning/scenarios → review-queue → ztaip-status → approve → X-Request-ID"

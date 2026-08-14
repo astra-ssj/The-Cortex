@@ -163,6 +163,8 @@ jobs:
       PGDATABASE: cortex
       DATABASE_URL: postgresql+asyncpg://cortex_app:cortex_ci_test@localhost:5432/cortex
       PYTHONPATH: "."
+      JWT_SECRET: ci-jwt-secret-key-minimum-32-characters-xx
+      CORTEX_LEGACY_DEMO_PASSWORD: admin
     steps:
       - uses: actions/checkout@v7
 
