@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.deps import get_db
 from core.rbac import Permission, require_permission, require_permission_stream
 from core.security import get_current_user
-from core.tenant import DEMO_ORG_ID, bind_scoped_org, resolve_scoped_org_id, set_tenant_context
+from core.tenant import DEMO_ORG_ID, bind_scoped_org, resolve_scoped_org_id
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
