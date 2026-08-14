@@ -83,6 +83,20 @@ class SessionOut(SovereignModel):
     updated_at: Optional[str] = None
 
 
+class SessionSummary(SovereignModel):
+    """Org-scoped history row — competency scores without session state."""
+
+    session_id: str
+    scenario_slug: str
+    scenario_title: str
+    difficulty: str
+    stage: str
+    risk: Optional[str] = None
+    competency: dict[str, Any] = Field(default_factory=dict)
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
 def _resolve_org(current_user: dict[str, Any], requested: Optional[str]) -> str:
     if requested and requested.strip():
         return resolve_scoped_org_id(current_user, requested.strip())
@@ -298,6 +312,68 @@ async def create_session(
     )
     logger.info("learning_session_created", session_id=session_id, org_id=effective)
     return _row_to_out(out_row)
+
+
+@router.get(
+    "/sessions",
+    response_model=list[SessionSummary],
+    summary="List learning sessions for competency history",
+)
+async def list_sessions(
+    org_id: Optional[str] = Query(None, description="Scoped organisation id"),
+    current_user: dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[SessionSummary]:
+    effective = await bind_scoped_org(db, current_user, _resolve_org(current_user, org_id))
+    result = await db.execute(
+        text(
+            """
+            SELECT ss.id, ss.scenario, ss.stage, ss.risk,
+                   ss.competency, ss.created_at, ss.updated_at,
+                   sc.title as scenario_title,
+                   sc.difficulty
+            FROM scenario_sessions ss
+            LEFT JOIN scenarios sc ON sc.slug = ss.scenario
+            WHERE ss.org_id = :org_id
+            ORDER BY ss.updated_at DESC
+            LIMIT 50
+            """
+        ),
+        {"org_id": effective},
+    )
+    rows = result.mappings().all()
+    logger.info("learning_sessions_listed", org_id=effective, count=len(rows))
+    summaries: list[SessionSummary] = []
+    for row in rows:
+        created = row["created_at"]
+        updated = row["updated_at"]
+        slug = str(row["scenario"])
+        title = row["scenario_title"]
+        difficulty = row["difficulty"]
+        summaries.append(
+            SessionSummary(
+                jurisdiction="internal",
+                purpose_tags=["learning", "onboarding", "agent-harness"],
+                session_id=str(row["id"]),
+                scenario_slug=slug,
+                scenario_title=str(title) if title else slug,
+                difficulty=str(difficulty) if difficulty else "",
+                stage=str(row["stage"]),
+                risk=str(row["risk"]) if row["risk"] is not None else None,
+                competency=_json_object(row["competency"]),
+                created_at=(
+                    created.isoformat()
+                    if hasattr(created, "isoformat")
+                    else (str(created) if created else None)
+                ),
+                updated_at=(
+                    updated.isoformat()
+                    if hasattr(updated, "isoformat")
+                    else (str(updated) if updated else None)
+                ),
+            )
+        )
+    return summaries
 
 
 @router.get("/sessions/{session_id}", response_model=SessionOut, summary="Get learning session state")
