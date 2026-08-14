@@ -137,10 +137,7 @@ function AppRoutes() {
       }
       switch (e.key.toLowerCase()) {
         case "d":
-          navigate("/dashboard");
-          break;
-        case "g":
-          navigate("/group");
+          navigate("/learning");
           break;
         case "i":
           navigate("/intelligence");
@@ -193,7 +190,7 @@ function AppRoutes() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/learning" element={<LearningLoop />} />
             <Route path="/help" element={<HelpDocs />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/learning" replace />} />
           </Route>
         </Route>
       </Routes>

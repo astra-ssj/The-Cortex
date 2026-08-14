@@ -182,7 +182,7 @@ export default function Login({ onSuccess }: LoginProps) {
               textTransform: "uppercase",
             }}
           >
-            Zero Trust AI Platform
+            Community Edition
           </span>
         </div>
 
