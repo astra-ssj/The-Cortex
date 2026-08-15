@@ -75,12 +75,14 @@ function truncate(s: string, len: number): string {
   return s.length <= len ? s : s.slice(0, len - 3) + "…";
 }
 
-function isOverdue(dueDate: string): boolean {
+// Competency-derived gaps carry no due date — a learner sets their own pace — so
+// every date helper has to treat null as "not scheduled" rather than as overdue.
+function isOverdue(dueDate: string | null): boolean {
   if (!dueDate) return false;
   return new Date(dueDate) < new Date();
 }
 
-function isDueWithinDays(dueDate: string, days: number): boolean {
+function isDueWithinDays(dueDate: string | null, days: number): boolean {
   if (!dueDate) return false;
   const d = new Date(dueDate);
   const now = new Date();
@@ -88,10 +90,37 @@ function isDueWithinDays(dueDate: string, days: number): boolean {
   return diff >= 0 && diff <= days;
 }
 
-function dueDateClass(dueDate: string): string {
+function dueDateClass(dueDate: string | null): string {
   if (isOverdue(dueDate)) return "text-cortex-red font-medium";
   if (isDueWithinDays(dueDate, 7)) return "text-cortex-amber";
   return "text-cortex-muted";
+}
+
+/** True when only a retake can close this gap. */
+function isCompetencyGap(f: RemediationFinding): boolean {
+  return f.source === "competency" && Boolean(f.scenario_slug);
+}
+
+/** Deep link that starts the scenario which raised the gap. */
+function retakePath(f: RemediationFinding): string {
+  const params = new URLSearchParams({ scenario: String(f.scenario_slug), gap: f.id });
+  return `/learning?${params.toString()}`;
+}
+
+const DIMENSION_LABELS: Record<string, string> = {
+  control_mapping: "Control Mapping",
+  evidence: "Evidence Quality",
+  escalation: "Escalation Judgment",
+  remediation: "Remediation",
+};
+
+function dimensionLabel(dimension: string | null): string {
+  if (!dimension) return "—";
+  return DIMENSION_LABELS[dimension] ?? dimension;
+}
+
+function retakeRequiredMessage(f: RemediationFinding): string {
+  return `${dimensionLabel(f.dimension)} scored ${f.competency_score ?? "below the floor"} on this scenario. Retake it and score above the floor to close this gap — marking it done by hand would make the competency claim self-certified.`;
 }
 
 function progressPercent(f: RemediationFinding): number {
@@ -213,9 +242,19 @@ function ControlGapsView({
               <span className="font-ui text-sm font-medium text-cortex-text" title={f.title}>{truncate(f.title, 72)}</span>
               <span className="font-data text-xs text-cortex-muted">{f.framework}</span>
               <span className="font-data text-xs text-cortex-muted">{f.control_id}</span>
-              <span className="font-data text-xs text-cortex-muted">{f.entity}</span>
+              <span className="font-data text-xs text-cortex-muted" title={f.entity}>
+                {isCompetencyGap(f) ? dimensionLabel(f.dimension) : f.entity}
+              </span>
               <span className="font-ui text-xs text-cortex-muted">{f.owner}</span>
-              <span className={`font-data text-xs ${dueDateClass(f.due_date)}`}>{f.due_date || "—"}</span>
+              {/* A competency gap has no due date; naming the exit condition is more
+                  use to the learner than an em dash. */}
+              {isCompetencyGap(f) ? (
+                <span className="font-data text-xs text-cortex-blue">Retake to close</span>
+              ) : (
+                <span className={`font-data text-xs ${dueDateClass(f.due_date)}`}>
+                  {f.due_date || "—"}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -253,6 +292,9 @@ export function RemediationTracker() {
   const [detailCompletedActions, setDetailCompletedActions] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  // A refused close is guidance, not a failure: it names the scenario to retake.
+  // Kept out of `error`, which renders as a red banner over the whole board.
+  const [blockedClose, setBlockedClose] = useState<{ id: string; message: string } | null>(null);
 
   const loadFindings = useCallback(async () => {
     setLoading(true);
@@ -346,9 +388,23 @@ export function RemediationTracker() {
         return;
       }
       if (!data.id || data.status === toStatus) return;
+
+      // Refuse locally as well as server-side. The API returns 409, but dropping a
+      // card and watching it snap back with an error is a worse explanation than
+      // not letting go of it in the first place.
+      const dragged = findings.find((f) => f.id === data.id);
+      if (toStatus === "REMEDIATED" && dragged && isCompetencyGap(dragged)) {
+        setBlockedClose({
+          id: dragged.id,
+          message: `${dimensionLabel(dragged.dimension)} is proven by retaking the scenario, not by moving a card. Open the gap to retake it.`,
+        });
+        return;
+      }
+
       try {
         const updated = await updateFinding(data.id, { status: toStatus });
         bumpComplianceCaches();
+        setBlockedClose(null);
         setFindings((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
         if (selectedFinding?.id === updated.id) {
           setSelectedFinding(updated);
@@ -358,13 +414,14 @@ export function RemediationTracker() {
         setError(err instanceof Error ? err : new Error(String(err)));
       }
     },
-    [selectedFinding, bumpComplianceCaches, canEditFindings]
+    [findings, selectedFinding, bumpComplianceCaches, canEditFindings]
   );
 
   const openDetail = (f: RemediationFinding) => {
     setSelectedFinding(f);
+    setBlockedClose(null);
     setDetailOwner(f.owner);
-    setDetailDueDate(f.due_date);
+    setDetailDueDate(f.due_date ?? "");
     setDetailStatus(f.status as FindingStatus);
     setDetailPriority((f.priority as "P0" | "P1" | "P2") || "P1");
     setDetailNotes("");
@@ -375,6 +432,10 @@ export function RemediationTracker() {
 
   const handleSaveChanges = async () => {
     if (!selectedFinding) return;
+    if (detailStatus === "REMEDIATED" && isCompetencyGap(selectedFinding)) {
+      setBlockedClose({ id: selectedFinding.id, message: retakeRequiredMessage(selectedFinding) });
+      return;
+    }
     setSaving(true);
     try {
       const body: UpdateFindingBody = {
@@ -390,7 +451,7 @@ export function RemediationTracker() {
       setSelectedFinding(updated);
       setDetailStatus(updated.status as FindingStatus);
       setDetailOwner(updated.owner);
-      setDetailDueDate(updated.due_date);
+      setDetailDueDate(updated.due_date ?? "");
       setDetailCompletedActions(updated.completed_actions ?? []);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -592,6 +653,15 @@ export function RemediationTracker() {
         </select>
       </div>
 
+      {blockedClose && !selectedFinding && (
+        <p
+          role="status"
+          className="rounded-lg border border-cortex-amber/40 bg-cortex-amber/10 p-3 font-ui text-sm text-cortex-amber"
+        >
+          {blockedClose.message}
+        </p>
+      )}
+
       {/* Kanban */}
       <div className="grid grid-cols-4 gap-4">
         {STATUSES.map((status) => (
@@ -640,9 +710,16 @@ export function RemediationTracker() {
                     </span>
                     <span className="font-ui text-xs text-cortex-muted">{f.owner}</span>
                   </div>
-                  <p className={`mt-1 font-data text-xs ${dueDateClass(f.due_date)}`}>
-                    Due: {f.due_date || "—"} {f.days_open != null ? ` · ${f.days_open}d open` : ""}
-                  </p>
+                  {isCompetencyGap(f) ? (
+                    <p className="mt-1 font-data text-xs text-cortex-blue">
+                      Retake to close · {f.days_open}d open
+                    </p>
+                  ) : (
+                    <p className={`mt-1 font-data text-xs ${dueDateClass(f.due_date)}`}>
+                      Due: {f.due_date || "—"}
+                      {f.days_open != null ? ` · ${f.days_open}d open` : ""}
+                    </p>
+                  )}
                   <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-cortex-border">
                     <div
                       className="h-full rounded-full bg-cortex-blue transition-all"
@@ -694,6 +771,40 @@ export function RemediationTracker() {
                   </svg>
                 </button>
               </div>
+
+              {isCompetencyGap(selectedFinding) && (
+                <section className="mt-6 rounded-lg border border-cortex-blue/40 bg-cortex-blue/10 p-4">
+                  <h3 className="font-data text-xs uppercase tracking-wider text-cortex-blue">
+                    Raised by your own decisions
+                  </h3>
+                  <p className="mt-2 font-ui text-sm text-cortex-text">
+                    {dimensionLabel(selectedFinding.dimension)} scored{" "}
+                    <strong>{selectedFinding.competency_score ?? "—"}</strong> when you finished{" "}
+                    <strong>{selectedFinding.scenario_slug}</strong>. This gap closes when you retake
+                    that scenario and lift the dimension back over the floor.
+                  </p>
+                  {selectedFinding.controls.length > 0 && (
+                    <p className="mt-2 font-data text-xs text-cortex-muted">
+                      Controls touched: {selectedFinding.controls.join(", ")}
+                    </p>
+                  )}
+                  <Link
+                    to={retakePath(selectedFinding)}
+                    className="mt-3 inline-block rounded bg-cortex-blue px-4 py-2 font-ui text-sm font-medium text-white hover:bg-cortex-blue/90"
+                  >
+                    Retake scenario →
+                  </Link>
+                </section>
+              )}
+
+              {blockedClose?.id === selectedFinding.id && (
+                <p
+                  role="status"
+                  className="mt-4 rounded-lg border border-cortex-amber/40 bg-cortex-amber/10 p-3 font-ui text-sm text-cortex-amber"
+                >
+                  {blockedClose.message}
+                </p>
+              )}
 
               <section className="mt-6">
                 <h3 className="font-data text-xs uppercase tracking-wider text-cortex-muted">Details</h3>
@@ -823,6 +934,7 @@ export function RemediationTracker() {
                 <h3 className="font-data text-xs uppercase tracking-wider text-cortex-muted">Status</h3>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <select
+                    aria-label="Finding status"
                     value={detailStatus}
                     disabled={!canEditFindings}
                     onChange={(e) => setDetailStatus(e.target.value as FindingStatus)}
@@ -842,14 +954,23 @@ export function RemediationTracker() {
                   >
                     Save Changes
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleMarkRemediated}
-                    disabled={!canEditFindings || saving || detailStatus === "REMEDIATED"}
-                    className="rounded bg-cortex-green px-4 py-2 font-ui text-sm font-medium text-white hover:bg-cortex-green/90 disabled:opacity-50"
-                  >
-                    Mark Remediated
-                  </button>
+                  {isCompetencyGap(selectedFinding) ? (
+                    <Link
+                      to={retakePath(selectedFinding)}
+                      className="rounded bg-cortex-green px-4 py-2 font-ui text-sm font-medium text-white hover:bg-cortex-green/90"
+                    >
+                      Retake to close →
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleMarkRemediated}
+                      disabled={!canEditFindings || saving || detailStatus === "REMEDIATED"}
+                      className="rounded bg-cortex-green px-4 py-2 font-ui text-sm font-medium text-white hover:bg-cortex-green/90 disabled:opacity-50"
+                    >
+                      Mark Remediated
+                    </button>
+                  )}
                 </div>
               </section>
             </div>

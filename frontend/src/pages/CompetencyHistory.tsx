@@ -1,16 +1,20 @@
 /**
- * Competency history — scored performance across org sessions.
- * Read-only; Resume/Review reuses LearningLoop via cortex_learning_session_id.
+ * Competency Ledger — one learner's proven capability, and the sessions behind it.
+ *
+ * Scoped to the signed-in learner: the org-wide read this page used to perform
+ * lives behind the permissioned team view instead. Read-only; Resume/Review
+ * reuses LearningLoop via cortex_learning_session_id.
  */
 
-import { useMemo, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
+  getMyCompetency,
   getSessions,
   type CompetencyDimension,
-  type SessionSummary,
 } from "../api/learning";
+import { DimensionGrid, TrackProgress } from "../components/CompetencyLedger";
 import { Skeleton } from "../components/Skeleton";
 import { useOrgContext } from "../hooks/useOrgContext";
 
@@ -61,24 +65,6 @@ function formatSessionDate(iso: string | null | undefined): string {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function averageScores(sessions: SessionSummary[]): Record<(typeof DIMENSION_ORDER)[number], number> | null {
-  const scored = sessions.filter((s) => hasCompetency(s.competency));
-  if (scored.length === 0) return null;
-  const totals = { control_mapping: 0, evidence: 0, escalation: 0, remediation: 0 };
-  for (const s of scored) {
-    for (const key of DIMENSION_ORDER) {
-      totals[key] += Math.max(0, Math.min(100, Number(s.competency[key]?.score) || 0));
-    }
-  }
-  const n = scored.length;
-  return {
-    control_mapping: Math.round(totals.control_mapping / n),
-    evidence: Math.round(totals.evidence / n),
-    escalation: Math.round(totals.escalation / n),
-    remediation: Math.round(totals.remediation / n),
-  };
-}
-
 function badgeStyle(color: string): CSSProperties {
   return {
     fontSize: 10,
@@ -124,12 +110,16 @@ export default function CompetencyHistory() {
   const { orgId } = useOrgContext();
   const navigate = useNavigate();
   const query = useQuery({
-    queryKey: ["learning-sessions", orgId],
-    queryFn: () => getSessions(orgId),
+    queryKey: ["learning-sessions", orgId, "mine"],
+    queryFn: () => getSessions(orgId, "mine"),
+  });
+  const rollupQuery = useQuery({
+    queryKey: ["learning-competency", orgId],
+    queryFn: () => getMyCompetency(orgId),
   });
 
   const sessions = query.data ?? [];
-  const averages = useMemo(() => averageScores(sessions), [sessions]);
+  const rollup = rollupQuery.data;
 
   const openSession = (sessionId: string) => {
     localStorage.setItem("cortex_learning_session_id", sessionId);
@@ -139,9 +129,13 @@ export default function CompetencyHistory() {
   return (
     <div style={{ paddingTop: 8 }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "var(--text)" }}>My Progress</h1>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "var(--text)" }}>
+          Competency Ledger
+        </h1>
         <p style={{ margin: "8px 0 0", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.55 }}>
-          Your competency scores across all completed scenarios.
+          What you have proved, across every scenario you have run. Dimensions below
+          the floor become control gaps; every decision behind these scores is
+          hash-chained in the evidence log.
         </p>
       </div>
 
@@ -180,41 +174,18 @@ export default function CompetencyHistory() {
         </div>
       ) : (
         <>
-          {averages ? (
-            <div
-              aria-label="Average competency scores"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                gap: 12,
-                marginBottom: 20,
-              }}
-            >
-              {DIMENSION_ORDER.map((key) => {
-                const score = averages[key];
-                return (
-                  <div key={key} style={panel}>
-                    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: "var(--text-secondary)" }}>
-                      {DIMENSION_LABELS[key]}
-                    </div>
-                    <div style={{ marginTop: 8, fontSize: 22, fontWeight: 700, color: "var(--text)" }}>{score}</div>
-                    <div
-                      style={{
-                        marginTop: 10,
-                        height: 4,
-                        borderRadius: 2,
-                        background: "var(--border)",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div style={{ width: `${score}%`, height: "100%", background: "var(--cyan)" }} />
-                    </div>
-                  </div>
-                );
-              })}
+          {rollup ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+              <DimensionGrid dimensions={rollup.dimensions} />
+              <TrackProgress rollup={rollup} />
             </div>
+          ) : rollupQuery.isPending ? (
+            <Skeleton height="120px" style={{ marginBottom: 24 }} />
           ) : null}
 
+          <h2 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-secondary)" }}>
+            Session history
+          </h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {sessions.map((s) => {
               const terminal = s.stage === TERMINAL_STAGE;

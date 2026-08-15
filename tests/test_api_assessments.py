@@ -73,12 +73,12 @@ def test_assessments_run_accepts_valid_org_and_streams(client: TestClient, auth_
     assert count >= 1
 
 
-def test_review_queue_demo_has_eight_pending(
+def test_review_queue_starts_empty_without_earned_items(
     client: TestClient,
     auth_headers: dict[str, str],
     postgres_reachable: bool,
 ) -> None:
-    """Human review queue seeds eight items for demo-org when Postgres + migration 006 exist."""
+    """An empty queue is correct — demo rows were theatre, not work."""
     if not postgres_reachable:
         pytest.skip("database not reachable")
     r = client.get("/api/v1/assessments/review-queue", headers=auth_headers)
@@ -88,4 +88,4 @@ def test_review_queue_demo_has_eight_pending(
     data = r.json()
     assert isinstance(data["items"], list)
     assert isinstance(data["reviewed"], list)
-    assert len(data["items"]) == 8
+    assert not any(str(item.get("id", "")).startswith("review-") for item in data["items"])

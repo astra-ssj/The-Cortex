@@ -280,9 +280,12 @@ async def ensure_learning_loop_schema() -> None:
     """
     Apply learning-loop migrations when missing on existing volumes.
 
-    017 creates scenario_sessions + RLS. 020 adds competency jsonb. Fresh
-    docker-entrypoint-initdb.d installs already include both; this heals DBs
-    created earlier without requiring a volume wipe.
+    017 creates scenario_sessions + RLS. 020 adds competency jsonb. 027/028 add
+    and seed the per-choice competency weights that let scenarios past CX-1001
+    score anything at all. 029/030 drop the demo findings and review-queue rows
+    so Control Gaps and Review Queue can only show work the learner earned.
+    Fresh docker-entrypoint-initdb.d installs already include all of them; this
+    heals DBs created earlier without a volume wipe.
     """
     import asyncio
     import pathlib
@@ -291,6 +294,10 @@ async def ensure_learning_loop_schema() -> None:
     migrations_dir = pathlib.Path(__file__).resolve().parent.parent / "migrations"
     migration_017 = migrations_dir / "017_learning_loop.sql"
     migration_020 = migrations_dir / "020_competency_scores.sql"
+    migration_027 = migrations_dir / "027_scenario_choice_dimension_weights.sql"
+    migration_028 = migrations_dir / "028_scenario_dimension_weights_seed.sql"
+    migration_029 = migrations_dir / "029_findings_from_competency.sql"
+    migration_030 = migrations_dir / "030_review_queue_from_learning.sql"
 
     def _apply_file(path: pathlib.Path) -> None:
         import psycopg2
@@ -373,6 +380,90 @@ async def ensure_learning_loop_schema() -> None:
             else:
                 await asyncio.to_thread(_apply_file, migration_020)
                 logger.info("competency_schema_applied", path=migration_020.name)
+
+        # Content tables are absent on installs that never applied 019, and the
+        # weight seed joins through them, so both steps are gated on the table.
+        async with engine.connect() as conn:
+            has_choices = (
+                await conn.execute(
+                    text(
+                        """
+                        SELECT 1 FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                          AND table_name = 'scenario_choices'
+                        LIMIT 1
+                        """
+                    )
+                )
+            ).first()
+            has_weights = (
+                await conn.execute(
+                    text(
+                        """
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = 'scenario_choices'
+                          AND column_name = 'dimension_weights'
+                        LIMIT 1
+                        """
+                    )
+                )
+            ).first()
+
+        if has_choices and not has_weights:
+            for migration in (migration_027, migration_028):
+                if not migration.is_file():
+                    logger.warning("dimension_weights_migration_missing", path=str(migration))
+                    break
+                await asyncio.to_thread(_apply_file, migration)
+                logger.info("dimension_weights_schema_applied", path=migration.name)
+
+        async with engine.connect() as conn:
+            has_finding_source = (
+                await conn.execute(
+                    text(
+                        """
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = 'findings'
+                          AND column_name = 'source'
+                        LIMIT 1
+                        """
+                    )
+                )
+            ).first()
+            has_pending_table = (
+                await conn.execute(
+                    text(
+                        """
+                        SELECT 1 FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                          AND table_name = 'human_review_pending'
+                        LIMIT 1
+                        """
+                    )
+                )
+            ).first()
+            demo_review = None
+            if has_pending_table:
+                demo_review = (
+                    await conn.execute(
+                        text(
+                            """
+                            SELECT 1 FROM human_review_pending
+                            WHERE org_id = 'demo-org-001' AND id ~ '^review-[0-9]+$'
+                            LIMIT 1
+                            """
+                        )
+                    )
+                ).first()
+
+        if not has_finding_source and migration_029.is_file():
+            await asyncio.to_thread(_apply_file, migration_029)
+            logger.info("findings_from_competency_schema_applied", path=migration_029.name)
+        if demo_review and migration_030.is_file():
+            await asyncio.to_thread(_apply_file, migration_030)
+            logger.info("review_queue_from_learning_schema_applied", path=migration_030.name)
     except Exception as e:
         logger.warning("learning_loop_schema_guard_failed", error=str(e))
 

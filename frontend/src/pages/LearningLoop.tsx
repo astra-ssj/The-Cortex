@@ -1,9 +1,11 @@
-import { useCallback, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import {
   createLearningSession,
   decideLearningSession,
   getLearningSession,
+  getScenarioDebrief,
   getScenarios,
   type CompetencyDimension,
   type LearningSession,
@@ -11,8 +13,12 @@ import {
 } from "../api/learning";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Button } from "../components/ui/Button";
+import { ScenarioDebrief } from "../components/ScenarioDebrief";
 import { Skeleton } from "../components/Skeleton";
 import { useOrgContext } from "../hooks/useOrgContext";
+
+/** Matches core.agents.scenario.TERMINAL_STAGE. */
+const TERMINAL_STAGE = "complete";
 
 const panel: CSSProperties = {
   background: "var(--panel)",
@@ -267,10 +273,17 @@ function ScenarioSelector({
 export default function LearningLoop() {
   const { orgId } = useOrgContext();
   const qc = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sessionId, setSessionId] = useState<string | null>(
     () => localStorage.getItem("cortex_learning_session_id"),
   );
   const showEngineRoom = import.meta.env.DEV;
+
+  // `/learning?scenario=<slug>&gap=<finding-id>` is how Remediation hands a gap
+  // back to Train. A competency gap can only be closed by retaking the scenario
+  // that raised it, so the tracker links here rather than offering a close button.
+  const retakeSlug = searchParams.get("scenario");
+  const retakeGapId = searchParams.get("gap");
 
   const sessionQuery = useQuery({
     queryKey: ["learning-session", sessionId, orgId],
@@ -296,6 +309,14 @@ export default function LearningLoop() {
     },
   });
 
+  const complete = sessionQuery.data?.stage === TERMINAL_STAGE;
+
+  const debriefQuery = useQuery({
+    queryKey: ["learning-debrief", sessionId, orgId],
+    queryFn: () => getScenarioDebrief(sessionId!, orgId),
+    enabled: Boolean(sessionId) && complete,
+  });
+
   const onStart = useCallback(
     (slug: string) => {
       createMut.mutate(slug);
@@ -308,6 +329,24 @@ export default function LearningLoop() {
     setSessionId(null);
     qc.removeQueries({ queryKey: ["learning-session"] });
   }, [qc]);
+
+  // Guards a double start: React 18 runs effects twice in dev, and the mutation's
+  // own isPending has not flipped yet on the second pass.
+  const retakeStarted = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!retakeSlug || retakeStarted.current === retakeSlug) return;
+    retakeStarted.current = retakeSlug;
+    // Replace any session in progress: the learner asked for this scenario
+    // specifically, and resuming an unrelated one would silently ignore that.
+    localStorage.removeItem("cortex_learning_session_id");
+    qc.removeQueries({ queryKey: ["learning-session"] });
+    createMut.mutate(retakeSlug);
+    // Drop the params so a refresh does not restart the scenario mid-run.
+    const next = new URLSearchParams(searchParams);
+    next.delete("scenario");
+    setSearchParams(next, { replace: true });
+  }, [retakeSlug, searchParams, setSearchParams, createMut, qc]);
 
   const session: LearningSession | undefined = sessionQuery.data;
   const choices = (session?.state?.choices as { id: string; label: string }[] | undefined) ?? [];
@@ -369,6 +408,25 @@ export default function LearningLoop() {
           </Button>
         ) : null}
       </div>
+
+      {retakeGapId ? (
+        <div
+          role="status"
+          style={{
+            marginBottom: 20,
+            padding: 14,
+            background: "color-mix(in srgb, var(--cyan) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--cyan) 40%, transparent)",
+            borderRadius: 8,
+            fontSize: 13,
+            lineHeight: 1.55,
+            color: "var(--text)",
+          }}
+        >
+          Working off control gap <strong>{retakeGapId}</strong>. Score the weak dimension above
+          the competency floor and the gap closes itself when you reach the debrief.
+        </div>
+      ) : null}
 
       {!sessionId ? (
         <>
@@ -498,7 +556,10 @@ export default function LearningLoop() {
               ))}
             </div>
 
-            {session.competency && Object.keys(session.competency).length > 0 ? (
+            {/* Suppressed once complete — the debrief renders the richer version. */}
+            {!complete &&
+            session.competency &&
+            Object.keys(session.competency).length > 0 ? (
               <CompetencyPanel competency={session.competency} />
             ) : null}
 
@@ -517,17 +578,26 @@ export default function LearningLoop() {
                   </Button>
                 ))}
               </div>
-            ) : (
-              <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
-                Scenario complete. Start a new session to practice again.
+            ) : debriefQuery.isPending ? (
+              <Skeleton height="120px" />
+            ) : debriefQuery.isError ? (
+              <p style={{ margin: 0, fontSize: 13, color: "var(--amber)" }}>
+                Scenario complete, but the debrief could not be loaded.
               </p>
-            )}
+            ) : null}
             {decideMut.isError ? (
               <p style={{ marginTop: 12, color: "var(--red)", fontSize: 12 }}>
                 Decision failed — try again or start a new session.
               </p>
             ) : null}
           </section>
+
+          {/* Full width: the debrief is the screen, not a sidebar to the transcript. */}
+          {complete && debriefQuery.data ? (
+            <div style={{ gridColumn: "1 / -1" }}>
+              <ScenarioDebrief debrief={debriefQuery.data} onRestart={onReset} />
+            </div>
+          ) : null}
 
           {showEngineRoom ? (
             <aside style={panel} aria-label="Engine room">
