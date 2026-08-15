@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import structlog
@@ -31,7 +31,8 @@ from core.security import (
     hash_password,
     verify_password,
 )
-from db.session import ensure_org_onboarding_schema
+from core.rbac import Permission, require_permission
+from db.session import ensure_org_invitations_schema, ensure_org_onboarding_schema
 
 logger = structlog.get_logger()
 
@@ -78,6 +79,23 @@ class ChangePasswordBody(BaseModel):
 
 class ServiceKeyCreateBody(BaseModel):
     label: str = Field(default="integration", max_length=120)
+
+
+class InviteBody(BaseModel):
+    email: str = Field(..., min_length=3, max_length=320)
+    role: str = Field(default="ANALYST")
+    full_name: str = ""
+
+
+class AcceptInviteBody(BaseModel):
+    token: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=8)
+    full_name: str = ""
+    email: str = Field(default="", max_length=320)
+
+
+_INVITE_TTL_DAYS = 7
+_INVITE_ROLES = frozenset({"ANALYST", "VIEWER"})
 
 
 def _db_email_for_login(username: str) -> str:
@@ -322,6 +340,34 @@ async def login(
     username = (form_data.username or "").strip()
     password = form_data.password or ""
 
+    # Demo accounts are opted-in (CORTEX_TESTING / CORTEX_ENABLE_DEMO_USERS) and
+    # are the documented CISO→analyst mapping. A leftover users-row with the
+    # same email (local register, invite experiments) must not shadow them —
+    # otherwise /auth/me reports ADMIN and the role tests lie.
+    demo = DEMO_USERS.get(username)
+    if demo and verify_password(password, demo["hashed_password"]):
+        token = create_access_token({"sub": username})
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "expires_in": 60 * int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")),
+            "org_id": "demo-org-001",
+            "role": demo["role"],
+            "is_demo": True,
+            "onboarding_complete": True,
+            "onboarding_step": 5,
+            "user": {
+                "name": demo["name"],
+                "email": demo["email"],
+                "role": demo["role"],
+                "entity": demo["entity"],
+                "org_id": "demo-org-001",
+                "is_demo": True,
+                "onboarding_complete": True,
+                "onboarding_step": 5,
+            },
+        }
+
     db_user = await _try_load_db_user(session, _db_email_for_login(username))
     if db_user:
         if _locked_now(db_user.get("locked_until")):
@@ -391,30 +437,6 @@ async def login(
             logger.warning("account_locked", email=db_user["email"], attempts=n)
     else:
         pass
-
-    demo = DEMO_USERS.get(username)
-    if demo and verify_password(password, demo["hashed_password"]):
-        token = create_access_token({"sub": username})
-        return {
-            "access_token": token,
-            "token_type": "bearer",
-            "expires_in": 60 * int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")),
-            "org_id": "demo-org-001",
-            "role": demo["role"],
-            "is_demo": True,
-            "onboarding_complete": True,
-            "onboarding_step": 5,
-            "user": {
-                "name": demo["name"],
-                "email": demo["email"],
-                "role": demo["role"],
-                "entity": demo["entity"],
-                "org_id": "demo-org-001",
-                "is_demo": True,
-                "onboarding_complete": True,
-                "onboarding_step": 5,
-            },
-        }
 
     _uname_ok = username == _LEGACY_DEMO_USER or username.lower() == "admin@astralabs.com"
     if (
@@ -722,3 +744,279 @@ async def update_onboarding_step(
 @router.get("/me")
 async def get_me(current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
     return current_user
+
+
+@router.get("/users")
+async def list_org_users(
+    current_user: dict[str, Any] = Depends(require_permission(Permission.access_settings)),
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Members of the caller's organisation. Admin-only — this is the team list."""
+    org_id = str(current_user.get("org_id") or "")
+    if not org_id:
+        raise HTTPException(status_code=400, detail="Organisation required")
+    from core.tenant import set_tenant_context
+
+    await set_tenant_context(session, org_id)
+    rows = (
+        await session.execute(
+            text(
+                """
+                SELECT id::text AS id, email::text AS email,
+                       COALESCE(full_name, '') AS full_name,
+                       role::text AS role,
+                       COALESCE(is_active, TRUE) AS is_active,
+                       created_at
+                FROM users
+                WHERE org_id = :org_id
+                ORDER BY created_at ASC
+                """
+            ),
+            {"org_id": org_id},
+        )
+    ).mappings().all()
+    return {
+        "org_id": org_id,
+        "users": [
+            {
+                "id": row["id"],
+                "email": row["email"],
+                "full_name": row["full_name"],
+                "role": row["role"],
+                "is_active": bool(row["is_active"]),
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            }
+            for row in rows
+        ],
+    }
+
+
+@router.post("/invite")
+@limiter.limit("10/minute")
+async def invite_org_user(
+    request: Request,
+    payload: InviteBody,
+    current_user: dict[str, Any] = Depends(require_permission(Permission.access_settings)),
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """
+    Invite a learner into the caller's organisation.
+
+    Registration creates a new org. This is the only path that puts a second
+    person in an existing one. The raw token is returned once; we do not send
+    email in Community Edition.
+    """
+    org_id = str(current_user.get("org_id") or "")
+    if not org_id:
+        raise HTTPException(status_code=400, detail="Organisation required")
+    role = payload.role.strip().upper()
+    if role not in _INVITE_ROLES:
+        raise HTTPException(status_code=400, detail="Invite role must be ANALYST or VIEWER")
+    email = payload.email.strip().lower()
+    await ensure_org_invitations_schema()
+    from core.tenant import set_tenant_context
+
+    await set_tenant_context(session, org_id)
+
+    existing = (
+        await session.execute(
+            text("SELECT id FROM users WHERE email = :email"),
+            {"email": email},
+        )
+    ).scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    raw_token = secrets.token_urlsafe(32)
+    invite_id = f"inv-{uuid.uuid4().hex[:12]}"
+    expires_at = datetime.now(timezone.utc) + timedelta(days=_INVITE_TTL_DAYS)
+    try:
+        await session.execute(
+            text(
+                """
+                INSERT INTO org_invitations (
+                    id, org_id, email, role, full_name, token_hash,
+                    invited_by, expires_at, jurisdiction, purpose_tags
+                )
+                VALUES (
+                    :id, :org_id, :email, :role, :full_name, :token_hash,
+                    :invited_by, :expires_at, 'EU', '["org-invite"]'::jsonb
+                )
+                """
+            ),
+            {
+                "id": invite_id,
+                "org_id": org_id,
+                "email": email,
+                "role": role,
+                "full_name": payload.full_name.strip(),
+                "token_hash": _hash_opaque(raw_token),
+                "invited_by": str(current_user.get("email") or current_user.get("sub") or ""),
+                "expires_at": expires_at,
+            },
+        )
+    except SQLAlchemyError as e:
+        await session.rollback()
+        logger.warning("invite_db_error", error=str(e))
+        raise HTTPException(
+            status_code=503,
+            detail="Invite unavailable — database unreachable or migrations not applied",
+        ) from e
+
+    await append_audit_log(
+        session,
+        event_type="org.invite.issued",
+        entity_type="org_invitation",
+        entity_id=invite_id,
+        org_id=org_id,
+        actor=str(current_user.get("email") or current_user.get("sub") or ""),
+        payload={"email": email, "role": role},
+    )
+    return {
+        "invite_id": invite_id,
+        "email": email,
+        "role": role,
+        "token": raw_token,
+        "expires_at": expires_at.isoformat(),
+        "message": "Share this token once. It will not be shown again.",
+    }
+
+
+@router.post("/accept-invite")
+@limiter.limit("5/minute")
+async def accept_org_invite(
+    request: Request,
+    payload: AcceptInviteBody,
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """Join an existing organisation. Does not create a new org."""
+    if len(payload.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    await ensure_org_invitations_schema()
+    token_hash = _hash_opaque(payload.token.strip())
+    try:
+        row = (
+            await session.execute(
+                text(
+                    """
+                    SELECT id, org_id, email, role, full_name, expires_at, accepted_at
+                    FROM org_invitations
+                    WHERE token_hash = :token_hash
+                    """
+                ),
+                {"token_hash": token_hash},
+            )
+        ).mappings().one_or_none()
+    except SQLAlchemyError as e:
+        await session.rollback()
+        logger.warning("accept_invite_lookup_failed", error=str(e))
+        raise HTTPException(status_code=503, detail="Invite unavailable") from e
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="Invite not found")
+    if row["accepted_at"] is not None:
+        raise HTTPException(status_code=409, detail="Invite already accepted")
+    expires_at = row["expires_at"]
+    if isinstance(expires_at, datetime):
+        exp = expires_at if expires_at.tzinfo else expires_at.replace(tzinfo=timezone.utc)
+        if exp < datetime.now(timezone.utc):
+            raise HTTPException(status_code=410, detail="Invite expired")
+
+    email = (payload.email.strip().lower() or str(row["email"])).strip()
+    if email != str(row["email"]).strip().lower():
+        raise HTTPException(status_code=400, detail="Email does not match the invitation")
+
+    existing = (
+        await session.execute(
+            text("SELECT id FROM users WHERE email = :email"),
+            {"email": email},
+        )
+    ).scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    org_id = str(row["org_id"])
+    from core.tenant import set_tenant_context
+
+    await set_tenant_context(session, org_id)
+    user_id = str(uuid.uuid4())
+    full_name = payload.full_name.strip() or str(row["full_name"] or "")
+    try:
+        await session.execute(
+            text(
+                """
+                INSERT INTO users (id, email, password_hash, full_name, org_id, role)
+                VALUES (:id, :email, :password_hash, :full_name, :org_id, :role)
+                """
+            ),
+            {
+                "id": user_id,
+                "email": email,
+                "password_hash": hash_password(payload.password),
+                "full_name": full_name,
+                "org_id": org_id,
+                "role": str(row["role"]),
+            },
+        )
+        await session.execute(
+            text(
+                """
+                UPDATE org_invitations
+                SET accepted_at = NOW()
+                WHERE id = :id
+                """
+            ),
+            {"id": row["id"]},
+        )
+    except SQLAlchemyError as e:
+        await session.rollback()
+        logger.warning("accept_invite_db_error", error=str(e))
+        raise HTTPException(status_code=503, detail="Could not accept invite") from e
+
+    await append_audit_log(
+        session,
+        event_type="org.invite.accepted",
+        entity_type="user",
+        entity_id=user_id,
+        org_id=org_id,
+        actor=email,
+        payload={"invite_id": row["id"], "role": row["role"]},
+    )
+
+    org_res = await session.execute(
+        text(
+            """
+            SELECT COALESCE(is_demo, FALSE) AS is_demo,
+                   COALESCE(onboarding_complete, FALSE) AS onboarding_complete,
+                   COALESCE(onboarding_step, 0) AS onboarding_step
+            FROM organizations WHERE id = :id
+            """
+        ),
+        {"id": org_id},
+    )
+    org = org_res.mappings().one_or_none() or {}
+    user_row = {
+        "id": user_id,
+        "email": email,
+        "org_id": org_id,
+        "role": str(row["role"]),
+        "is_demo": bool(org.get("is_demo", False)),
+        "onboarding_complete": bool(org.get("onboarding_complete", False)),
+        "onboarding_step": int(org.get("onboarding_step") or 0),
+        "token_version": 1,
+    }
+    access = _token_for_db_user(user_row)
+    refresh = await issue_refresh_token(
+        session,
+        user_id=user_id,
+        refresh_ttl_days=REFRESH_TOKEN_EXPIRE_DAYS,
+    )
+    return {
+        "access_token": access,
+        "refresh_token": refresh,
+        "token_type": "bearer",
+        "expires_in": 60 * int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")),
+        "org_id": org_id,
+        "role": str(row["role"]),
+        "message": "Joined organisation.",
+    }

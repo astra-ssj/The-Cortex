@@ -42,6 +42,7 @@ from core.audit_fabric import audit_fabric
 from db.session import (
     database_ready,
     ensure_learning_loop_schema,
+    ensure_org_invitations_schema,
     ensure_org_onboarding_schema,
     ensure_security_auth_schema,
     ensure_zero_trust_schema,
@@ -60,6 +61,7 @@ async def lifespan(app: FastAPI):
 
     await ensure_org_onboarding_schema()
     await ensure_security_auth_schema()
+    await ensure_org_invitations_schema()
     await ensure_zero_trust_schema()
     await ensure_learning_loop_schema()
     await audit_fabric.load_tail()

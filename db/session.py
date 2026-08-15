@@ -115,6 +115,60 @@ async def ensure_security_auth_schema() -> None:
         logger.warning("security_auth_schema_guard_failed", error=str(e))
 
 
+async def ensure_org_invitations_schema() -> None:
+    """Apply org invitation table if missing. DDL runs as table owner, not cortex_app."""
+    import asyncio
+    import pathlib
+    from urllib.parse import urlparse, unquote
+
+    try:
+        async with engine.connect() as conn:
+            exists = (
+                await conn.execute(
+                    text(
+                        """
+                        SELECT 1 FROM information_schema.tables
+                        WHERE table_schema = 'public' AND table_name = 'org_invitations'
+                        LIMIT 1
+                        """
+                    )
+                )
+            ).first()
+        if exists:
+            return
+
+        migration = pathlib.Path(__file__).resolve().parent.parent / "migrations" / "031_org_invitations.sql"
+        if not migration.is_file():
+            logger.warning("org_invitations_migration_missing", path=str(migration))
+            return
+
+        def _apply() -> None:
+            import psycopg2
+
+            url = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://", 1)
+            parsed = urlparse(url)
+            admin_user = os.environ.get("PGUSER", "cortex")
+            admin_password = os.environ.get("PGPASSWORD", unquote(parsed.password or ""))
+            conn = psycopg2.connect(
+                host=parsed.hostname or "localhost",
+                port=parsed.port or 5432,
+                user=admin_user,
+                password=admin_password,
+                dbname=(parsed.path or "/cortex").lstrip("/") or "cortex",
+            )
+            conn.autocommit = True
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(migration.read_text(encoding="utf-8"))
+            finally:
+                conn.close()
+
+        await asyncio.to_thread(_apply)
+        logger.info("org_invitations_schema_applied", path=migration.name)
+    except Exception as e:
+        logger.warning("org_invitations_schema_guard_failed", error=str(e))
+
+
 async def ensure_zero_trust_schema() -> None:
     """
     Apply migration 016 (RLS + append-only audit) when missing on existing volumes.

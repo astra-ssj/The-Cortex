@@ -9,6 +9,7 @@ export const ROLE_PERMISSIONS = {
     canGenerateReport: true,
     canToggleDemo: true,
     canAccessSettings: true,
+    canViewTeamCompetency: true,
   },
   analyst: {
     canRunAssessment: true,
@@ -18,6 +19,7 @@ export const ROLE_PERMISSIONS = {
     canGenerateReport: true,
     canToggleDemo: false,
     canAccessSettings: false,
+    canViewTeamCompetency: false,
   },
   viewer: {
     canRunAssessment: false,
@@ -27,6 +29,7 @@ export const ROLE_PERMISSIONS = {
     canGenerateReport: true,
     canToggleDemo: false,
     canAccessSettings: false,
+    canViewTeamCompetency: false,
   },
 } as const;
 

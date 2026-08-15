@@ -19,20 +19,18 @@ def test_viewer_cannot_patch_finding(client: TestClient) -> None:
     assert "edit_findings" in str(msg) or "Permission denied" in str(msg)
 
 
-def test_analyst_can_patch_finding(client: TestClient, analyst_headers: dict[str, str]) -> None:
-    r = client.get("/api/v1/findings", headers=analyst_headers)
-    assert r.status_code == 200
-    items = r.json()["items"]
-    fid = items[0]["id"]
-    original = items[0]["status"]
-    new_status = "IN_PROGRESS" if original == "OPEN" else "OPEN"
-    r2 = client.patch(
-        f"/api/v1/findings/{fid}",
-        json={"status": new_status},
+def test_analyst_can_patch_finding(
+    client: TestClient,
+    analyst_headers: dict[str, str],
+    manual_finding: str,
+) -> None:
+    r = client.patch(
+        f"/api/v1/findings/{manual_finding}",
+        json={"status": "IN_PROGRESS"},
         headers=analyst_headers,
     )
-    assert r2.status_code == 200
-    client.patch(f"/api/v1/findings/{fid}", json={"status": original}, headers=analyst_headers)
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "IN_PROGRESS"
 
 
 def test_viewer_cannot_approve_review(client: TestClient, viewer_headers: dict[str, str]) -> None:

@@ -21,6 +21,9 @@ class Permission(str, Enum):
     generate_report = "generate_report"
     toggle_demo = "toggle_demo"
     access_settings = "access_settings"
+    # Competency is per-person performance data. Reading someone else's is a
+    # management action, so it is gated separately from every read in the product.
+    view_team_competency = "view_team_competency"
 
 
 ROLE_PERMISSIONS: dict[CanonicalRole, frozenset[Permission]] = {
@@ -36,6 +39,7 @@ ROLE_PERMISSIONS: dict[CanonicalRole, frozenset[Permission]] = {
             Permission.generate_report,
             Permission.toggle_demo,
             Permission.access_settings,
+            Permission.view_team_competency,
         }
     ),
     CanonicalRole.analyst: frozenset(
