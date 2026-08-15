@@ -40,6 +40,7 @@ const NAV_GROUPS: NavGroupDef[] = [
     items: [
       { label: "Learning Loop", path: "/learning", icon: "↻" },
       { label: "My Progress", path: "/progress", icon: "▲" },
+      { label: "Team Ledger", path: "/team", icon: "☰" },
     ],
   },
   {
@@ -301,11 +302,16 @@ export function Sidebar({
 }) {
   const { role, can } = useRole();
   const canSettings = can("canAccessSettings");
+  const canTeam = can("canViewTeamCompetency");
 
-  // Hide Settings from the Operations group when the role lacks access.
+  // Hide Settings and the org ledger when the role lacks access.
   const groups = NAV_GROUPS.map((g) => ({
     ...g,
-    items: g.items.filter((it) => it.path !== "/settings" || canSettings),
+    items: g.items.filter((it) => {
+      if (it.path === "/settings") return canSettings;
+      if (it.path === "/team") return canTeam;
+      return true;
+    }),
   }));
 
   return (

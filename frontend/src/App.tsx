@@ -30,6 +30,7 @@ import EvidenceVault from "./pages/EvidenceVault";
 import HelpDocs from "./pages/HelpDocs";
 import LearningLoop from "./pages/LearningLoop";
 import CompetencyHistory from "./pages/CompetencyHistory";
+import TeamCompetencyLedger from "./pages/TeamCompetencyLedger";
 
 function MainChrome() {
   const [user, setUser] = useState(() => getUser() as Record<string, unknown> | null);
@@ -191,6 +192,7 @@ function AppRoutes() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/learning" element={<LearningLoop />} />
             <Route path="/progress" element={<CompetencyHistory />} />
+            <Route path="/team" element={<TeamCompetencyLedger />} />
             <Route path="/help" element={<HelpDocs />} />
             <Route path="*" element={<Navigate to="/learning" replace />} />
           </Route>
