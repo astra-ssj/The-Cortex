@@ -140,7 +140,7 @@ async def list_audit_entries(
     """
 
     total = (
-        await db.execute(text(f"SELECT count(*) FROM audit_log {where}"), filters)  # noqa: S608
+        await db.execute(text(f"SELECT count(*) FROM audit_log {where}"), filters)  # nosec B608
     ).scalar()
 
     rows = (

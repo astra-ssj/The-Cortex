@@ -114,7 +114,7 @@ async def _bind(
 
 async def _fetch(db: AsyncSession, finding_id: str) -> Optional[Any]:
     result = await db.execute(
-        text(f"SELECT {_SELECT_COLUMNS} FROM findings WHERE id = :id"),  # noqa: S608
+        text(f"SELECT {_SELECT_COLUMNS} FROM findings WHERE id = :id"),  # nosec B608
         {"id": finding_id},
     )
     return result.mappings().first()
@@ -204,24 +204,12 @@ async def list_findings(
     """
 
     total = (
-        await db.execute(text(f"SELECT count(*) FROM findings {where}"), filters)  # noqa: S608
+        await db.execute(text(f"SELECT count(*) FROM findings {where}"), filters)  # nosec B608
     ).scalar()
 
     rows = (
         await db.execute(
-            text(  # noqa: S608
-                f"""
-                SELECT {_SELECT_COLUMNS} FROM findings {where}
-                ORDER BY CASE severity
-                           WHEN 'CRITICAL' THEN 0
-                           WHEN 'HIGH' THEN 1
-                           WHEN 'MEDIUM' THEN 2
-                           ELSE 3
-                         END,
-                         created_at DESC
-                LIMIT :limit OFFSET :offset
-                """
-            ),
+            text(f"SELECT {_SELECT_COLUMNS} FROM findings {where} ORDER BY CASE severity WHEN 'CRITICAL' THEN 0 WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END, created_at DESC LIMIT :limit OFFSET :offset"),  # nosec B608
             {**filters, "limit": limit, "offset": offset},
         )
     ).mappings().all()

@@ -63,30 +63,35 @@ RQ=$(curl -sS "$BASE/api/v1/assessments/review-queue" "${AUTH[@]}") || die "curl
 code_rq=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/api/v1/assessments/review-queue" "${AUTH[@]}")
 [[ "$code_rq" == "200" ]] || die "/api/v1/assessments/review-queue expected 200, got $code_rq"
 
+# Review queue: empty until a learner triggers a low-confidence
+# decision. CE removed demo rows — empty queue is correct.
+
 ITEM_COUNT=$(printf '%s' "$RQ" | (command -v jq >/dev/null 2>&1 && jq '.items | length' || python3 -c "import json,sys; print(len(json.load(sys.stdin).get('items', [])))"))
 ITEM_COUNT="${ITEM_COUNT//$'\n'/}"
-[[ "${ITEM_COUNT:-0}" -ge 1 ]] || die "expected at least one pending review item, got items length=$ITEM_COUNT"
-
-FIRST_ID=$(printf '%s' "$RQ" | (command -v jq >/dev/null 2>&1 && jq -r '.items[0].id' || python3 -c "import json,sys; print(json.load(sys.stdin)['items'][0]['id'])"))
 
 code_z=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/api/v1/system/ztaip-status" "${AUTH[@]}") || die "curl ztaip-status failed"
 [[ "$code_z" == "200" ]] || die "/api/v1/system/ztaip-status expected 200, got $code_z"
 
-ap_tmp=$(mktemp)
-code_ap=$(curl -sS -o "$ap_tmp" -w "%{http_code}" -X POST "$BASE/api/v1/assessments/controls/${FIRST_ID}/approve" \
-  "${AUTH[@]}" \
-  -H "Content-Type: application/json" \
-  -d '{"notes":"smoke_happy_path automated approve"}') || die "curl approve failed"
-APPROVE=$(cat "$ap_tmp")
-rm -f "$ap_tmp"
-[[ "$code_ap" == "200" ]] || die "approve HTTP $code_ap body=$APPROVE"
+APPROVE_NOTE=""
+if [[ "${ITEM_COUNT:-0}" -ge 1 ]]; then
+  FIRST_ID=$(printf '%s' "$RQ" | (command -v jq >/dev/null 2>&1 && jq -r '.items[0].id' || python3 -c "import json,sys; print(json.load(sys.stdin)['items'][0]['id'])"))
+  ap_tmp=$(mktemp)
+  code_ap=$(curl -sS -o "$ap_tmp" -w "%{http_code}" -X POST "$BASE/api/v1/assessments/controls/${FIRST_ID}/approve" \
+    "${AUTH[@]}" \
+    -H "Content-Type: application/json" \
+    -d '{"notes":"smoke_happy_path automated approve"}') || die "curl approve failed"
+  APPROVE=$(cat "$ap_tmp")
+  rm -f "$ap_tmp"
+  [[ "$code_ap" == "200" ]] || die "approve HTTP $code_ap body=$APPROVE"
 
-if [[ "$(printf '%s' "$APPROVE" | (command -v jq >/dev/null 2>&1 && jq -r '.status // empty' || python3 -c "import json,sys; print(json.load(sys.stdin).get('status',''))"))" != "approved" ]]; then
-  die "approve unexpected body: $APPROVE"
+  if [[ "$(printf '%s' "$APPROVE" | (command -v jq >/dev/null 2>&1 && jq -r '.status // empty' || python3 -c "import json,sys; print(json.load(sys.stdin).get('status',''))"))" != "approved" ]]; then
+    die "approve unexpected body: $APPROVE"
+  fi
+  APPROVE_NOTE=" → approve"
 fi
 
 rid=$(curl -sS -D - -o /dev/null "$BASE/health" -H "X-Request-ID: smoke-test-rid" | tr -d '\r' | grep -i '^x-request-id:' | head -1 | sed 's/^[^:]*:[[:space:]]*//')
 [[ -n "$rid" ]] || die "missing X-Request-ID response header on /health"
 [[ "$rid" == "smoke-test-rid" ]] || die "X-Request-ID not echoed (got '$rid')"
 
-echo "Smoke OK: health → ready → system/ready → login → frameworks → learning/scenarios → review-queue → ztaip-status → approve → X-Request-ID"
+echo "Smoke OK: health → ready → system/ready → login → frameworks → learning/scenarios → review-queue → ztaip-status${APPROVE_NOTE} → X-Request-ID"
