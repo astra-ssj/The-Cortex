@@ -151,7 +151,7 @@ function AppRoutes() {
           navigate("/settings");
           break;
         case "h":
-          navigate("/help");
+          setHelpOpen(true);
           break;
         default:
           break;

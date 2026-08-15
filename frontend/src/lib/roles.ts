@@ -43,7 +43,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 export function normalizeRole(raw: unknown): Role {
   if (raw === "admin" || raw === "analyst" || raw === "viewer") return raw;
   const r = typeof raw === "string" ? raw.toLowerCase() : "";
-  if (r === "admin" || r === "administrator") return "admin";
-  if (r === "ciso" || r === "dpo" || r === "analyst" || r === "security_lead") return "analyst";
+  if (r === "admin" || r === "administrator" || r === "ciso") return "admin";
+  if (r === "dpo" || r === "analyst" || r === "security_lead") return "analyst";
   return "viewer";
 }
