@@ -12,6 +12,11 @@ from db.session import database_ready, engine
 
 logger = structlog.get_logger()
 
+# Shown in the Review Queue's Framework column. Distinguishes an item raised by a
+# learner's decision from one raised by an automated control assessment, because a
+# reviewer opens the transcript for one and the evidence for the other.
+LEARNING_REVIEW_FRAMEWORK = "ISO/IEC 27001:2022 · Learning Loop"
+
 
 async def enqueue_assessment_human_review(
     session: AsyncSession,
@@ -38,7 +43,7 @@ async def enqueue_assessment_human_review(
             )
             VALUES (
                 :id, :org_id, :framework, :control_id, :name, :assessment, :confidence,
-                :severity, :reference, :date_flagged::timestamptz
+                :severity, :reference, CAST(:date_flagged AS timestamptz)
             )
             ON CONFLICT (org_id, id) DO UPDATE SET
                 assessment = EXCLUDED.assessment,
@@ -61,6 +66,84 @@ async def enqueue_assessment_human_review(
             "date_flagged": flagged,
         },
     )
+
+
+async def enqueue_learning_decision_review(
+    session: AsyncSession,
+    *,
+    org_id: str,
+    session_id: str,
+    learner_id: str,
+    scenario_slug: str,
+    scenario_title: str,
+    stage: str,
+    choice_id: str,
+    control_id: str,
+    confidence: float,
+    severity: str,
+    reference: str,
+) -> str:
+    """
+    Route one graded learning decision to a human reviewer.
+
+    The Review Queue used to serve eight hardcoded GDPR/NIS2/EU-AI-Act rows, which
+    made it the same kind of theatre Control Gaps was: a queue nobody's actions
+    could ever change. Items now come from graded decisions, using the same
+    sub-0.75 confidence convention as core/assessment_llm.py — below that
+    threshold the platform does not consider its own automated grade sufficient
+    to stand alone.
+
+    The item id is deterministic per (session, stage), so replaying a stage
+    updates the row rather than growing the queue. Returns the item id.
+    """
+    item_id = f"learn-{session_id[:8]}-{stage}"[:120]
+    flagged = datetime.now(timezone.utc)
+
+    await session.execute(
+        text(
+            """
+            INSERT INTO human_review_pending (
+                id, org_id, framework, control_id, name, assessment, confidence,
+                severity, reference, date_flagged
+            )
+            VALUES (
+                :id, :org_id, :framework, :control_id, :name, :assessment, :confidence,
+                :severity, :reference, :date_flagged
+            )
+            ON CONFLICT (org_id, id) DO UPDATE SET
+                name = EXCLUDED.name,
+                assessment = EXCLUDED.assessment,
+                confidence = EXCLUDED.confidence,
+                severity = EXCLUDED.severity,
+                reference = EXCLUDED.reference,
+                date_flagged = EXCLUDED.date_flagged
+            """
+        ),
+        {
+            "id": item_id,
+            "org_id": org_id,
+            "framework": LEARNING_REVIEW_FRAMEWORK,
+            "control_id": control_id,
+            "name": (
+                f"{scenario_title} · {stage}: learner chose '{choice_id}' "
+                "against the reference answer"
+            )[:500],
+            "assessment": "NON_COMPLIANT",
+            "confidence": confidence,
+            "severity": severity,
+            "reference": reference[:500],
+            "date_flagged": flagged,
+        },
+    )
+    logger.info(
+        "learning_decision_review_enqueued",
+        org_id=org_id,
+        learner_id=learner_id,
+        scenario=scenario_slug,
+        stage=stage,
+        confidence=confidence,
+    )
+    return item_id
 
 
 async def enqueue_ingestion_human_review(
