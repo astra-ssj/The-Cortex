@@ -28,6 +28,7 @@ from api.errors import (
     unhandled_exception_handler,
 )
 from api.assessments import router as assessments_router
+from api.audit import router as audit_router
 from api.auth import router as auth_router
 from api.limits import limiter
 from api.findings import router as findings_router
@@ -237,6 +238,7 @@ app.add_middleware(RequestBodySizeLimitMiddleware)
 # Canonical routers — single FastAPI surface (no nested compliance-engine mount).
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessments_router)
+app.include_router(audit_router)
 app.include_router(findings_router, prefix="/api/v1/findings")
 app.include_router(groups_router)
 app.include_router(organisations_router)

@@ -20,12 +20,30 @@ logger = structlog.get_logger()
 # Advisory lock key — serialises hash-chain tail reads across connections.
 _AUDIT_CHAIN_LOCK_KEY = 872_014_01
 
+# Per-org tail. The Evidence Vault lists one tenant's window and walks
+# prev_hash against the previous *displayed* row; a global chain makes that
+# walk fail whenever another org (or a fire-and-forget standalone write)
+# inserts between two of this tenant's events. Index is (org_id, created_at).
+_ORG_TAIL_SQL = """
+    SELECT hash FROM audit_log
+    WHERE org_id IS NOT DISTINCT FROM :org_id
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+"""
 
-def _entry_payload_json(payload: dict[str, Any] | None) -> str:
+
+def canonical_payload_json(payload: dict[str, Any] | None) -> str:
+    """
+    The one canonical serialisation of an audit payload.
+
+    Public because api/audit.py has to rebuild the exact preimage a row was hashed
+    over. A second implementation of this would eventually disagree with this one
+    and make untampered rows look tampered.
+    """
     return json.dumps(payload or {}, default=str, sort_keys=True)
 
 
-def _compute_hash(
+def compute_entry_hash(
     *,
     action: str,
     resource_type: str | None,
@@ -186,7 +204,7 @@ async def append_audit_log(
     payload_dict = payload or {}
     resolved_org = org_id or payload_dict.get("org_id")
     resolved_actor = actor or payload_dict.get("actor") or "system"
-    payload_json = _entry_payload_json(payload_dict)
+    payload_json = canonical_payload_json(payload_dict)
 
     # Serialise chain extension for this transaction (SELECT FOR UPDATE needs UPDATE priv).
     await session.execute(
@@ -194,21 +212,13 @@ async def append_audit_log(
         {"k": _AUDIT_CHAIN_LOCK_KEY},
     )
     prev_row = await _result_first(
-        await session.execute(
-            text(
-                """
-                SELECT hash FROM audit_log
-                ORDER BY created_at DESC, id DESC
-                LIMIT 1
-                """
-            )
-        )
+        await session.execute(text(_ORG_TAIL_SQL), {"org_id": resolved_org})
     )
+    # A new org starts its own chain. Falling back to the process-global tail
+    # would graft this tenant onto someone else's history.
     prev_hash = str(prev_row[0]) if prev_row and prev_row[0] else None
-    if prev_hash is None and audit_fabric._tail_loaded:
-        prev_hash = audit_fabric._tail_hash
 
-    row_hash = _compute_hash(
+    row_hash = compute_entry_hash(
         action=resolved_action,
         resource_type=resolved_type,
         resource_id=resolved_id,
@@ -259,21 +269,16 @@ async def _persist_audit_entry_standalone(entry: dict[str, Any]) -> None:
             )
             prev_row = await _result_first(
                 await session_proxy.execute(
-                    text(
-                        """
-                        SELECT hash FROM audit_log
-                        ORDER BY created_at DESC, id DESC
-                        LIMIT 1
-                        """
-                    )
+                    text(_ORG_TAIL_SQL),
+                    {"org_id": entry.get("org_id")},
                 )
             )
             prev_hash = str(prev_row[0]) if prev_row and prev_row[0] else None
-            payload_json = _entry_payload_json(entry.get("payload"))
+            payload_json = canonical_payload_json(entry.get("payload"))
             action = str(entry.get("action") or "")
             resource_type = entry.get("resource_type")
             resource_id = entry.get("resource_id")
-            row_hash = _compute_hash(
+            row_hash = compute_entry_hash(
                 action=action,
                 resource_type=str(resource_type) if resource_type is not None else None,
                 resource_id=str(resource_id) if resource_id is not None else None,
