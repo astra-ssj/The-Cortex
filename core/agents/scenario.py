@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -51,6 +52,12 @@ ENTRY_STAGE = "access_request"
 ESCALATION_STAGE = "escalation"
 TERMINAL_STAGE = "complete"
 
+# The track's difficulty ladder, in order. Named because callers branch on the top
+# rung: a wrong answer at expert difficulty is the only one routed for human review.
+FOUNDATION_DIFFICULTY = "foundation"
+PRACTITIONER_DIFFICULTY = "practitioner"
+EXPERT_DIFFICULTY = "expert"
+
 
 class ScenarioNotFound(LookupError):
     """Requested scenario slug is not present (or not active) in the content model."""
@@ -65,6 +72,9 @@ class ScenarioChoice:
     framework_rationale: str | None = None
     next_stage: str | None = None
     risk_outcome: str | None = None
+    # Absolute per-dimension competency deltas (migration 027). None means the
+    # row predates the column, and grading applies its CX-1001 heuristic instead.
+    dimension_weights: dict[str, int] | None = None
 
 
 @dataclass(frozen=True)
@@ -141,6 +151,11 @@ HARDCODED_SCENARIO = Scenario(
     ),
 )
 
+# Optional choice columns (next_stage/risk_outcome from 025, dimension_weights
+# from 027) are read through to_jsonb(c) rather than named in the projection.
+# Naming a column that a pre-migration database lacks aborts the caller's
+# transaction, taking the session insert and audit writes with it, so this one
+# static query has to work against every schema version the loop supports.
 _LOAD_SQL = text(
     """
     SELECT s.slug          AS scenario_slug,
@@ -158,35 +173,7 @@ _LOAD_SQL = text(
            c.consequence   AS consequence,
            c.is_correct    AS is_correct,
            c.framework_rationale AS framework_rationale,
-           c.next_stage    AS next_stage,
-           c.risk_outcome  AS risk_outcome
-    FROM scenarios s
-    LEFT JOIN scenario_stages st ON st.scenario_id = s.id
-    LEFT JOIN scenario_choices c ON c.stage_id = st.id
-    WHERE s.slug = :slug AND s.active
-    ORDER BY st.sequence, c.display_order, c.choice_id
-    """
-)
-
-# Pre-025 content tables have no transition columns; selecting them would abort
-# the caller's transaction the same way a missing table would.
-_LOAD_SQL_PRE_025 = text(
-    """
-    SELECT s.slug          AS scenario_slug,
-           s.title         AS title,
-           s.brief         AS brief,
-           s.track         AS track,
-           s.frameworks    AS frameworks,
-           s.difficulty    AS difficulty,
-           st.slug         AS stage_slug,
-           st.sequence     AS stage_sequence,
-           st.agent_message AS agent_message,
-           st.demands      AS demands,
-           c.choice_id     AS choice_id,
-           c.label         AS label,
-           c.consequence   AS consequence,
-           c.is_correct    AS is_correct,
-           c.framework_rationale AS framework_rationale
+           to_jsonb(c)     AS choice_extra
     FROM scenarios s
     LEFT JOIN scenario_stages st ON st.scenario_id = s.id
     LEFT JOIN scenario_choices c ON c.stage_id = st.id
@@ -198,6 +185,33 @@ _LOAD_SQL_PRE_025 = text(
 
 def _hardcoded_mode() -> bool:
     return os.getenv(_HARDCODED_ENV, "").strip().lower() in ("1", "true", "yes")
+
+
+def _choice_extra(raw: Any) -> dict[str, Any]:
+    """to_jsonb(c) arrives as a dict or a JSON string depending on the driver."""
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _dimension_weights(raw: Any) -> dict[str, int] | None:
+    """Coerce the stored weight map, dropping anything non-numeric."""
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            return None
+    if not isinstance(raw, dict):
+        return None
+    weights: dict[str, int] = {}
+    for key, value in raw.items():
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        weights[str(key)] = int(value)
+    return weights or None
 
 
 def _rows_to_scenario(rows: list[Any]) -> Scenario:
@@ -219,8 +233,9 @@ def _rows_to_scenario(rows: list[Any]) -> Scenario:
             )
             stage_choices[stage_slug] = []
         if row["choice_id"] is not None:
-            next_stage = row["next_stage"] if "next_stage" in row else None
-            risk_outcome = row["risk_outcome"] if "risk_outcome" in row else None
+            extra = _choice_extra(row["choice_extra"])
+            next_stage = extra.get("next_stage")
+            risk_outcome = extra.get("risk_outcome")
             stage_choices[stage_slug].append(
                 ScenarioChoice(
                     choice_id=str(row["choice_id"]),
@@ -230,6 +245,7 @@ def _rows_to_scenario(rows: list[Any]) -> Scenario:
                     framework_rationale=row["framework_rationale"],
                     next_stage=str(next_stage) if next_stage is not None else None,
                     risk_outcome=str(risk_outcome) if risk_outcome is not None else None,
+                    dimension_weights=_dimension_weights(extra.get("dimension_weights")),
                 )
             )
 
@@ -284,22 +300,7 @@ async def load_scenario(scenario_slug: str, db: AsyncSession | None = None) -> S
     if not present:
         return _fallback("table_missing")
 
-    has_transitions = (
-        await db.execute(
-            text(
-                """
-                SELECT EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_schema = 'public'
-                      AND table_name = 'scenario_choices'
-                      AND column_name = 'next_stage'
-                )
-                """
-            )
-        )
-    ).scalar()
-    load_sql = _LOAD_SQL if has_transitions else _LOAD_SQL_PRE_025
-    rows = (await db.execute(load_sql, {"slug": slug})).mappings().all()
+    rows = (await db.execute(_LOAD_SQL, {"slug": slug})).mappings().all()
     if not rows:
         raise ScenarioNotFound(slug)
     return _rows_to_scenario(list(rows))
