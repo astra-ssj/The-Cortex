@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import uuid
+from typing import Any
 
 # Must run before api.main import so api.limits sees it (SlowAPI /auth/token 10/min).
 os.environ["CORTEX_DISABLE_RATE_LIMIT"] = "1"
@@ -97,6 +99,58 @@ def viewer_headers() -> dict[str, str]:
 @pytest.fixture
 def admin_headers() -> dict[str, str]:
     return make_auth_headers("admin")
+
+
+@pytest.fixture
+def manual_finding(postgres_reachable: bool) -> Any:
+    """
+    A single authored control gap on demo-org-001.
+
+    Control Gaps used to ship twelve hardcoded rows, so tests could assume a
+    finding already existed. Rows now come from learner action (core/gaps.py), and
+    an empty table on a fresh install is the intended behaviour — so any test that
+    needs a finding has to create one. `source` is 'manual', which keeps the
+    competency close-by-retake guard out of the way.
+    """
+    if not postgres_reachable:
+        pytest.skip("database not reachable")
+
+    import psycopg2
+
+    finding_id = f"finding-fixture-{uuid.uuid4().hex[:10]}"
+    url = os.environ.get("DATABASE_URL", "")
+    conn = psycopg2.connect(
+        host=os.environ.get("PGHOST", "127.0.0.1"),
+        port=int(os.environ.get("PGPORT", "5432")),
+        user=os.environ.get("PGUSER", "cortex"),
+        password=os.environ.get("PGPASSWORD", "cortex_ci_test" if "cortex_ci_test" in url else "cortex_ci_test"),
+        dbname=os.environ.get("PGDATABASE", "cortex"),
+    )
+    conn.autocommit = True
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO findings (
+                    id, org_id, title, framework, framework_id, control_id,
+                    control_name, severity, status, owner, priority, entity_code,
+                    current_state, required_state, actions, source
+                ) VALUES (
+                    %s, 'demo-org-001', 'Penetration test overdue',
+                    'ISO/IEC 27001:2022', 'iso27001-2022', 'A.8.8',
+                    'Management of technical vulnerabilities', 'CRITICAL', 'OPEN',
+                    'CTO', 'P1', 'DE', 'Last test 18 months ago',
+                    'Annual test with remediation evidence',
+                    '["Procure a provider", "Scope the test"]'::jsonb, 'manual'
+                )
+                """,
+                (finding_id,),
+            )
+        yield finding_id
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM findings WHERE id = %s", (finding_id,))
+    finally:
+        conn.close()
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import type { CSSProperties } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { LogoIcon } from "../components/Logo";
 import { setStoredOrgId } from "../hooks/useOrgContext";
 
@@ -12,6 +12,7 @@ type RegisterForm = {
   email: string;
   password: string;
   confirmPassword: string;
+  invite_token: string;
 };
 
 type RegisterErrors = Partial<Record<keyof RegisterForm, string>>;
@@ -53,9 +54,10 @@ function bannerFromApiError(payload: unknown, fallback: string): string {
 
 function validateForm(form: RegisterForm): RegisterErrors {
   const next: RegisterErrors = {};
-  if (!form.company_name.trim()) next.company_name = "Company name is required.";
-  if (!form.jurisdiction) next.jurisdiction = "Jurisdiction is required.";
-  if (!form.industry) next.industry = "Industry is required.";
+  const joining = Boolean(form.invite_token.trim());
+  if (!joining && !form.company_name.trim()) next.company_name = "Company name is required.";
+  if (!joining && !form.jurisdiction) next.jurisdiction = "Jurisdiction is required.";
+  if (!joining && !form.industry) next.industry = "Industry is required.";
   if (!form.full_name.trim()) next.full_name = "Full name is required.";
   if (!form.email.trim()) next.email = "Work email is required.";
   if (!form.password) next.password = "Password is required.";
@@ -71,6 +73,7 @@ function validateForm(form: RegisterForm): RegisterErrors {
 
 export default function Register() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState<RegisterForm>({
     company_name: "",
     jurisdiction: "DE",
@@ -79,6 +82,7 @@ export default function Register() {
     email: "",
     password: "",
     confirmPassword: "",
+    invite_token: searchParams.get("invite") ?? "",
   });
   const [errors, setErrors] = useState<RegisterErrors>({});
   const [loading, setLoading] = useState(false);
@@ -98,18 +102,31 @@ export default function Register() {
     setLoading(true);
     try {
       const base = import.meta.env.DEV ? "" : "http://localhost:8000";
-      const response = await fetch(`${base}/api/v1/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          company_name: form.company_name.trim(),
-          jurisdiction: form.jurisdiction,
-          industry: form.industry,
-          full_name: form.full_name.trim(),
-          email: form.email.trim(),
-          password: form.password,
-        }),
-      });
+      const joining = Boolean(form.invite_token.trim());
+      const response = await fetch(
+        joining ? `${base}/api/v1/auth/accept-invite` : `${base}/api/v1/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            joining
+              ? {
+                  token: form.invite_token.trim(),
+                  password: form.password,
+                  full_name: form.full_name.trim(),
+                  email: form.email.trim(),
+                }
+              : {
+                  company_name: form.company_name.trim(),
+                  jurisdiction: form.jurisdiction,
+                  industry: form.industry,
+                  full_name: form.full_name.trim(),
+                  email: form.email.trim(),
+                  password: form.password,
+                },
+          ),
+        },
+      );
 
       if (!response.ok) {
         if (response.status === 409) {
@@ -219,34 +236,47 @@ export default function Register() {
           </div>
         )}
 
-        <Field label="Company Name" error={errors.company_name}>
+        <Field label="Invite token (optional)" error={errors.invite_token}>
           <input
-            value={form.company_name}
-            onChange={(e) => setField("company_name", e.target.value)}
-            placeholder="AstraLabs GmbH"
+            value={form.invite_token}
+            onChange={(e) => setField("invite_token", e.target.value)}
+            placeholder="Paste a token from your admin to join their org"
             style={inputStyle}
           />
         </Field>
 
-        <Field label="Jurisdiction" error={errors.jurisdiction}>
-          <select value={form.jurisdiction} onChange={(e) => setField("jurisdiction", e.target.value)} style={inputStyle}>
-            {JURIS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {!form.invite_token.trim() ? (
+          <>
+            <Field label="Company Name" error={errors.company_name}>
+              <input
+                value={form.company_name}
+                onChange={(e) => setField("company_name", e.target.value)}
+                placeholder="AstraLabs GmbH"
+                style={inputStyle}
+              />
+            </Field>
 
-        <Field label="Industry" error={errors.industry}>
-          <select value={form.industry} onChange={(e) => setField("industry", e.target.value)} style={inputStyle}>
-            {INDUSTRY_OPTIONS.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </Field>
+            <Field label="Jurisdiction" error={errors.jurisdiction}>
+              <select value={form.jurisdiction} onChange={(e) => setField("jurisdiction", e.target.value)} style={inputStyle}>
+                {JURIS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Industry" error={errors.industry}>
+              <select value={form.industry} onChange={(e) => setField("industry", e.target.value)} style={inputStyle}>
+                {INDUSTRY_OPTIONS.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </>
+        ) : null}
 
         <Field label="Full Name" error={errors.full_name}>
           <input
@@ -288,7 +318,13 @@ export default function Register() {
         </Field>
 
         <button type="button" onClick={handleSubmit} disabled={loading} style={submitStyle(loading)}>
-          {loading ? "Creating account..." : "Create Account →"}
+          {loading
+            ? form.invite_token.trim()
+              ? "Joining organisation..."
+              : "Creating account..."
+            : form.invite_token.trim()
+              ? "Join organisation →"
+              : "Create Account →"}
         </button>
 
         <p style={{ marginTop: 16, textAlign: "center", color: "var(--text-secondary)", fontSize: 13 }}>

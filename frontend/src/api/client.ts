@@ -473,10 +473,24 @@ export interface RemediationFinding {
   actions: string[];
   completed_actions: number[];
   owner: string;
-  due_date: string;
+  due_date: string | null;
   days_open: number;
   priority: "P0" | "P1" | "P2";
   notes: { text: string; timestamp: string }[];
+  /**
+   * Provenance. `source: "competency"` gaps were raised by a weak dimension on a
+   * finished scenario and can only be closed by retaking `scenario_slug` — the
+   * API returns 409 on a manual close. `"manual"` gaps have no such requirement.
+   */
+  source: "competency" | "manual";
+  dimension: string | null;
+  scenario_slug: string | null;
+  session_id: string | null;
+  learner_id: string | null;
+  competency_score: number | null;
+  controls: string[];
+  closed_at: string | null;
+  closed_by_session: string | null;
   [key: string]: unknown;
 }
 
@@ -486,6 +500,9 @@ export interface ListFindingsParams {
   framework_id?: string;
   entity?: string;
   org_id?: string;
+  dimension?: string;
+  scenario_slug?: string;
+  source?: "competency" | "manual";
 }
 
 export async function fetchFindings(

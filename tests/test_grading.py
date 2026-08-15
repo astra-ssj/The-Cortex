@@ -20,6 +20,7 @@ def _choice(
     correct: bool,
     rationale: str | None = None,
     consequence: str = "",
+    weights: dict[str, int] | None = None,
 ) -> ScenarioChoice:
     return ScenarioChoice(
         choice_id=choice_id,
@@ -27,6 +28,7 @@ def _choice(
         consequence=consequence,
         is_correct=correct,
         framework_rationale=rationale,
+        dimension_weights=weights,
     )
 
 
@@ -213,3 +215,119 @@ def test_current_decision_excluded_from_prior_wrong_check() -> None:
     )
     assert result.updated_competency["evidence"]["score"] == 50
     assert "evidence" not in result.dimension_deltas
+
+
+# --- Authored dimension weights (migration 027) -------------------------------
+#
+# The pre-027 heuristic only moved control_mapping/remediation on CX-1001's stage
+# slugs and only scored escalation for CX-1001's choice ids, so CX-1002..1005 ran
+# with three of four dimensions frozen at 50. These cover the content-driven path.
+
+_CX1002_CORRECT = _choice(
+    "invoke_supplier_contract",
+    correct=True,
+    rationale="Satisfies ISO 27001:2022 A.5.20 — supplier agreements carry incident duties.",
+    weights={"control_mapping": 15, "evidence": 10, "escalation": 10, "remediation": 0},
+)
+_CX1002_PREMATURE = _choice(
+    "notify_authority_immediately",
+    correct=False,
+    rationale="Premature notification under A.5.26 without established facts.",
+    weights={"control_mapping": -10, "evidence": -10, "escalation": -15, "remediation": 0},
+)
+_CX1002_STAGE = [_CX1002_CORRECT, _CX1002_PREMATURE]
+
+
+def test_authored_weights_score_a_non_cx1001_stage() -> None:
+    """The bug 027 fixes: an unrecognised stage slug used to score nothing."""
+    result = _grade(
+        "invoke_supplier_contract",
+        "initial_assessment",
+        choices=_CX1002_STAGE,
+    )
+    assert result.correct is True
+    comp = result.updated_competency
+    assert comp["control_mapping"]["score"] == 65
+    assert comp["evidence"]["score"] == 60
+    assert comp["escalation"]["score"] == 60
+    # Entry stages carry no remediation signal — nothing to remediate yet.
+    assert comp["remediation"]["score"] == 50
+    assert result.dimension_deltas == {
+        "control_mapping": 15,
+        "evidence": 10,
+        "escalation": 10,
+    }
+
+
+def test_authored_weights_penalise_on_unrecognised_choice_id() -> None:
+    """Escalation used to score 0 for any choice id outside CX-1001's three."""
+    result = _grade(
+        "notify_authority_immediately",
+        "initial_assessment",
+        choices=_CX1002_STAGE,
+    )
+    assert result.correct is False
+    comp = result.updated_competency
+    assert comp["control_mapping"]["score"] == 40
+    assert comp["evidence"]["score"] == 40
+    assert comp["escalation"]["score"] == 35
+    assert comp["remediation"]["score"] == 50
+
+
+def test_authored_weights_take_precedence_over_legacy_heuristic() -> None:
+    """A CX-1001 stage/choice id with weights must use the weights, not the heuristic."""
+    weighted = _choice(
+        "least_privilege",
+        correct=True,
+        rationale=_RATIONALE_LP,
+        weights={"control_mapping": 3, "evidence": 4, "escalation": 5, "remediation": 6},
+    )
+    result = _grade("least_privilege", "access_request", choices=[weighted])
+    comp = result.updated_competency
+    assert comp["control_mapping"]["score"] == 53
+    assert comp["evidence"]["score"] == 54
+    assert comp["escalation"]["score"] == 55
+    assert comp["remediation"]["score"] == 56
+
+
+def test_repeat_miss_penalty_compounds_with_authored_weights() -> None:
+    """Session history is not expressible on a choice row, so it stacks on top."""
+    result = _grade(
+        "notify_authority_immediately",
+        "initial_assessment",
+        choices=_CX1002_STAGE,
+        decisions=[{"choice": "escalate_to_dpo", "graded": {"correct": False}}],
+    )
+    # Authored -10 plus the -5 repeated-miss penalty.
+    assert result.dimension_deltas["evidence"] == -15
+    assert result.updated_competency["evidence"]["score"] == 35
+    assert any("repeated incorrect choice" in o for o in result.observations)
+
+
+def test_single_evidence_penalty_does_not_claim_repetition() -> None:
+    """A first-time evidence loss must not be described as a repeated miss."""
+    result = _grade(
+        "notify_authority_immediately",
+        "initial_assessment",
+        choices=_CX1002_STAGE,
+    )
+    assert result.dimension_deltas["evidence"] == -10
+    joined = "".join(result.observations)
+    assert "repeated incorrect choice" not in joined
+    assert "weakened the evidence" in joined
+
+
+def test_partial_weights_leave_unlisted_dimensions_flat() -> None:
+    choice = _choice(
+        "restrict_and_log",
+        correct=True,
+        rationale="A.5.12 classification applied before access is widened.",
+        weights={"control_mapping": 12},
+    )
+    result = _grade("restrict_and_log", "initial_assessment", choices=[choice])
+    comp = result.updated_competency
+    assert comp["control_mapping"]["score"] == 62
+    assert comp["evidence"]["score"] == 50
+    assert comp["escalation"]["score"] == 50
+    assert comp["remediation"]["score"] == 50
+    assert result.dimension_deltas == {"control_mapping": 12}

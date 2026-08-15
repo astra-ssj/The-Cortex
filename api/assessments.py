@@ -271,101 +271,6 @@ async def run_assessment(
 _human_review_schema_verified: bool = False
 
 
-def _review_queue_seed() -> list[dict[str, Any]]:
-    """Eight realistic flagged items for human oversight (confidence < 0.75)."""
-    t = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    return [
-        {
-            "id": "review-1",
-            "framework": "GDPR 2016/679",
-            "control_id": "GDPR-BN-02",
-            "name": "72-hour breach notification procedure",
-            "assessment": "NON_COMPLIANT",
-            "confidence": 0.58,
-            "severity": "CRITICAL",
-            "reference": "GDPR Art.33(1)",
-            "date_flagged": t,
-        },
-        {
-            "id": "review-2",
-            "framework": "NIS2 Directive",
-            "control_id": "NIS2-IR-01",
-            "name": "24-hour CSIRT early warning process",
-            "assessment": "NON_COMPLIANT",
-            "confidence": 0.61,
-            "severity": "CRITICAL",
-            "reference": "NIS2 Art.23(4)(a)",
-            "date_flagged": t,
-        },
-        {
-            "id": "review-3",
-            "framework": "EU AI Act 2024",
-            "control_id": "EUAI-HO-01",
-            "name": "Human oversight mechanism for AI decisions",
-            "assessment": "NON_COMPLIANT",
-            "confidence": 0.52,
-            "severity": "CRITICAL",
-            "reference": "EU AI Act Art.14",
-            "date_flagged": t,
-        },
-        {
-            "id": "review-4",
-            "framework": "ISO/IEC 27001:2022",
-            "control_id": "ISO-A.5.23",
-            "name": "Information security for cloud services",
-            "assessment": "PARTIAL",
-            "confidence": 0.68,
-            "severity": "HIGH",
-            "reference": "ISO 27001 A.5.23",
-            "date_flagged": t,
-        },
-        {
-            "id": "review-5",
-            "framework": "NIS2 Directive",
-            "control_id": "NIS2-RM-04",
-            "name": "Supply chain security assessment",
-            "assessment": "NON_COMPLIANT",
-            "confidence": 0.64,
-            "severity": "HIGH",
-            "reference": "NIS2 Art.21(2)(d)",
-            "date_flagged": t,
-        },
-        {
-            "id": "review-6",
-            "framework": "GDPR 2016/679",
-            "control_id": "GDPR-IT-01",
-            "name": "US transfer SCCs post-Schrems II review",
-            "assessment": "PARTIAL",
-            "confidence": 0.71,
-            "severity": "HIGH",
-            "reference": "GDPR Art.46",
-            "date_flagged": t,
-        },
-        {
-            "id": "review-7",
-            "framework": "ISO/IEC 27001:2022",
-            "control_id": "ISO-A.8.8",
-            "name": "Management of technical vulnerabilities",
-            "assessment": "PARTIAL",
-            "confidence": 0.69,
-            "severity": "MEDIUM",
-            "reference": "ISO 27001 A.8.8",
-            "date_flagged": t,
-        },
-        {
-            "id": "review-8",
-            "framework": "Cyber Essentials v3.1",
-            "control_id": "CE-PF-01",
-            "name": "Boundary firewalls and internet gateways",
-            "assessment": "PARTIAL",
-            "confidence": 0.73,
-            "severity": "MEDIUM",
-            "reference": "Cyber Essentials Section 3.1",
-            "date_flagged": t,
-        },
-    ]
-
-
 async def _ensure_human_review_schema(session: AsyncSession) -> None:
     """Fail fast when human_review_* tables are missing (no in-memory fallback)."""
     global _human_review_schema_verified
@@ -433,44 +338,6 @@ async def _fetch_reviewed_db(session: AsyncSession, org_id: str) -> list[dict[st
     return rows
 
 
-async def _ensure_demo_pending_seed_db(session: AsyncSession, org_id: str) -> None:
-    if org_id != DEMO_ORG_ID:
-        return
-    n = (
-        await session.execute(
-            text("SELECT COUNT(*)::int FROM human_review_pending WHERE org_id = :org"),
-            {"org": org_id},
-        )
-    ).scalar_one()
-    if int(n) > 0:
-        return
-    for item in _review_queue_seed():
-        await session.execute(
-            text(
-                """
-                INSERT INTO human_review_pending (
-                    id, org_id, framework, control_id, name, assessment, confidence, severity, reference, date_flagged
-                ) VALUES (
-                    :id, :org_id, :framework, :control_id, :name, :assessment, :confidence, :severity, :reference,
-                    :date_flagged
-                )
-                """
-            ),
-            {
-                "id": item["id"],
-                "org_id": org_id,
-                "framework": item["framework"],
-                "control_id": item["control_id"],
-                "name": item["name"],
-                "assessment": item["assessment"],
-                "confidence": item["confidence"],
-                "severity": item["severity"],
-                "reference": item["reference"],
-                "date_flagged": _utc_datetime_for_asyncpg(item["date_flagged"]),
-            },
-        )
-
-
 @router.get("/assessments/review-queue", response_model=ReviewQueueResponse)
 async def get_review_queue(
     org_id: str | None = Query(None, description="Scoped organisation id (demo toggle)"),
@@ -480,21 +347,21 @@ async def get_review_queue(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> ReviewQueueResponse:
-    """Return Human Review Queue: pending items (confidence < 0.75) and reviewed items."""
+    """
+    Human Review Queue for the scoped org: pending items (confidence < 0.75) and history.
+
+    Items are enqueued by real activity — a wrong decision at expert difficulty in
+    the Learning Loop (core/human_review.enqueue_learning_decision_review), or a
+    low-confidence control assessment (core/assessment_llm). Until migration 029
+    this endpoint served eight hardcoded rows to demo-org-001 and an empty list to
+    everyone else, so a real tenant could never have a queue at all.
+
+    An empty queue on a fresh install is the correct answer, not a missing fixture.
+    """
     scope = (org_id or current_user.get("org_id") or DEMO_ORG_ID).strip()
     effective = await bind_scoped_org(session, current_user, scope)
-    if effective != DEMO_ORG_ID:
-        return ReviewQueueResponse(
-            items=[],
-            reviewed=[],
-            total_pending=0,
-            total_reviewed=0,
-            limit=limit,
-            offset=offset,
-        )
 
     await _ensure_human_review_schema(session)
-    await _ensure_demo_pending_seed_db(session, effective)
     pending = await _fetch_pending_db(session, effective)
     reviewed = await _fetch_reviewed_db(session, effective)
     total_pending = len(pending)

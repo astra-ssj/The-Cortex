@@ -28,6 +28,7 @@ from api.errors import (
     unhandled_exception_handler,
 )
 from api.assessments import router as assessments_router
+from api.audit import router as audit_router
 from api.auth import router as auth_router
 from api.limits import limiter
 from api.findings import router as findings_router
@@ -42,6 +43,7 @@ from core.audit_fabric import audit_fabric
 from db.session import (
     database_ready,
     ensure_learning_loop_schema,
+    ensure_org_invitations_schema,
     ensure_org_onboarding_schema,
     ensure_security_auth_schema,
     ensure_zero_trust_schema,
@@ -60,6 +62,7 @@ async def lifespan(app: FastAPI):
 
     await ensure_org_onboarding_schema()
     await ensure_security_auth_schema()
+    await ensure_org_invitations_schema()
     await ensure_zero_trust_schema()
     await ensure_learning_loop_schema()
     await audit_fabric.load_tail()
@@ -235,6 +238,7 @@ app.add_middleware(RequestBodySizeLimitMiddleware)
 # Canonical routers — single FastAPI surface (no nested compliance-engine mount).
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessments_router)
+app.include_router(audit_router)
 app.include_router(findings_router, prefix="/api/v1/findings")
 app.include_router(groups_router)
 app.include_router(organisations_router)
