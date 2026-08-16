@@ -190,11 +190,17 @@ async def append_audit_log(
     resource_id: str | None = None,
     org_id: str | None = None,
     actor: str | None = None,
+    prev_hash_override: str | None = None,
 ) -> str:
     """
     Insert one audit row on the caller's session (same transaction as the mutation).
 
     Hash-chains each row to prev_hash so tampering is detectable. Returns the new hash.
+
+    prev_hash_override pins the predecessor when the caller already has it (the
+    .start hash of a start/complete pair). The tail query orders by created_at
+    then UUID id; two inserts in one transaction share a timestamp, so the
+    "latest" row is whichever UUID sorts higher — not the row just written.
     """
     resolved_action = action or event_type
     if not resolved_action:
@@ -211,12 +217,15 @@ async def append_audit_log(
         text("SELECT pg_advisory_xact_lock(:k)"),
         {"k": _AUDIT_CHAIN_LOCK_KEY},
     )
-    prev_row = await _result_first(
-        await session.execute(text(_ORG_TAIL_SQL), {"org_id": resolved_org})
-    )
-    # A new org starts its own chain. Falling back to the process-global tail
-    # would graft this tenant onto someone else's history.
-    prev_hash = str(prev_row[0]) if prev_row and prev_row[0] else None
+    if prev_hash_override:
+        prev_hash = prev_hash_override
+    else:
+        prev_row = await _result_first(
+            await session.execute(text(_ORG_TAIL_SQL), {"org_id": resolved_org})
+        )
+        # A new org starts its own chain. Falling back to the process-global tail
+        # would graft this tenant onto someone else's history.
+        prev_hash = str(prev_row[0]) if prev_row and prev_row[0] else None
 
     row_hash = compute_entry_hash(
         action=resolved_action,

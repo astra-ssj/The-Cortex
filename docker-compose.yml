@@ -50,6 +50,7 @@ services:
       - ./migrations/029_findings_from_competency.sql:/docker-entrypoint-initdb.d/29_findings_from_competency.sql:ro
       - ./migrations/030_review_queue_from_learning.sql:/docker-entrypoint-initdb.d/30_review_queue_from_learning.sql:ro
       - ./migrations/031_org_invitations.sql:/docker-entrypoint-initdb.d/31_org_invitations.sql:ro
+      - ./migrations/032_audit_log_update_grant.sql:/docker-entrypoint-initdb.d/32_audit_log_update_grant.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
       interval: 5s

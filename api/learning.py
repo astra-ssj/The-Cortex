@@ -346,7 +346,7 @@ async def create_session(
     learner_id = str(current_user.get("sub") or current_user.get("email") or "anonymous")
     entry_stage = content.entry_stage.slug if content.entry_stage is not None else ENTRY_STAGE
 
-    await append_audit_log(
+    start_hash = await append_audit_log(
         db,
         event_type="learning.session.create.start",
         entity_type="scenario_session",
@@ -423,6 +423,7 @@ async def create_session(
         entity_id=session_id,
         org_id=effective,
         actor=learner_id,
+        prev_hash_override=start_hash,
         payload={
             "scenario": scenario,
             "org_id": effective,
@@ -1022,7 +1023,7 @@ async def decide(
     if isinstance(state, str):
         state = json.loads(state)
 
-    await append_audit_log(
+    start_hash = await append_audit_log(
         db,
         event_type="learning.session.decide.start",
         entity_type="scenario_session",
@@ -1101,6 +1102,7 @@ async def decide(
         entity_id=str(session_id),
         org_id=effective,
         actor=actor,
+        prev_hash_override=start_hash,
         payload={
             "choice": choice,
             "stage": new_stage,
