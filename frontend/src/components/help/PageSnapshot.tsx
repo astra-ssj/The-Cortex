@@ -102,7 +102,7 @@ function LoginRegisterBody({ mode }: { mode: "login" | "register" }) {
             background: "linear-gradient(135deg, var(--cyan), color-mix(in srgb, var(--cyan) 40%, black))",
           }}
         />
-        <div style={{ fontWeight: 700, fontSize: 15 }}>{mode === "login" ? "Sign in to CORTEX" : "Create your organisation"}</div>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>{mode === "login" ? "Sign in to Astra GRC" : "Create your organisation"}</div>
         <div style={{ width: "100%", maxWidth: 280, display: "flex", flexDirection: "column", gap: 6 }}>
           {fields.map((f) => (
             <div
@@ -318,7 +318,7 @@ function SidebarSnapshot() {
           fontSize: 10,
         }}
       >
-        <div style={{ fontWeight: 700, marginBottom: 10, color: "var(--cyan)" }}>CORTEX</div>
+        <div style={{ fontWeight: 700, marginBottom: 10, color: "var(--cyan)", fontFamily: "var(--font-display)" }}>Astra GRC</div>
         {sections.map((s) => (
           <div key={s.label} style={{ marginBottom: 8 }}>
             <div style={{ fontSize: 8, color: "var(--text-tertiary)", marginBottom: 4 }}>{s.label}</div>

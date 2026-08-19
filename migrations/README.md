@@ -1,4 +1,4 @@
-# CORTEX migrations (single lane)
+# Astra GRC migrations (single lane)
 
 All incremental DDL lives here. **Filename order is apply order.**
 

@@ -1,78 +1,53 @@
-# CORTEX Demo Guide
+# Astra GRC Demo Guide
 
-## 5-Minute Demo Flow
+## 5-minute demo flow
 
 ### Prerequisites
 
 - Docker running
-- `POSTGRES_PASSWORD=cortex-dev docker compose up -d`
-- `cd frontend && npm run dev`
+- `POSTGRES_PASSWORD=cortex-dev docker compose up -d postgres`
+- Schema applied (`bash scripts/apply_cortex_schema.sh`)
+- API on `:8000`, frontend: `cd frontend && npm run dev`
 - Open http://localhost:3000 in incognito
 
-### Flow 1 — New Customer Registration (3 min)
+### Flow 1 — Sign in (30 seconds)
 
-1. http://localhost:3000 → "Create free account →"
-2. Fill: Company name, DE jurisdiction, industry, name, email, password
-3. Submit → /onboarding
-4. Step 1: Multi-Entity, add 2 entities (DE + UK)
-5. Step 2: GDPR + NIS2 + EU AI Act pre-ticked
-6. Step 3: Click "Run First Assessment"
-   → Full-screen animated stream (8 seconds)
-   → Stream lines with Art. citations
-   → Score cards building on right
-7. Dashboard loads with their org name
+1. http://localhost:3000 → sign in with `admin@astralabs.com` / `admin`
+2. You land on **Audit Simulator** (`/audit-simulator`)
+3. Product name: **Astra GRC** Community Edition — paper-white UI, navy chrome
 
-**Talking point:** "From zero to compliance intelligence in under 3 minutes."
+**Talking point:** “This is adversarial simulation, not a slide deck. You pick the frame, then you decide under pressure.”
 
-### Flow 2 — Demo Toggle (30 seconds)
+### Flow 2 — Frame an audit (1 min)
 
-1. Click DEMO/LIVE toggle in navbar
-2. Toggle ON → AstraLabs Group loads (58%)
-3. Toggle OFF → New org loads (0% / not assessed)
+1. Step A — choose **ISO 27001:2022** (GDPR is enabled; SOC 2 shows Coming Soon)
+2. Step B — choose an audit type: New Audit, Routine Inspection, Post-Incident Review, or Targeted Investigation
+3. Click **Run Assessment** → Learning Loop (`/learning`)
 
-**Talking point:** "Every customer gets their own isolated data. This is what a mature 6-entity deployment looks like."
+**Talking point:** “The simulator sets the rehearsal. The Learning Loop is where judgment is scored.”
 
-### Flow 3 — Intelligence (2 min)
+### Flow 3 — Run a scenario (2 min)
 
-1. Click Intelligence in nav
-2. Audit Simulator tab:
-   - Select BSI + NIS2 + AstraLabs DE
-   - Click Run Audit Simulation
-   - Show: 5 questions with Art. citations
-   - Show: €2.4M likely fine
-3. Live Signals tab:
-   - Watch signals fire every 8 seconds
-   - Show score dropping on CRITICAL signals
-   - Show NIS2 threshold monitor building
+1. Start **CX-1001** (Friday Cutover) if you are showing the loop for the first time
+2. Read the brief and the agent message
+3. Make a decision — competency bars update after the first choice
+4. Finish the scenario and open the debrief (reference answer, ISO controls, four dimensions)
 
-**Talking point:** "This is what BSI actually asks. This is your exposure. This is your posture changing in real time."
+**Talking point:** “Wrong answers are not trivia misses. They are the failure modes an auditor would write up.”
 
-### Flow 4 — AI Systems (1 min)
+### Flow 4 — Progression (1 min)
 
-1. Click AI Systems in nav
-2. Show deadline banner: "94 days remaining"
-3. Show HR Screening: HIGH RISK, Annex III(4)(a)
-4. Click Classification → show ISO 42001 reasoning
-5. Click Obligations → show Aug 2026 checklist
+1. **My Progress** (`/progress`) — competency over sessions
+2. **Control Gaps** (`/findings`) — weak dimensions become findings
+3. **Evidence Vault** (`/evidence`) — hash-chained decision trail
 
-**Talking point:** "EU AI Act obligations apply in 94 days. Three of your systems need conformity assessment. Here's exactly what."
+**Talking point:** “Train produces gaps. Gaps drive remediation. Remediation produces evidence. One product, not four tabs.”
 
-### Flow 5 — Audit Report (1 min)
-
-1. Click Audit Report in nav
-2. Click Generate Report
-3. Show: 58% overall, NIS2 44% CRITICAL
-4. Show: 10 findings with owners
-5. Show: €2.4M NIS2 + €3.2M GDPR + €8.4M AI Act
-6. Show: BOARD CONFIDENTIAL header
-
-**Talking point:** "One click. Board-ready. This replaces 3 weeks of consultant work."
-
-## Key Messages
+## Key messages
 
 | Question | Answer |
 |----------|--------|
-| How is this different? | EU-first, multi-entity, AI-native, €65M+ exposure tracked |
-| Who uses this? | Group CISOs with 2-20 entities across EU jurisdictions |
-| What does it cost? | £25-50K/year vs £150K+ legacy |
-| When can we start? | Demo running today. 3-min setup. |
+| How is this different? | Adversarial simulation graded against framework controls — not recall quizzes |
+| Who uses this? | Security leads, GRC practitioners, and teams building audit judgment |
+| What ships today? | Five ISO 27001:2022 scenarios, four competency dimensions, community edition |
+| When can we start? | Demo running today. Register or use `admin@astralabs.com` / `admin` |

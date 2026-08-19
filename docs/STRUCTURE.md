@@ -1,4 +1,4 @@
-# CORTEX repository structure
+# Astra GRC repository structure
 
 Maintained map of the monorepo. See also [`REPO_STRUCTURE_REFACTOR.md`](REPO_STRUCTURE_REFACTOR.md).
 

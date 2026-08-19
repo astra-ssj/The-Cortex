@@ -505,9 +505,8 @@ export function EvidenceVault() {
                 padding: "10px",
                 borderRadius: 8,
                 border: "none",
-                background:
-                  "linear-gradient(135deg, color-mix(in srgb, var(--blue) 80%, black), var(--blue))",
-                color: "var(--bg)",
+                background: "var(--blue)",
+                color: "var(--on-accent)",
                 fontWeight: 600,
                 cursor: computeState === "computing" ? "wait" : "pointer",
               }}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AssessmentEvent } from "../types/compliance";
 import { frameworkLabelFromId } from "../lib/frameworkRegistry";
 import { useAssessmentStream } from "../store/complianceStore";
+import { LogoIcon, LogoWordmark } from "./Logo";
 
 export interface AssessmentStreamProps {
   orgName: string;
@@ -162,7 +163,9 @@ export default function AssessmentStream({
             flexShrink: 0,
           }}
         >
-          <span style={{ fontFamily: "var(--font-sans)", fontWeight: 800, fontSize: 15, color: "var(--text)" }}>CORTEX</span>
+          <span style={{ display: "inline-flex", alignItems: "center" }}>
+            <LogoWordmark fontSize={15} />
+          </span>
         </header>
         <div
           style={{
@@ -186,8 +189,8 @@ export default function AssessmentStream({
               padding: "12px 22px",
               borderRadius: 10,
               border: "none",
-              background: "linear-gradient(135deg, color-mix(in srgb, var(--cyan) 60%, black), var(--cyan))",
-              color: "var(--bg)",
+              background: "var(--blue)",
+              color: "var(--on-accent)",
               fontFamily: "var(--font-sans)",
               fontWeight: 700,
               fontSize: 14,
@@ -228,39 +231,8 @@ export default function AssessmentStream({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <svg width="26" height="26" viewBox="0 0 80 80" fill="none" style={{ filter: "var(--assessment-logo-glow)" }}>
-            <path d="M 13 40 A 27 27 0 1 1 67 40" stroke="var(--cyan)" strokeWidth="3" fill="none" strokeLinecap="round" />
-            <path
-              d="M 21 40 A 19 19 0 1 1 59 40"
-              stroke="var(--cyan)"
-              strokeWidth="2.5"
-              fill="none"
-              strokeLinecap="round"
-              opacity="0.6"
-            />
-            <path
-              d="M 29 40 A 11 11 0 1 1 51 40"
-              stroke="var(--cyan)"
-              strokeWidth="2"
-              fill="none"
-              strokeLinecap="round"
-              opacity="0.3"
-            />
-            <circle cx="40" cy="40" r="4.5" fill="var(--cyan)" />
-            <circle cx="13" cy="40" r="3" fill="var(--cyan)" opacity="0.5" />
-            <circle cx="67" cy="40" r="3" fill="var(--cyan)" opacity="0.5" />
-          </svg>
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontWeight: 800,
-              fontSize: "15px",
-              letterSpacing: "3px",
-              color: "var(--text)",
-            }}
-          >
-            CORTEX
-          </span>
+          <LogoIcon size={26} />
+          <LogoWordmark fontSize={15} />
         </div>
 
         <div

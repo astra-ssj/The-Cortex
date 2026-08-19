@@ -499,7 +499,7 @@ export function AuditSimulator() {
           : "Targeted Investigation";
 
     const lines = [
-      "CORTEX — Counterfactual Audit Simulation Report",
+      "Astra GRC — Counterfactual Audit Simulation Report",
       "==============================================",
       "",
       `Regulator: ${result.regulatorLabel}`,

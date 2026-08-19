@@ -2,49 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── CORTEX design tokens (dark shell — no light theme in this pass) ───────── */
+/* ── Astra GRC design tokens (paper white — institutional GRC) ─────────────── */
 :root {
-  /* Surfaces — subtle navy hierarchy */
-  --bg: #0b0f19;
-  --sidebar: #070b14;
-  --surface: #111827;
-  --card: #151c2c;
-  --card-hover: #1a2236;
-  --elevated: #1e2640;
+  color-scheme: light;
+
+  /* Surfaces — paper canvas, white panels */
+  --bg: #f4f3f0;
+  --sidebar: #ffffff;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --card-hover: #f7f6f3;
+  --elevated: #f0efeb;
 
   /* Borders */
-  --border: #1f2a3f;
-  --border-subtle: #171e2e;
+  --border: #e4e1da;
+  --border-subtle: #eeebe4;
 
-  /* Text hierarchy */
-  --text: #e8ecf4;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #5a6b82;
-  --text-quiet: #3a4860;
+  /* Text hierarchy — ink on paper */
+  --text: #1c1917;
+  --text-secondary: #57534e;
+  --text-tertiary: #8a847b;
+  --text-quiet: #a8a29e;
+  --on-accent: #ffffff;
 
-  /* Semantic — muted, not neon */
-  --blue: #3b82f6;
-  --blue-soft: rgba(59, 130, 246, 0.12);
-  --green: #22c55e;
-  --green-soft: rgba(34, 197, 94, 0.1);
-  --amber: #eab308;
-  --amber-soft: rgba(234, 179, 8, 0.1);
-  --red: #ef4444;
-  --red-soft: rgba(239, 68, 68, 0.1);
-  --purple: #a78bfa;
-  --purple-soft: rgba(167, 139, 250, 0.1);
-  --cyan: #22d3ee;
-  --cyan-soft: rgba(34, 211, 238, 0.1);
+  /* Semantic — navy chrome, restrained status */
+  --blue: #1b365d;
+  --blue-soft: rgba(27, 54, 93, 0.08);
+  --green: #1f7a4d;
+  --green-soft: rgba(31, 122, 77, 0.1);
+  --amber: #b45309;
+  --amber-soft: rgba(180, 83, 9, 0.1);
+  --red: #b42318;
+  --red-soft: rgba(180, 35, 24, 0.1);
+  --purple: #5b4b8a;
+  --purple-soft: rgba(91, 75, 138, 0.1);
+  --cyan: #1b365d;
+  --cyan-soft: rgba(27, 54, 93, 0.08);
 
-  /* Framework accents (AssessmentStream + badges) */
-  --fw-iso: #3b82f6;
-  --fw-gdpr: #a78bfa;
-  --fw-nis2: #ef4444;
-  --fw-nist: #22d3ee;
-  --fw-ccm: #22c55e;
-  --fw-ce: #eab308;
-  --fw-soc2: #f97316;
-  --fw-dora: #ec4899;
+  /* Framework accents */
+  --fw-iso: #1b365d;
+  --fw-gdpr: #5b4b8a;
+  --fw-nis2: #b42318;
+  --fw-nist: #1f7a4d;
+  --fw-ccm: #1f7a4d;
+  --fw-ce: #b45309;
+  --fw-soc2: #9a5b1f;
+  --fw-dora: #8a3d6b;
 
   /* Legacy aliases — single source via vars above */
   --muted: var(--text-secondary);
@@ -64,34 +67,35 @@
   --ring: var(--cyan);
 
   /* Risk / density badges */
-  --tone-critical-bg: #7f1d1d;
-  --tone-critical-fg: #fca5a5;
-  --tone-high-bg: #78350f;
-  --tone-high-fg: #fcd34d;
-  --tone-medium-bg: #1e3a5f;
-  --tone-medium-fg: #93c5fd;
-  --tone-low-bg: #14532d;
-  --tone-low-fg: #86efac;
-  --tone-error-box-bg: #1c1917;
+  --tone-critical-bg: #fef2f2;
+  --tone-critical-fg: #b91c1c;
+  --tone-high-bg: #fffbeb;
+  --tone-high-fg: #b45309;
+  --tone-medium-bg: #eef2f7;
+  --tone-medium-fg: #1b365d;
+  --tone-low-bg: #f0fdf4;
+  --tone-low-fg: #166534;
+  --tone-error-box-bg: #fef2f2;
 
   /* Report preview logo arcs */
-  --report-arc-a: #0e7490;
-  --report-arc-b: #0891b2;
-  --report-arc-c: #06b6d4;
-  --report-arc-d: #22d3ee;
+  --report-arc-a: #0f2744;
+  --report-arc-b: #1b365d;
+  --report-arc-c: #3d5a80;
+  --report-arc-d: #6b849e;
 
   /* Effects referenced from components */
-  --shadow-drop-lg: 0 8px 32px color-mix(in srgb, black 40%, transparent);
-  --shadow-drop-md: 0 4px 12px color-mix(in srgb, black 30%, transparent);
-  --shadow-panel-left: -12px 0 48px color-mix(in srgb, black 45%, transparent);
-  --shadow-knob: 0 1px 3px color-mix(in srgb, black 40%, transparent);
-  --logo-glow-filter: drop-shadow(0 0 8px color-mix(in srgb, var(--cyan) 50%, transparent));
-  --assessment-logo-glow: drop-shadow(0 0 6px color-mix(in srgb, var(--cyan) 50%, transparent));
-  --overlay-scrim: color-mix(in srgb, var(--bg) 72%, transparent);
+  --shadow-drop-lg: 0 1px 2px rgba(28, 25, 23, 0.06), 0 12px 28px rgba(28, 25, 23, 0.08);
+  --shadow-drop-md: 0 1px 2px rgba(28, 25, 23, 0.05), 0 4px 12px rgba(28, 25, 23, 0.06);
+  --shadow-panel-left: -8px 0 24px rgba(28, 25, 23, 0.06);
+  --shadow-knob: 0 1px 2px rgba(28, 25, 23, 0.12);
+  --logo-glow-filter: none;
+  --assessment-logo-glow: none;
+  --overlay-scrim: color-mix(in srgb, var(--bg) 70%, transparent);
 
   /* Typography */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Figtree", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
   --text-display: 1.75rem;
   --text-page-title: 1.375rem;
@@ -124,7 +128,15 @@
   --focus-ring: 0 0 0 2px var(--blue);
 
   /* Overlays */
-  --modal-backdrop: rgba(0, 0, 0, 0.6);
+  --modal-backdrop: rgba(28, 25, 23, 0.35);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
 }
 
 /* Skip link: first focusable, off-screen until focus */
@@ -166,7 +178,7 @@
 }
 
 .cortex-sidebar-link[aria-current="page"]:hover {
-  background: var(--card) !important;
+  background: var(--blue-soft) !important;
 }
 
 /* Typography utilities */
@@ -285,8 +297,8 @@
   padding: 6px 14px;
   border-radius: var(--radius-sm);
   border: none;
-  background: linear-gradient(135deg, var(--blue-action), var(--blue-action-end));
-  color: var(--text);
+  background: var(--blue-action);
+  color: var(--on-accent);
   font-size: var(--text-caption);
   font-weight: 700;
   cursor: pointer;

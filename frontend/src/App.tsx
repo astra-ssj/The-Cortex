@@ -17,7 +17,6 @@ import { RemediationTracker } from "./pages/RemediationTracker";
 import { HumanReview } from "./pages/HumanReview";
 import { ProjectTracker } from "./pages/ProjectTracker";
 import { FrameworkDetailPage } from "./pages/FrameworkDetailPage";
-import Intelligence from "./pages/Intelligence";
 import { HelpPanel } from "./components/HelpPanel";
 import { clearCortexBrowserSession } from "./lib/cortexSession";
 import { Sidebar, SIDEBAR_WIDTH_PX } from "./components/Sidebar";
@@ -29,6 +28,7 @@ import FindingDetail from "./pages/FindingDetail";
 import EvidenceVault from "./pages/EvidenceVault";
 import HelpDocs from "./pages/HelpDocs";
 import LearningLoop from "./pages/LearningLoop";
+import AuditSimulator from "./pages/AuditSimulator";
 import CompetencyHistory from "./pages/CompetencyHistory";
 import TeamCompetencyLedger from "./pages/TeamCompetencyLedger";
 
@@ -97,18 +97,18 @@ function RootRedirect() {
   if (!getToken()) {
     return <Navigate to="/login" replace />;
   }
-  return <Navigate to="/learning" replace />;
+  return <Navigate to="/audit-simulator" replace />;
 }
 
 function LoginScreen() {
   const navigate = useNavigate();
   if (getToken()) {
-    return <Navigate to="/learning" replace />;
+    return <Navigate to="/audit-simulator" replace />;
   }
   return (
     <Login
       onSuccess={() => {
-        navigate("/learning", { replace: true });
+        navigate("/audit-simulator", { replace: true });
       }}
     />
   );
@@ -139,10 +139,10 @@ function AppRoutes() {
       }
       switch (e.key.toLowerCase()) {
         case "d":
-          navigate("/learning");
+          navigate("/audit-simulator");
           break;
         case "i":
-          navigate("/intelligence");
+          navigate("/audit-simulator");
           break;
         case "r":
           navigate("/review-queue");
@@ -181,8 +181,8 @@ function AppRoutes() {
             <Route path="/group" element={<GroupDashboard />} />
             <Route path="/frameworks" element={<FrameworksList />} />
             <Route path="/frameworks/:id" element={<FrameworkDetailPage />} />
-            <Route path="/intelligence" element={<Intelligence />} />
-            <Route path="/intelligence/:tab" element={<Intelligence />} />
+            <Route path="/intelligence" element={<Navigate to="/audit-simulator" replace />} />
+            <Route path="/intelligence/:tab" element={<Navigate to="/audit-simulator" replace />} />
             <Route path="/review-queue" element={<HumanReview />} />
             <Route path="/roadmap" element={<ProjectTracker />} />
             <Route path="/evidence" element={<EvidenceVault />} />
@@ -191,10 +191,11 @@ function AppRoutes() {
             <Route path="/findings/:id" element={<FindingDetail />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/learning" element={<LearningLoop />} />
+            <Route path="/audit-simulator" element={<AuditSimulator />} />
             <Route path="/progress" element={<CompetencyHistory />} />
             <Route path="/team" element={<TeamCompetencyLedger />} />
             <Route path="/help" element={<HelpDocs />} />
-            <Route path="*" element={<Navigate to="/learning" replace />} />
+            <Route path="*" element={<Navigate to="/audit-simulator" replace />} />
           </Route>
         </Route>
       </Routes>

@@ -1,16 +1,13 @@
-# CORTEX UI demo — social / investor recording guide
+# Astra GRC UI demo — social / investor recording guide
 
-~60–90 second story: **upload proof → AI maps to controls → graph updates → finding closed loop**.
+~60–90 second story: **frame an audit → decide under pressure → debrief against controls**.
 
 ## Before you record
 
-1. Start stack: `docker compose up -d` (API + Postgres; migration `013_compliance_graph.sql` applied via init).
+1. Start stack: `docker compose up -d` (API + Postgres; schema applied via init / `apply_cortex_schema.sh`).
 2. Frontend: `cd frontend && npm run dev` → http://localhost:3000
-3. Login: **ciso@astralabs.com** / **cortex-ciso-2026** (analyst can ingest). This
-   built-in account is off by default; export `CORTEX_ENABLE_DEMO_USERS=1` before
-   starting the API, or log in with the seeded `admin@astralabs.com` instead.
-4. Org: **AstraLabs DE** (`demo-org-001`).
-5. Optional live LLM: `ANTHROPIC_API_KEY` in API env. Without it, **stub** provider still completes the flow (deterministic GDPR mapping + your control hint).
+3. Login: **admin@astralabs.com** / **admin**, or **ciso@astralabs.com** / **cortex-ciso-2026** if `CORTEX_ENABLE_DEMO_USERS=1`.
+4. You land on **Audit Simulator** (`/audit-simulator`) — paper-white UI.
 
 ## Demo file (bundled)
 
@@ -24,7 +21,7 @@ Copy to Desktop if you prefer dragging from Finder.
 
 | # | Screen | Action | Line (optional voiceover) |
 |---|--------|--------|---------------------------|
-| 1 | Dashboard | Pause on posture + frameworks | “This is CORTEX — compliance intelligence, not another spreadsheet.” |
+| 1 | Audit Simulator | Pick ISO 27001:2022 + New Audit → Run Assessment | “This is Astra GRC — adversarial simulation, not another spreadsheet.” |
 | 2 | Remediation → **finding-001** | Open “72-hour breach notification procedure not tested” | “Every gap is a finding with owner and control context.” |
 | 3 | Finding detail → **Attach evidence** | Upload `sample_breach_procedure.txt` | “Watch the document map to the ontology in real time.” |
 | 4 | Same page | Point at success + evidence list + **View on compliance graph** | “Evidence is persisted — not a demo toast.” |
@@ -34,7 +31,7 @@ Copy to Desktop if you prefer dragging from Finder.
 ## Recording tips
 
 - **Resolution:** 1920×1080, 30fps; crop to 16:9 for LinkedIn/X.
-- **Browser:** Zoom 110%, hide bookmarks bar, use dark theme (CORTEX default).
+- **Browser:** Zoom 110%, hide bookmarks bar. Astra GRC ships a **light** paper-white shell.
 - **Mouse:** Slow moves; pause 2s on graph after upload.
 - **Audio:** Short sentences; avoid reading control IDs aloud — say “breach notification” not “GDPR-BN-02”.
 - **B-roll:** SSE progress bar during upload (shows “Mapping to ontology via …”).

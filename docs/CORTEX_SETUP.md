@@ -1,7 +1,7 @@
-# CORTEX — Cursor Setup & Development Guide
+# Astra GRC — Cursor Setup & Development Guide
 
 One-time Cursor configuration and daily development workflow
-for the CORTEX learning platform.
+for the Astra GRC learning platform.
 
 ## Checklist Before Your First Session
 

@@ -1,10 +1,14 @@
 # Changelog
 
-All notable changes to CORTEX are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) where applicable.
+All notable changes to Astra GRC Community Edition (repository: CORTEX) are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) where applicable.
 
 Release lines **v0.1.0–v0.7.x** below reflect repository tags and merge history where tagged; interim patch levels may appear in this file without a corresponding git tag.
 
 ## [Unreleased]
+
+### Changed
+
+- **Astra GRC branding:** Product name, star-seal logo, and paper-white / navy theme on auth pages, sidebar, and help. Landing route is **`/audit-simulator`** (framework + audit type, then Learning Loop). Tagline: *Master GRC through adversarial simulation.*
 
 ### Added
 
