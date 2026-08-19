@@ -1,4 +1,4 @@
-# CORTEX — Release QA & security checklist
+# Astra GRC — Release QA & security checklist
 
 Run before tagging a release or merging main-facing work. Commands assume repo root and match CI intent.
 

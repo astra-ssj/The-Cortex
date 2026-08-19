@@ -1,11 +1,12 @@
-# CORTEX — GRC Competency Training Platform
+# Astra GRC Community Edition
 
+> Master GRC through adversarial simulation.
 > Case-based scenario training for security and GRC practitioners.
 > Build judgment, not just knowledge.
 
-## What is CORTEX?
+## What is Astra GRC?
 
-CORTEX is a case-based GRC competency training platform built
+Astra GRC is a case-based GRC competency training platform built
 by AstraLabs. It presents realistic security and compliance
 scenarios, grades your decisions against framework-grounded
 reference answers, and tracks your competency across four
@@ -15,6 +16,10 @@ The goal is judgment under pressure — not recall. Every scenario
 places you inside a real-world situation with a stakeholder
 pressing for a decision, a clock running, and a correct answer
 grounded in a specific framework control.
+
+After sign-in you land on the **Audit Simulator**: choose a
+framework (ISO 27001:2022 or GDPR) and an audit type, then run
+an assessment into the Learning Loop.
 
 ## Current Track: ISO 27001:2022
 
@@ -72,7 +77,7 @@ cd The-Cortex
 # Start Postgres
 docker compose up -d postgres
 
-# Apply schema (migrations 002–024)
+# Apply schema (migrations 002–032)
 bash scripts/apply_cortex_schema.sh
 
 # Install Python dependencies
@@ -90,7 +95,7 @@ cd frontend && npm install && npm run dev
 ```
 
 Open http://localhost:3000 and log in with
-`admin@astralabs.com` / `admin`.
+`admin@astralabs.com` / `admin`. You land on `/audit-simulator`.
 
 ### Verify
 

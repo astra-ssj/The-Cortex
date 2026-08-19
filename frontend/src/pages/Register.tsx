@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { CSSProperties } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { LogoIcon } from "../components/Logo";
+import { LogoIcon, LogoWordmark } from "../components/Logo";
 import { setStoredOrgId } from "../hooks/useOrgContext";
 
 type RegisterForm = {
@@ -164,7 +164,7 @@ export default function Register() {
       setStoredOrgId(data.org_id);
       localStorage.setItem("cortex_jurisdiction", form.jurisdiction);
       localStorage.setItem("cortex_demo_mode", "false");
-      navigate("/learning", { replace: true });
+      navigate("/audit-simulator", { replace: true });
     } catch (error) {
       setBannerError(error instanceof Error ? error.message : "Registration failed.");
     } finally {
@@ -197,17 +197,7 @@ export default function Register() {
       >
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 20 }}>
           <LogoIcon size={48} glow />
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontWeight: 700,
-              fontSize: 24,
-              letterSpacing: "6px",
-              color: "var(--text)",
-            }}
-          >
-            CORTEX
-          </span>
+          <LogoWordmark fontSize={24} />
           <span
             style={{
               fontFamily: "var(--font-mono)",
@@ -392,11 +382,9 @@ function submitStyle(disabled: boolean): CSSProperties {
     width: "100%",
     padding: "12px 16px",
     borderRadius: 8,
-    background: disabled
-      ? "var(--elevated)"
-      : "linear-gradient(135deg, color-mix(in srgb, var(--blue) 90%, black), var(--blue))",
+    background: disabled ? "var(--elevated)" : "var(--blue)",
     border: "none",
-    color: "var(--text)",
+    color: "var(--on-accent)",
     fontSize: 14,
     fontWeight: "bold",
     cursor: disabled ? "not-allowed" : "pointer",

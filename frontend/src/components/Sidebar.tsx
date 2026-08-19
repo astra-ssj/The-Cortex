@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LogoIcon } from "./Logo";
+import { LogoIcon, LogoWordmark } from "./Logo";
 import { useOrgContext } from "../hooks/useOrgContext";
 import {
   useCompliancePosture,
@@ -26,18 +26,12 @@ type NavItem = {
 
 type NavGroupDef = { label: string; items: NavItem[] };
 
-// Top-level categories. Learning is the primary surface; remaining groups
-// stay for pages that are still directly routable.
+// Audit Simulator is the post-login landing page; Learning Loop is the session.
 const NAV_GROUPS: NavGroupDef[] = [
-  {
-    label: "Explore",
-    items: [
-      { label: "Audit Simulator", path: "/intelligence/simulator", icon: "▷" },
-    ],
-  },
   {
     label: "Train",
     items: [
+      { label: "Audit Simulator", path: "/audit-simulator", icon: "▷" },
       { label: "Learning Loop", path: "/learning", icon: "↻" },
       { label: "My Progress", path: "/progress", icon: "▲" },
       { label: "Team Ledger", path: "/team", icon: "☰" },
@@ -244,7 +238,7 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
                 fontSize: "13px",
                 fontWeight: active ? 600 : 500,
                 color: active ? "var(--text)" : "var(--text-secondary)",
-                background: active ? "var(--card)" : "transparent",
+                background: active ? "var(--blue-soft)" : "transparent",
                 borderLeft: active ? "2px solid var(--blue)" : "2px solid transparent",
               }}
             >
@@ -336,18 +330,7 @@ export function Sidebar({
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <LogoIcon size={32} />
           <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontWeight: 800,
-                fontSize: 15,
-                letterSpacing: "0.14em",
-                color: "var(--text)",
-                lineHeight: 1.15,
-              }}
-            >
-              CORTEX
-            </div>
+            <LogoWordmark fontSize={16} />
             <div
               style={{
                 fontSize: "11px",
@@ -404,7 +387,7 @@ export function Sidebar({
               fontSize: "13px",
               fontWeight: 500,
               color: isActive ? "var(--text)" : "var(--text-secondary)",
-              background: isActive ? "var(--card)" : "transparent",
+              background: isActive ? "var(--blue-soft)" : "transparent",
               borderLeft: isActive ? "2px solid var(--blue)" : "2px solid transparent",
             })}
           >

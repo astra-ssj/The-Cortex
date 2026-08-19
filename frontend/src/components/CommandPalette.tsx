@@ -35,7 +35,7 @@ const PAGE_ITEMS: PageItem[] = [
   { title: "Dashboard", route: "/dashboard", icon: "◫" },
   { title: "Group View", route: "/group", icon: "⊞" },
   { title: "Frameworks", route: "/frameworks", icon: "▦" },
-  { title: "Audit Simulator", route: "/intelligence/simulator", icon: "▷" },
+  { title: "Audit Simulator", route: "/audit-simulator", icon: "▷" },
   { title: "Review Queue", route: "/review-queue", icon: "⇌" },
   { title: "Findings", route: "/findings", icon: "⚑" },
   { title: "Remediation", route: "/remediation", icon: "↻" },

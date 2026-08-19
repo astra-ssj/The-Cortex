@@ -189,7 +189,7 @@ export function FrameworksEmpty({
       badgeColor="var(--amber)"
       icon="📋"
       title="No frameworks selected"
-      description="Select the compliance frameworks that apply to your organisation. CORTEX supports 8 frameworks across EU, UK, US, and international jurisdictions."
+      description="Select the compliance frameworks that apply to your organisation. Astra GRC supports 8 frameworks across EU, UK, US, and international jurisdictions."
       cta="Select Frameworks"
       onCta={onSelectFrameworks}
     />

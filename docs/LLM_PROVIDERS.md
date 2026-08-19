@@ -1,6 +1,6 @@
 # LLM providers (multi-vendor)
 
-CORTEX routes all structured LLM calls through `core/llm` — never call vendor APIs directly from feature code. Wrap feature calls in a module-level `CircuitBreaker` (see `ontology_mapper.py`).
+Astra GRC routes all structured LLM calls through `core/llm` — never call vendor APIs directly from feature code. Wrap feature calls in a module-level `CircuitBreaker` (see `ontology_mapper.py`).
 
 ## Supported providers
 

@@ -77,18 +77,18 @@ const SECTIONS: HelpSection[] = [
     title: "Getting Started",
     blocks: [
       {
-        subtitle: "New to CORTEX?",
+        subtitle: "New to Astra GRC?",
         body: "",
       },
       {
         subtitle: "Create an account",
         body:
-          "Go to /register. Enter your company details and work email. After registering you land directly on the scenario selector. The demo account is admin@astralabs.com / admin.",
+          "Go to /register. Enter your company details and work email. After registering you land on the Audit Simulator. The demo account is admin@astralabs.com / admin.",
       },
       {
         subtitle: "Sign in",
         body:
-          "Go to /login. You land on the scenario selector at /learning. An active session resumes automatically.",
+          "Go to /login. You land on the Audit Simulator at /audit-simulator. Run Assessment opens the Learning Loop. An active session on /learning resumes automatically.",
       },
       {
         subtitle: "First time here?",
@@ -222,7 +222,7 @@ const SECTIONS: HelpSection[] = [
     title: "Keyboard Shortcuts",
     blocks: [
       {
-        body: "L → Scenario selector\nH → Help page\nEsc → Close panel",
+        body: "D → Audit Simulator\nH → Help page\nEsc → Close panel\nCmd/Ctrl+K → Command palette",
       },
     ],
   },
@@ -231,7 +231,7 @@ const SECTIONS: HelpSection[] = [
     title: "Support",
     blocks: [
       {
-        subtitle: "CORTEX Community Edition · AstraLabs Group",
+        subtitle: "Astra GRC Community Edition · AstraLabs Group",
         body:
           "Open source — Apache 2.0. github.com/astra-ssj/The-Cortex Report issues via GitHub Issues. Include scenario ID and stage for content issues; browser console output for technical issues.",
       },
@@ -335,7 +335,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
               >
                 Help & Documentation
               </h2>
-              <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-tertiary)" }}>CORTEX v0.7.0</p>
+              <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-tertiary)" }}>Astra GRC v0.7.0</p>
               <Link
                 to="/help"
                 onClick={onClose}

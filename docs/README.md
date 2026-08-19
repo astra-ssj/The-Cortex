@@ -1,4 +1,4 @@
-# CORTEX documentation
+# Astra GRC documentation
 
 | Doc | Purpose |
 |-----|---------|
