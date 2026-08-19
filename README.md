@@ -6,7 +6,7 @@
 ## What is CORTEX?
 
 CORTEX is a case-based GRC competency training platform built
-by AstraLabs Group. It presents realistic security and compliance
+by AstraLabs. It presents realistic security and compliance
 scenarios, grades your decisions against framework-grounded
 reference answers, and tracks your competency across four
 independent dimensions.
