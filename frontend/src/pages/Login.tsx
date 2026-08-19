@@ -184,6 +184,16 @@ export default function Login({ onSuccess }: LoginProps) {
           >
             Community Edition
           </span>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: 16,
+              color: "var(--text-secondary)",
+              textAlign: "center",
+            }}
+          >
+            Master GRC through adversarial simulation.
+          </span>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
