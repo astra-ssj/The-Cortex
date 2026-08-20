@@ -69,4 +69,4 @@ Historical snapshots (not current posture) live under [docs/archive/](docs/archi
 
 ## EU AI Act Compliance Note
 
-CORTEX governs its own AI under EU AI Act Art.14. Every automated compliance decision with confidence below **0.75** routes through the Human Review Queue. The Evidence Vault (SHA-256 hash chain) provides the audit trail required under NIS2 Art.20.
+Astra GRC governs its own AI under EU AI Act Art.14. Every automated compliance decision with confidence below **0.75** routes through the Human Review Queue. The Evidence Vault (SHA-256 hash chain) provides the audit trail required under NIS2 Art.20.

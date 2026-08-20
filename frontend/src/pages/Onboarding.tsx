@@ -1,14 +1,14 @@
 import { useEffect } from "react";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogoIcon } from "../components/Logo";
+import { LogoIcon, LogoWordmark } from "../components/Logo";
 
 export default function Onboarding() {
   const navigate = useNavigate();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      navigate("/learning", { replace: true });
+      navigate("/audit-simulator", { replace: true });
     }, 3000);
     return () => window.clearTimeout(timer);
   }, [navigate]);
@@ -39,17 +39,7 @@ export default function Onboarding() {
       >
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 28 }}>
           <LogoIcon size={48} glow />
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontWeight: 700,
-              fontSize: 24,
-              letterSpacing: "6px",
-              color: "var(--text)",
-            }}
-          >
-            CORTEX
-          </span>
+          <LogoWordmark fontSize={24} />
           <span
             style={{
               fontFamily: "var(--font-mono)",
@@ -81,7 +71,7 @@ export default function Onboarding() {
             color: "var(--text)",
           }}
         >
-          Welcome to CORTEX
+          Welcome to Astra GRC
         </h1>
         <p
           style={{
@@ -96,7 +86,7 @@ export default function Onboarding() {
 
         <button
           type="button"
-          onClick={() => navigate("/learning", { replace: true })}
+          onClick={() => navigate("/audit-simulator", { replace: true })}
           style={buttonStyle}
         >
           Go to Learning →
@@ -121,9 +111,9 @@ const buttonStyle: CSSProperties = {
   width: "100%",
   padding: "12px 16px",
   borderRadius: 8,
-  background: "linear-gradient(135deg, color-mix(in srgb, var(--blue) 90%, black), var(--blue))",
+  background: "var(--blue)",
   border: "none",
-  color: "var(--text)",
+  color: "var(--on-accent)",
   fontSize: 14,
   fontWeight: "bold",
   cursor: "pointer",

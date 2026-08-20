@@ -1,8 +1,17 @@
-# CORTEX Architecture
+# Astra GRC Architecture
 
-CORTEX is a case-based GRC competency training platform.
+Astra GRC is a case-based GRC competency training platform.
 This document covers the runtime architecture, data model,
 and key design decisions.
+
+## User journey
+
+After authentication the SPA lands on **`/audit-simulator`**.
+The learner picks a framework (ISO 27001:2022 or GDPR) and an
+audit type, then **Run Assessment** opens the Learning Loop at
+`/learning`. Direct `/learning` access still lists all active
+scenarios. The old Intelligence demo at `/intelligence/simulator`
+redirects to the Audit Simulator.
 
 ## Runtime Services
 

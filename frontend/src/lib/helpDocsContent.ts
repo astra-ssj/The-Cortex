@@ -18,19 +18,19 @@ export type HelpDocSection = {
 export const HELP_DOC_SECTIONS: HelpDocSection[] = [
   {
     id: "overview",
-    title: "What is CORTEX?",
+    title: "What is Astra GRC?",
     intro:
-      "CORTEX Community Edition is a case-based GRC competency training platform built by AstraLabs Group. It places you inside realistic security and compliance scenarios, grades your decisions against framework-grounded reference answers, and tracks your competency across four independent dimensions. The goal is judgment under pressure — not recall.",
+      "Astra GRC Community Edition is a case-based GRC competency training platform built by AstraLabs Group. It places you inside realistic security and compliance scenarios, grades your decisions against framework-grounded reference answers, and tracks your competency across four independent dimensions. The goal is judgment under pressure — not recall.",
     steps: [
       {
         title: "Who it is for",
         body:
-          "Security leads, GRC practitioners, compliance officers, and risk managers who want to build and verify decision-making competency in realistic scenarios. CORTEX is also used for team training, new-hire onboarding into GRC roles, and CPD evidence for security certifications.",
+          "Security leads, GRC practitioners, compliance officers, and risk managers who want to build and verify decision-making competency in realistic scenarios. Astra GRC is also used for team training, new-hire onboarding into GRC roles, and CPD evidence for security certifications.",
       },
       {
         title: "How it differs from a course or certification",
         body:
-          "Courses test whether you can recall a framework. CORTEX tests whether you make the right decision when a stakeholder is pressing you, the clock is running, and the correct answer is not obvious. Every scenario has a reference answer grounded in a specific framework control. You see the rationale after your decision — win or lose.",
+          "Courses test whether you can recall a framework. Astra GRC tests whether you make the right decision when a stakeholder is pressing you, the clock is running, and the correct answer is not obvious. Every scenario has a reference answer grounded in a specific framework control. You see the rationale after your decision — win or lose.",
         tips: [
           "Scenarios are graded against a reference answer, not multiple choice recall.",
           "Four competency dimensions update independently after each decision.",
@@ -52,7 +52,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Create your account",
         body:
-          "Go to /register. Enter your company name, jurisdiction, industry, full name, and work email. Choose a password of at least 8 characters. Click Create Account. You will be taken directly to the scenario selector.",
+          "Go to /register. Enter your company name, jurisdiction, industry, full name, and work email. Choose a password of at least 8 characters. Click Create Account. You will land on the Audit Simulator.",
         tips: [
           "Jurisdiction is used to contextualise scenario briefings in future tracks — choose your primary operating jurisdiction.",
           "Your account is private. No scenario results are shared with other users.",
@@ -61,7 +61,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Sign in to an existing account",
         body:
-          "Go to /login. Enter your work email and password. You will land on the scenario selector at /learning. If you have an active scenario session, it will resume automatically.",
+          "Go to /login. Enter your work email and password. You will land on the Audit Simulator at /audit-simulator. From there you choose a framework and audit type, then Run Assessment opens the Learning Loop. If you already have an active scenario session, opening /learning resumes it.",
       },
       {
         title: "Demo account",
@@ -81,12 +81,12 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Navigation",
         body:
-          "The sidebar has one primary section: LEARN → Learning Loop. Press H anywhere to open the quick reference panel. Press L to go to the scenario selector. Press Esc to close any open panel.",
+          "The sidebar is grouped as TRAIN (Audit Simulator, Learning Loop, My Progress, Team Ledger), Discover, Evidence, and Operations. Press H anywhere to open the quick reference panel. Press D to return to the Audit Simulator. Press Esc to close any open panel.",
       },
       {
-        title: "The scenario selector",
+        title: "The Audit Simulator",
         body:
-          "The scenario selector is your home screen. It shows all available scenarios organised by difficulty — foundation first, then practitioner, then expert. Each card shows the scenario title, difficulty badge, frameworks tested, and a brief description. Click Start scenario to begin.",
+          "The Audit Simulator is your home screen. Choose a framework (ISO 27001:2022 or GDPR; SOC 2 is listed as coming soon) and an audit type, then click Run Assessment. That opens the Learning Loop with the matching scenario list. You can still open /learning directly to see every active scenario.",
         tips: [
           "Foundation scenarios are the right starting point if you are new to ISO 27001:2022.",
           "You can only run one scenario at a time. Starting a new scenario clears your current session.",
@@ -100,7 +100,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Difficulty badges",
         body:
-          "Foundation (cyan) — single-entity, one primary framework, two decision stages. Practitioner (amber) — multi-obligation, intersecting frameworks, stakeholder pressure. Expert (red) — multi-entity, multi-jurisdiction, board-level decisions, three or more stages.",
+          "Foundation (navy) — single-entity, one primary framework, two decision stages. Practitioner (amber) — multi-obligation, intersecting frameworks, stakeholder pressure. Expert (red) — multi-entity, multi-jurisdiction, board-level decisions, three or more stages.",
       },
     ],
   },
@@ -208,7 +208,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
     id: "scenarios",
     title: "5. Scenario Library",
     intro:
-      "CORTEX Community Edition launches with five ISO 27001:2022 scenarios across three difficulty levels. Additional framework tracks will be added in future releases.",
+      "Astra GRC Community Edition launches with five ISO 27001:2022 scenarios across three difficulty levels. Additional framework tracks will be added in future releases.",
     steps: [
       {
         title: "Recommended order",
@@ -280,9 +280,9 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
           "By completing all five scenarios you will have made graded decisions on 14 distinct Annex A controls: A.5.9, A.5.10, A.5.12, A.5.13, A.5.15, A.5.18, A.5.19, A.5.20, A.5.26, A.5.28, A.5.29, A.5.30, A.8.13, A.8.32, A.10.1. These map directly to audit questions in BSI, UKAS, and DAkkS surveillance audits.",
       },
       {
-        title: "Using CORTEX for CPD",
+        title: "Using Astra GRC for CPD",
         body:
-          "Scenario completions and competency scores provide evidence of structured GRC practice for CPD purposes. Screenshot your competency panel at the terminal stage of each scenario as a timestamped record. CORTEX does not yet issue certificates — that is on the roadmap.",
+          "Scenario completions and competency scores provide evidence of structured GRC practice for CPD purposes. Screenshot your competency panel at the terminal stage of each scenario as a timestamped record. Astra GRC does not yet issue certificates — that is on the roadmap.",
       },
       {
         title: "What comes next",
@@ -303,7 +303,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Keyboard shortcuts",
         body:
-          "L — scenario selector. H — help page (this page). Esc — close any open panel. Shortcuts work from any authenticated page.",
+          "D — Audit Simulator (home). H — help page (this page). Esc — close any open panel. Cmd/Ctrl+K — command palette. Shortcuts work from any authenticated page when you are not typing in a field.",
       },
       {
         title: "Reporting a content issue",
@@ -325,9 +325,9 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
         ],
       },
       {
-        title: "CORTEX Community Edition",
+        title: "Astra GRC Community Edition",
         body:
-          "CORTEX CE is open source under the Apache License 2.0. The source is at github.com/astra-ssj/The-Cortex. Enterprise features, commercial licensing, and support are available separately from AstraLabs Group.",
+          "Astra GRC Community Edition is open source under the Apache License 2.0. The source is at github.com/astra-ssj/The-Cortex. Enterprise features, commercial licensing, and support are available separately from AstraLabs Group.",
       },
     ],
   },

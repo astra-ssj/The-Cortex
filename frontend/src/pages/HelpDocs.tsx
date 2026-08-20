@@ -72,7 +72,7 @@ export default function HelpDocs() {
           Documentation
         </p>
         <h1 className="cortex-text-page-title" style={{ margin: "0 0 10px" }}>
-          CORTEX Help & Onboarding
+          Astra GRC Help & Onboarding
         </h1>
         <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: 640 }}>
           Step-by-step guide from registration through daily compliance workflows. Illustrations mirror each
@@ -295,7 +295,7 @@ export default function HelpDocs() {
               color: "var(--text-tertiary)",
             }}
           >
-            <p style={{ margin: "0 0 8px" }}>CORTEX · AstraLabs Group · Enterprise compliance intelligence</p>
+            <p style={{ margin: "0 0 8px" }}>Astra GRC · AstraLabs Group · Enterprise compliance intelligence</p>
             <a
               href="https://github.com/AstraLabs-AI/The-Cortex"
               target="_blank"

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogoIcon } from "../components/Logo";
+import { LogoIcon, LogoWordmark } from "../components/Logo";
 import { setStoredOrgId } from "../hooks/useOrgContext";
 
 export interface LoginProps {
@@ -162,17 +162,7 @@ export default function Login({ onSuccess }: LoginProps) {
           }}
         >
           <LogoIcon size={64} glow={true} />
-          <span
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontWeight: 800,
-              fontSize: 28,
-              letterSpacing: "6px",
-              color: "var(--text)",
-            }}
-          >
-            CORTEX
-          </span>
+          <LogoWordmark fontSize={28} />
           <span
             style={{
               fontFamily: "var(--font-mono)",
@@ -276,9 +266,9 @@ export default function Login({ onSuccess }: LoginProps) {
             borderRadius: 8,
             background: loading
               ? "var(--elevated)"
-              : "linear-gradient(135deg, color-mix(in srgb, var(--blue) 90%, black), var(--blue))",
+              : "var(--blue)",
             border: "none",
-            color: "var(--text)",
+            color: "var(--on-accent)",
             fontSize: 14,
             fontWeight: "bold",
             cursor: loading ? "not-allowed" : "pointer",
@@ -296,7 +286,7 @@ export default function Login({ onSuccess }: LoginProps) {
         </div>
 
         <p style={{ marginTop: 0, marginBottom: 10, color: "var(--text-quiet)", fontSize: 11, textAlign: "center" }}>
-          New to CORTEX?
+          New to Astra GRC?
         </p>
         <button
           type="button"

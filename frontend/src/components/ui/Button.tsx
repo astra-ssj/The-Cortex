@@ -16,13 +16,13 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "border border-transparent bg-cortex-blue text-cortex-text hover:brightness-110 active:brightness-95 disabled:opacity-50",
+    "border border-transparent bg-cortex-blue text-white hover:brightness-110 active:brightness-95 disabled:opacity-50",
   secondary:
     "border border-cortex-border bg-transparent text-cortex-text hover:bg-cortex-card-hover active:bg-cortex-surface disabled:opacity-50",
   ghost:
     "border border-transparent bg-transparent text-cortex-text-sec hover:bg-cortex-card-hover hover:text-cortex-text active:bg-cortex-surface disabled:opacity-50",
   danger:
-    "border border-transparent bg-cortex-red text-cortex-text hover:brightness-110 active:brightness-95 disabled:opacity-50",
+    "border border-transparent bg-cortex-red text-white hover:brightness-110 active:brightness-95 disabled:opacity-50",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

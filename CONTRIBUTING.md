@@ -1,6 +1,6 @@
-# Contributing to CORTEX
+# Contributing to Astra GRC
 
-Thank you for helping improve CORTEX. By contributing, you agree your contributions are licensed under the **Apache License 2.0** (see [`LICENSE`](LICENSE)), unless you state otherwise in writing.
+Thank you for helping improve Astra GRC Community Edition. By contributing, you agree your contributions are licensed under the **Apache License 2.0** (see [`LICENSE`](LICENSE)), unless you state otherwise in writing.
 
 This repository follows the **ZTAIP** (Zero Trust Agentic Intelligence Platform) conventions documented in [`.cursorrules`](.cursorrules) and summarized in [`README.md`](README.md).
 

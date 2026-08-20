@@ -1,4 +1,4 @@
-# GraphJin in CORTEX
+# GraphJin in Astra GRC
 
 [GraphJin](https://github.com/dosco/graphjin) compiles GraphQL to SQL against PostgreSQL. In this repo it is the **read-optimized data layer** for the same `cortex` database that FastAPI uses for writes, auth, and ZTAIP logic.
 

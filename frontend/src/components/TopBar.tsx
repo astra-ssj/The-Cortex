@@ -30,6 +30,8 @@ const ROUTE_TITLES: Record<string, string> = {
   "/remediation": "Remediation",
   "/evidence": "Evidence Vault",
   "/review-queue": "Review Queue",
+  "/audit-simulator": "Audit Simulator",
+  "/learning": "Learning Loop",
   "/intelligence": "Intelligence",
   "/intelligence/simulator": "Intelligence",
   "/roadmap": "Roadmap",
@@ -72,7 +74,7 @@ export function TopBar() {
     if (frameworkId) {
       return framework?.name ?? "Framework";
     }
-    return ROUTE_TITLES[pathname] ?? "CORTEX";
+    return ROUTE_TITLES[pathname] ?? "Astra GRC";
   }, [frameworkId, framework?.name, pathname]);
 
   const subtitle = useMemo(() => {
