@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { LogoIcon } from "./Logo";
+import { replayTour } from "../lib/welcomeTour";
 
 type HelpSection = {
   id: string;
@@ -349,6 +350,26 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
               >
                 Open full onboarding guide →
               </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  replayTour();
+                }}
+                style={{
+                  display: "block",
+                  marginTop: 8,
+                  padding: 0,
+                  border: "none",
+                  background: "none",
+                  fontSize: 12,
+                  color: "var(--cyan)",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-sans)",
+                }}
+              >
+                Replay welcome tour
+              </button>
             </div>
           </div>
           <button

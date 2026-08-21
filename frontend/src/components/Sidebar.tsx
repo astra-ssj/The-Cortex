@@ -22,23 +22,26 @@ type NavItem = {
   icon: string;
   badge?: "findings" | "review";
   soon?: boolean;
+  tour?: string;
 };
 
-type NavGroupDef = { label: string; items: NavItem[] };
+type NavGroupDef = { label: string; items: NavItem[]; tour?: string };
 
 // Audit Simulator is the post-login landing page; Learning Loop is the session.
 const NAV_GROUPS: NavGroupDef[] = [
   {
     label: "Train",
+    tour: "train",
     items: [
-      { label: "Audit Simulator", path: "/audit-simulator", icon: "▷" },
-      { label: "Learning Loop", path: "/learning", icon: "↻" },
+      { label: "Audit Simulator", path: "/audit-simulator", icon: "▷", tour: "audit-simulator" },
+      { label: "Learning Loop", path: "/learning", icon: "↻", tour: "learning" },
       { label: "My Progress", path: "/progress", icon: "▲" },
       { label: "Team Ledger", path: "/team", icon: "☰" },
     ],
   },
   {
     label: "Discover",
+    tour: "discover",
     items: [
       { label: "Review Queue", path: "/review-queue", icon: "⇌", badge: "review" },
       { label: "Control Gaps", path: "/findings", icon: "⚑", badge: "findings" },
@@ -47,6 +50,7 @@ const NAV_GROUPS: NavGroupDef[] = [
   },
   {
     label: "Evidence",
+    tour: "evidence",
     items: [
       { label: "Evidence Vault", path: "/evidence", icon: "▤" },
     ],
@@ -188,7 +192,15 @@ function ZtaipStatusPanel() {
   );
 }
 
-function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
+function NavGroup({
+  label,
+  items,
+  tour,
+}: {
+  label: string;
+  items: NavItem[];
+  tour?: string;
+}) {
   const { orgId } = useOrgContext();
   const { pathname } = useLocation();
   const { data: posture } = useCompliancePosture(orgId);
@@ -198,7 +210,7 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
   const reviewCount = rqItems?.length ?? 0;
 
   return (
-    <div style={{ marginBottom: 18 }}>
+    <div style={{ marginBottom: 18 }} data-tour={tour}>
       <div
         style={{
           fontSize: "10px",
@@ -228,6 +240,7 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
               end={item.path !== "/frameworks"}
               aria-current={active ? "page" : undefined}
               className="cortex-sidebar-link"
+              data-tour={item.tour}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -355,7 +368,7 @@ export function Sidebar({
         aria-label="Application sections"
       >
         {groups.map((g) => (
-          <NavGroup key={g.label} label={g.label} items={g.items} />
+          <NavGroup key={g.label} label={g.label} items={g.items} tour={g.tour} />
         ))}
       </nav>
 
@@ -376,6 +389,7 @@ export function Sidebar({
         >
           <NavLink
             to="/help"
+            data-tour="help"
             className={({ isActive }) => (isActive ? "cortex-sidebar-link-active" : undefined)}
             style={({ isActive }) => ({
               display: "flex",

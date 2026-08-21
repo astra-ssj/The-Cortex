@@ -81,7 +81,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Navigation",
         body:
-          "The sidebar is grouped as TRAIN (Audit Simulator, Learning Loop, My Progress, Team Ledger), Discover, Evidence, and Operations. Press H anywhere to open the quick reference panel. Press D to return to the Audit Simulator. Press Esc to close any open panel.",
+          "The sidebar is grouped as TRAIN (Audit Simulator, Learning Loop, My Progress, Team Ledger), Discover, Evidence, and Operations. Press H anywhere to open the quick reference panel. Press D to return to the Audit Simulator. Press Esc to close any open panel. Replay the first-visit welcome tour from Help (this page or the H panel).",
       },
       {
         title: "The Audit Simulator",
