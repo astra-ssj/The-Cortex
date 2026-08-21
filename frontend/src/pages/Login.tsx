@@ -216,7 +216,7 @@ export default function Login({ onSuccess }: LoginProps) {
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            placeholder="ciso@astralabs.com or admin"
+            placeholder="admin@astralabs.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="username"
@@ -316,13 +316,11 @@ export default function Login({ onSuccess }: LoginProps) {
             fontFamily: "var(--font-mono)",
           }}
         >
-          Demo without legacy env: <strong style={{ color: "var(--text-secondary)" }}>ciso@astralabs.com</strong> /{" "}
-          <strong style={{ color: "var(--text-secondary)" }}>cortex-ciso-2026</strong>. With Docker Compose,{" "}
-          <strong style={{ color: "var(--text-secondary)" }}>admin</strong> /{" "}
-          <strong style={{ color: "var(--text-secondary)" }}>admin</strong> also works (legacy demo password). Plain
-          uvicorn: set{" "}
-          <code style={{ color: "var(--text-tertiary)" }}>CORTEX_LEGACY_DEMO_PASSWORD=admin</code> or use the CISO demo
-          above.
+          Demo account: <strong style={{ color: "var(--text-secondary)" }}>admin@astralabs.com</strong> /{" "}
+          <strong style={{ color: "var(--text-secondary)" }}>admin</strong>
+          {" "}(or username <strong style={{ color: "var(--text-secondary)" }}>admin</strong>). Schema must be applied;
+          set <code style={{ color: "var(--text-tertiary)" }}>CORTEX_LEGACY_DEMO_PASSWORD=admin</code> when starting the
+          API.
         </p>
       </div>
     </div>

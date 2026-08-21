@@ -61,8 +61,8 @@ causes pytest to hang.
 cd frontend && npm install && npm run dev
 ```
 
-Open http://localhost:3000. Log in with
-`admin@astralabs.com` / `admin`.
+Open http://localhost:3000. Log in with the seeded demo account
+`admin@astralabs.com` / `admin` (username `admin` is the same account).
 
 ## Running Tests
 

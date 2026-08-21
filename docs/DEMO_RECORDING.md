@@ -6,7 +6,7 @@
 
 1. Start stack: `docker compose up -d` (API + Postgres; schema applied via init / `apply_cortex_schema.sh`).
 2. Frontend: `cd frontend && npm run dev` → http://localhost:3000
-3. Login: **admin@astralabs.com** / **admin**, or **ciso@astralabs.com** / **cortex-ciso-2026** if `CORTEX_ENABLE_DEMO_USERS=1`.
+3. Login: **admin@astralabs.com** / **admin** (seeded demo admin; `admin` / `admin` is the same account).
 4. You land on **Audit Simulator** (`/audit-simulator`) — paper-white UI.
 
 ## Demo file (bundled)

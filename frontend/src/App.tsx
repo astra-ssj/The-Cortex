@@ -20,6 +20,8 @@ import { FrameworkDetailPage } from "./pages/FrameworkDetailPage";
 import { HelpPanel } from "./components/HelpPanel";
 import { clearCortexBrowserSession } from "./lib/cortexSession";
 import { Sidebar, SIDEBAR_WIDTH_PX } from "./components/Sidebar";
+import { WelcomeTour } from "./components/WelcomeTour";
+import { isWelcomeTourBlockingShortcuts } from "./lib/welcomeTour";
 import { TopBar } from "./components/TopBar";
 import { CommandPalette } from "./components/CommandPalette";
 import Settings from "./pages/Settings";
@@ -58,6 +60,7 @@ function MainChrome() {
         Skip to main content
       </a>
       <Sidebar user={user} onLogout={onLogout} />
+      <WelcomeTour />
       <main
         id="main-content"
         tabIndex={-1}
@@ -121,6 +124,9 @@ function AppRoutes() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      if (isWelcomeTourBlockingShortcuts()) {
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setCommandOpen(true);

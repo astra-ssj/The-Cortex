@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { PageSnapshot } from "../components/help/PageSnapshot";
 import { HELP_DOC_SECTIONS, HELP_TOC } from "../lib/helpDocsContent";
+import { replayTour } from "../lib/welcomeTour";
 
 function scrollToSection(id: string) {
   const el = document.getElementById(id);
@@ -78,6 +79,22 @@ export default function HelpDocs() {
           Step-by-step guide from registration through daily compliance workflows. Illustrations mirror each
           screen — use the table of contents to jump to a topic.
         </p>
+        <button
+          type="button"
+          onClick={() => replayTour()}
+          style={{
+            marginTop: 12,
+            padding: 0,
+            border: "none",
+            background: "none",
+            fontSize: 13,
+            color: "var(--cyan)",
+            cursor: "pointer",
+            fontFamily: "var(--font-sans)",
+          }}
+        >
+          Replay welcome tour
+        </button>
         <div
           style={{
             display: "flex",

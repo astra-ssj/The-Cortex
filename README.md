@@ -94,8 +94,14 @@ uvicorn api.main:app --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-Open http://localhost:3000 and log in with
-`admin@astralabs.com` / `admin`. You land on `/audit-simulator`.
+Open http://localhost:3000. Demo login (seeded after schema apply):
+
+| | |
+|---|---|
+| Email | `admin@astralabs.com` |
+| Password | `admin` |
+
+Username `admin` / `admin` is the same account. You land on `/audit-simulator`.
 
 ### Verify
 
