@@ -27,15 +27,11 @@ export default function AuditSimulator() {
   const navigate = useNavigate();
   const [framework, setFramework] = useState<AuditFrameworkSlug | null>(null);
   const [auditType, setAuditType] = useState<AuditTypeId | null>(null);
-  const [soc2Open, setSoc2Open] = useState(false);
 
-  const runnable = (framework === "iso27001-2022" || framework === "gdpr-2016-679") && auditType !== null;
+  const runnable = framework !== null && auditType !== null;
 
   const onFramework = (slug: AuditFrameworkSlug, enabled: boolean) => {
-    if (!enabled) {
-      setSoc2Open(true);
-      return;
-    }
+    if (!enabled) return;
     setFramework(slug);
     setAuditType(null);
   };
@@ -86,6 +82,8 @@ export default function AuditSimulator() {
                 type="button"
                 onClick={() => onFramework(fw.slug, fw.enabled)}
                 aria-pressed={selected}
+                aria-disabled={!fw.enabled}
+                tabIndex={fw.enabled ? 0 : -1}
                 style={{
                   textAlign: "left",
                   background: selected ? "var(--blue-soft)" : "var(--bg)",
@@ -94,12 +92,20 @@ export default function AuditSimulator() {
                     : "1px solid var(--border)",
                   borderRadius: 8,
                   padding: 16,
-                  cursor: "pointer",
+                  cursor: fw.enabled ? "pointer" : "default",
                   color: "var(--text)",
+                  opacity: fw.enabled ? 1 : 0.55,
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
-                  <strong style={{ fontSize: 15 }}>{fw.label}</strong>
+                  <div>
+                    <strong style={{ fontSize: 15 }}>{fw.label}</strong>
+                    {fw.subtitle ? (
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
+                        {fw.subtitle}
+                      </div>
+                    ) : null}
+                  </div>
                   {!fw.enabled ? (
                     <span
                       style={{
@@ -124,7 +130,7 @@ export default function AuditSimulator() {
         </div>
       </section>
 
-      {framework && framework !== "soc2" ? (
+      {framework ? (
         <section style={{ ...panel, marginBottom: 20 }} aria-label="Audit type selector">
           <div style={eyebrow}>Step B · Audit type</div>
           <div
@@ -170,36 +176,6 @@ export default function AuditSimulator() {
       <Button variant="primary" size="lg" type="button" disabled={!runnable} onClick={onRun}>
         Run Assessment
       </Button>
-
-      {soc2Open ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="soc2-title"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "color-mix(in srgb, var(--bg) 70%, transparent)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 40,
-            padding: 16,
-          }}
-        >
-          <div style={{ ...panel, maxWidth: 420, width: "100%" }}>
-            <h2 id="soc2-title" style={{ margin: 0, fontSize: 16, color: "var(--text)" }}>
-              SOC 2
-            </h2>
-            <p style={{ margin: "12px 0 20px", fontSize: 13, lineHeight: 1.55, color: "var(--text-secondary)" }}>
-              SOC 2 scenarios are in development. You will be notified when they launch.
-            </p>
-            <Button variant="primary" size="md" type="button" onClick={() => setSoc2Open(false)}>
-              Dismiss
-            </Button>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
