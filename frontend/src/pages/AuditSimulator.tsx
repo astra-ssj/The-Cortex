@@ -170,6 +170,9 @@ export default function AuditSimulator() {
               );
             })}
           </div>
+          <p style={{ margin: "12px 0 0", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+            Audit type sets the framing of your briefing. Filtering scenarios by audit type is coming soon.
+          </p>
         </section>
       ) : null}
 
