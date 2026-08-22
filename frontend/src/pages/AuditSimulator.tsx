@@ -38,11 +38,7 @@ export default function AuditSimulator() {
 
   const onRun = () => {
     if (!runnable || !framework || !auditType) return;
-    const params = new URLSearchParams({
-      framework,
-      audit_type: auditType,
-    });
-    navigate(`/learning?${params.toString()}`);
+    navigate("/learning");
   };
 
   return (
