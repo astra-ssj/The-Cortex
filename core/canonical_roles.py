@@ -16,9 +16,9 @@ def normalize_canonical_role(raw: str | None) -> CanonicalRole:
     Map DB/JWT role strings to canonical roles. Unknown values fail closed to viewer.
     """
     r = (raw or "").strip().lower()
-    if r in ("admin", "administrator"):
+    if r in ("admin", "administrator", "ciso"):
         return CanonicalRole.admin
-    if r in ("analyst", "ciso", "dpo", "security_lead", "grc_analyst"):
+    if r in ("analyst", "dpo", "security_lead", "grc_analyst"):
         return CanonicalRole.analyst
     if r in ("viewer", "auditor", "read_only", "readonly"):
         return CanonicalRole.viewer

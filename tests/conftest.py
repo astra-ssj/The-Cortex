@@ -82,7 +82,7 @@ def make_auth_headers(
 
 @pytest.fixture
 def auth_headers() -> dict[str, str]:
-    """Analyst-capable demo JWT (maps legacy CISO → analyst on server)."""
+    """Admin-capable demo JWT (maps legacy CISO → admin on server)."""
     return make_auth_headers("ciso", email=_DEMO_USER)
 
 

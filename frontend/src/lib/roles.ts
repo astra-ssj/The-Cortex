@@ -44,6 +44,6 @@ export function normalizeRole(raw: unknown): Role {
   if (raw === "admin" || raw === "analyst" || raw === "viewer") return raw;
   const r = typeof raw === "string" ? raw.toLowerCase() : "";
   if (r === "admin" || r === "administrator" || r === "ciso") return "admin";
-  if (r === "dpo" || r === "analyst" || r === "security_lead") return "analyst";
+  if (r === "dpo" || r === "analyst" || r === "security_lead" || r === "grc_analyst") return "analyst";
   return "viewer";
 }
