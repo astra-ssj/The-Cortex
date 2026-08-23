@@ -76,7 +76,7 @@ export default function HelpDocs() {
           Astra GRC Help & Onboarding
         </h1>
         <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: 640 }}>
-          Step-by-step guide from registration through daily compliance workflows. Illustrations mirror each
+          Step-by-step guide from registration through the scenario learning loop. Illustrations mirror each
           screen — use the table of contents to jump to a topic.
         </p>
         <button
@@ -184,10 +184,10 @@ export default function HelpDocs() {
           </ul>
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" }}>
             <Link
-              to="/dashboard"
+              to="/audit-simulator"
               style={{ fontSize: 12, color: "var(--cyan)", textDecoration: "none" }}
             >
-              ← Back to Dashboard
+              ← Back to Audit Simulator
             </Link>
           </div>
         </nav>
@@ -312,9 +312,11 @@ export default function HelpDocs() {
               color: "var(--text-tertiary)",
             }}
           >
-            <p style={{ margin: "0 0 8px" }}>Astra GRC · AstraLabs Group · Enterprise compliance intelligence</p>
+            <p style={{ margin: "0 0 8px" }}>
+              Astra GRC Community Edition · AstraLabs Group · Competence you can evidence.
+            </p>
             <a
-              href="https://github.com/AstraLabs-AI/The-Cortex"
+              href="https://github.com/astra-ssj/The-Cortex"
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: "var(--cyan)" }}

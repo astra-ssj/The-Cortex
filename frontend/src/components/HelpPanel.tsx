@@ -241,7 +241,7 @@ const SECTIONS: HelpSection[] = [
       {
         subtitle: "Astra GRC Community Edition · AstraLabs Group",
         body:
-          "Open source — Apache 2.0. github.com/astra-ssj/The-Cortex Report issues via GitHub Issues. Include scenario ID and stage for content issues; browser console output for technical issues.",
+          "Competence you can evidence. Open source — Apache 2.0, at github.com/astra-ssj/The-Cortex. Report issues via GitHub Issues. Include scenario ID and stage for content issues; browser console output for technical issues.",
       },
     ],
   },
@@ -343,7 +343,9 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
               >
                 Help & Documentation
               </h2>
-              <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-tertiary)" }}>Astra GRC v0.7.0</p>
+              <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-tertiary)" }}>
+                Astra GRC Community Edition — competence you can evidence.
+              </p>
               <Link
                 to="/help"
                 onClick={onClose}
@@ -485,7 +487,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                           Help & onboarding (full page) →
                         </Link>
                         <a
-                          href="https://github.com/AstraLabs-AI/The-Cortex"
+                          href="https://github.com/astra-ssj/The-Cortex"
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{ color: "var(--cyan)", fontSize: 13 }}
@@ -493,7 +495,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                           View on GitHub →
                         </a>
                         <a
-                          href="https://github.com/AstraLabs-AI/The-Cortex/issues/new"
+                          href="https://github.com/astra-ssj/The-Cortex/issues/new"
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{ color: "var(--cyan)", fontSize: 13 }}

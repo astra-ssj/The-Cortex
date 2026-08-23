@@ -20,7 +20,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
     id: "overview",
     title: "What is Astra GRC?",
     intro:
-      "Astra GRC Community Edition is a case-based GRC competency training platform built by AstraLabs Group. It places you inside realistic security and compliance scenarios, grades your decisions against framework-grounded reference answers, and tracks your competency across four independent dimensions. The goal is judgment under pressure — not recall.",
+      "Competence you can evidence. Astra GRC is case-based GRC competency training built by AstraLabs Group, and Community Edition is the practitioner tier. It places you inside realistic security and compliance scenarios, grades your decisions against framework-grounded reference answers, and tracks your competency across four independent dimensions. The goal is judgment under pressure — not recall.",
     steps: [
       {
         title: "Who it is for",
@@ -327,7 +327,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Astra GRC Community Edition",
         body:
-          "Astra GRC Community Edition is open source under the Apache License 2.0. The source is at github.com/astra-ssj/The-Cortex. Enterprise features, commercial licensing, and support are available separately from AstraLabs Group.",
+          "Competence you can evidence. Astra GRC Community Edition is open source under the Apache License 2.0. The source is at github.com/astra-ssj/The-Cortex. Community Edition trains the practitioner; Enterprise is a separate offering from AstraLabs Group, along with commercial licensing and support.",
       },
     ],
   },
