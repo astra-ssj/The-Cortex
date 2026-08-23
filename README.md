@@ -1,149 +1,114 @@
-# Astra GRC Community Edition
+# Astra GRC — Community Edition
 
-> Master GRC through adversarial simulation.
-> Case-based scenario training for security and GRC practitioners.
-> Build judgment, not just knowledge.
+Competence you can evidence.
 
-## What is Astra GRC?
+Astra GRC is case-based GRC competency training. A learner takes a decision under stakeholder pressure and is scored against a framework-grounded reference answer — not against a quiz key. Community Edition trains the practitioner. Enterprise (separate offering) is meant to give their organisation an auditable record of demonstrated judgment. This repository is the Community Edition.
 
-Astra GRC is a case-based GRC competency training platform built
-by AstraLabs. It presents realistic security and compliance
-scenarios, grades your decisions against framework-grounded
-reference answers, and tracks your competency across four
-independent dimensions.
+## The learning loop
 
-The goal is judgment under pressure — not recall. Every scenario
-places you inside a real-world situation with a stakeholder
-pressing for a decision, a clock running, and a correct answer
-grounded in a specific framework control.
+A scenario opens with a brief. An adversarial stakeholder agent presses for a decision. The learner chooses; the harness grades the choice across four competency dimensions and debriefs against the reference answer. Weak dimensions surface as control gaps.
 
-After sign-in you land on the **Audit Simulator**: choose a
-framework (ISO 27001:2022 or GDPR) and an audit type, then run
-an assessment into the Learning Loop.
+The platform is built on **purvapaksha**: in Indian philosophical method, a position may not be asserted until its strongest objection has been stated in full. The stakeholder agent argues to win, not to find truth. Holding a correct position against that pressure is the skill being trained.
 
-## Current Track: ISO 27001:2022
+## Frameworks
 
-Five scenarios across three difficulty levels:
+Counts below are taken from the seed migrations (`migrations/019`–`024`), not from marketing copy.
 
-| ID | Title | Difficulty | Controls |
-|----|-------|------------|---------|
-| CX-1001 | Friday Cutover: Privileged Cloud Access Request | Foundation | A.8.2, A.5.18, A.5.15 |
-| CX-1002 | Third-Party Breach: Supplier Security Incident | Practitioner | A.5.19, A.5.20, A.5.26, A.5.28 |
-| CX-1003 | Emergency Patch: Change Management Bypass | Practitioner | A.5.26, A.8.32, A.10.1 |
-| CX-1004 | Audit Prep: Sensitive Data on Unclassified Storage | Practitioner | A.5.9, A.5.12, A.5.13, A.5.28, A.10.1 |
-| CX-1005 | Ransomware: Group-Wide Business Continuity Invocation | Expert | A.5.26, A.5.28, A.5.29, A.5.30, A.8.13 |
+| Framework | Status | Scenarios |
+|-----------|--------|-----------|
+| ISO 27001:2022 | Live | **5** (CX-1001–CX-1005) |
+| GDPR | In development | — |
+| SOC 2 | In development | — |
 
-## Competency Dimensions
+ISO 27001 track:
 
-Each decision is scored across four independent dimensions:
+| ID | Title | Difficulty |
+|----|-------|------------|
+| CX-1001 | Cloud access onboarding | Foundation |
+| CX-1002 | Supplier incident response | Practitioner |
+| CX-1003 | Change management failure | Practitioner |
+| CX-1004 | Asset classification breach | Practitioner |
+| CX-1005 | Ransomware group response | Expert |
 
-| Dimension | What it measures |
-|-----------|-----------------|
-| Control Mapping | Identifying the right control for the situation |
-| Evidence Quality | Making decisions supportable by documented evidence |
-| Escalation Judgment | Seeking information before committing under uncertainty |
-| Remediation | Scoping corrective action correctly at the escalation stage |
-
-Scores start at 50 and update after each decision. Dimensions
-are independent — strong control mapping does not compensate
-for poor escalation judgment.
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, TypeScript, Vite |
-| Backend | FastAPI, Python 3.12, SQLAlchemy async, asyncpg |
-| Database | PostgreSQL 16 (Docker Compose) |
-| Agent harness | LangGraph-compatible, scenario-driven |
-| Auth | JWT (HS256), bcrypt, row-level security |
-| Container | Docker Compose (Postgres + API + GraphJin) |
-
-## Quick Start
-
-### Prerequisites
-
-- Docker Desktop
-- Node.js 18+
-- Python 3.12+
-- Git
-
-### Setup
+## Quickstart
 
 ```bash
 git clone https://github.com/astra-ssj/The-Cortex
 cd The-Cortex
 
-# Start Postgres
 docker compose up -d postgres
-
-# Apply schema (migrations 002–032)
 bash scripts/apply_cortex_schema.sh
 
-# Install Python dependencies
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e "."
 
-# Start API
 export PYTHONPATH=.
 export DATABASE_URL="postgresql+asyncpg://cortex_app:cortex_ci_test@127.0.0.1:5432/cortex"
-export JWT_SECRET="your-secret-key-minimum-32-characters"
+export JWT_SECRET="dev-secret-key-minimum-32-characters-long-xx"
 export CORTEX_LEGACY_DEMO_PASSWORD="admin"
-uvicorn api.main:app --port 8000
 
-# Start frontend (separate terminal)
+# Learning-loop agent (see Model providers)
+export MODEL_PROVIDER=anthropic          # requires ANTHROPIC_API_KEY
+# export MODEL_PROVIDER=ollama           # requires `ollama serve`; AGENT_MODEL default gemma4:12b
+# unset MODEL_PROVIDER                  # current main: Anthropic if ANTHROPIC_API_KEY is set, else stub
+
+uvicorn api.main:app --port 8000
+```
+
+In another terminal:
+
+```bash
 cd frontend && npm install && npm run dev
 ```
 
-Open http://localhost:3000. Demo login (seeded after schema apply):
+Open http://localhost:3000. Seeded login: `admin@astralabs.com` / `admin` (username `admin` is the same account).
 
-| | |
-|---|---|
-| Email | `admin@astralabs.com` |
-| Password | `admin` |
+> **Without a model provider configured, agent responses are served by a stub.**
+> The product will run, but every stakeholder persona will be the same default role regardless of scenario. Check the startup log for the resolved provider.
 
-Username `admin` / `admin` is the same account. You land on `/audit-simulator`.
+`MODEL_PROVIDER=ollama` and the authenticated `GET /api/v1/system/agent-status` route ship on `feat/ollama-provider`. Until that branch is on `main`, unset `MODEL_PROVIDER` follows `ANTHROPIC_API_KEY` → Claude, otherwise stub.
 
-### Verify
+Postgres credentials differ by environment — see [AGENTS.md](AGENTS.md) (Cursor Cloud) and [docs/CORTEX_SETUP.md](docs/CORTEX_SETUP.md) (local Docker vs CI). Do not copy Cloud VM passwords into Docker Compose.
 
-```bash
-# API health
-curl -s http://localhost:8000/health
-curl -s http://localhost:8000/api/v1/system/ready
+## Release tags
 
-# Backend tests
-pytest --tb=short -q
+Tags reachable from `main`, most recent first:
 
-# Frontend
-cd frontend && npm run typecheck && npm run build
-```
-
-## Safe Snapshot Tags
-
-| Tag | Description |
-|-----|-------------|
-| `v1.0-compliance-platform-full` | Pre-pivot compliance platform |
-| `v2.0-learning-platform-base` | Post-pivot foundation |
-| `v2.0.1-schema-clean` | Schema aligned, decommissioned tables dropped |
-| `v2.1-grading-engine` | Four-dimension competency grading |
-| `v2.2-routing-clean` | Default route to /learning |
-| `v2.3-two-scenarios` | CX-1001, CX-1002 |
+| Tag | What it marks |
+|-----|----------------|
+| `v4.2-demo-integrity` | Role canonicalisation (ciso → admin) and demo integrity |
+| `v4.1-astra-light-theme` | Astra GRC light theme and Audit Simulator landing |
+| `v1.0.0-community-edition` | Community Edition snapshot |
+| `v3.10-audit-chain` | Audit chain lock |
+| `v3.9-role-fix` | Role and help-key fix |
+| `v3.8-ce-coherence` | Community Edition coherence / CI follow-up |
+| `v3.7-control-gaps` | Control gaps view |
+| `v3.6-story-fix` | Learning-loop story fix |
+| `v3.5-ci-green` | CI stabilisation |
+| `v3.4-branding-complete` | Branding and routing |
+| `v3.3-full-help-docs` | In-app help docs |
+| `v3.2-registration-clean` | Registration / onboarding cleanup |
+| `v3.1-claude-live` | Claude wired into `call_model()` |
+| `v3.0-multi-scenario-fixed` | Multi-scenario stage transitions |
+| `v2.9-docs-complete` | GitHub docs pass |
+| `v2.8-help-rewrite` | Help system rewrite |
+| `v2.7-five-scenarios` | CX-1005 (five ISO 27001 scenarios) |
+| `v2.6-four-scenarios` | CX-1004 |
+| `v2.5-three-scenarios` | CX-1003 |
 | `v2.4-scenario-selector` | Scenario selector UI |
-| `v2.5-three-scenarios` | CX-1001–CX-1003 |
-| `v2.6-four-scenarios` | CX-1001–CX-1004 |
-| `v2.7-five-scenarios` | CX-1001–CX-1005 |
-| `v2.8-help-rewrite` | Learning platform help system |
+
+`safety/pre-recovery-20260820` exists on the remote but is **not** reachable from `main`.
 
 ## Architecture
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+FastAPI + PostgreSQL (RLS, append-only audit) + a React SPA. Agent output is schema-validated in `core/agents/harness.py` before it touches session state. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## License
+## What's in this repository
 
-Apache License 2.0 — see LICENSE and NOTICE.
+This tree was forked from a broader compliance platform. Modules such as assessments, findings, posture, connectors, and GraphJin are **demo backdrop from that architecture**, not Community Edition product features. The product surface is the learning loop (scenarios, adversarial stakeholder, grading, debrief). Do not treat inherited screens as supported CE capabilities.
 
-Enterprise features, commercial licensing, or support may be
-offered separately; the Apache-licensed core remains usable
-without those terms.
+## Licence / contributing
 
-CI runs Ruff, Bandit, ESLint, Vitest, tsc, build, and
-dependency audits (pip-audit, npm audit) on main and PRs.
+Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE). Contributions are under the same licence; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+CI on `main` and PRs: Ruff, Bandit, ESLint, Vitest, `tsc`, frontend build, pip-audit, npm audit, gitleaks, commitlint.
