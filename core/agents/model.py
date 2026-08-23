@@ -1,18 +1,20 @@
 # core/agents/model.py — Single swappable model-call primitive for Learning Loop agents.
 #
-# Signature is final: Claude is the live path; stub remains for tests and when
-# ANTHROPIC_API_KEY is unset. Model id comes from AGENT_MODEL env, never hard-coded.
+# Signature is final. Providers: anthropic (live), ollama (local), stub (tests).
+# MODEL_PROVIDER selects explicitly; when unset, Anthropic is used if
+# ANTHROPIC_API_KEY is set, otherwise stub. Model id comes from AGENT_MODEL.
 
 from __future__ import annotations
 
 import json
 import os
-from typing import Any
+from typing import Any, Protocol
 
 import anthropic
+import httpx
 import structlog
 
-from core.circuit_breaker import CircuitBreaker, register_circuit_breaker
+from core.circuit_breaker import CircuitBreaker, CircuitState, register_circuit_breaker
 
 logger = structlog.get_logger()
 
@@ -26,34 +28,60 @@ _FORCE_BAD_OUTPUT_ENV = "CORTEX_LEARNING_FORCE_BAD_OUTPUT"
 
 _STUB_MODEL_NAME = "stub-devops-lead-v1"
 _DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-6"
+_DEFAULT_OLLAMA_MODEL = "gemma4:12b"
+_DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 _MAX_TOKENS = 1000
+_OLLAMA_TEMPERATURE = 0.3
+_OLLAMA_TIMEOUT_SECONDS = 120.0
+
+_KNOWN_PROVIDERS = frozenset({"anthropic", "ollama", "stub"})
 
 
-def agent_model_name() -> str:
-    """Configured model id (env: AGENT_MODEL). Stub ignores the value today."""
-    return os.getenv("AGENT_MODEL", "stub-devops-lead-v1")
+class _AgentProvider(Protocol):
+    """Internal seam: one implementation per MODEL_PROVIDER value."""
+
+    provider_id: str
+
+    def model_name(self) -> str: ...
+
+    def validate(self) -> None: ...
+
+    async def invoke(self, role_prompt: str, context: dict[str, Any]) -> str: ...
 
 
-async def call_model(role_prompt: str, context: dict[str, Any]) -> str:
-    """
-    Invoke the configured agent model and return raw text.
+def _strip_markdown_fences(raw: str) -> str:
+    """Drop a leading ``` / ```json wrapper. Shared by Anthropic and Ollama."""
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("```")[1]
+        if text.startswith("json"):
+            text = text[4:]
+    return text.strip()
 
-    Live Claude is used when AGENT_MODEL is not the stub id and ANTHROPIC_API_KEY
-    is set. Otherwise the deterministic stub runs. Both paths go through
-    `_agent_model_breaker.execute(...)`.
-    """
-    model = agent_model_name()
-    api_key_present = bool(os.getenv("ANTHROPIC_API_KEY"))
-    use_stub = model == _STUB_MODEL_NAME or not api_key_present
-    path = "stub" if use_stub else "claude"
-    logger.info(
-        "learning_call_model",
-        model=model,
-        path=path,
-        api_key_present=api_key_present,
+
+def _user_content(context: dict[str, Any]) -> str:
+    return (
+        f"Context:\n{json.dumps(context, indent=2)}\n\n"
+        "Respond ONLY as JSON with keys: "
+        "speaker, stance, message, demands. "
+        "No preamble, no markdown, no explanation."
     )
 
-    async def _stub_invoke() -> str:
+
+def _ollama_base_url() -> str:
+    return os.getenv("OLLAMA_BASE_URL", _DEFAULT_OLLAMA_BASE_URL).rstrip("/")
+
+
+class _StubProvider:
+    provider_id = "stub"
+
+    def model_name(self) -> str:
+        return os.getenv("AGENT_MODEL", _STUB_MODEL_NAME)
+
+    def validate(self) -> None:
+        return None
+
+    async def invoke(self, role_prompt: str, context: dict[str, Any]) -> str:
         if os.getenv(_FORCE_BAD_OUTPUT_ENV, "").lower() in ("1", "true", "yes"):
             return "NOT_JSON{{{this is intentionally malformed"
 
@@ -136,18 +164,23 @@ async def call_model(role_prompt: str, context: dict[str, Any]) -> str:
 
         return json.dumps(payload)
 
-    if use_stub:
-        return await _agent_model_breaker.execute(_stub_invoke)
 
-    async def _claude_invoke() -> str:
+class _AnthropicProvider:
+    provider_id = "anthropic"
+
+    def model_name(self) -> str:
+        return os.getenv("AGENT_MODEL", _DEFAULT_CLAUDE_MODEL)
+
+    def validate(self) -> None:
+        if not os.getenv("ANTHROPIC_API_KEY"):
+            raise RuntimeError(
+                "MODEL_PROVIDER=anthropic requires ANTHROPIC_API_KEY. "
+                "Refusing to fall back to the stub."
+            )
+
+    async def invoke(self, role_prompt: str, context: dict[str, Any]) -> str:
         client = anthropic.AsyncAnthropic(
             api_key=os.getenv("ANTHROPIC_API_KEY")
-        )
-        user_content = (
-            f"Context:\n{json.dumps(context, indent=2)}\n\n"
-            "Respond ONLY as JSON with keys: "
-            "speaker, stance, message, demands. "
-            "No preamble, no markdown, no explanation."
         )
         response = await client.messages.create(
             model=os.getenv("AGENT_MODEL", _DEFAULT_CLAUDE_MODEL),
@@ -161,15 +194,125 @@ async def call_model(role_prompt: str, context: dict[str, Any]) -> str:
                     "cache_control": {"type": "ephemeral"},
                 }
             ],
-            messages=[{"role": "user", "content": user_content}],
+            messages=[{"role": "user", "content": _user_content(context)}],
         )
         # Models often wrap JSON in markdown fences; the harness json.loads the
         # raw string and rejects a leading ``` as schema_invalid.
-        raw = response.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        return raw.strip()
+        return _strip_markdown_fences(response.content[0].text)
 
-    return await _agent_model_breaker.execute(_claude_invoke)
+
+class _OllamaProvider:
+    provider_id = "ollama"
+
+    def model_name(self) -> str:
+        return os.getenv("AGENT_MODEL", _DEFAULT_OLLAMA_MODEL)
+
+    def validate(self) -> None:
+        return None
+
+    async def invoke(self, role_prompt: str, context: dict[str, Any]) -> str:
+        base = _ollama_base_url()
+        url = f"{base}/v1/chat/completions"
+        body = {
+            "model": self.model_name(),
+            "messages": [
+                {"role": "system", "content": role_prompt},
+                {"role": "user", "content": _user_content(context)},
+            ],
+            "temperature": _OLLAMA_TEMPERATURE,
+            "max_tokens": _MAX_TOKENS,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=_OLLAMA_TIMEOUT_SECONDS) as client:
+                response = await client.post(url, json=body)
+                response.raise_for_status()
+        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+            raise RuntimeError(
+                f"Cannot connect to Ollama at {base}. "
+                f"Is `ollama serve` running? (OLLAMA_BASE_URL={base})"
+            ) from exc
+        data = response.json()
+        content = data["choices"][0]["message"]["content"]
+        return _strip_markdown_fences(str(content))
+
+
+def resolve_agent_provider() -> _AgentProvider:
+    """
+    Honour MODEL_PROVIDER when set; otherwise Anthropic iff ANTHROPIC_API_KEY
+    is present, else stub. An explicit provider that cannot run raises.
+    """
+    explicit = os.getenv("MODEL_PROVIDER", "").strip().lower()
+    if explicit:
+        if explicit not in _KNOWN_PROVIDERS:
+            raise RuntimeError(
+                f"Unknown MODEL_PROVIDER={explicit!r}. "
+                "Expected anthropic, ollama, or stub."
+            )
+        provider: _AgentProvider
+        if explicit == "anthropic":
+            provider = _AnthropicProvider()
+        elif explicit == "ollama":
+            provider = _OllamaProvider()
+        else:
+            provider = _StubProvider()
+        provider.validate()
+        return provider
+
+    if os.getenv("ANTHROPIC_API_KEY"):
+        provider = _AnthropicProvider()
+    else:
+        provider = _StubProvider()
+    provider.validate()
+    return provider
+
+
+def agent_model_name() -> str:
+    """Configured model id for the resolved provider (env: AGENT_MODEL)."""
+    return resolve_agent_provider().model_name()
+
+
+def agent_provider_status() -> dict[str, Any]:
+    """Safe operator snapshot — no secrets."""
+    provider = resolve_agent_provider()
+    return {
+        "provider": provider.provider_id,
+        "model": provider.model_name(),
+        "breaker_open": _agent_model_breaker.state == CircuitState.OPEN,
+    }
+
+
+def log_resolved_agent_provider() -> None:
+    """Emit one startup line naming provider + model. Stub is WARNING."""
+    status = agent_provider_status()
+    if status["provider"] == "stub":
+        logger.warning(
+            "learning_agent_provider",
+            provider="stub",
+            model=status["model"],
+            detail="Personas will not match scenario roles on the stub path.",
+        )
+        return
+    logger.info(
+        "learning_agent_provider",
+        provider=status["provider"],
+        model=status["model"],
+    )
+
+
+async def call_model(role_prompt: str, context: dict[str, Any]) -> str:
+    """
+    Invoke the configured agent model and return raw text.
+
+    Both live and stub paths go through `_agent_model_breaker.execute(...)`.
+    """
+    provider = resolve_agent_provider()
+    api_key_present = bool(os.getenv("ANTHROPIC_API_KEY"))
+    path = "claude" if provider.provider_id == "anthropic" else provider.provider_id
+    logger.info(
+        "learning_call_model",
+        model=provider.model_name(),
+        path=path,
+        api_key_present=api_key_present,
+        provider=provider.provider_id,
+    )
+    return await _agent_model_breaker.execute(provider.invoke, role_prompt, context)

@@ -76,3 +76,25 @@ def test_llm_providers_returns_chain(client: TestClient) -> None:
     stub = data["providers"]["stub"]
     assert stub.get("configured") is True
     assert "apiKeySet" not in stub or stub.get("apiKeySet") is not True
+
+
+def test_agent_status_requires_auth(client: TestClient) -> None:
+    """GET /api/v1/system/agent-status is not public (unlike ztaip-status)."""
+    r = client.get("/api/v1/system/agent-status")
+    assert r.status_code == 401
+
+
+def test_agent_status_returns_provider(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    postgres_reachable: bool,
+) -> None:
+    """Authenticated callers see provider, model, and breaker_open."""
+    if not postgres_reachable:
+        pytest.skip("database not reachable")
+    r = client.get("/api/v1/system/agent-status", headers=auth_headers)
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["provider"] in ("stub", "anthropic", "ollama")
+    assert isinstance(data["model"], str) and data["model"]
+    assert isinstance(data["breaker_open"], bool)

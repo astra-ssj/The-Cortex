@@ -383,9 +383,17 @@ export type LlmPlatformStatusResponse = {
   assessment_max_controls_per_run?: number;
 };
 
+export type AgentProviderStatusResponse = {
+  provider: string;
+  model: string;
+  breaker_open: boolean;
+};
+
 export const systemApi = {
   getLlmProviders: () =>
     fetchApi<LlmPlatformStatusResponse>("/api/v1/system/llm-providers"),
+  getAgentStatus: () =>
+    fetchApi<AgentProviderStatusResponse>("/api/v1/system/agent-status"),
 };
 
 // ---- Group posture (multi-entity dashboard) ----

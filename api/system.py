@@ -4,18 +4,22 @@ from __future__ import annotations
 
 import asyncio
 
+from typing import Any
+
 import structlog
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from api.errors import json_error
+from core.agents.model import agent_provider_status
 from core.audit_fabric import audit_fabric
 from db.session import database_ready
 from core.circuit_breaker import circuit_breakers_count
 from core.human_review import human_review_pending_total_async
 from core.llm import llm_platform_status
+from core.security import get_current_user
 
-from api.schemas import AuditFabricStatus, ZTAIPStatus
+from api.schemas import AgentProviderStatus, AuditFabricStatus, ZTAIPStatus
 
 logger = structlog.get_logger()
 
@@ -42,6 +46,14 @@ async def get_system_ready() -> dict[str, str] | JSONResponse:
 async def get_llm_providers() -> dict:
     """Configured LLM provider chain (Anthropic, OpenAI, stub) — no secrets."""
     return llm_platform_status()
+
+
+@router.get("/system/agent-status", response_model=AgentProviderStatus)
+async def get_agent_status(
+    _current_user: dict[str, Any] = Depends(get_current_user),
+) -> AgentProviderStatus:
+    """Authenticated Learning Loop provider snapshot. Not on public ztaip-status."""
+    return AgentProviderStatus.model_validate(agent_provider_status())
 
 
 @router.get("/system/ztaip-status", response_model=ZTAIPStatus)
