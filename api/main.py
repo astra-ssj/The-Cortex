@@ -68,6 +68,10 @@ async def lifespan(app: FastAPI):
     await audit_fabric.load_tail()
     await load_circuit_breaker_states_from_db()
 
+    from core.agents.model import log_resolved_agent_provider
+
+    log_resolved_agent_provider()
+
     try:
         from core.skills_loader import get_skills_loader
 

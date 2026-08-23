@@ -15,6 +15,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { Button } from "../components/ui/Button";
 import { ScenarioDebrief } from "../components/ScenarioDebrief";
 import { Skeleton } from "../components/Skeleton";
+import { systemApi } from "../api/client";
 import { useOrgContext } from "../hooks/useOrgContext";
 
 /** Matches core.agents.scenario.TERMINAL_STAGE. */
@@ -278,6 +279,14 @@ export default function LearningLoop() {
     () => localStorage.getItem("cortex_learning_session_id"),
   );
   const showEngineRoom = import.meta.env.DEV;
+
+  const agentStatusQuery = useQuery({
+    queryKey: ["system", "agent-status"],
+    queryFn: () => systemApi.getAgentStatus(),
+    enabled: showEngineRoom,
+    staleTime: 60_000,
+    retry: 1,
+  });
 
   // `/learning?scenario=<slug>&gap=<finding-id>` is how Remediation hands a gap
   // back to Train. A competency gap can only be closed by retaking the scenario
@@ -614,6 +623,10 @@ export default function LearningLoop() {
               </div>
               <p style={{ margin: "0 0 12px", fontSize: 12, color: "var(--text-secondary)" }}>
                 Live session state and last harness result — architecture visibility while testing.
+              </p>
+              <p style={{ margin: "0 0 12px", fontSize: 12, color: "var(--text-secondary)" }}>
+                provider={agentStatusQuery.data?.provider ?? "…"}{"  "}
+                model={agentStatusQuery.data?.model ?? "…"}
               </p>
               <pre
                 style={{

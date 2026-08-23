@@ -181,6 +181,14 @@ class ZTAIPStatus(BaseModel):
     agent_certificates_count: int = Field(..., serialization_alias="agentCertificatesCount")
 
 
+class AgentProviderStatus(BaseModel):
+    """Authenticated Learning Loop model-path snapshot — no secrets."""
+
+    provider: str
+    model: str
+    breaker_open: bool
+
+
 # ---- Human Review Queue (GDPR Art.22 / EU AI Act Art.14) ----
 
 
