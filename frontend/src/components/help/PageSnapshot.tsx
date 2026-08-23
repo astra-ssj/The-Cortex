@@ -419,18 +419,20 @@ function CommandPaletteSnapshot() {
   );
 }
 
+// Route paths, not a hostname: help prose refers to these screens by path
+// (e.g. "Go to /register"), and inventing a product domain drifts from branding.
 const TITLES: Record<SnapshotVariant, string> = {
-  login: "cortex.app/login",
-  register: "cortex.app/register",
-  "onboarding-structure": "cortex.app/onboarding — Step 1",
-  "onboarding-frameworks": "cortex.app/onboarding — Step 2",
-  "onboarding-assess": "cortex.app/onboarding — Step 3",
+  login: "/login",
+  register: "/register",
+  "onboarding-structure": "/onboarding — Step 1",
+  "onboarding-frameworks": "/onboarding — Step 2",
+  "onboarding-assess": "/onboarding — Step 3",
   "assessment-stream": "Assessment stream",
-  dashboard: "cortex.app/dashboard",
+  dashboard: "/dashboard",
   sidebar: "Application layout",
-  frameworks: "cortex.app/frameworks",
-  findings: "cortex.app/findings",
-  "review-queue": "cortex.app/review-queue",
+  frameworks: "/frameworks",
+  findings: "/findings",
+  "review-queue": "/review-queue",
   "command-palette": "Command palette",
 };
 

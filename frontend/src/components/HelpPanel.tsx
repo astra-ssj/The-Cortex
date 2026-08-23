@@ -89,12 +89,12 @@ const SECTIONS: HelpSection[] = [
       {
         subtitle: "Sign in",
         body:
-          "Go to /login. You land on the Audit Simulator at /audit-simulator. Run Assessment opens the Learning Loop. An active session on /learning resumes automatically.",
+          "Go to /login. You land on the Audit Simulator at /audit-simulator. Pick a framework and an audit type — ISO 27001:2022 is the only selectable framework; GDPR and SOC 2 show as coming soon. Run Assessment then opens the Learning Loop. An active session on /learning resumes automatically.",
       },
       {
         subtitle: "First time here?",
         body:
-          "Start with CX-1001 (foundation). Read the brief, read the agent message, then choose. The competency panel appears after your first decision. Press H for the full guide.",
+          "Start with CX-1001 (foundation). Read the brief, read the agent message, then choose. The competency panel appears after your first decision. H reopens this panel; the full guide is at /help.",
       },
     ],
   },
@@ -103,33 +103,34 @@ const SECTIONS: HelpSection[] = [
     title: "Scenarios",
     blocks: [
       {
-        subtitle: "ISO 27001:2022 Track — 5 scenarios",
-        body: "",
+        subtitle: "ISO 27001:2022 Track — 5 scenarios, Foundation to Expert",
+        body:
+          "ISO 27001:2022 is live. GDPR and SOC 2 are in development and have no scenario content yet.",
       },
       {
         subtitle: "CX-1001 · Foundation",
         body:
-          "Friday Cutover: cloud access request. Tests A.8.2, A.5.18, A.5.15. Two stages. Start here.",
+          "Friday Cutover: Privileged Cloud Access Request. Tests A.8.2, A.5.18, A.5.15, and NIST CSF 2.0 PR.AA-4. Two stages. Start here.",
       },
       {
         subtitle: "CX-1002 · Practitioner",
         body:
-          "Supplier breach: 340 records, 72h GDPR clock. Tests A.5.19, A.5.20, A.5.26, A.5.28.",
+          "Third-Party Breach: Supplier Security Incident. 340 records, 72h GDPR clock. Tests A.5.19, A.5.20, A.5.26, A.5.28, A.6.8.",
       },
       {
         subtitle: "CX-1003 · Practitioner",
         body:
-          "Change management bypass: CVSS 9.8 patch, production down. Tests A.5.26, A.8.32, A.10.1.",
+          "Emergency Patch: Change Management Bypass. CVSS 9.8 patch, production down. Tests A.5.26, A.8.32, A.10.1.",
       },
       {
         subtitle: "CX-1004 · Practitioner",
         body:
-          "Audit prep: sensitive data on unclassified drive, 3 days to audit. Tests A.5.9, A.5.12, A.5.13, A.10.1.",
+          "Audit Prep: Sensitive Data on Unclassified Storage. 3 days to audit. Tests A.5.9, A.5.10, A.5.12, A.5.13, A.5.26, A.5.28, A.10.1.",
       },
       {
         subtitle: "CX-1005 · Expert",
         body:
-          "Ransomware: group-wide BCP, board in 4 hours, multi-jurisdiction notification. Tests A.5.26–A.5.30, A.8.13. Three stages.",
+          "Ransomware: Group-Wide Business Continuity Invocation. Six entities, board in 4 hours, multi-jurisdiction notification. Tests A.5.26–A.5.30, A.8.13. Three stages.",
       },
     ],
   },
@@ -173,27 +174,32 @@ const SECTIONS: HelpSection[] = [
       {
         subtitle: "Control Mapping",
         body:
-          "Right control for the situation? +15 correct, -10 wrong at opening stage. Observation cites the specific Annex A control.",
+          "Right control for the situation? Typically +15 correct, -10 wrong at the opening stage. Observation cites the specific Annex A control.",
       },
       {
         subtitle: "Evidence Quality",
         body:
-          "Decision supportable by evidence? Repeated wrong answers add an extra penalty — pattern matters.",
+          "Decision supportable by evidence? Correct: +10. A first wrong answer does not move it. A wrong answer after an earlier one: -5 — pattern matters.",
       },
       {
         subtitle: "Escalation Judgment",
         body:
-          "Seek information before committing? Challenge: +20. Least privilege: +10. Approve all: -15. Deny: 0.",
+          "Seek information before committing? On CX-1001: challenge +20, least privilege +10, deny 0, approve all -15.",
       },
       {
         subtitle: "Remediation",
         body:
-          "Scope corrective action correctly? Only scores at escalation stage and later. Starts at 50.",
+          "Scope corrective action correctly? Does not move on the opening decision — only at later stages. Starts at 50.",
       },
       {
         subtitle: "Score guide",
         body:
-          "All start at 50. Above 70: consistent correct judgment. Below 40: pattern worth reviewing. Resets on new scenario.",
+          "All start at 50. Above 70: consistent correct judgment. Below 40: pattern worth reviewing. A dimension below the floor is raised as a control gap you can retake. Resets on new scenario.",
+      },
+      {
+        subtitle: "Point values are per scenario",
+        body:
+          "The numbers above are the ISO 27001:2022 track defaults. Each scenario choice carries its own authored weights, so some decisions move a dimension further than others.",
       },
     ],
   },
@@ -204,7 +210,7 @@ const SECTIONS: HelpSection[] = [
       {
         subtitle: "Foundation (cyan)",
         body:
-          "Single entity, one framework, two stages. One or two controls per stage. Start here.",
+          "Single entity, one primary framework, two stages. One or two controls per stage. Start here.",
       },
       {
         subtitle: "Practitioner (amber)",
@@ -223,7 +229,8 @@ const SECTIONS: HelpSection[] = [
     title: "Keyboard Shortcuts",
     blocks: [
       {
-        body: "D → Audit Simulator\nH → Help page\nEsc → Close panel\nCmd/Ctrl+K → Command palette",
+        body:
+          "D → Audit Simulator\nH → This quick reference panel\nR → Review Queue\nS → Settings\nEsc → Close this panel\nCmd/Ctrl+K → Command palette",
       },
     ],
   },
@@ -234,7 +241,7 @@ const SECTIONS: HelpSection[] = [
       {
         subtitle: "Astra GRC Community Edition · AstraLabs Group",
         body:
-          "Open source — Apache 2.0. github.com/astra-ssj/The-Cortex Report issues via GitHub Issues. Include scenario ID and stage for content issues; browser console output for technical issues.",
+          "Competence you can evidence. Open source — Apache 2.0, at github.com/astra-ssj/The-Cortex. Report issues via GitHub Issues. Include scenario ID and stage for content issues; browser console output for technical issues.",
       },
     ],
   },
@@ -336,7 +343,9 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
               >
                 Help & Documentation
               </h2>
-              <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-tertiary)" }}>Astra GRC v0.7.0</p>
+              <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-tertiary)" }}>
+                Astra GRC Community Edition — competence you can evidence.
+              </p>
               <Link
                 to="/help"
                 onClick={onClose}
@@ -478,7 +487,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                           Help & onboarding (full page) →
                         </Link>
                         <a
-                          href="https://github.com/AstraLabs-AI/The-Cortex"
+                          href="https://github.com/astra-ssj/The-Cortex"
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{ color: "var(--cyan)", fontSize: 13 }}
@@ -486,7 +495,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
                           View on GitHub →
                         </a>
                         <a
-                          href="https://github.com/AstraLabs-AI/The-Cortex/issues/new"
+                          href="https://github.com/astra-ssj/The-Cortex/issues/new"
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{ color: "var(--cyan)", fontSize: 13 }}
