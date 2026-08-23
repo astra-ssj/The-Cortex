@@ -11,6 +11,7 @@ import os
 from typing import Any, Protocol
 
 import anthropic
+import httpx
 import structlog
 
 from core.circuit_breaker import CircuitBreaker, CircuitState, register_circuit_breaker
@@ -30,6 +31,8 @@ _DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-6"
 _DEFAULT_OLLAMA_MODEL = "gemma4:12b"
 _DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 _MAX_TOKENS = 1000
+_OLLAMA_TEMPERATURE = 0.3
+_OLLAMA_TIMEOUT_SECONDS = 120.0
 
 _KNOWN_PROVIDERS = frozenset({"anthropic", "ollama", "stub"})
 
@@ -199,8 +202,6 @@ class _AnthropicProvider:
 
 
 class _OllamaProvider:
-    """Recognized in selection; invoke is wired in the following commit."""
-
     provider_id = "ollama"
 
     def model_name(self) -> str:
@@ -210,11 +211,29 @@ class _OllamaProvider:
         return None
 
     async def invoke(self, role_prompt: str, context: dict[str, Any]) -> str:
-        raise RuntimeError(
-            "MODEL_PROVIDER=ollama is selected but the Ollama invoke path "
-            f"is not wired (OLLAMA_BASE_URL={_ollama_base_url()}). "
-            "Refusing to fall back to the stub."
-        )
+        base = _ollama_base_url()
+        url = f"{base}/v1/chat/completions"
+        body = {
+            "model": self.model_name(),
+            "messages": [
+                {"role": "system", "content": role_prompt},
+                {"role": "user", "content": _user_content(context)},
+            ],
+            "temperature": _OLLAMA_TEMPERATURE,
+            "max_tokens": _MAX_TOKENS,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=_OLLAMA_TIMEOUT_SECONDS) as client:
+                response = await client.post(url, json=body)
+                response.raise_for_status()
+        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+            raise RuntimeError(
+                f"Cannot connect to Ollama at {base}. "
+                f"Is `ollama serve` running? (OLLAMA_BASE_URL={base})"
+            ) from exc
+        data = response.json()
+        content = data["choices"][0]["message"]["content"]
+        return _strip_markdown_fences(str(content))
 
 
 def resolve_agent_provider() -> _AgentProvider:
