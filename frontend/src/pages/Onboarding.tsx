@@ -58,7 +58,7 @@ export default function Onboarding() {
               textAlign: "center",
             }}
           >
-            Master GRC through adversarial simulation.
+            Competence you can evidence.
           </span>
         </div>
 
