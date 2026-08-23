@@ -44,9 +44,16 @@ docker exec -it the-cortex-1-postgres-1 \
 ```bash
 source .venv/bin/activate
 export PYTHONPATH=.
+# Host-run API against CI-style Postgres (port 5432). Local Docker
+# Compose in this repo does not publish Postgres; if your engine
+# maps it (this machine: 5434, user `cortex` / `cortex_ci_test`),
+# point DATABASE_URL at that socket instead. See AGENTS.md.
 export DATABASE_URL="postgresql+asyncpg://cortex_app:cortex_ci_test@127.0.0.1:5432/cortex"
 export JWT_SECRET="dev-secret-key-minimum-32-characters-long-xx"
 export CORTEX_LEGACY_DEMO_PASSWORD="admin"
+# Learning-loop agent — see README "Quickstart"
+# export MODEL_PROVIDER=anthropic   # requires ANTHROPIC_API_KEY
+# export MODEL_PROVIDER=ollama      # requires ollama serve; AGENT_MODEL default gemma4:12b
 export COMPLIANCE_ENGINE_STUB_PASSWORD="dev-stub"
 export COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN="dev-stub-token"
 uvicorn api.main:app --port 8000
@@ -78,13 +85,10 @@ pytest tests/test_learning_loop.py tests/test_grading.py \
 cd frontend && npm run typecheck && npm run build
 ```
 
-Pre-existing failure: `test_review_queue_demo_has_eight_pending`
-— review queue fixture count mismatch, unrelated to learning
-platform. Not a blocker.
-
-## Commit Standards
-
 All commits follow Phase 1+2 governance rules in `.cursor/rules/`.
+There is no `sadlc.md`. Security / agent-access rules live in
+`.cursor/rules/zero-trust.md`; how code ships is `.cursor/rules/sdlc.md`.
+How AI assets are changed is `.cursor/rules/adlc.md`.
 commitlint enforces a bracketed story ID in every commit subject:
 
 ```

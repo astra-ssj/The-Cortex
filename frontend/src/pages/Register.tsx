@@ -216,7 +216,7 @@ export default function Register() {
               textAlign: "center",
             }}
           >
-            Master GRC through adversarial simulation.
+            Competence you can evidence.
           </span>
         </div>
 

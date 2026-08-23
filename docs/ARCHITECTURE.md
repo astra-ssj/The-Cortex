@@ -1,8 +1,10 @@
 # Astra GRC Architecture
 
-Astra GRC is a case-based GRC competency training platform.
-This document covers the runtime architecture, data model,
-and key design decisions.
+Competence you can evidence.
+
+Astra GRC Community Edition is a case-based GRC competency
+training platform. This document covers the runtime architecture,
+data model, and key design decisions.
 
 ## User journey
 
@@ -30,6 +32,46 @@ bash scripts/apply_cortex_schema.sh
 uvicorn api.main:app --port 8000
 cd frontend && npm run dev
 ```
+
+## Model providers
+
+Learning-loop calls go through `core/agents/model.py` →
+`call_model()`, then `core/agents/harness.py` validates the
+string as `AgentResponse` **before** anything is written to
+`scenario_sessions.state`. Markdown fences are stripped once
+(`_strip_markdown_fences`) on live providers so fenced JSON
+does not fail schema validation.
+
+| `MODEL_PROVIDER` | Result |
+|------------------|--------|
+| unset | Anthropic if `ANTHROPIC_API_KEY` is set, else stub |
+| `anthropic` | Anthropic; missing key is a startup/config error (no silent stub) |
+| `ollama` | `POST {OLLAMA_BASE_URL}/v1/chat/completions` (default `http://localhost:11434`), model `AGENT_MODEL` or `gemma4:12b`, 120s timeout |
+| `stub` | Deterministic canned JSON (tests / no key) |
+
+Every path is wrapped by the module-level circuit breaker
+`learning_agent_model` (open after 5 consecutive failures).
+Ollama connection refusal raises with `OLLAMA_BASE_URL` and
+does not fall through to stub.
+
+`MODEL_PROVIDER=ollama` and fence-sharing live on
+`feat/ollama-provider` until that branch merges. On current
+`main`, selection is still `AGENT_MODEL` + `ANTHROPIC_API_KEY`
+→ Claude or stub, with fence-stripping on the Claude path only.
+
+Authenticated operator snapshot (JWT required — not on public
+`/api/v1/system/ztaip-status`):
+
+`GET /api/v1/system/agent-status` → `{ provider, model, breaker_open }`
+(shipped on `feat/ollama-provider`).
+
+## Role model
+
+Canonical roles are `admin`, `analyst`, and `viewer`.
+`ciso` (and `administrator`) normalise to `admin` on both
+the server (`core/canonical_roles.py`) and the SPA
+(`frontend/src/lib/roles.ts`). `tests/test_role_mapping_parity.py`
+fails the build if those maps diverge.
 
 ## Core Principles
 

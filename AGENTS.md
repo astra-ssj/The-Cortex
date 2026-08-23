@@ -20,7 +20,16 @@ GraphJin, Redis, and the Shasta worker are optional and not needed for core end-
    ```bash
    sudo pg_ctlcluster 16 main start
    ```
-   The `cortex` role (password `cortex-dev`), the `cortex` database, and the full schema (`scripts/apply_cortex_schema.sh`) were provisioned during environment setup and persist in the VM. If the DB is ever missing, recreate it:
+   Postgres credentials **are not the same everywhere**. Using the wrong row is why test runs fail against Docker.
+
+   | Where | Host:port | User | Password | Database |
+   |-------|-----------|------|----------|----------|
+   | **This Cursor Cloud VM** | `localhost:5432` (native apt, not Docker) | `cortex` | `cortex-dev` | `cortex` |
+   | **CI** (GitHub Actions service container) | `localhost:5432` | `cortex_app` | `cortex_ci_test` | `cortex` |
+   | **Local Docker Compose** (this repo file does not publish Postgres) | compose network only | `cortex` / `cortex_app` | `$POSTGRES_PASSWORD` | `cortex` |
+   | **This laptop's running compose** (`the-cortex-1-postgres-1`) | `127.0.0.1:5434` | `cortex` | `cortex_ci_test` | `cortex` |
+
+   On this VM the `cortex` role (password `cortex-dev`), the `cortex` database, and the full schema (`scripts/apply_cortex_schema.sh`) were provisioned during environment setup and persist. If the DB is ever missing, recreate it:
    ```bash
    sudo -u postgres psql -c "CREATE USER cortex WITH PASSWORD 'cortex-dev' CREATEDB;"
    sudo -u postgres psql -c "CREATE DATABASE cortex OWNER cortex;"

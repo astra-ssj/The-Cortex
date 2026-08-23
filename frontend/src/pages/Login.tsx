@@ -182,7 +182,7 @@ export default function Login({ onSuccess }: LoginProps) {
               textAlign: "center",
             }}
           >
-            Master GRC through adversarial simulation.
+            Competence you can evidence.
           </span>
         </div>
 
