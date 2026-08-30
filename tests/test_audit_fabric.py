@@ -22,6 +22,10 @@ async def test_audit_fabric_persist_increments_total() -> None:
         entity_id="audit-fabric-integration",
         payload={"probe": True},
     )
-    await asyncio.sleep(0.05)
-    after = await audit_fabric.total_events_async()
+    after = before
+    for _ in range(20):
+        await asyncio.sleep(0.05)
+        after = await audit_fabric.total_events_async()
+        if after >= before + 1:
+            break
     assert after >= before + 1

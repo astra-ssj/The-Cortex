@@ -91,3 +91,71 @@ def test_register_circuit_breaker_increases_count() -> None:
     extra = CircuitBreaker("extra_test_breaker", failure_threshold=1)
     register_circuit_breaker(extra)
     assert circuit_breakers_count() == before + 1
+
+
+@pytest.mark.asyncio
+async def test_open_circuit_recovers_via_half_open_probe() -> None:
+    cb = CircuitBreaker("recovery_test", failure_threshold=1, cooldown_seconds=0)
+    cb.record_failure()
+
+    async def ok() -> str:
+        assert cb.state == CircuitState.HALF_OPEN
+        return "recovered"
+
+    assert await cb.execute(ok) == "recovered"
+    assert cb.state == CircuitState.CLOSED
+
+
+@pytest.mark.asyncio
+async def test_half_open_allows_only_one_probe() -> None:
+    cb = CircuitBreaker("single_probe_test", failure_threshold=1, cooldown_seconds=0)
+    cb.record_failure()
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def probe() -> str:
+        started.set()
+        await release.wait()
+        return "ok"
+
+    first = asyncio.create_task(cb.execute(probe))
+    await started.wait()
+    with pytest.raises(RuntimeError, match="Circuit breaker single_probe_test is open"):
+        await cb.execute(probe)
+    release.set()
+    assert await first == "ok"
+    assert cb.state == CircuitState.CLOSED
+
+
+@pytest.mark.asyncio
+async def test_failed_half_open_probe_reopens_circuit() -> None:
+    cb = CircuitBreaker("failed_probe_test", failure_threshold=1, cooldown_seconds=0)
+    cb.record_failure()
+
+    async def fail() -> None:
+        raise RuntimeError("provider unavailable")
+
+    with pytest.raises(RuntimeError, match="provider unavailable"):
+        await cb.execute(fail)
+    assert cb.state == CircuitState.OPEN
+
+
+@pytest.mark.asyncio
+async def test_non_provider_error_does_not_increment_failures() -> None:
+    cb = CircuitBreaker(
+        "validation_test",
+        failure_threshold=2,
+        failure_predicate=lambda exc: not isinstance(exc, ValueError),
+    )
+
+    async def invalid_request() -> None:
+        raise ValueError("caller validation")
+
+    async def provider_failure() -> None:
+        raise RuntimeError("provider failure")
+
+    with pytest.raises(ValueError, match="caller validation"):
+        await cb.execute(invalid_request)
+    with pytest.raises(RuntimeError, match="provider failure"):
+        await cb.execute(provider_failure)
+    assert cb.state == CircuitState.CLOSED

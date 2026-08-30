@@ -7,6 +7,7 @@ import secrets
 import uuid
 from contextlib import asynccontextmanager
 from typing import Callable
+from urllib.parse import urlparse
 
 import structlog
 from fastapi import FastAPI, Request
@@ -40,7 +41,9 @@ from api.skills import router as skills_router
 from api.learning import router as learning_router
 from core.circuit_breaker import load_circuit_breaker_states_from_db
 from core.audit_fabric import audit_fabric
+from core.environment import is_production_environment
 from db.session import (
+    assert_application_role_is_rls_safe,
     database_ready,
     ensure_learning_loop_schema,
     ensure_org_invitations_schema,
@@ -53,6 +56,7 @@ logger = structlog.get_logger()
 
 _MAX_BODY_BYTES = int(os.getenv("CORTEX_MAX_BODY_BYTES", str(2 * 1024 * 1024)))
 _CSRF_PROTECT = os.getenv("CORTEX_CSRF_PROTECT", "0").lower() in ("1", "true", "yes")
+_HTTPS_ENABLED = os.getenv("CORTEX_HTTPS_ENABLED", "").lower() in ("1", "true", "yes")
 
 
 @asynccontextmanager
@@ -60,6 +64,7 @@ async def lifespan(app: FastAPI):
     # Ensure compliance registry is loaded (side effect of import).
     import compliance  # noqa: F401
 
+    await assert_application_role_is_rls_safe()
     await ensure_org_onboarding_schema()
     await ensure_security_auth_schema()
     await ensure_org_invitations_schema()
@@ -117,12 +122,30 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
-        response.headers.setdefault("X-XSS-Protection", "1; mode=block")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault(
             "Permissions-Policy",
             "geolocation=(), microphone=(), camera=()",
         )
+        if request.url.path.startswith("/api/") or request.url.path in ("/health", "/ready"):
+            response.headers.setdefault(
+                "Content-Security-Policy",
+                "default-src 'none'; frame-ancestors 'none'; "
+                "base-uri 'none'; form-action 'none'",
+            )
+        if is_production_environment() and _HTTPS_ENABLED:
+            response.headers.setdefault(
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains",
+            )
+        if request.url.path in {
+            "/api/v1/auth/token",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/register",
+            "/api/v1/auth/accept-invite",
+            "/api/v1/auth/logout",
+        }:
+            response.headers.setdefault("Cache-Control", "no-store")
         return response
 
 
@@ -207,8 +230,25 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         return response
 
 
-_frontend = os.getenv("FRONTEND_URL", "http://localhost:3000").strip().rstrip("/")
-_cors_origins = [
+def _validated_origin(value: str) -> str:
+    origin = value.strip().rstrip("/")
+    parsed = urlparse(origin)
+    if (
+        parsed.scheme not in ("http", "https")
+        or not parsed.netloc
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in ("", "/")
+        or parsed.query
+        or parsed.fragment
+        or "*" in origin
+    ):
+        raise RuntimeError("FRONTEND_URL must be an explicit http(s) origin")
+    return origin
+
+
+_frontend = _validated_origin(os.getenv("FRONTEND_URL", "http://localhost:3000"))
+_development_origins = [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost:3001",
@@ -222,8 +262,9 @@ _cors_origins = [
     "http://127.0.0.1:3003",
     "http://127.0.0.1:3004",
 ]
-if _frontend and _frontend not in _cors_origins:
-    _cors_origins.append(_frontend)
+_cors_origins = [_frontend]
+if not is_production_environment():
+    _cors_origins = list(dict.fromkeys([*_development_origins, _frontend]))
 
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)

@@ -42,18 +42,18 @@ Fresh DB volume (Compose): init scripts apply **001–010** in order.
 
 ```bash
 cd frontend
-npm ci   # or npm install
+npm ci
 npx tsc --noEmit
 npm run lint
 npm run test
 npm run build
-npm audit --audit-level=high
+npm audit --omit=dev --audit-level=high
 ```
 
 **Backend**
 
 ```bash
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev]" -c requirements.lock.txt
 ruff check api core compliance db ontology services workers tests --ignore E501
 bandit -r api core compliance db ontology services workers -ll --skip B101
 pytest -q --tb=short
@@ -63,7 +63,7 @@ pytest -q --tb=short
 
 ```bash
 pip install pip-audit && pip-audit
-cd frontend && npm audit --audit-level=high
+cd frontend && npm audit --omit=dev --audit-level=high
 ```
 
 ## 3. Smoke scripts

@@ -17,12 +17,19 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
-from api.limits import limiter
+from api.limits import authenticated_rate_limit_key, limiter
 from core.audit_fabric import append_audit_log
 from core.api_key_service import API_KEY_PREFIX
 from core.auth_opaque import hash_opaque_token as _hash_opaque
+from core.environment import is_production_environment
 from core.password_reset import consume_reset_token, issue_reset_token
-from core.refresh_tokens import issue_refresh_token, revoke_all_refresh_for_user, take_refresh_token
+from core.refresh_tokens import (
+    issue_refresh_token,
+    load_refresh_token_user_id,
+    revoke_all_refresh_for_user,
+    revoke_refresh_token_for_user,
+    take_refresh_token,
+)
 from core.security import (
     DEMO_USERS,
     REFRESH_TOKEN_EXPIRE_DAYS,
@@ -39,7 +46,13 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _LEGACY_DEMO_USER = os.getenv("CORTEX_LEGACY_DEMO_USER", "admin").strip()
-_LEGACY_DEMO_PASSWORD = os.getenv("CORTEX_LEGACY_DEMO_PASSWORD", "").strip()
+_LEGACY_DEMO_PASSWORD = (
+    "" if is_production_environment() else os.getenv("CORTEX_LEGACY_DEMO_PASSWORD", "").strip()
+)
+
+# A fixed valid hash makes an unknown account pay the same expensive bcrypt cost
+# as a known account without creating another usable credential.
+_DUMMY_PASSWORD_HASH = "$2b$12$Dd2gDvE6wOyJHfCXF75f4eY2eUGVtXX7LPS1VkENlmBRcftj2F/XO"
 
 LOGIN_MAX_ATTEMPTS = int(os.getenv("CORTEX_LOGIN_MAX_ATTEMPTS", "5"))
 LOGIN_LOCKOUT_MINUTES = int(os.getenv("CORTEX_LOGIN_LOCKOUT_MINUTES", "15"))
@@ -61,6 +74,10 @@ class OnboardingStepBody(BaseModel):
 
 class RefreshBody(BaseModel):
     refresh_token: str = Field(..., min_length=10)
+
+
+class LogoutBody(BaseModel):
+    refresh_token: str
 
 
 class ForgotPasswordBody(BaseModel):
@@ -346,11 +363,11 @@ async def login(
     # otherwise /auth/me reports ADMIN and the role tests lie.
     demo = DEMO_USERS.get(username)
     if demo and verify_password(password, demo["hashed_password"]):
-        token = create_access_token({"sub": username})
+        token = create_access_token({"sub": username}, expires_minutes=15)
         return {
             "access_token": token,
             "token_type": "bearer",
-            "expires_in": 60 * int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")),
+            "expires_in": 15 * 60,
             "org_id": "demo-org-001",
             "role": demo["role"],
             "is_demo": True,
@@ -436,7 +453,7 @@ async def login(
             )
             logger.warning("account_locked", email=db_user["email"], attempts=n)
     else:
-        pass
+        verify_password(password, _DUMMY_PASSWORD_HASH)
 
     _uname_ok = username == _LEGACY_DEMO_USER or username.lower() == "admin@astralabs.com"
     if (
@@ -453,12 +470,13 @@ async def login(
                 "is_demo": True,
                 "onboarding_complete": True,
                 "onboarding_step": 5,
-            }
+            },
+            expires_minutes=15,
         )
         return {
             "access_token": token,
             "token_type": "bearer",
-            "expires_in": 60 * int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")),
+            "expires_in": 15 * 60,
             "org_id": "demo-org-001",
             "role": "CISO",
             "is_demo": True,
@@ -487,32 +505,57 @@ async def refresh_session(
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     """Rotate refresh token and issue new access token."""
-    uid = await take_refresh_token(session, body.refresh_token)
+    uid = await load_refresh_token_user_id(session, body.refresh_token)
     if uid is None:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
-    row = (
+    user = (
         await session.execute(
             text(
                 """
                 SELECT u.id::text AS id, u.email::text AS email, u.password_hash,
                        u.role::text AS role, u.org_id::text AS org_id,
-                       COALESCE(o.is_demo, FALSE) AS is_demo,
-                       COALESCE(o.onboarding_complete, FALSE) AS onboarding_complete,
-                       COALESCE(o.onboarding_step, 0) AS onboarding_step,
                        COALESCE(u.token_version, 1) AS token_version
                 FROM users u
-                JOIN organizations o ON o.id = u.org_id
                 WHERE u.id = :id AND u.is_active = TRUE
                 """
             ),
             {"id": uid},
         )
-    ).mappings().first()
-    if row is None:
+    ).mappings().one_or_none()
+    if user is None:
         raise HTTPException(status_code=401, detail="User no longer valid")
 
-    user_row = dict(row)
+    user_row = dict(user)
+    org_id = str(user_row.get("org_id") or "")
+    if not org_id:
+        raise HTTPException(status_code=401, detail="User no longer valid")
+
+    from core.tenant import set_tenant_context
+
+    await set_tenant_context(session, org_id)
+    org = (
+        await session.execute(
+            text(
+                """
+                SELECT COALESCE(is_demo, FALSE) AS is_demo,
+                       COALESCE(onboarding_complete, FALSE) AS onboarding_complete,
+                       COALESCE(onboarding_step, 0) AS onboarding_step
+                FROM organizations
+                WHERE id = :id
+                """
+            ),
+            {"id": org_id},
+        )
+    ).mappings().one_or_none()
+    if org is None:
+        raise HTTPException(status_code=401, detail="User no longer valid")
+    user_row.update(dict(org))
+
+    consumed_uid = await take_refresh_token(session, body.refresh_token, user_id=uid)
+    if consumed_uid is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
     access = _token_for_db_user(user_row)
     new_refresh = await issue_refresh_token(
         session,
@@ -525,6 +568,52 @@ async def refresh_session(
         "token_type": "bearer",
         "expires_in": 60 * int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")),
     }
+
+
+@router.post("/logout")
+async def logout_session(
+    body: LogoutBody,
+    current_user: dict[str, Any] = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """
+    End one browser session without revealing whether its refresh token exists.
+
+    Demo JWTs and service API keys have no browser refresh session, so they are
+    audited no-ops with the same generic response.
+    """
+    uid = str(current_user.get("user_id") or current_user.get("sub") or "")
+    org_id = str(current_user.get("org_id") or "") or None
+    actor = str(current_user.get("email") or uid or "authenticated")
+    auth_kind = str(current_user.get("auth_kind") or "bearer")
+    can_own_refresh = bool(uid) and auth_kind != "api_key" and not bool(current_user.get("is_demo"))
+
+    start_hash = await append_audit_log(
+        session,
+        event_type="auth.logout.start",
+        entity_type="user",
+        entity_id=uid or None,
+        org_id=org_id,
+        actor=actor,
+        payload={"auth_kind": auth_kind},
+    )
+    if can_own_refresh:
+        await revoke_refresh_token_for_user(
+            session,
+            raw=body.refresh_token,
+            user_id=uid,
+        )
+    await append_audit_log(
+        session,
+        event_type="auth.logout.complete",
+        entity_type="user",
+        entity_id=uid or None,
+        org_id=org_id,
+        actor=actor,
+        payload={"auth_kind": auth_kind},
+        prev_hash_override=start_hash,
+    )
+    return {"message": "Session ended"}
 
 
 @router.post("/forgot-password")
@@ -641,6 +730,9 @@ async def create_service_key(
     org_id = str(current_user.get("org_id") or "")
     if not org_id:
         raise HTTPException(status_code=400, detail="Missing organisation")
+    from core.tenant import bind_writable_org
+
+    await bind_writable_org(session, current_user, org_id)
 
     raw = f"{API_KEY_PREFIX}{secrets.token_hex(32)}"
     digest = _hash_opaque(raw)
@@ -683,6 +775,9 @@ async def update_onboarding_step(
     org_id = str(current_user.get("org_id") or "")
     if not org_id:
         raise HTTPException(status_code=400, detail="Missing organisation")
+    from core.tenant import bind_writable_org
+
+    await bind_writable_org(session, current_user, org_id)
 
     step = payload.step
     data = payload.data or {}
@@ -792,7 +887,7 @@ async def list_org_users(
 
 
 @router.post("/invite")
-@limiter.limit("10/minute")
+@limiter.limit("10/minute", key_func=authenticated_rate_limit_key)
 async def invite_org_user(
     request: Request,
     payload: InviteBody,
@@ -814,9 +909,9 @@ async def invite_org_user(
         raise HTTPException(status_code=400, detail="Invite role must be ANALYST or VIEWER")
     email = payload.email.strip().lower()
     await ensure_org_invitations_schema()
-    from core.tenant import set_tenant_context
+    from core.tenant import bind_writable_org
 
-    await set_tenant_context(session, org_id)
+    await bind_writable_org(session, current_user, org_id)
 
     existing = (
         await session.execute(

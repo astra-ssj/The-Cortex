@@ -25,9 +25,16 @@ _AUDIT_CHAIN_LOCK_KEY = 872_014_01
 # walk fail whenever another org (or a fire-and-forget standalone write)
 # inserts between two of this tenant's events. Index is (org_id, created_at).
 _ORG_TAIL_SQL = """
-    SELECT hash FROM audit_log
-    WHERE org_id IS NOT DISTINCT FROM :org_id
-    ORDER BY created_at DESC, id DESC
+    SELECT head.hash, count(*) OVER () AS head_count
+    FROM audit_log AS head
+    WHERE head.org_id IS NOT DISTINCT FROM :org_id
+      AND NOT EXISTS (
+        SELECT 1
+        FROM audit_log AS child
+        WHERE child.org_id IS NOT DISTINCT FROM head.org_id
+          AND child.prev_hash = head.hash
+      )
+    ORDER BY head.created_at DESC, head.id DESC
     LIMIT 1
 """
 
@@ -72,6 +79,30 @@ async def _result_first(result: Any) -> Any:
     if inspect.isawaitable(row):
         row = await row
     return row
+
+
+async def _org_tail_hash(session: Any, org_id: str | None) -> str | None:
+    """Return the canonical chain head and surface any immutable historic fork."""
+    row = await _result_first(
+        await session.execute(text(_ORG_TAIL_SQL), {"org_id": org_id})
+    )
+    if not row:
+        return None
+    try:
+        head_count = int(row[1])
+    except (IndexError, KeyError, TypeError):
+        # Compatibility for lightweight test doubles that only return the hash.
+        head_count = 1
+    if head_count != 1:
+        # Existing forks cannot be rewritten without violating append-only history.
+        # The advisory lock prevents new forks; continue the newest deterministic
+        # branch while preserving the orphaned branches for forensic inspection.
+        logger.error(
+            "audit_chain_multiple_heads",
+            org_id=org_id,
+            head_count=head_count,
+        )
+    return str(row[0]) if row[0] else None
 
 
 class AuditFabric:
@@ -152,23 +183,37 @@ class AuditFabric:
             return
         loop.create_task(_persist_audit_entry_standalone(entry))
 
-    async def total_events_async(self) -> int:
+    async def total_events_async(self, org_id: str | None = None) -> int:
         if not await database_ready():
             return 0
         async with engine.connect() as conn:
-            result = await conn.execute(text("SELECT COUNT(*) FROM audit_log"))
+            if org_id is None:
+                result = await conn.execute(text("SELECT COUNT(*) FROM audit_log"))
+            else:
+                result = await conn.execute(
+                    text("SELECT COUNT(*) FROM audit_log WHERE org_id = :org_id"),
+                    {"org_id": org_id},
+                )
             n_db = result.scalar_one()
         return int(n_db)
 
-    async def last_event_at_async(self) -> str | None:
+    async def last_event_at_async(self, org_id: str | None = None) -> str | None:
         if not await database_ready():
             return None
         async with engine.connect() as conn:
-            row = (
-                await conn.execute(
+            if org_id is None:
+                result = await conn.execute(
                     text("SELECT created_at FROM audit_log ORDER BY created_at DESC, id DESC LIMIT 1")
                 )
-            ).first()
+            else:
+                result = await conn.execute(
+                    text(
+                        "SELECT created_at FROM audit_log "
+                        "WHERE org_id = :org_id ORDER BY created_at DESC, id DESC LIMIT 1"
+                    ),
+                    {"org_id": org_id},
+                )
+            row = result.first()
             if row is None:
                 return None
             ts = row[0]
@@ -220,12 +265,9 @@ async def append_audit_log(
     if prev_hash_override:
         prev_hash = prev_hash_override
     else:
-        prev_row = await _result_first(
-            await session.execute(text(_ORG_TAIL_SQL), {"org_id": resolved_org})
-        )
         # A new org starts its own chain. Falling back to the process-global tail
         # would graft this tenant onto someone else's history.
-        prev_hash = str(prev_row[0]) if prev_row and prev_row[0] else None
+        prev_hash = await _org_tail_hash(session, resolved_org)
 
     row_hash = compute_entry_hash(
         action=resolved_action,
@@ -276,13 +318,7 @@ async def _persist_audit_entry_standalone(entry: dict[str, Any]) -> None:
                 text("SELECT pg_advisory_xact_lock(:k)"),
                 {"k": _AUDIT_CHAIN_LOCK_KEY},
             )
-            prev_row = await _result_first(
-                await session_proxy.execute(
-                    text(_ORG_TAIL_SQL),
-                    {"org_id": entry.get("org_id")},
-                )
-            )
-            prev_hash = str(prev_row[0]) if prev_row and prev_row[0] else None
+            prev_hash = await _org_tail_hash(session_proxy, entry.get("org_id"))
             payload_json = canonical_payload_json(entry.get("payload"))
             action = str(entry.get("action") or "")
             resource_type = entry.get("resource_type")

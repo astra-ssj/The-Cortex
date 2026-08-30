@@ -8,15 +8,21 @@ from datetime import datetime, timezone
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
+from api.limits import authenticated_rate_limit_key, limiter
 from core.rbac import Permission, require_permission, require_permission_stream
 from core.security import get_current_user
-from core.tenant import DEMO_ORG_ID, bind_scoped_org, resolve_scoped_org_id
+from core.tenant import (
+    DEMO_ORG_ID,
+    bind_scoped_org,
+    bind_writable_org,
+    resolve_writable_org_id,
+)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -203,12 +209,14 @@ class RunAssessmentBody(BaseModel):
 
 
 @router.post("/assessments/run")
+@limiter.limit("10/minute", key_func=authenticated_rate_limit_key)
 async def run_assessment_post_json(
+    request: Request,
     body: RunAssessmentBody,
     current_user: dict = Depends(require_permission(Permission.run_assessment)),
 ) -> dict[str, Any]:
     """Accept run intent; client opens GET /assessments/stream for SSE (EventSource cannot POST)."""
-    effective = resolve_scoped_org_id(current_user, body.org_id.strip())
+    effective = resolve_writable_org_id(current_user, body.org_id.strip())
     _validate_organization_id(effective)
     fids = _parse_frameworks(",".join(body.frameworks))
     return {
@@ -235,7 +243,9 @@ def _stream_response(org_id: str, fids: list[FrameworkId]) -> StreamingResponse:
 
 @router.get("/assessments/stream", include_in_schema=True)
 @router.get("/assessments/stream/", include_in_schema=False)  # allow trailing slash
+@limiter.limit("5/minute", key_func=authenticated_rate_limit_key)
 async def stream_assessment(
+    request: Request,
     org_id: str = Query(..., description="Organization id (e.g. demo-org-001)"),
     frameworks: str = Query(
         ...,
@@ -245,13 +255,15 @@ async def stream_assessment(
 ) -> StreamingResponse:
     """Stream assessment run via SSE. Params: org_id, frameworks (comma-separated)."""
     _validate_organization_id(org_id)
-    effective = resolve_scoped_org_id(current_user, org_id.strip())
+    effective = resolve_writable_org_id(current_user, org_id.strip())
     fids = _parse_frameworks(frameworks)
     return _stream_response(effective, fids)
 
 
 @router.get("/assessments/run", include_in_schema=True)
+@limiter.limit("5/minute", key_func=authenticated_rate_limit_key)
 async def run_assessment(
+    request: Request,
     organization_id: str = Query(..., description="Organization id (e.g. demo-org-001)"),
     framework_ids: str = Query(
         ...,
@@ -261,7 +273,7 @@ async def run_assessment(
 ) -> StreamingResponse:
     """Stream assessment run via SSE (alias). Params: organization_id, framework_ids."""
     _validate_organization_id(organization_id)
-    effective = resolve_scoped_org_id(current_user, organization_id.strip())
+    effective = resolve_writable_org_id(current_user, organization_id.strip())
     fids = _parse_frameworks(framework_ids)
     return _stream_response(effective, fids)
 
@@ -391,6 +403,7 @@ async def approve_control(
         raise HTTPException(status_code=400, detail="notes is required")
     org_scope = str(current_user.get("org_id") or DEMO_ORG_ID).strip()
     actor = _review_actor_id(current_user)
+    await bind_writable_org(session, current_user, org_scope)
 
     await _ensure_human_review_schema(session)
     row = (
@@ -471,6 +484,7 @@ async def override_control(
         raise HTTPException(status_code=400, detail="assessment must be COMPLIANT, PARTIAL, or NON_COMPLIANT")
     org_scope = str(current_user.get("org_id") or DEMO_ORG_ID).strip()
     actor = _review_actor_id(current_user)
+    await bind_writable_org(session, current_user, org_scope)
 
     await _ensure_human_review_schema(session)
     row = (

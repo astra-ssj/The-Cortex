@@ -17,6 +17,13 @@ _STRIP = (
     "CORTEX_TESTING",
     "CORTEX_ALLOW_DEV_JWT_SECRET",
     "CORTEX_ENABLE_DEMO_USERS",
+    "CORTEX_LEGACY_DEMO_PASSWORD",
+    "CORTEX_ALLOW_TOKEN_BYPASS",
+    "CORTEX_TOKEN_BYPASS_VALUE",
+    "CORTEX_ENVIRONMENT",
+    "CORTEX_ENV",
+    "APP_ENV",
+    "ENVIRONMENT",
 )
 
 
@@ -84,3 +91,104 @@ def test_demo_users_require_explicit_opt_in() -> None:
     )
     assert r.returncode == 0, r.stderr
     assert _printed(r) == "True"
+
+
+def test_production_rejects_demo_user_opt_in() -> None:
+    r = _run(
+        "import core.security as s; print(len(s.DEMO_USERS))",
+        JWT_SECRET=_REAL_SECRET,
+        CORTEX_ENVIRONMENT="production",
+        CORTEX_ENABLE_DEMO_USERS="1",
+        CORTEX_TESTING="1",
+    )
+    assert r.returncode == 0, r.stderr
+    assert _printed(r) == "0"
+
+
+def test_production_rejects_legacy_demo_password() -> None:
+    r = _run(
+        "import api.auth as a; print(repr(a._LEGACY_DEMO_PASSWORD))",
+        JWT_SECRET=_REAL_SECRET,
+        CORTEX_ENVIRONMENT="production",
+        CORTEX_LEGACY_DEMO_PASSWORD="published-password",
+    )
+    assert r.returncode == 0, r.stderr
+    assert _printed(r) == "''"
+
+
+def test_static_token_bypass_environment_has_no_effect() -> None:
+    r = _run(
+        """
+import asyncio
+from unittest.mock import AsyncMock
+from fastapi import HTTPException
+from core.security import decode_access_token_async
+
+async def main():
+    try:
+        await decode_access_token_async(AsyncMock(), 'old-static-bypass')
+    except HTTPException as exc:
+        print(exc.status_code)
+
+asyncio.run(main())
+""",
+        JWT_SECRET=_REAL_SECRET,
+        CORTEX_ALLOW_TOKEN_BYPASS="1",
+        CORTEX_TOKEN_BYPASS_VALUE="old-static-bypass",
+    )
+    assert r.returncode == 0, r.stderr
+    assert _printed(r) == "401"
+
+
+def test_pyjwt_access_token_is_hs256_and_decodes() -> None:
+    r = _run(
+        """
+import asyncio
+import jwt
+import core.security as s
+from unittest.mock import AsyncMock
+
+token = s.create_access_token(
+    {"sub": "user-1", "org_id": "org-1", "is_demo": True},
+    expires_minutes=1,
+)
+claims = asyncio.run(s.decode_access_token_async(AsyncMock(), token))
+print(jwt.get_unverified_header(token)["alg"], claims["sub"])
+""",
+        JWT_SECRET=_REAL_SECRET,
+    )
+    assert r.returncode == 0, r.stderr
+    assert _printed(r) == "HS256 user-1"
+
+
+def test_pyjwt_expired_and_non_hs256_tokens_keep_invalid_token_response() -> None:
+    r = _run(
+        """
+import asyncio
+import jwt
+import core.security as s
+from fastapi import HTTPException
+from unittest.mock import AsyncMock
+
+async def rejected(token):
+    try:
+        await s.decode_access_token_async(AsyncMock(), token)
+    except HTTPException as exc:
+        return exc.status_code, exc.detail
+
+expired = s.create_access_token(
+    {"sub": "user-1", "org_id": "org-1", "is_demo": True},
+    expires_minutes=-1,
+)
+wrong_algorithm = jwt.encode(
+    {"sub": "user-1", "org_id": "org-1", "is_demo": True},
+    s.SECRET_KEY,
+    algorithm="HS384",
+)
+print(asyncio.run(rejected(expired)), asyncio.run(rejected(wrong_algorithm)))
+""",
+        JWT_SECRET=_REAL_SECRET,
+    )
+    assert r.returncode == 0, r.stderr
+    expected = "(401, 'Invalid or expired token')"
+    assert _printed(r) == f"{expected} {expected}"

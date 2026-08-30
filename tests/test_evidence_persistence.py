@@ -51,6 +51,7 @@ async def test_attach_evidence_to_finding_idempotent() -> None:
             assert await attach_evidence_to_finding(
                 session,
                 finding_id,
+                org_id=org_id,
                 evidence_id="e-test-001",
                 title="Breach procedure upload",
                 document_id="doc-abc",
@@ -80,10 +81,12 @@ async def test_attach_evidence_to_missing_finding_returns_false() -> None:
         pytest.skip("database not reachable")
 
     async with async_session_factory() as session:
-        await set_tenant_context(session, f"org-evi-{uuid.uuid4().hex[:8]}")
+        org_id = f"org-evi-{uuid.uuid4().hex[:8]}"
+        await set_tenant_context(session, org_id)
         assert not await attach_evidence_to_finding(
             session,
             "finding-does-not-exist",
+            org_id=org_id,
             evidence_id="e-test-002",
             title="Nothing to attach to",
         )

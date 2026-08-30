@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import uuid
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
+import api.auth as auth_api
 from db.session import database_ready
 
 
@@ -29,6 +33,71 @@ def test_protected_route_invalid_token_401(client: TestClient) -> None:
         headers={"Authorization": "Bearer not-a-valid-jwt"},
     )
     assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_unknown_user_login_performs_dummy_password_check(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checked_hashes: list[str] = []
+
+    async def no_user(_session: object, _email: str) -> None:
+        return None
+
+    def record_check(_password: str, password_hash: str) -> bool:
+        checked_hashes.append(password_hash)
+        return False
+
+    monkeypatch.setattr(auth_api, "_try_load_db_user", no_user)
+    monkeypatch.setattr(auth_api, "verify_password", record_check)
+
+    with pytest.raises(HTTPException) as exc:
+        await auth_api.login(
+            request=object(),  # type: ignore[arg-type]
+            form_data=SimpleNamespace(username="unknown@example.com", password="not-secret"),
+            session=AsyncMock(),
+        )
+    assert exc.value.status_code == 401
+    assert checked_hashes == [auth_api._DUMMY_PASSWORD_HASH]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "principal",
+    [
+        {
+            "sub": "ciso@astralabs.com",
+            "user_id": "ciso@astralabs.com",
+            "email": "ciso@astralabs.com",
+            "org_id": "demo-org-001",
+            "is_demo": True,
+        },
+        {
+            "sub": "apikey:key-id",
+            "user_id": "apikey:key-id",
+            "org_id": "demo-org-001",
+            "auth_kind": "api_key",
+        },
+    ],
+)
+async def test_logout_is_audited_noop_for_non_session_principals(
+    monkeypatch: pytest.MonkeyPatch,
+    principal: dict[str, object],
+) -> None:
+    audit = AsyncMock(side_effect=["start-hash", "complete-hash"])
+    revoke = AsyncMock()
+    monkeypatch.setattr(auth_api, "append_audit_log", audit)
+    monkeypatch.setattr(auth_api, "revoke_refresh_token_for_user", revoke)
+
+    result = await auth_api.logout_session(
+        body=auth_api.LogoutBody(refresh_token="not-a-browser-refresh-token"),
+        current_user=principal,
+        session=AsyncMock(),
+    )
+
+    assert result == {"message": "Session ended"}
+    assert audit.await_count == 2
+    revoke.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -79,6 +148,76 @@ async def test_register_then_login_and_token_allows_org_scoped_read(client: Test
     data = posture_r.json()
     assert data["organisationId"] == org_id
     assert "frameworks" in data
+
+
+@pytest.mark.asyncio
+async def test_logout_is_owned_idempotent_and_refresh_rotates_under_rls(
+    client: TestClient,
+) -> None:
+    if not await database_ready():
+        pytest.skip("database not reachable")
+
+    async def register(label: str) -> dict[str, str]:
+        suffix = uuid.uuid4().hex[:12]
+        response = client.post(
+            "/api/v1/auth/register",
+            json={
+                "company_name": f"Logout Tenant {label} {suffix}",
+                "jurisdiction": "EU",
+                "industry": "Technology",
+                "email": f"pytest-logout-{label}-{suffix}@example.com",
+                "password": "pytest-logout-secure-12",
+                "full_name": f"Logout User {label}",
+            },
+        )
+        if response.status_code == 503:
+            pytest.skip("registration unavailable (migrations / DB)")
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    first = await register("first")
+    second = await register("second")
+    first_headers = {"Authorization": f"Bearer {first['access_token']}"}
+
+    # A caller cannot revoke another user's refresh token.
+    foreign = client.post(
+        "/api/v1/auth/logout",
+        headers=first_headers,
+        json={"refresh_token": second["refresh_token"]},
+    )
+    assert foreign.status_code == 200
+    assert foreign.json() == {"message": "Session ended"}
+
+    refreshed_second = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": second["refresh_token"]},
+    )
+    assert refreshed_second.status_code == 200, refreshed_second.text
+    assert refreshed_second.json()["refresh_token"] != second["refresh_token"]
+
+    ended = client.post(
+        "/api/v1/auth/logout",
+        headers=first_headers,
+        json={"refresh_token": first["refresh_token"]},
+    )
+    repeated = client.post(
+        "/api/v1/auth/logout",
+        headers=first_headers,
+        json={"refresh_token": first["refresh_token"]},
+    )
+    unknown = client.post(
+        "/api/v1/auth/logout",
+        headers=first_headers,
+        json={"refresh_token": "x"},
+    )
+    assert ended.status_code == repeated.status_code == unknown.status_code == 200
+    assert ended.json() == repeated.json() == unknown.json() == {"message": "Session ended"}
+
+    rejected = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": first["refresh_token"]},
+    )
+    assert rejected.status_code == 401
 
 
 @pytest.mark.asyncio

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BrowserRouter,
   Routes,
@@ -7,7 +8,7 @@ import {
   Outlet,
   useNavigate,
 } from "react-router-dom";
-import { getToken, getUser } from "./api/client";
+import { getToken, getUser, revokeCurrentSession } from "./api/client";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Onboarding from "./pages/Onboarding";
@@ -18,7 +19,7 @@ import { HumanReview } from "./pages/HumanReview";
 import { ProjectTracker } from "./pages/ProjectTracker";
 import { FrameworkDetailPage } from "./pages/FrameworkDetailPage";
 import { HelpPanel } from "./components/HelpPanel";
-import { clearCortexBrowserSession } from "./lib/cortexSession";
+import { logoutCortexBrowserSession } from "./lib/cortexSession";
 import { Sidebar, SIDEBAR_WIDTH_PX } from "./components/Sidebar";
 import { WelcomeTour } from "./components/WelcomeTour";
 import { isWelcomeTourBlockingShortcuts } from "./lib/welcomeTour";
@@ -37,6 +38,7 @@ import TeamCompetencyLedger from "./pages/TeamCompetencyLedger";
 function MainChrome() {
   const [user, setUser] = useState(() => getUser() as Record<string, unknown> | null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -46,8 +48,8 @@ function MainChrome() {
     return () => window.removeEventListener("cortex:auth-expired", handleAuthExpired);
   }, []);
 
-  const onLogout = () => {
-    clearCortexBrowserSession();
+  const onLogout = async () => {
+    await logoutCortexBrowserSession(queryClient, revokeCurrentSession);
     setUser(null);
     navigate("/login", { replace: true });
   };
@@ -212,12 +214,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
+    <BrowserRouter>
       <AppRoutes />
     </BrowserRouter>
   );

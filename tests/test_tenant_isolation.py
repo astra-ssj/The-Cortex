@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from core.security import create_access_token
+from core.tenant import DEMO_ORG_ID, resolve_writable_org_id
 
 
 def test_cross_tenant_posture_request_returns_403(client: TestClient) -> None:
@@ -44,3 +47,16 @@ def test_cross_tenant_org_profile_returns_403(client: TestClient) -> None:
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 403
+
+
+def test_non_demo_tenant_cannot_mutate_shared_demo_org() -> None:
+    with pytest.raises(HTTPException) as exc:
+        resolve_writable_org_id({"org_id": "org-tenant-a"}, DEMO_ORG_ID)
+    assert exc.value.status_code == 403
+
+
+def test_demo_principal_can_mutate_own_demo_org() -> None:
+    assert (
+        resolve_writable_org_id({"org_id": DEMO_ORG_ID}, DEMO_ORG_ID)
+        == DEMO_ORG_ID
+    )

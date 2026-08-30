@@ -58,7 +58,7 @@ uvicorn api.main:app --port 8000
 In another terminal:
 
 ```bash
-cd frontend && npm install && npm run dev
+cd frontend && npm ci && npm run dev
 ```
 
 Open http://localhost:3000. Seeded login: `admin@astralabs.com` / `admin` (username `admin` is the same account).
@@ -105,7 +105,7 @@ FastAPI + PostgreSQL (RLS, append-only audit) + a React SPA. Agent output is sch
 
 ## What's in this repository
 
-This tree was forked from a broader compliance platform. Modules such as assessments, findings, posture, connectors, and GraphJin are **demo backdrop from that architecture**, not Community Edition product features. The product surface is the learning loop (scenarios, adversarial stakeholder, grading, debrief). Do not treat inherited screens as supported CE capabilities.
+This tree was forked from a broader compliance platform. Modules such as assessments, findings, posture, and connectors are **demo backdrop from that architecture**, not Community Edition product features. The product surface is the learning loop (scenarios, adversarial stakeholder, grading, debrief). Do not treat inherited screens as supported CE capabilities.
 
 ## Licence / contributing
 

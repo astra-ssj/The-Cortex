@@ -29,7 +29,12 @@ from core.audit_fabric import append_audit_log, audit_fabric
 from core.gaps import GAP_SOURCE, STATUS_REMEDIATED
 from core.rbac import Permission, require_permission
 from core.security import get_current_user
-from core.tenant import DEMO_ORG_ID, bind_scoped_org, resolve_scoped_org_id
+from core.tenant import (
+    DEMO_ORG_ID,
+    bind_scoped_org,
+    bind_writable_org,
+    resolve_scoped_org_id,
+)
 
 logger = structlog.get_logger()
 
@@ -112,10 +117,13 @@ async def _bind(
     return await bind_scoped_org(db, current_user, effective)
 
 
-async def _fetch(db: AsyncSession, finding_id: str) -> Optional[Any]:
+async def _fetch(db: AsyncSession, finding_id: str, org_id: str) -> Optional[Any]:
     result = await db.execute(
-        text(f"SELECT {_SELECT_COLUMNS} FROM findings WHERE id = :id"),  # nosec B608
-        {"id": finding_id},
+        text(  # nosec B608 -- selected columns are a module constant
+            f"SELECT {_SELECT_COLUMNS} FROM findings "
+            "WHERE id = :id AND org_id = :org_id"
+        ),
+        {"id": finding_id, "org_id": org_id},
     )
     return result.mappings().first()
 
@@ -124,6 +132,7 @@ async def attach_evidence_to_finding(
     db: AsyncSession,
     finding_id: str,
     *,
+    org_id: str,
     evidence_id: str,
     title: str,
     document_id: str | None = None,
@@ -134,7 +143,7 @@ async def attach_evidence_to_finding(
     Deduplicates on evidence id inside the JSONB array so a repeated link does
     not double-count evidence supporting the same gap.
     """
-    row = await _fetch(db, finding_id)
+    row = await _fetch(db, finding_id, org_id)
     if row is None:
         return False
     items = _json_list(row["evidence"])
@@ -153,10 +162,10 @@ async def attach_evidence_to_finding(
             """
             UPDATE findings
             SET evidence = CAST(:evidence AS jsonb), updated_at = now()
-            WHERE id = :id
+            WHERE id = :id AND org_id = :org_id
             """
         ),
-        {"id": finding_id, "evidence": json.dumps(items)},
+        {"id": finding_id, "org_id": org_id, "evidence": json.dumps(items)},
     )
     return True
 
@@ -229,8 +238,8 @@ async def get_finding(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    await _bind(db, current_user, org_id)
-    row = await _fetch(db, finding_id)
+    effective = await _bind(db, current_user, org_id)
+    row = await _fetch(db, finding_id, effective)
     if row is None:
         raise HTTPException(status_code=404, detail="Finding not found")
     return _row_to_finding(row)
@@ -252,8 +261,9 @@ async def update_finding(
     over the floor — see core/gaps.reconcile_gaps_for_session. Allowing a manual
     close here would make the whole competency claim self-certified.
     """
-    effective = await _bind(db, current_user, org_id)
-    row = await _fetch(db, finding_id)
+    scope = (org_id or current_user.get("org_id") or DEMO_ORG_ID).strip()
+    effective = await bind_writable_org(db, current_user, scope)
+    row = await _fetch(db, finding_id, effective)
     if row is None:
         raise HTTPException(status_code=404, detail="Finding not found")
 
@@ -312,13 +322,13 @@ async def update_finding(
                 notes             = CAST(:notes AS jsonb),
                 completed_actions = CAST(:completed_actions AS jsonb),
                 updated_at        = now()
-            WHERE id = :id
+            WHERE id = :id AND org_id = :org_id
             """
         ),
-        params,
+        {**params, "org_id": effective},
     )
 
-    updated = await _fetch(db, finding_id)
+    updated = await _fetch(db, finding_id, effective)
     if updated is None:
         raise HTTPException(status_code=404, detail="Finding not found")
 

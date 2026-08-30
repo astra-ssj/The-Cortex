@@ -26,10 +26,10 @@ We respond within 48 hours and patch critical issues within 7 days.
 
 | Control              | Implementation               |
 |----------------------|------------------------------|
-| Authentication       | JWT HS256, 8h expiry         |
+| Authentication       | JWT HS256, 1h default expiry; rotating refresh tokens |
 | Passwords            | bcrypt 12 rounds             |
 | Rate limiting        | 10/min login, 5/min register |
-| Security headers     | X-Frame-Options, XSS, CSP    |
+| Security headers     | CSP, X-Frame-Options, nosniff; HSTS on production HTTPS |
 | CORS                 | Allowlist only               |
 | SQL injection        | Parameterised queries only   |
 | Evidence integrity   | SHA-256 hash chain           |
@@ -65,7 +65,11 @@ Historical snapshots (not current posture) live under [docs/archive/](docs/archi
 
 - **JWT_SECRET default** — not production-safe. Always set `JWT_SECRET` environment variable.
 - **CORS** — set `FRONTEND_URL` env var to your production domain.
-- **HTTPS** — add TLS termination in production.
+- **HTTPS** — terminate TLS at the production proxy/CDN and set
+  `CORTEX_ENVIRONMENT=production` plus `CORTEX_HTTPS_ENABLED=1`.
+- **Frontend headers** — the API middleware cannot secure a separately served SPA.
+  Configure CSP and HSTS on the HTTPS proxy/CDN serving `frontend/`, validate the
+  policy in report-only mode, then enforce it.
 
 ## EU AI Act Compliance Note
 

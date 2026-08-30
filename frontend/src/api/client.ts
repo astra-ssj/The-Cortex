@@ -58,6 +58,29 @@ export const getToken = (): string | null =>
 export const getRefreshToken = (): string | null =>
   localStorage.getItem("cortex_refresh_token");
 
+/** Best-effort backend revocation; callers must clear browser state regardless of outcome. */
+export async function revokeCurrentSession(): Promise<void> {
+  const accessToken = getToken();
+  if (!accessToken) return;
+
+  const requestInit: RequestInit = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      refresh_token: getRefreshToken() ?? "no-refresh-token",
+    }),
+  };
+  const { init, clearTimer } = withFetchTimeout(requestInit);
+  try {
+    await fetch(`${API_BASE || ""}/api/v1/auth/logout`, init);
+  } finally {
+    clearTimer();
+  }
+}
+
 let _refreshSingleFlight: Promise<boolean> | null = null;
 
 async function refreshAccessToken(): Promise<boolean> {

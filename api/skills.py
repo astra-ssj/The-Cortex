@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from core.security import get_current_user
 from core.skills_loader import get_skills_loader
 
-router = APIRouter(tags=["skills"])
+router = APIRouter(tags=["skills"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/status")

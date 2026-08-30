@@ -3,19 +3,20 @@
 from __future__ import annotations
 
 import os
-import secrets as secrets_stdlib
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 import bcrypt
+import jwt
 import structlog
-from jose import JWTError, jwt
 from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jwt.exceptions import InvalidTokenError
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.canonical_roles import normalize_canonical_role
+from core.environment import non_production_flag_enabled
 from core.tenant import set_tenant_context
 from db.deps import get_db
 
@@ -53,21 +54,11 @@ if SECRET_KEY == _DEV_SECRET_DEFAULT:
     )
 
 
-def _token_bypass_allowed() -> bool:
-    return os.getenv("CORTEX_ALLOW_TOKEN_BYPASS", "").lower() in ("1", "true", "yes")
-
-
-def _token_bypass_expected() -> str:
-    return os.getenv("CORTEX_TOKEN_BYPASS_VALUE", "").strip()
-
-
 http_bearer_optional = HTTPBearer(auto_error=False)
 
 
 def _demo_users_enabled() -> bool:
-    return os.getenv("CORTEX_TESTING", "").lower() in ("1", "true", "yes") or os.getenv(
-        "CORTEX_ENABLE_DEMO_USERS", ""
-    ).lower() in ("1", "true", "yes")
+    return non_production_flag_enabled("CORTEX_ENABLE_DEMO_USERS", allow_testing=True)
 
 
 # These accounts authenticate against password hashes committed to this repo, and the
@@ -137,25 +128,9 @@ def _claims_user(payload: dict[str, Any]) -> dict[str, Any]:
 
 async def decode_access_token_async(session: AsyncSession, token: str) -> dict[str, Any]:
     """Validate JWT and token_version for DB-backed sessions."""
-    expected = _token_bypass_expected()
-    if _token_bypass_allowed() and expected and secrets_stdlib.compare_digest(token, expected):
-        logger.warning("jwt_token_bypass_used")
-        return {
-            "sub": "token-bypass",
-            "user_id": "token-bypass",
-            "email": "demo@astralabs.demo",
-            "role": "ciso",
-            "org_id": "demo-org-001",
-            "name": "Demo User",
-            "entity": "AstraLabs Group",
-            "is_demo": True,
-            "onboarding_complete": True,
-            "onboarding_step": 5,
-        }
-
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except JWTError:
+    except InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
@@ -214,6 +189,7 @@ async def decode_access_token_async(session: AsyncSession, token: str) -> dict[s
 
 
 async def get_current_user(
+    request: Request,
     session: AsyncSession = Depends(get_db),
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(http_bearer_optional),
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
@@ -235,6 +211,7 @@ async def get_current_user(
     org_id = str(principal.get("org_id") or "").strip()
     if org_id:
         await set_tenant_context(session, org_id)
+    request.state.rate_limit_principal = principal
     return principal
 
 
@@ -257,6 +234,7 @@ async def get_current_user_query_or_header(
     org_id = str(principal.get("org_id") or "").strip()
     if org_id:
         await set_tenant_context(session, org_id)
+    request.state.rate_limit_principal = principal
     return principal
 
 
@@ -287,4 +265,5 @@ async def get_current_user_optional(
     org_id = str(principal.get("org_id") or "").strip()
     if org_id:
         await set_tenant_context(session, org_id)
+    request.state.rate_limit_principal = principal
     return principal

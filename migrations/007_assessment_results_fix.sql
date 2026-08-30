@@ -1,6 +1,5 @@
 -- CORTEX 005 — assessment_results columns, uniqueness, demo seeds, findings table, org scores.
--- Apply on existing DBs: docker compose exec postgres psql -U cortex -d cortex -f /graphjin/migrations/005_assessment_results_fix.sql
--- Requires postgres volume mount: ./services/graphjin/migrations:/graphjin/migrations:ro
+-- Apply on existing DBs through scripts/apply_cortex_schema.sh.
 
 -- ─────────────────────────────────────────────
 -- 0. Supporting columns on organizations / frameworks

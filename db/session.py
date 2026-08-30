@@ -31,6 +31,49 @@ async_session_factory = async_sessionmaker(
 logger = structlog.get_logger()
 
 
+def _validate_application_role_row(row: dict[str, object] | None) -> None:
+    if row is None:
+        raise RuntimeError("Unable to verify the database application role")
+    if bool(row["rolsuper"]) or bool(row["rolbypassrls"]):
+        raise RuntimeError(
+            "Unsafe DATABASE_URL: application role "
+            f"{row['role_name']!r} is superuser or BYPASSRLS. "
+            "Run the API as cortex_app and use separate migration credentials."
+        )
+
+
+async def assert_application_role_is_rls_safe() -> None:
+    """Fail startup when the API connection can bypass tenant RLS."""
+    environment = next(
+        (
+            os.getenv(key, "").strip().lower()
+            for key in ("CORTEX_ENVIRONMENT", "CORTEX_ENV", "APP_ENV", "ENVIRONMENT")
+            if os.getenv(key, "").strip()
+        ),
+        "local",
+    )
+    if (
+        os.getenv("CORTEX_TESTING", "").lower() in ("1", "true", "yes")
+        and environment not in ("prod", "production")
+    ):
+        return
+    async with engine.connect() as conn:
+        row = (
+            await conn.execute(
+                text(
+                    """
+                    SELECT current_user::text AS role_name,
+                           r.rolsuper,
+                           r.rolbypassrls
+                    FROM pg_roles r
+                    WHERE r.rolname = current_user
+                    """
+                )
+            )
+        ).mappings().one_or_none()
+    _validate_application_role_row(dict(row) if row is not None else None)
+
+
 async def database_ready() -> bool:
     """True if Postgres accepts connections (for readiness probes)."""
     try:

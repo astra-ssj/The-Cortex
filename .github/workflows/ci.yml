@@ -22,8 +22,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+        run: npm ci
 
       - name: TypeScript check
         run: npx tsc --noEmit
@@ -38,7 +37,7 @@ jobs:
         run: npm run build
 
       - name: npm audit
-        run: npm audit --audit-level=high
+        run: npm audit --omit=dev --audit-level=high
 
   backend:
     name: Backend — Lint + SAST
@@ -54,16 +53,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install bandit ruff
-          if [ -f pyproject.toml ]; then
-            pip install -e ".[dev]" 2>/dev/null || \
-            pip install -e "." 2>/dev/null || \
-            echo "pyproject.toml install skipped"
-          fi
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt \
-              2>/dev/null || true
-          fi
+          pip install -e ".[dev]" -c requirements.lock.txt
 
       - name: Ruff lint
         run: |
@@ -132,8 +122,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-          pip install "moto[aws]>=5.0"
+          pip install -e ".[dev]" -c requirements.lock.txt
 
       - name: Pytest
         run: pytest -q --tb=short
@@ -188,7 +177,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install -e ".[dev]" -c requirements.lock.txt
 
       - name: Start API and run smoke script
         run: |
@@ -214,14 +203,8 @@ jobs:
       - name: Python dependency audit
         run: |
           python -m pip install --upgrade pip pip-audit
-          pip install -e "."
-          # PYSEC-2026-1325 (CVE-2024-23342): Minerva timing attack on P-256 in
-          # ecdsa, reachable only via ECDSA signing/keygen/ECDH. Every published
-          # version is affected and upstream treats side channels as out of
-          # scope, so no upgrade exists. ecdsa is transitive via python-jose;
-          # core/security.py signs and verifies with HS256 only, so the
-          # vulnerable paths are unreachable. Revisit if we adopt ES*/ECDH.
-          pip-audit --ignore-vuln PYSEC-2026-1325
+          pip install -e "." -c requirements.lock.txt
+          pip-audit
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -231,8 +214,8 @@ jobs:
       - name: Frontend dependency audit
         run: |
           cd frontend
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
-          npm audit --audit-level=high
+          npm ci
+          npm audit --omit=dev --audit-level=high
 
   secret-scan:
     name: Security — Secret Scan (gitleaks)

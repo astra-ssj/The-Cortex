@@ -51,37 +51,13 @@ services:
       - ./migrations/030_review_queue_from_learning.sql:/docker-entrypoint-initdb.d/30_review_queue_from_learning.sql:ro
       - ./migrations/031_org_invitations.sql:/docker-entrypoint-initdb.d/31_org_invitations.sql:ro
       - ./migrations/032_audit_log_update_grant.sql:/docker-entrypoint-initdb.d/32_audit_log_update_grant.sql:ro
+      - ./migrations/033_audit_chain_head_index.sql:/docker-entrypoint-initdb.d/33_audit_chain_head_index.sql:ro
+      - ./migrations/034_remove_legacy_cism_scenario_tag.sql:/docker-entrypoint-initdb.d/34_remove_legacy_cism_scenario_tag.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
       interval: 5s
       timeout: 5s
       retries: 5
-
-  # GraphQL read layer: same DB as FastAPI. Dev auth is disabled, so the port is
-  # bound to 127.0.0.1 only — reachable from the host for debugging, never from the
-  # network. The frontend/API reach it over the internal Docker network by service
-  # name (`graphjin:8080`), which is unaffected by the host bind. See infra/graphjin/README.md
-  graphjin:
-    image: dosco/graphjin:3.18.10
-    container_name: cortex-graphjin
-    restart: unless-stopped
-    # Entrypoint is `graphjin`; without `serve` the container prints CLI help and exits.
-    command: ["serve", "--path", "/app/config"]
-    working_dir: /app
-    volumes:
-      - ./infra/graphjin/config:/app/config:ro
-    environment:
-      GO_ENV: development
-      GJ_DATABASE_HOST: postgres
-      GJ_DATABASE_PORT: "5432"
-      GJ_DATABASE_USER: ${POSTGRES_USER:-cortex}
-      GJ_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
-      GJ_DATABASE_NAME: ${POSTGRES_DB:-cortex}
-    ports:
-      - "127.0.0.1:8080:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   api:
     build: .
@@ -93,8 +69,10 @@ services:
       # No insecure defaults: these must be set explicitly (in .env for local dev).
       # Using :? makes the stack refuse to start rather than silently shipping
       # admin/admin or a well-known stub token. See .env.example.
+      CORTEX_ENVIRONMENT: ${CORTEX_ENVIRONMENT:-local}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
-      CORTEX_LEGACY_DEMO_PASSWORD: ${CORTEX_LEGACY_DEMO_PASSWORD:?set CORTEX_LEGACY_DEMO_PASSWORD in .env}
+      # Optional local-only credential; core.environment disables it in production.
+      CORTEX_LEGACY_DEMO_PASSWORD: ${CORTEX_LEGACY_DEMO_PASSWORD:-}
       COMPLIANCE_ENGINE_STUB_PASSWORD: ${COMPLIANCE_ENGINE_STUB_PASSWORD:?set COMPLIANCE_ENGINE_STUB_PASSWORD in .env}
       COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN: ${COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN:?set COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN in .env}
       # LLM provider chain (Track B ingest) — set keys in .env or shell; stub used when unset.

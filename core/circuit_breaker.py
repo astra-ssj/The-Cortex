@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import os
+import time
 from enum import Enum
 from typing import Any, Callable, TypeVar
 
@@ -20,31 +23,49 @@ class CircuitState(str, Enum):
 
 
 class CircuitBreaker:
-    """Circuit breaker with optional Postgres-backed state (loaded at app startup, persisted after execute())."""
+    """Persisted circuit breaker with cooldown and a single HALF_OPEN probe."""
 
-    def __init__(self, name: str, failure_threshold: int = 5) -> None:
+    def __init__(
+        self,
+        name: str,
+        failure_threshold: int = 5,
+        cooldown_seconds: float | None = None,
+        failure_predicate: Callable[[Exception], bool] | None = None,
+    ) -> None:
         self.name = name
         self.failure_threshold = failure_threshold
+        self.cooldown_seconds = max(
+            0.0,
+            cooldown_seconds
+            if cooldown_seconds is not None
+            else float(os.getenv("CORTEX_CIRCUIT_BREAKER_COOLDOWN_SECONDS", "30")),
+        )
+        self._failure_predicate = failure_predicate or (lambda _exc: True)
         self._state = CircuitState.CLOSED
         self._failures = 0
+        self._opened_at: float | None = None
+        self._state_lock = asyncio.Lock()
 
     @property
     def state(self) -> CircuitState:
         return self._state
 
     def apply_persisted_state(self, state: CircuitState, failures: int) -> None:
-        """Hydrate from Postgres after restart."""
-        self._state = state
+        """Hydrate legacy state columns; a crashed HALF_OPEN probe recovers as OPEN."""
+        self._state = CircuitState.OPEN if state == CircuitState.HALF_OPEN else state
         self._failures = failures
+        self._opened_at = time.monotonic() if self._state == CircuitState.OPEN else None
 
     def record_success(self) -> None:
         self._state = CircuitState.CLOSED
         self._failures = 0
+        self._opened_at = None
 
     def record_failure(self) -> None:
         self._failures += 1
-        if self._failures >= self.failure_threshold:
+        if self._state == CircuitState.HALF_OPEN or self._failures >= self.failure_threshold:
             self._state = CircuitState.OPEN
+            self._opened_at = time.monotonic()
 
     async def _persist_state_if_ready(self) -> None:
         from db.session import database_ready, engine
@@ -78,17 +99,37 @@ class CircuitBreaker:
             )
 
     async def execute(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-        if self._state == CircuitState.OPEN:
-            raise RuntimeError(f"Circuit breaker {self.name} is open")
+        is_probe = False
+        async with self._state_lock:
+            if self._state == CircuitState.OPEN:
+                opened_at = self._opened_at if self._opened_at is not None else time.monotonic()
+                if time.monotonic() - opened_at < self.cooldown_seconds:
+                    raise RuntimeError(f"Circuit breaker {self.name} is open")
+                self._state = CircuitState.HALF_OPEN
+                is_probe = True
+            elif self._state == CircuitState.HALF_OPEN:
+                raise RuntimeError(f"Circuit breaker {self.name} is open")
+        if is_probe:
+            # A persisted HALF_OPEN state is loaded as OPEN, preventing multiple
+            # workers from treating an interrupted probe as a healthy circuit.
+            await self._persist_state_if_ready()
         try:
             result = await fn(*args, **kwargs)
-            self.record_success()
+            async with self._state_lock:
+                self.record_success()
             await self._persist_state_if_ready()
             return result
         except Exception as e:
-            self.record_failure()
+            async with self._state_lock:
+                if self._failure_predicate(e):
+                    self.record_failure()
+                elif is_probe:
+                    # Caller validation says nothing about provider health. Keep
+                    # the circuit open and permit a fresh probe after cooldown.
+                    self._state = CircuitState.OPEN
+                    self._opened_at = time.monotonic()
             await self._persist_state_if_ready()
-            raise e
+            raise
 
 
 # Module-level registry of breakers (count for ZTAIP status).

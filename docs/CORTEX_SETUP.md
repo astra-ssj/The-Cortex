@@ -65,7 +65,7 @@ causes pytest to hang.
 
 **Terminal 2 — Frontend:**
 ```bash
-cd frontend && npm install && npm run dev
+cd frontend && npm ci && npm run dev
 ```
 
 Open http://localhost:3000. Log in with the seeded demo account
@@ -177,19 +177,6 @@ Scenarios are database content, not code. To add a scenario:
 
 No application code changes required for new scenarios.
 
-## GraphJin (Optional)
-
-GraphJin provides a GraphQL read layer on port 8080.
-Health check may time out on first startup — this is a
-one-off pool warmup issue, not a failure.
-
-Blocked tables (by design): `users`, `audit_log`.
-Allowed tables: `organizations`, `frameworks`, `controls`,
-`findings`, `assessment_results`, `entities`.
-
-Dev auth is bound to `127.0.0.1:8080` only — never
-reachable off-host.
-
 ## Security Notes
 
 - Connect as `cortex_app`, not `cortex` — RLS only binds
@@ -197,5 +184,5 @@ reachable off-host.
 - `cortex_app` password: `cortex_ci_test` (local dev)
 - Audit log is append-only — no UPDATE or DELETE
 - Do not run `--reload` with pytest (advisory lock conflict)
-- PYSEC-2026-1325 suppressed in pip-audit — see
-  `.github/workflows/ci.yml` for documented justification
+- JWT signing and verification use PyJWT with an explicit HS256 allowlist.
+- Dependency audits run without vulnerability suppressions.

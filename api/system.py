@@ -43,7 +43,9 @@ async def get_system_ready() -> dict[str, str] | JSONResponse:
 
 
 @router.get("/system/llm-providers")
-async def get_llm_providers() -> dict:
+async def get_llm_providers(
+    _current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict:
     """Configured LLM provider chain (Anthropic, OpenAI, stub) — no secrets."""
     return llm_platform_status()
 
@@ -57,16 +59,19 @@ async def get_agent_status(
 
 
 @router.get("/system/ztaip-status", response_model=ZTAIPStatus)
-async def get_ztaip_status() -> ZTAIPStatus:
+async def get_ztaip_status(
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> ZTAIPStatus:
     """Return ZTAIP status from audit fabric, circuit breakers, human review queue, sovereignty broker, agent certs."""
     await asyncio.sleep(0)
+    org_id = str(current_user.get("org_id") or "").strip()
     return ZTAIPStatus(
         audit_fabric=AuditFabricStatus(
-            total_events=await audit_fabric.total_events_async(),
-            last_event_at=await audit_fabric.last_event_at_async(),
+            total_events=await audit_fabric.total_events_async(org_id),
+            last_event_at=await audit_fabric.last_event_at_async(org_id),
         ),
         circuit_breakers_count=circuit_breakers_count(),
-        human_review_queue_count=await human_review_pending_total_async(),
+        human_review_queue_count=await human_review_pending_total_async(org_id),
         sovereignty_broker=SOVEREIGNTY_BROKER_STATUS,
         agent_certificates_count=AGENT_CERTIFICATES_COUNT,
     )

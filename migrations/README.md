@@ -16,4 +16,4 @@ Apply via:
 - `docker compose up` (Postgres `docker-entrypoint-initdb.d`, fresh volumes only)
 - `scripts/apply_cortex_schema.sh` (CI and existing DBs)
 
-Do **not** add a second migration folder (e.g. under GraphJin). Sidecar READMEs should link here.
+Do **not** add a second migration folder. Infrastructure documentation should link here.

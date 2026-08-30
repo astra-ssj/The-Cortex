@@ -39,7 +39,31 @@ async def issue_refresh_token(
     return raw
 
 
-async def take_refresh_token(session: AsyncSession, raw: str) -> str | None:
+async def load_refresh_token_user_id(session: AsyncSession, raw: str) -> str | None:
+    """Resolve a currently usable token without consuming it."""
+    th = hash_opaque_token(raw.strip())
+    r = await session.execute(
+        text(
+            """
+            SELECT user_id::text
+            FROM refresh_tokens
+            WHERE token_hash = :th
+              AND revoked_at IS NULL
+              AND expires_at > NOW()
+            """
+        ),
+        {"th": th},
+    )
+    uid = r.scalar_one_or_none()
+    return str(uid) if uid else None
+
+
+async def take_refresh_token(
+    session: AsyncSession,
+    raw: str,
+    *,
+    user_id: str | None = None,
+) -> str | None:
     """
     Atomically revoke a valid refresh token row and return user_id.
     One-time use (rotation): caller issues new refresh after success.
@@ -51,15 +75,37 @@ async def take_refresh_token(session: AsyncSession, raw: str) -> str | None:
             UPDATE refresh_tokens
             SET revoked_at = NOW()
             WHERE token_hash = :th
+              AND (CAST(:uid AS text) IS NULL OR user_id = CAST(:uid AS text))
               AND revoked_at IS NULL
               AND expires_at > NOW()
             RETURNING user_id::text
             """
         ),
-        {"th": th},
+        {"th": th, "uid": user_id},
     )
     uid = r.scalar_one_or_none()
     return str(uid) if uid else None
+
+
+async def revoke_refresh_token_for_user(
+    session: AsyncSession,
+    *,
+    raw: str,
+    user_id: str,
+) -> None:
+    """Idempotently revoke one token only when it belongs to the caller."""
+    th = hash_opaque_token(raw.strip())
+    await session.execute(
+        text(
+            """
+            UPDATE refresh_tokens
+            SET revoked_at = COALESCE(revoked_at, NOW())
+            WHERE token_hash = :th
+              AND user_id = :uid
+            """
+        ),
+        {"th": th, "uid": user_id},
+    )
 
 
 async def revoke_all_refresh_for_user(session: AsyncSession, user_id: str) -> None:

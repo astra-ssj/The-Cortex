@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
-from api.limits import limiter
+from api.limits import authenticated_rate_limit_key, limiter
 from compliance.models import SovereignModel
 from core.agents.grading import grade_decision
 from core.agents.scenario import (
@@ -44,7 +44,12 @@ from core.gaps import reconcile_gaps_for_session
 from core.human_review import enqueue_learning_decision_review
 from core.rbac import Permission, user_has_permission
 from core.security import get_current_user
-from core.tenant import DEMO_ORG_ID, bind_scoped_org, resolve_scoped_org_id
+from core.tenant import (
+    DEMO_ORG_ID,
+    bind_scoped_org,
+    bind_writable_org,
+    resolve_scoped_org_id,
+)
 
 logger = structlog.get_logger()
 
@@ -333,14 +338,14 @@ async def list_scenarios(
 
 
 @router.post("/sessions", response_model=SessionOut, summary="Create a learning scenario session")
-@limiter.limit("30/minute")
+@limiter.limit("30/minute", key_func=authenticated_rate_limit_key)
 async def create_session(
     request: Request,
     body: CreateSessionRequest,
     current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SessionOut:
-    effective = await bind_scoped_org(db, current_user, _resolve_org(current_user, body.org_id))
+    effective = await bind_writable_org(db, current_user, _resolve_org(current_user, body.org_id))
     scenario = body.resolved_slug()
     content = await _load_content(db, scenario)
     learner_id = str(current_user.get("sub") or current_user.get("email") or "anonymous")
@@ -967,7 +972,7 @@ async def get_debrief(
     response_model=SessionOut,
     summary="Advance the learning loop with a learner choice",
 )
-@limiter.limit("30/minute")
+@limiter.limit("30/minute", key_func=authenticated_rate_limit_key)
 async def decide(
     request: Request,
     session_id: uuid.UUID,
@@ -976,7 +981,7 @@ async def decide(
     current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SessionOut:
-    effective = await bind_scoped_org(db, current_user, _resolve_org(current_user, org_id))
+    effective = await bind_writable_org(db, current_user, _resolve_org(current_user, org_id))
     choice = body.choice.strip()
     actor = str(current_user.get("sub") or current_user.get("email") or "anonymous")
 

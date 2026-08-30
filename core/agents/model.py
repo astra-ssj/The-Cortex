@@ -15,11 +15,18 @@ import httpx
 import structlog
 
 from core.circuit_breaker import CircuitBreaker, CircuitState, register_circuit_breaker
+from core.llm.config import llm_timeout_seconds
 
 logger = structlog.get_logger()
 
 # Module-level breaker — .cursorrules: never instantiate inside functions.
-_agent_model_breaker = CircuitBreaker("learning_agent_model", failure_threshold=5)
+_agent_model_breaker = CircuitBreaker(
+    "learning_agent_model",
+    failure_threshold=5,
+    # Anthropic 400s indicate an invalid request assembled by this caller, not
+    # provider unavailability. Timeouts, transport errors, and 5xx still count.
+    failure_predicate=lambda exc: not isinstance(exc, anthropic.BadRequestError),
+)
 register_circuit_breaker(_agent_model_breaker)
 
 # Test hook: when set, call_model returns deliberately invalid JSON so harness
@@ -32,8 +39,6 @@ _DEFAULT_OLLAMA_MODEL = "gemma4:12b"
 _DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 _MAX_TOKENS = 1000
 _OLLAMA_TEMPERATURE = 0.3
-_OLLAMA_TIMEOUT_SECONDS = 120.0
-
 _KNOWN_PROVIDERS = frozenset({"anthropic", "ollama", "stub"})
 
 
@@ -180,7 +185,8 @@ class _AnthropicProvider:
 
     async def invoke(self, role_prompt: str, context: dict[str, Any]) -> str:
         client = anthropic.AsyncAnthropic(
-            api_key=os.getenv("ANTHROPIC_API_KEY")
+            api_key=os.getenv("ANTHROPIC_API_KEY"),
+            timeout=llm_timeout_seconds(),
         )
         response = await client.messages.create(
             model=os.getenv("AGENT_MODEL", _DEFAULT_CLAUDE_MODEL),
@@ -223,7 +229,7 @@ class _OllamaProvider:
             "max_tokens": _MAX_TOKENS,
         }
         try:
-            async with httpx.AsyncClient(timeout=_OLLAMA_TIMEOUT_SECONDS) as client:
+            async with httpx.AsyncClient(timeout=llm_timeout_seconds()) as client:
                 response = await client.post(url, json=body)
                 response.raise_for_status()
         except (httpx.ConnectError, httpx.ConnectTimeout) as exc:

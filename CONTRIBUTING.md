@@ -6,15 +6,15 @@ This repository follows the **ZTAIP** (Zero Trust Agentic Intelligence Platform)
 
 ## Before you start
 
-- Use **Python 3.12+** for the FastAPI backend and **Node.js 18+** for the frontend (see README for exact commands).
+- Use **Python 3.12+** for the FastAPI backend and **Node.js 20+** for the frontend (React Router v7 requires Node 20).
 - Prefer small, focused pull requests with a clear description of behaviour changes.
 
 ## Development workflow
 
 1. Fork or branch from `main`.
-2. Install backend dev dependencies: `pip install -e ".[dev]"`.
+2. Install backend dev dependencies: `pip install -e ".[dev]" -c requirements.lock.txt`.
 3. Run tests: `pytest tests/ -v`.
-4. For UI changes: `cd frontend && npm install && npm run dev` (and run any frontend checks you rely on locally).
+4. For UI changes: `cd frontend && npm ci && npm run dev` (and run any frontend checks you rely on locally).
 5. With Postgres + API running (`docker compose up -d`), optional spine check: `bash scripts/smoke_happy_path.sh` (also executed in CI).
 
 ## Before submitting a PR
@@ -30,6 +30,11 @@ pytest tests/ -v
 ruff check api core compliance db ontology tests --ignore E501
 ```
 
+When Python dependencies change, regenerate the committed constraints lock with
+`pip-compile --strip-extras --extra dev --output-file requirements.lock.txt pyproject.toml`.
+When frontend dependencies change, regenerate `frontend/package-lock.json` with
+`npm install` and use `npm ci` for all clean installs and CI jobs.
+
 ## Architecture rules
 
 Three rules that must be preserved in all contributions:
@@ -40,7 +45,9 @@ Three rules that must be preserved in all contributions:
 
 3. **Tenant isolation** — every DB query must be scoped by `org_id` from the JWT. No cross-tenant data access ever.
 
-**GraphJin** runs as a Docker sidecar on port **8080** (`infra/graphjin/`). It auto-generates GraphQL from the PostgreSQL schema — use it for graph traversals and nested read queries. All writes and authenticated product traffic stay on FastAPI.
+Do not add direct database-facing HTTP sidecars. All authenticated reads and
+writes must pass through FastAPI so JWT-derived tenant scope, RLS context, rate
+limits, and audit controls are applied consistently.
 
 ## Code expectations
 

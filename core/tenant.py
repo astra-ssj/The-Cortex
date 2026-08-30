@@ -32,6 +32,21 @@ def resolve_scoped_org_id(current_user: dict[str, Any], requested_org_id: str) -
     )
 
 
+def resolve_writable_org_id(
+    current_user: dict[str, Any],
+    requested_org_id: str,
+) -> str:
+    """Resolve a tenant mutation and reject cross-tenant writes to shared demo data."""
+    effective = resolve_scoped_org_id(current_user, requested_org_id)
+    caller_org = str(current_user.get("org_id") or "").strip()
+    if effective == DEMO_ORG_ID and caller_org != DEMO_ORG_ID:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The shared demo organisation is read-only",
+        )
+    return effective
+
+
 async def set_tenant_context(session: AsyncSession, org_id: str) -> None:
     """
     Bind this DB transaction to a tenant for Postgres RLS.
@@ -59,5 +74,22 @@ async def bind_scoped_org(
 ) -> str:
     """Resolve scoped org (JWT or demo) and set RLS session var in one step."""
     effective = resolve_scoped_org_id(current_user, requested_org_id)
+    await set_tenant_context(session, effective)
+    return effective
+
+
+async def bind_writable_org(
+    session: AsyncSession,
+    current_user: dict[str, Any],
+    requested_org_id: str,
+) -> str:
+    """
+    Bind a tenant for mutation while keeping the shared demo dataset read-only.
+
+    Principals whose own JWT/API-key organisation is the demo tenant may still
+    operate the interactive demo. Other tenants can inspect it, but cannot
+    contaminate shared evidence, findings, or learning history.
+    """
+    effective = resolve_writable_org_id(current_user, requested_org_id)
     await set_tenant_context(session, effective)
     return effective

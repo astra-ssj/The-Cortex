@@ -91,30 +91,6 @@ function userDisplayName(user: Record<string, unknown> | null): string {
   );
 }
 
-function DeployEnvBadge() {
-  const custom = import.meta.env.VITE_CORTEX_DEPLOY_LABEL?.trim();
-  const label = custom || (import.meta.env.DEV ? "DEV" : "");
-  if (!label) return null;
-  const isDev = !custom && import.meta.env.DEV;
-  return (
-    <span
-      title={isDev ? "Development build" : "Deployment label from VITE_CORTEX_DEPLOY_LABEL"}
-      style={{
-        padding: "2px 8px",
-        borderRadius: "var(--radius-sm)",
-        fontSize: "var(--text-micro)",
-        fontWeight: 700,
-        letterSpacing: "0.06em",
-        background: isDev ? "var(--amber-soft)" : "var(--blue-soft)",
-        border: `1px solid ${isDev ? "color-mix(in srgb, var(--amber) 45%, transparent)" : "color-mix(in srgb, var(--blue) 35%, transparent)"}`,
-        color: isDev ? "var(--amber)" : "var(--text)",
-      }}
-    >
-      {label.toUpperCase()}
-    </span>
-  );
-}
-
 function ZtaipStatusPanel() {
   const { data: ztaip, isError, isPending } = useZtaipStatus();
 
@@ -374,10 +350,6 @@ export function Sidebar({
 
       <div style={{ marginTop: "auto", flexShrink: 0 }}>
         <ZtaipStatusPanel />
-
-        <div style={{ padding: "10px 12px", display: "flex", justifyContent: "center" }}>
-          <DeployEnvBadge />
-        </div>
 
         <div
           style={{

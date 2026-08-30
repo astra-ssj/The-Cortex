@@ -9,12 +9,13 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 import structlog
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
+from api.limits import authenticated_rate_limit_key, limiter
 from core.audit_fabric import audit_fabric
 from core.rbac import Permission, require_permission
-from core.tenant import DEMO_ORG_ID, resolve_scoped_org_id
+from core.tenant import DEMO_ORG_ID, resolve_writable_org_id
 from core.ingestion import (
     create_evidence_from_mapping,
     map_chunks_to_ontology,
@@ -127,7 +128,9 @@ def _actor_label(user: dict[str, Any]) -> str:
 
 
 @router.post("/ingest/document")
+@limiter.limit("5/minute", key_func=authenticated_rate_limit_key)
 async def ingest_document(
+    request: Request,
     file: UploadFile = File(...),
     finding_id: str | None = Form(None),
     control_id: str | None = Form(None),
@@ -150,7 +153,7 @@ async def ingest_document(
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File exceeds 10MB limit")
     document_id = "doc-" + hashlib.sha256(content[:1024]).hexdigest()[:12]
-    scoped_org = resolve_scoped_org_id(
+    scoped_org = resolve_writable_org_id(
         current_user,
         str(org_id or current_user.get("org_id") or DEMO_ORG_ID).strip(),
     )

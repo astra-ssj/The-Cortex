@@ -17,8 +17,6 @@ Maintained map of the monorepo. See also [`REPO_STRUCTURE_REFACTOR.md`](REPO_STR
 ├── workers/             # Optional background consumers (Shasta)
 ├── content/
 │   └── skills/          # Bundled GRC skill packs (content only)
-├── infra/
-│   └── graphjin/        # GraphJin sidecar config
 ├── frontend/            # Vite + React SPA
 │   └── src/
 │       ├── pages/       # Route screens
@@ -42,7 +40,7 @@ Maintained map of the monorepo. See also [`REPO_STRUCTURE_REFACTOR.md`](REPO_STR
 | `core/` | Reusable domain logic, connectors, assessment, persistence helpers |
 | `compliance/` | Framework definitions / registry |
 | `content/` | Static packs (skills) — not Python packages |
-| `infra/` | Sidecar configs (GraphJin), future deploy helpers |
+| `infra/` | Deployment and infrastructure configuration |
 | `docs/archive/` | Dated QA/SAST/audit reports (never grow the repo root) |
 | `migrations/` | All DDL — never a second migration folder |
 
@@ -60,4 +58,5 @@ Maintained map of the monorepo. See also [`REPO_STRUCTURE_REFACTOR.md`](REPO_STR
 ## Removed
 
 - `services/compliance-engine/` nested FastAPI app (Phase 1)
-- `services/` package hybrid (Phase 2) — assessment → `core/`, skills → `content/`, GraphJin → `infra/`
+- `services/` package hybrid (Phase 2) — assessment → `core/`, skills → `content/`
+- unauthenticated GraphJin database sidecar (security remediation)

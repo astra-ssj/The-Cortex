@@ -167,20 +167,32 @@ async def enqueue_ingestion_human_review(
     )
 
 
-async def human_review_pending_total_async() -> int:
-    """Count assessment QA queue rows plus ingestion backlog rows."""
+async def human_review_pending_total_async(org_id: str) -> int:
+    """Count one tenant's assessment QA queue plus ingestion backlog."""
     if not await database_ready():
         return 0
     total = 0
     try:
         async with engine.connect() as conn:
             try:
-                total += int((await conn.execute(text("SELECT COUNT(*) FROM human_review_pending"))).scalar_one())
+                total += int(
+                    (
+                        await conn.execute(
+                            text("SELECT COUNT(*) FROM human_review_pending WHERE org_id = :org_id"),
+                            {"org_id": org_id},
+                        )
+                    ).scalar_one()
+                )
             except Exception as e:
                 logger.warning("human_review_pending_count_failed", error=str(e))
             try:
                 total += int(
-                    (await conn.execute(text("SELECT COUNT(*) FROM human_review_ingestion_pending"))).scalar_one()
+                    (
+                        await conn.execute(
+                            text("SELECT COUNT(*) FROM human_review_ingestion_pending WHERE org_id = :org_id"),
+                            {"org_id": org_id},
+                        )
+                    ).scalar_one()
                 )
             except Exception as e:
                 logger.warning("human_review_ingestion_count_failed", error=str(e))

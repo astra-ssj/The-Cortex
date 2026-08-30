@@ -1,5 +1,5 @@
 -- CORTEX 011 — Circuit breaker durability + ingestion human-review backlog (Postgres-only operations).
--- Apply after init.sql / graphjin migrations that define organizations.
+-- Apply after init.sql and earlier migrations that define organizations.
 
 CREATE TABLE IF NOT EXISTS circuit_breaker_state (
     name TEXT PRIMARY KEY,

@@ -21,7 +21,6 @@ redirects to the Audit Simulator.
 |---------|------|------|
 | FastAPI (`api`) | 8000 | REST API — auth, learning loop, scenarios, audit |
 | PostgreSQL | 5432 (internal) | System of record |
-| GraphJin | 8080 | GraphQL read layer on shared schema |
 | Vite frontend | 3000 | React SPA (proxies `/api` → FastAPI) |
 
 Start locally:
@@ -238,23 +237,13 @@ Key migrations:
 
 ## Security Baseline
 
-- JWT HS256, 8-hour lifetime
+- JWT HS256 via PyJWT with an explicit algorithm allowlist
 - RLS enforced at Postgres level — `cortex_app` role only
 - CORS: explicit origins, no wildcard with credentials
 - Rate limiting: SlowAPI on session create and decide endpoints
 - Audit log: append-only trigger, no UPDATE/DELETE by cortex_app
 - OWASP Top 10 and OWASP LLM Top 10 reviewed at v2.1
-- Dependency audit: pip-audit (PYSEC-2026-1325 suppressed,
-  documented in `.github/workflows/ci.yml`)
-
-## GraphJin
-
-GraphJin provides a GraphQL read layer on the Postgres schema.
-Exposed tables: `organizations`, `frameworks`, `controls`,
-`findings`, `assessment_results`, `entities`.
-Blocked: `users` (credential hashes), `audit_log`
-(append-only compliance record). Dev auth is localhost-only
-(`127.0.0.1:8080`).
+- Dependency audit: pip-audit with no advisory suppressions
 
 ## Repository Layout
 
@@ -274,6 +263,5 @@ frontend/
     api/                learning.ts, client.ts
     components/         HelpPanel.tsx, Sidebar.tsx, ...
     lib/                helpDocsContent.ts
-infra/graphjin/         GraphJin sidecar config
 docs/                   Architecture and setup docs
 ```

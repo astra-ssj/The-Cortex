@@ -3,7 +3,7 @@
 | Doc | Purpose |
 |-----|---------|
 | [STRUCTURE.md](STRUCTURE.md) | Repository layout map |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Runtime topology, graph, GraphJin |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Runtime topology and service boundaries |
 | [CORTEX_SETUP.md](CORTEX_SETUP.md) | Local API, Cursor, Shasta operators |
 | [LLM_PROVIDERS.md](LLM_PROVIDERS.md) | Multi-provider LLM chain |
 | [RBAC.md](RBAC.md) | Roles and permissions |

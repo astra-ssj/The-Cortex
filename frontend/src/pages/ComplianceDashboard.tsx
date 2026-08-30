@@ -329,7 +329,7 @@ export function ComplianceDashboard() {
           sortKey={sortKey}
           sortDir={sortDir}
           onSort={handleFrameworkSort}
-          onOpenFramework={(id) => navigate(`/frameworks/${id}`)}
+          onOpenFramework={(id) => navigate(`/frameworks/${encodeURIComponent(id)}`)}
         />
       </section>
 

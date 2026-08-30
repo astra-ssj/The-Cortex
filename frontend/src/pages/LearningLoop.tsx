@@ -17,6 +17,7 @@ import { ScenarioDebrief } from "../components/ScenarioDebrief";
 import { Skeleton } from "../components/Skeleton";
 import { systemApi } from "../api/client";
 import { useOrgContext } from "../hooks/useOrgContext";
+import { frameworkLabelFromId } from "../lib/frameworkRegistry";
 
 /** Matches core.agents.scenario.TERMINAL_STAGE. */
 const TERMINAL_STAGE = "complete";
@@ -236,7 +237,9 @@ function ScenarioSelector({
               </span>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-              {s.frameworks.map((fw) => (
+              {s.frameworks
+                .filter((fw) => fw.toLowerCase() !== "cism")
+                .map((fw) => (
                 <span
                   key={fw}
                   style={{
@@ -248,9 +251,9 @@ function ScenarioSelector({
                     padding: "2px 8px",
                   }}
                 >
-                  {fw}
+                  {frameworkLabelFromId(fw)}
                 </span>
-              ))}
+                ))}
             </div>
             <p style={{ margin: "0 0 16px", fontSize: 13, lineHeight: 1.55, color: "var(--text-secondary)" }}>
               {truncateBrief(s.brief)}
@@ -619,7 +622,7 @@ export default function LearningLoop() {
                   marginBottom: 10,
                 }}
               >
-                ENGINE ROOM · DEV
+                ENGINE ROOM
               </div>
               <p style={{ margin: "0 0 12px", fontSize: 12, color: "var(--text-secondary)" }}>
                 Live session state and last harness result — architecture visibility while testing.

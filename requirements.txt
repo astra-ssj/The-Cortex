@@ -3,7 +3,7 @@
 #
 # This file is kept only for tools that still expect requirements.txt.
 # Pins below mirror a subset of [project] dependencies (auth + idna CVE floor).
-python-jose[cryptography]==3.5.0
+PyJWT>=2.10.1
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.32
 # Security: pin idna >= 3.19 (GHSA-jjg7-2v4v-x38h — DoS in idna.encode)

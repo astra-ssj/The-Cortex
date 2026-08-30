@@ -12,7 +12,7 @@ This environment runs CORTEX **natively** (no Docker). The `docker compose` flow
 | FastAPI API (`api.main:app`) | 8000 | Run with `uvicorn`; needs `PYTHONPATH=.` and env vars below. |
 | Vite frontend | 3000 | `cd frontend && npm run dev`; proxies `/api` → `:8000` (see `frontend/vite.config.ts`). |
 
-GraphJin, Redis, and the Shasta worker are optional and not needed for core end-to-end use.
+Redis and the Shasta worker are optional and not needed for core end-to-end use.
 
 ### Startup (each fresh VM)
 
@@ -24,23 +24,25 @@ GraphJin, Redis, and the Shasta worker are optional and not needed for core end-
 
    | Where | Host:port | User | Password | Database |
    |-------|-----------|------|----------|----------|
-   | **This Cursor Cloud VM** | `localhost:5432` (native apt, not Docker) | `cortex` | `cortex-dev` | `cortex` |
+   | **This Cursor Cloud VM — API** | `localhost:5432` (native apt, not Docker) | `cortex_app` | `cortex-dev` | `cortex` |
+   | **This Cursor Cloud VM — migrations** | `localhost:5432` (native apt, not Docker) | `cortex` | `cortex-dev` | `cortex` |
    | **CI** (GitHub Actions service container) | `localhost:5432` | `cortex_app` | `cortex_ci_test` | `cortex` |
    | **Local Docker Compose** (this repo file does not publish Postgres) | compose network only | `cortex` / `cortex_app` | `$POSTGRES_PASSWORD` | `cortex` |
    | **This laptop's running compose** (`the-cortex-1-postgres-1`) | `127.0.0.1:5434` | `cortex` | `cortex_ci_test` | `cortex` |
 
-   On this VM the `cortex` role (password `cortex-dev`), the `cortex` database, and the full schema (`scripts/apply_cortex_schema.sh`) were provisioned during environment setup and persist. If the DB is ever missing, recreate it:
+   On this VM the `cortex` migration role, non-superuser `cortex_app` API role, database, and full schema were provisioned during environment setup and persist. If the DB is ever missing, recreate it:
    ```bash
    sudo -u postgres psql -c "CREATE USER cortex WITH PASSWORD 'cortex-dev' CREATEDB;"
    sudo -u postgres psql -c "CREATE DATABASE cortex OWNER cortex;"
    PGHOST=localhost PGUSER=cortex PGPASSWORD=cortex-dev PGDATABASE=cortex bash scripts/apply_cortex_schema.sh
+   sudo -u postgres psql -d cortex -c "ALTER ROLE cortex_app WITH PASSWORD 'cortex-dev';"
    ```
 
 2. **Run the API** from the repo root (Python deps live in `.venv`, created by the update script):
    ```bash
    source .venv/bin/activate
    export PYTHONPATH=. \
-     DATABASE_URL="postgresql+asyncpg://cortex:cortex-dev@localhost:5432/cortex" \
+    DATABASE_URL="postgresql+asyncpg://cortex_app:cortex-dev@localhost:5432/cortex" \
      JWT_SECRET="dev-secret-key-minimum-32-characters-long-xx" \
      CORTEX_LEGACY_DEMO_PASSWORD="admin" \
      COMPLIANCE_ENGINE_STUB_PASSWORD="dev-stub" \

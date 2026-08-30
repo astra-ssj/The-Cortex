@@ -116,6 +116,7 @@ def _valid_agent_json() -> str:
 @pytest.mark.asyncio
 async def test_ollama_posts_openai_compatible_body(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MODEL_PROVIDER", "ollama")
+    monkeypatch.setenv("CORTEX_LLM_TIMEOUT_SECONDS", "17")
     monkeypatch.delenv("AGENT_MODEL", raising=False)
     monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
     captured = _patch_async_client(
@@ -125,7 +126,7 @@ async def test_ollama_posts_openai_compatible_body(monkeypatch: pytest.MonkeyPat
 
     raw = await call_model("You are the Account Manager.", {"stage": "brief"})
 
-    assert captured["timeout"] == 120.0
+    assert captured["timeout"] == 17.0
     assert captured["url"] == f"{_DEFAULT_OLLAMA_BASE_URL}/v1/chat/completions"
     body = captured["json"]
     assert body["model"] == _DEFAULT_OLLAMA_MODEL
@@ -135,6 +136,35 @@ async def test_ollama_posts_openai_compatible_body(monkeypatch: pytest.MonkeyPat
     assert body["messages"][0]["content"] == "You are the Account Manager."
     parsed = AgentResponse.model_validate(json.loads(raw))
     assert parsed.speaker == "Account Manager"
+
+
+@pytest.mark.asyncio
+async def test_anthropic_sdk_uses_shared_configured_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    class _Messages:
+        async def create(self, **kwargs: Any) -> Any:
+            captured["request"] = kwargs
+            return type(
+                "Response",
+                (),
+                {"content": [type("Block", (), {"text": _valid_agent_json()})()]},
+            )()
+
+    class _FakeAnthropic:
+        def __init__(self, **kwargs: Any) -> None:
+            captured.update(kwargs)
+            self.messages = _Messages()
+
+    monkeypatch.setenv("MODEL_PROVIDER", "anthropic")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-not-real")
+    monkeypatch.setenv("CORTEX_LLM_TIMEOUT_SECONDS", "12.5")
+    monkeypatch.setattr("core.agents.model.anthropic.AsyncAnthropic", _FakeAnthropic)
+
+    raw = await call_model("You are the Account Manager.", {"stage": "brief"})
+
+    assert captured["timeout"] == 12.5
+    assert AgentResponse.model_validate(json.loads(raw)).speaker == "Account Manager"
 
 
 @pytest.mark.asyncio
