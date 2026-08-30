@@ -1,10 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { LogoIcon, LogoWordmark } from "./Logo";
 import { useOrgContext } from "../hooks/useOrgContext";
-import {
-  useCompliancePosture,
-  useZtaipStatus,
-} from "../store/complianceStore";
+import { useCompliancePosture } from "../store/complianceStore";
 import { useReviewQueue } from "../api/client";
 import { isPrimaryNavActive } from "../lib/navActive";
 import { showNavSoonForPath } from "../lib/featureFlags";
@@ -43,6 +40,7 @@ const NAV_GROUPS: NavGroupDef[] = [
     label: "Discover",
     tour: "discover",
     items: [
+      { label: "Compliance Overview", path: "/dashboard", icon: "◎" },
       { label: "Review Queue", path: "/review-queue", icon: "⇌", badge: "review" },
       { label: "Control Gaps", path: "/findings", icon: "⚑", badge: "findings" },
       { label: "Remediation Tracker", path: "/remediation", icon: "↻" },
@@ -88,83 +86,6 @@ function userDisplayName(user: Record<string, unknown> | null): string {
       (user.username as string | undefined) ??
       (user.email as string | undefined) ??
       "User",
-  );
-}
-
-function ZtaipStatusPanel() {
-  const { data: ztaip, isError, isPending } = useZtaipStatus();
-
-  const auditLine = isPending ? "Checking…" : isError ? "Unavailable" : "Active";
-  const auditOk = !isError && !isPending;
-  const cbCount = ztaip?.circuitBreakersCount ?? 0;
-  const cbOk = auditOk && cbCount === 0;
-  const broker = ztaip?.sovereigntyBroker ?? "unavailable";
-  const brokerOk = auditOk && broker === "active";
-
-  const dot = (ok: boolean) => (
-    <span
-      aria-hidden
-      style={{
-        width: 8,
-        height: 8,
-        borderRadius: "50%",
-        background: ok ? "var(--green)" : "var(--amber)",
-        boxShadow: ok
-          ? "0 0 6px color-mix(in srgb, var(--green) 50%, transparent)"
-          : "0 0 6px color-mix(in srgb, var(--amber) 45%, transparent)",
-        flexShrink: 0,
-      }}
-    />
-  );
-
-  return (
-    <div
-      style={{
-        padding: "12px 14px",
-        borderTop: "1px solid var(--border)",
-        borderBottom: "1px solid var(--border)",
-        fontSize: "11px",
-        color: "var(--text-tertiary)",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "10px",
-          fontWeight: 700,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          marginBottom: 10,
-          color: "var(--text-tertiary)",
-        }}
-      >
-        ZTAIP System Status
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {dot(auditOk)}
-          <span style={{ color: "var(--text-secondary)" }}>Audit Fabric: {auditLine}</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {dot(cbOk)}
-          <span style={{ color: "var(--text-secondary)" }}>
-            Circuit Breakers: {isPending ? "…" : `${cbCount} tripped`}
-          </span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {dot(brokerOk)}
-          <span style={{ color: "var(--text-secondary)" }}>
-            Sovereignty Broker:{" "}
-            {isPending
-              ? "…"
-              : broker === "active"
-                ? "Active"
-                : broker === "degraded"
-                  ? "Degraded"
-                  : "Unavailable"}
-          </span>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -349,8 +270,6 @@ export function Sidebar({
       </nav>
 
       <div style={{ marginTop: "auto", flexShrink: 0 }}>
-        <ZtaipStatusPanel />
-
         <div
           style={{
             padding: "4px 8px 8px",

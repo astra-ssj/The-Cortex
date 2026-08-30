@@ -107,6 +107,9 @@ export function createLearningSession(body?: {
   org_id?: string;
   scenario?: string;
   scenario_slug?: string;
+  /** Carried from the Audit Simulator so the session records the chosen frame. */
+  framework?: string;
+  audit_type?: string;
 }): Promise<LearningSession> {
   return postJson<LearningSession>("/api/v1/learning/sessions", body ?? {});
 }

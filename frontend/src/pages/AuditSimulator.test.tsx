@@ -49,14 +49,14 @@ describe("AuditSimulator", () => {
     // No audit-type selector appears: selection state did not advance.
     expect(screen.queryByRole("radiogroup", { name: "Audit type" })).toBeNull();
     // Still on the simulator route.
-    expect(screen.queryByRole("button", { name: "Run Assessment" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start simulation" })).toBeTruthy();
   });
 
-  it("keeps Run Assessment disabled until a live framework and audit type are selected", async () => {
+  it("keeps Start simulation disabled until a live framework and audit type are selected", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    const run = screen.getByRole("button", { name: "Run Assessment" });
+    const run = screen.getByRole("button", { name: "Start simulation" });
     expect((run as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByRole("radiogroup", { name: "Audit type" })).toBeNull();
 
@@ -68,15 +68,18 @@ describe("AuditSimulator", () => {
     expect((run as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("navigates to /learning with no query string on Run Assessment", async () => {
+  it("carries the framework and audit type into /learning on Start simulation", async () => {
     const user = userEvent.setup();
     renderPage();
 
     await user.click(screen.getByRole("button", { name: /ISO 27001:2022/ }));
     await user.click(screen.getByLabelText("New Audit"));
-    await user.click(screen.getByRole("button", { name: "Run Assessment" }));
+    await user.click(screen.getByRole("button", { name: "Start simulation" }));
 
-    // Landed on /learning with a clean URL — no dead framework/audit_type params.
-    expect(screen.getByTestId("location").textContent).toBe("/learning");
+    // The Learning Loop stamps these onto the session, so the completed run is
+    // attributable to the frame chosen here. Dropping them was the broken link.
+    expect(screen.getByTestId("location").textContent).toBe(
+      "/learning?framework=iso27001-2022&audit_type=new_audit",
+    );
   });
 });

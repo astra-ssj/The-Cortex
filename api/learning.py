@@ -65,6 +65,14 @@ class CreateSessionRequest(BaseModel):
         description="Scenario slug in the content model (defaults to cloud_access_onboarding)",
     )
     org_id: Optional[str] = Field(default=None, description="Scoped org (JWT org or demo)")
+    # Carried from the Audit Simulator so a completed session is attributable to the
+    # frame the learner chose, rather than only to the scenario they happened to pick.
+    framework: Optional[str] = Field(
+        default=None, description="Framework id selected in the Audit Simulator"
+    )
+    audit_type: Optional[str] = Field(
+        default=None, description="Audit type selected in the Audit Simulator"
+    )
 
     def resolved_slug(self) -> str:
         for candidate in (self.scenario_slug, self.scenario):
@@ -373,9 +381,12 @@ async def create_session(
     insert = await db.execute(
         text(
             """
-            INSERT INTO scenario_sessions (org_id, scenario, learner_id, state, stage, risk)
+            INSERT INTO scenario_sessions (
+              org_id, scenario, learner_id, state, stage, risk, framework, audit_type
+            )
             VALUES (
-              :org_id, :scenario, :learner_id, CAST(:state AS jsonb), :stage, NULL
+              :org_id, :scenario, :learner_id, CAST(:state AS jsonb), :stage, NULL,
+              :framework, :audit_type
             )
             RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency, created_at, updated_at
             """
@@ -386,6 +397,8 @@ async def create_session(
             "learner_id": learner_id,
             "state": json.dumps(seed_state),
             "stage": entry_stage,
+            "framework": (body.framework or "").strip() or None,
+            "audit_type": (body.audit_type or "").strip() or None,
         },
     )
     row = insert.mappings().first()

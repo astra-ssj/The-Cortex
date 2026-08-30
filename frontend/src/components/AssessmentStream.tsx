@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AssessmentEvent } from "../types/compliance";
 import { frameworkLabelFromId } from "../lib/frameworkRegistry";
-import { useAssessmentStream } from "../store/complianceStore";
+import { useAssessmentStream } from "../store/assessmentStream";
 import { LogoIcon, LogoWordmark } from "./Logo";
 
 export interface AssessmentStreamProps {

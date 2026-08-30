@@ -1,4 +1,5 @@
-# compliance/iso27001.py — ISO/IEC 27001:2022 Annex A. 93 controls in 4 themes.
+# compliance/iso27001.py — ISO/IEC 27001:2022. 93 Annex A controls in 4 themes,
+# plus the clause 10 management-system requirements the scenarios grade against.
 
 from __future__ import annotations
 
@@ -13,11 +14,12 @@ def _req(cid: str, desc: str) -> Requirement:
 
 
 def get_iso27001() -> Framework:
-    """Build and return ISO/IEC 27001:2022 with 93 Annex A controls in 4 domains."""
+    """Build and return ISO/IEC 27001:2022 — 93 Annex A controls plus clause 10."""
     org = "Organizational Controls"
     people = "People Controls"
     physical = "Physical Controls"
     tech = "Technological Controls"
+    mgmt = "Management System Clauses"
 
     controls = [
         # A.5 — Organizational (37)
@@ -63,10 +65,10 @@ def get_iso27001() -> Framework:
         Control(id="a.6.2", name="Terms and Conditions of Employment", domain=people, requirements=[_req("a.6.2.1", "The employment contractual agreements shall state the personnel's and the organization's responsibilities for information security.")]),
         Control(id="a.6.3", name="Information Security Awareness, Education and Training", domain=people, requirements=[_req("a.6.3.1", "Personnel of the organization and relevant interested parties shall receive appropriate information security awareness, education and training.")]),
         Control(id="a.6.4", name="Disciplinary Process", domain=people, requirements=[_req("a.6.4.1", "A disciplinary process shall be in place for personnel or other interested parties who have committed an information security breach.")]),
-        Control(id="a.6.5", name="Confidentiality or Non-Disclosure Agreements", domain=people, requirements=[_req("a.6.5.1", "Confidentiality or non-disclosure agreements shall be identified, documented and signed.")]),
-        Control(id="a.6.6", name="Remote Working", domain=people, requirements=[_req("a.6.6.1", "Security measures shall be implemented when personnel are working remotely.")]),
-        Control(id="a.6.7", name="Information Security Event Reporting", domain=people, requirements=[_req("a.6.7.1", "Information security events shall be reported through appropriate channels as quickly as possible.")]),
-        Control(id="a.6.8", name="Change of Employment or Appointment", domain=people, requirements=[_req("a.6.8.1", "Responsibilities and duties that remain valid after a change or termination of employment or appointment shall be defined, enforced and communicated.")]),
+        Control(id="a.6.5", name="Responsibilities After Termination or Change of Employment", domain=people, requirements=[_req("a.6.5.1", "Responsibilities and duties that remain valid after a change or termination of employment or appointment shall be defined, enforced and communicated.")]),
+        Control(id="a.6.6", name="Confidentiality or Non-Disclosure Agreements", domain=people, requirements=[_req("a.6.6.1", "Confidentiality or non-disclosure agreements shall be identified, documented and signed.")]),
+        Control(id="a.6.7", name="Remote Working", domain=people, requirements=[_req("a.6.7.1", "Security measures shall be implemented when personnel are working remotely.")]),
+        Control(id="a.6.8", name="Information Security Event Reporting", domain=people, requirements=[_req("a.6.8.1", "Information security events shall be reported through appropriate channels as quickly as possible.")]),
         # A.7 — Physical (14)
         Control(id="a.7.1", name="Physical Security Perimeters", domain=physical, requirements=[_req("a.7.1.1", "Security perimeters shall be defined and used to protect areas that contain information and other assets.")]),
         Control(id="a.7.2", name="Physical Entry", domain=physical, requirements=[_req("a.7.2.1", "Secure areas shall be protected by appropriate entry controls and access points.")]),
@@ -110,13 +112,18 @@ def get_iso27001() -> Framework:
         Control(id="a.8.25", name="Secure Development Life Cycle", domain=tech, requirements=[_req("a.8.25.1", "Rules for the development of software and systems shall be established and implemented.")]),
         Control(id="a.8.26", name="Application Security Requirements", domain=tech, requirements=[_req("a.8.26.1", "Information security requirements shall be identified, specified and approved when developing or acquiring applications.")]),
         Control(id="a.8.27", name="System Security Engineering", domain=tech, requirements=[_req("a.8.27.1", "Principles for engineering secure systems shall be established, documented, maintained and applied to any system development activities.")]),
-        Control(id="a.8.28", name="Secure Development Environment", domain=tech, requirements=[_req("a.8.28.1", "Secure development environments shall be established and appropriately protected.")]),
-        Control(id="a.8.29", name="Outsourced Development", domain=tech, requirements=[_req("a.8.29.1", "The organization shall direct, monitor and review the activities related to outsourced system development.")]),
-        Control(id="a.8.30", name="Separation of Development, Test and Production Environments", domain=tech, requirements=[_req("a.8.30.1", "Development, test and production environments shall be separated and secured.")]),
-        Control(id="a.8.31", name="Change Management", domain=tech, requirements=[_req("a.8.31.1", "Changes to systems within the development life cycle shall be subject to change management procedures.")]),
-        Control(id="a.8.32", name="Test Information", domain=tech, requirements=[_req("a.8.32.1", "Test information shall be appropriately selected, protected and managed.")]),
-        Control(id="a.8.33", name="Information Systems Audit Considerations", domain=tech, requirements=[_req("a.8.33.1", "Audit tests and other assurance activities involving assessment of operational systems shall be planned and agreed to minimize the risk of disruption.")]),
-        Control(id="a.8.34", name="Inventory of Information and Other Assets", domain=tech, requirements=[_req("a.8.34.1", "An inventory of information and other associated assets shall be identified and maintained.")]),
+        Control(id="a.8.28", name="Secure Coding", domain=tech, requirements=[_req("a.8.28.1", "Secure coding principles shall be applied to software development.")]),
+        Control(id="a.8.29", name="Security Testing in Development and Acceptance", domain=tech, requirements=[_req("a.8.29.1", "Security testing processes shall be defined and implemented in the development life cycle.")]),
+        Control(id="a.8.30", name="Outsourced Development", domain=tech, requirements=[_req("a.8.30.1", "The organization shall direct, monitor and review the activities related to outsourced system development.")]),
+        Control(id="a.8.31", name="Separation of Development, Test and Production Environments", domain=tech, requirements=[_req("a.8.31.1", "Development, test and production environments shall be separated and secured.")]),
+        Control(id="a.8.32", name="Change Management", domain=tech, requirements=[_req("a.8.32.1", "Changes to information processing facilities and information systems shall be subject to change management procedures.")]),
+        Control(id="a.8.33", name="Test Information", domain=tech, requirements=[_req("a.8.33.1", "Test information shall be appropriately selected, protected and managed.")]),
+        Control(id="a.8.34", name="Protection of Information Systems During Audit Testing", domain=tech, requirements=[_req("a.8.34.1", "Audit tests and other assurance activities involving assessment of operational systems shall be planned and agreed between the tester and appropriate management.")]),
+        # Management-system clauses. Not Annex A, but scenarios grade against them
+        # (CX-1003 and CX-1004 both turn on nonconformity handling), so a learner's
+        # score has to resolve to a named requirement rather than a dangling ref.
+        Control(id="clause.10.1", name="Nonconformity and Corrective Action", domain=mgmt, requirements=[_req("clause.10.1.1", "When a nonconformity occurs, the organization shall react to it, evaluate the need for action to eliminate its causes, implement any action needed, and review the effectiveness of the corrective action taken.")]),
+        Control(id="clause.10.2", name="Continual Improvement", domain=mgmt, requirements=[_req("clause.10.2.1", "The organization shall continually improve the suitability, adequacy and effectiveness of the information security management system.")]),
     ]
     return Framework(
         jurisdiction="international",

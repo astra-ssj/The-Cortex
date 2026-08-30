@@ -14,7 +14,9 @@ import { useFilterParams } from "../hooks/useSearchParams";
 import { useOrgContext } from "../hooks/useOrgContext";
 import { useFrameworks } from "../hooks/useFrameworks";
 import { useRole } from "../hooks/useRole";
-import { useAssessmentStream, useCompliancePosture } from "../store/complianceStore";
+import { useCompliancePosture } from "../store/complianceStore";
+import { useAssessmentStream } from "../store/assessmentStream";
+import { AssessmentStreamLog } from "../components/AssessmentStreamLog";
 import type { FrameworkPosture } from "../types/compliance";
 
 type StatusFilter = "all" | "COMPLIANT" | "PARTIAL" | "NON_COMPLIANT";
@@ -161,7 +163,8 @@ export function FrameworksList() {
   const { orgId } = useOrgContext();
   const { can } = useRole();
   const canRunAssessment = can("canRunAssessment");
-  const { isStreaming, startStream } = useAssessmentStream();
+  const { events, isStreaming, streamError, clearStreamError, startStream, stopStream } =
+    useAssessmentStream();
   const { data: frameworks, isLoading, error } = useFrameworks();
   const { data: posture, isLoading: postureLoading } = useCompliancePosture(orgId);
 
@@ -250,6 +253,14 @@ export function FrameworksList() {
       <p className="cortex-text-caption mt-2 max-w-2xl">
         Sortable register of registered frameworks and live posture. Select a row to open detail.
       </p>
+
+      <AssessmentStreamLog
+        events={events}
+        isStreaming={isStreaming}
+        streamError={streamError}
+        onDismissError={clearStreamError}
+        onStop={stopStream}
+      />
 
       <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
         <div className="w-full min-w-[180px] max-w-xs">
@@ -367,8 +378,9 @@ export function FrameworksList() {
                       title={!canRunAssessment ? "Admin or Analyst required" : undefined}
                       onClick={(e) => {
                         e.stopPropagation();
+                        // The stream panel is on this page; navigating away from
+                        // it was how the previous build lost the run's output.
                         startStream(orgId, [fw.id]);
-                        navigate("/dashboard");
                       }}
                     >
                       Run

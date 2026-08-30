@@ -5,7 +5,8 @@ import { RunAssessmentModal } from "./RunAssessmentModal";
 import { useOrgContext } from "../hooks/useOrgContext";
 import { useRole } from "../hooks/useRole";
 import { useFramework, useFrameworks } from "../hooks/useFrameworks";
-import { useAssessmentStream, useCompliancePosture } from "../store/complianceStore";
+import { useCompliancePosture } from "../store/complianceStore";
+import { useAssessmentStream } from "../store/assessmentStream";
 import { Button } from "./ui/Button";
 import { LlmProviderBadge } from "./LlmProviderBadge";
 
@@ -23,7 +24,7 @@ function LiveClock() {
 }
 
 const ROUTE_TITLES: Record<string, string> = {
-  "/dashboard": "Dashboard",
+  "/dashboard": "Compliance Overview",
   "/group": "Group View",
   "/frameworks": "Frameworks",
   "/findings": "Findings",
@@ -99,7 +100,9 @@ export function TopBar() {
         disabled={isStreaming || !canRunAssessment}
         onConfirm={(ids) => {
           startStream(orgId, ids);
-          navigate("/dashboard");
+          // The assessment stream renders on Frameworks. /dashboard is now the
+          // training-derived posture and would show none of this run's output.
+          navigate("/frameworks");
         }}
       />
     <header

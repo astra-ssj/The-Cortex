@@ -38,7 +38,10 @@ export default function AuditSimulator() {
 
   const onRun = () => {
     if (!runnable || !framework || !auditType) return;
-    navigate("/learning");
+    // The Learning Loop stamps these onto the session it creates, so a completed
+    // run is attributable to the frame chosen here rather than only to a scenario.
+    const params = new URLSearchParams({ framework, audit_type: auditType });
+    navigate(`/learning?${params.toString()}`);
   };
 
   return (
@@ -172,8 +175,10 @@ export default function AuditSimulator() {
         </section>
       ) : null}
 
+      {/* Not "Run Assessment": that label belongs to the LLM assessment run in the
+          top bar, and having both start entirely different things was confusing. */}
       <Button variant="primary" size="lg" type="button" disabled={!runnable} onClick={onRun}>
-        Run Assessment
+        Start simulation
       </Button>
     </div>
   );

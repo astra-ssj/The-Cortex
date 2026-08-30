@@ -5,7 +5,7 @@ import type { FrameworkSummary } from "../api/frameworks";
 import { reviewQueueQueryKey } from "../api/client";
 import { useOrgContext } from "../hooks/useOrgContext";
 import { frameworksQueryKey } from "../hooks/useFrameworks";
-import { useAssessmentStream } from "../store/complianceStore";
+import { useAssessmentStream } from "../store/assessmentStream";
 import { postureQueryKey } from "../store/complianceStore";
 import type { CompliancePosture } from "../types/compliance";
 
@@ -32,7 +32,7 @@ type PageItem = {
 };
 
 const PAGE_ITEMS: PageItem[] = [
-  { title: "Dashboard", route: "/dashboard", icon: "◫" },
+  { title: "Compliance Overview", route: "/dashboard", icon: "◎" },
   { title: "Group View", route: "/group", icon: "⊞" },
   { title: "Frameworks", route: "/frameworks", icon: "▦" },
   { title: "Audit Simulator", route: "/audit-simulator", icon: "▷" },
@@ -143,7 +143,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           if (frameworkIds.length > 0) {
             startStream(orgId, frameworkIds);
           }
-          navigate("/dashboard");
+          navigate("/frameworks");
         },
       },
     ],

@@ -21,6 +21,7 @@ import { FrameworkDetailPage } from "./pages/FrameworkDetailPage";
 import { HelpPanel } from "./components/HelpPanel";
 import { logoutCortexBrowserSession } from "./lib/cortexSession";
 import { Sidebar, SIDEBAR_WIDTH_PX } from "./components/Sidebar";
+import { AssessmentStreamProvider } from "./store/assessmentStream";
 import { WelcomeTour } from "./components/WelcomeTour";
 import { isWelcomeTourBlockingShortcuts } from "./lib/welcomeTour";
 import { TopBar } from "./components/TopBar";
@@ -176,7 +177,9 @@ function AppRoutes() {
   }, []);
 
   return (
-    <>
+    // Wraps the palette as well as the routes: it can start a run, and the page
+    // it navigates to has to be looking at that same stream.
+    <AssessmentStreamProvider>
       <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
       <Routes>
         <Route path="/" element={<RootRedirect />} />
@@ -208,7 +211,7 @@ function AppRoutes() {
         </Route>
       </Routes>
       <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
-    </>
+    </AssessmentStreamProvider>
   );
 }
 

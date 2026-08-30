@@ -391,10 +391,6 @@ export const groupsApi = {
   },
 };
 
-export const ztaipApi = {
-  getStatus: () => fetchApi("/api/v1/system/ztaip-status"),
-};
-
 export type LlmPlatformStatusResponse = {
   chain: string[];
   active_chain: string[];

@@ -53,6 +53,7 @@ services:
       - ./migrations/032_audit_log_update_grant.sql:/docker-entrypoint-initdb.d/32_audit_log_update_grant.sql:ro
       - ./migrations/033_audit_chain_head_index.sql:/docker-entrypoint-initdb.d/33_audit_chain_head_index.sql:ro
       - ./migrations/034_remove_legacy_cism_scenario_tag.sql:/docker-entrypoint-initdb.d/34_remove_legacy_cism_scenario_tag.sql:ro
+      - ./migrations/035_control_refs_and_session_framework.sql:/docker-entrypoint-initdb.d/35_control_refs_and_session_framework.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
       interval: 5s

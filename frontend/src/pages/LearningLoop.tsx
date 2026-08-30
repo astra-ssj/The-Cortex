@@ -297,6 +297,11 @@ export default function LearningLoop() {
   const retakeSlug = searchParams.get("scenario");
   const retakeGapId = searchParams.get("gap");
 
+  // `/learning?framework=<id>&audit_type=<id>` is how the Audit Simulator hands its
+  // selection over. Stamped onto the session so the completed run carries the frame.
+  const selectedFramework = searchParams.get("framework");
+  const selectedAuditType = searchParams.get("audit_type");
+
   const sessionQuery = useQuery({
     queryKey: ["learning-session", sessionId, orgId],
     queryFn: () => getLearningSession(sessionId!, orgId),
@@ -305,7 +310,12 @@ export default function LearningLoop() {
 
   const createMut = useMutation({
     mutationFn: (slug: string) =>
-      createLearningSession({ org_id: orgId, scenario_slug: slug }),
+      createLearningSession({
+        org_id: orgId,
+        scenario_slug: slug,
+        framework: selectedFramework ?? undefined,
+        audit_type: selectedAuditType ?? undefined,
+      }),
     onSuccess: (s) => {
       localStorage.setItem("cortex_learning_session_id", s.id);
       setSessionId(s.id);

@@ -31,6 +31,7 @@ from api.errors import (
 from api.assessments import router as assessments_router
 from api.audit import router as audit_router
 from api.auth import router as auth_router
+from api.compliance import router as compliance_router
 from api.limits import limiter
 from api.findings import router as findings_router
 from api.groups import router as groups_router
@@ -289,6 +290,7 @@ app.include_router(groups_router)
 app.include_router(organisations_router)
 app.include_router(skills_router, prefix="/api/v1/skills")
 app.include_router(learning_router)
+app.include_router(compliance_router)
 app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(system_router)
 

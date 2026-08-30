@@ -44,21 +44,6 @@ export interface CompliancePosture {
   criticalGapsCount?: number;
 }
 
-// ---- ZTAIP system status (GET /api/v1/system/ztaip-status) ----
-
-export interface AuditFabricStatus {
-  totalEvents: number;
-  lastEventAt: string | null;
-}
-
-export interface ZTAIPStatus {
-  auditFabric: AuditFabricStatus;
-  circuitBreakersCount: number;
-  humanReviewQueueCount: number;
-  sovereigntyBroker: "active" | "degraded" | "unavailable";
-  agentCertificatesCount: number;
-}
-
 // ---- Assessment SSE stream (event type = kind, data = payload) ----
 
 export type AssessmentEventKind =

@@ -286,8 +286,16 @@ export function ScenarioDebrief({
           Your decision trail is hash-chained into the evidence log and cannot be edited.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
-          <Link to="/findings" style={{ textDecoration: "none" }}>
+          {/* Posture leads: the point of finishing a scenario is that the org's
+              standing against the controls it exercised has just moved. Control
+              gaps are the personal to-do list that follows from it. */}
+          <Link to="/dashboard" style={{ textDecoration: "none" }}>
             <Button variant="primary" size="md" type="button">
+              View compliance posture
+            </Button>
+          </Link>
+          <Link to="/findings" style={{ textDecoration: "none" }}>
+            <Button variant="secondary" size="md" type="button">
               View control gaps
             </Button>
           </Link>
