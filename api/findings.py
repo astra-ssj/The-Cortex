@@ -119,8 +119,8 @@ async def _bind(
 
 async def _fetch(db: AsyncSession, finding_id: str, org_id: str) -> Optional[Any]:
     result = await db.execute(
-        text(  # nosec B608 -- selected columns are a module constant
-            f"SELECT {_SELECT_COLUMNS} FROM findings "
+        text(
+            f"SELECT {_SELECT_COLUMNS} FROM findings "  # nosec B608 -- module constant, not user input
             "WHERE id = :id AND org_id = :org_id"
         ),
         {"id": finding_id, "org_id": org_id},
