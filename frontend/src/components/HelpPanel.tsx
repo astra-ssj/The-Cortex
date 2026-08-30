@@ -58,7 +58,7 @@ export const GLOSSARY: { term: string; definition: string }[] = [
   {
     term: "ISO 27001:2022",
     definition:
-      "International standard for information security management systems. Annex A controls referenced in scenarios include A.5.9 (asset inventory), A.5.12 (classification), A.5.26 (incident response), A.5.29 (BCP), A.8.32 (change management), A.10.1 (nonconformity).",
+      "International standard for information security management systems. Requirements referenced in scenarios include A.5.9 (asset inventory), A.5.12 (classification), A.5.26 (incident response), A.5.29 (BCP), A.8.32 (change management), Clause 10.1 (nonconformity).",
   },
   {
     term: "GDPR Art.33",
@@ -89,7 +89,7 @@ const SECTIONS: HelpSection[] = [
       {
         subtitle: "Sign in",
         body:
-          "Go to /login. You land on the Audit Simulator at /audit-simulator. Pick a framework and an audit type — ISO 27001:2022 is the only selectable framework; GDPR and SOC 2 show as coming soon. Run Assessment then opens the Learning Loop. An active session on /learning resumes automatically.",
+          "Go to /login. You land on the Audit Simulator at /audit-simulator. Pick a framework and an audit type — ISO 27001:2022 is the only selectable framework; GDPR and SOC 2 show as coming soon. Start simulation then opens the Learning Loop. An active session on /learning resumes automatically.",
       },
       {
         subtitle: "First time here?",
@@ -120,12 +120,12 @@ const SECTIONS: HelpSection[] = [
       {
         subtitle: "CX-1003 · Practitioner",
         body:
-          "Emergency Patch: Change Management Bypass. CVSS 9.8 patch, production down. Tests A.5.26, A.8.32, A.10.1.",
+          "Emergency Patch: Change Management Bypass. CVSS 9.8 patch, production down. Tests A.5.26, A.8.32, Clause 10.1.",
       },
       {
         subtitle: "CX-1004 · Practitioner",
         body:
-          "Audit Prep: Sensitive Data on Unclassified Storage. 3 days to audit. Tests A.5.9, A.5.10, A.5.12, A.5.13, A.5.26, A.5.28, A.10.1.",
+          "Audit Prep: Sensitive Data on Unclassified Storage. 3 days to audit. Tests A.5.9, A.5.10, A.5.12, A.5.13, A.5.26, A.5.28, Clause 10.1.",
       },
       {
         subtitle: "CX-1005 · Expert",
@@ -200,6 +200,37 @@ const SECTIONS: HelpSection[] = [
         subtitle: "Point values are per scenario",
         body:
           "The numbers above are the ISO 27001:2022 track defaults. Each scenario choice carries its own authored weights, so some decisions move a dimension further than others.",
+      },
+    ],
+  },
+  {
+    id: "posture",
+    title: "Compliance Posture",
+    blocks: [
+      {
+        subtitle: "Compliance Overview · /dashboard",
+        body:
+          "Your organisation's competency per control, derived only from completed sessions. First item under Discover. It reports what the team has demonstrated, not what is implemented — it is not audit evidence on its own.",
+      },
+      {
+        subtitle: "Summary strip",
+        body:
+          "Controls assessed against controls the scenario library can exercise. Average competency across assessed controls, 0-100. Open gaps below the floor of 60. Not yet assessed — coverable controls no completed session has reached.",
+      },
+      {
+        subtitle: "How a control scores",
+        body:
+          "Each choice you make maps to the controls it engages and the dimensions it tests. Your score for a control is the mean of your latest scores on those dimensions; the organisation's score is the mean across learners. Retaking replaces your earlier contribution.",
+      },
+      {
+        subtitle: "Closing a gap",
+        body:
+          "Rows group Gap, then Developing, then Strong. Gap and Developing rows carry a Practise button that opens the scenario exercising that control. The debrief's View compliance posture button brings you here after a run.",
+      },
+      {
+        subtitle: "Not yet assessed",
+        body:
+          "Coverable controls no completed session has touched. These are unknowns, not passes. Controls the scenario library cannot exercise are never listed.",
       },
     ],
   },

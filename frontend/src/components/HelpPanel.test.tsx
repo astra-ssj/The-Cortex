@@ -23,6 +23,7 @@ const SECTION_TITLES = [
   "Scenarios",
   "Scenario Workspace",
   "Competency Panel",
+  "Compliance Posture",
   "Difficulty Levels",
   "Keyboard Shortcuts",
   "Support",
@@ -50,6 +51,7 @@ const REQUIRED_TERMS = [
   { term: "escalation", section: "Competency Panel" },
   { term: "evidence", section: "Competency Panel" },
   { term: "control gap", section: "Competency Panel" },
+  { term: "posture", section: "Compliance Posture" },
   { term: "ISO 27001", section: "Scenarios" },
 ] as const;
 

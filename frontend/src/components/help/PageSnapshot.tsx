@@ -267,21 +267,25 @@ function DashboardSnapshot() {
     <SnapshotBody>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 10 }}>
         {[
-          ["Posture", "68%"],
-          ["Audit ready", "54%"],
-          ["Critical gaps", "7"],
-          ["Frameworks", "4"],
+          ["Assessed", "13/18"],
+          ["Avg competency", "57"],
+          ["Open gaps", "7"],
+          ["Not assessed", "5"],
         ].map(([k, v]) => (
           <div key={k} style={{ padding: 8, borderRadius: 6, background: "var(--surface)", border: "1px solid var(--border-subtle)" }}>
             <div style={{ fontSize: 9, color: "var(--text-tertiary)" }}>{k}</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: k === "Posture" ? "var(--cyan)" : "var(--text)" }}>{v}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: k === "Open gaps" ? "var(--red)" : "var(--text)" }}>{v}</div>
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 10, color: "var(--text-tertiary)", marginBottom: 4 }}>Framework compliance</div>
-      {["GDPR", "NIS2", "EU AI Act"].map((fw, i) => (
+      <div style={{ fontSize: 10, color: "var(--text-tertiary)", marginBottom: 4 }}>Demonstrated controls</div>
+      {[
+        ["a.5.28", "Collection of Evidence", "34", "var(--red)"],
+        ["a.8.2", "Privileged Access Rights", "64", "var(--amber)"],
+        ["a.8.32", "Change Management", "85", "var(--green)"],
+      ].map(([ref, name, score, colour]) => (
         <div
-          key={fw}
+          key={ref}
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -293,8 +297,10 @@ function DashboardSnapshot() {
             fontSize: 10,
           }}
         >
-          <span>{fw}</span>
-          <span style={{ color: i === 2 ? "var(--red)" : "var(--amber)" }}>{i === 0 ? "72%" : i === 1 ? "61%" : "48%"}</span>
+          <span>
+            <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-tertiary)" }}>{ref}</span> {name}
+          </span>
+          <span style={{ color: colour }}>{score}</span>
         </div>
       ))}
     </SnapshotBody>
@@ -303,8 +309,9 @@ function DashboardSnapshot() {
 
 function SidebarSnapshot() {
   const sections = [
-    { label: "POSTURE", items: ["Dashboard", "Frameworks", "Findings"] },
-    { label: "GOVERNANCE", items: ["Review Queue", "Remediation"] },
+    { label: "TRAIN", items: ["Audit Simulator", "Learning Loop", "My Progress"] },
+    { label: "DISCOVER", items: ["Compliance Overview", "Review Queue", "Control Gaps"] },
+    { label: "EVIDENCE", items: ["Evidence Vault"] },
     { label: "OPERATIONS", items: ["Roadmap", "Settings"] },
   ];
   return (
@@ -329,9 +336,9 @@ function SidebarSnapshot() {
                   padding: "4px 6px",
                   borderRadius: 4,
                   marginBottom: 2,
-                  background: i === 0 && s.label === "POSTURE" ? "var(--card)" : "transparent",
-                  borderLeft: i === 0 && s.label === "POSTURE" ? "2px solid var(--cyan)" : "2px solid transparent",
-                  color: i === 0 && s.label === "POSTURE" ? "var(--text)" : "var(--text-secondary)",
+                  background: i === 0 && s.label === "TRAIN" ? "var(--card)" : "transparent",
+                  borderLeft: i === 0 && s.label === "TRAIN" ? "2px solid var(--cyan)" : "2px solid transparent",
+                  color: i === 0 && s.label === "TRAIN" ? "var(--text)" : "var(--text-secondary)",
                 }}
               >
                 {item}
@@ -400,7 +407,7 @@ function CommandPaletteSnapshot() {
         >
           Search pages, frameworks, actions…
         </div>
-        {["Dashboard", "Run assessment", "GDPR"].map((row, i) => (
+        {["Compliance Overview", "Run assessment", "GDPR"].map((row, i) => (
           <div
             key={row}
             style={{

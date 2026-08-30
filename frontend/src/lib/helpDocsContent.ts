@@ -41,7 +41,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "What you will be able to do after the ISO 27001:2022 track",
         body:
-          "After completing all five scenarios you will have made graded decisions on: access control under pressure (A.8.2, A.5.18), supplier incident response (A.5.19, A.5.20), change management failure (A.8.32, A.10.1), asset classification and audit disclosure (A.5.9, A.5.12, A.10.1), and group-wide business continuity invocation (A.5.29, A.5.30) with multi-jurisdiction notification. Your competency panel will show your scored performance across all four dimensions.",
+          "After completing all five scenarios you will have made graded decisions on: access control under pressure (A.8.2, A.5.18), supplier incident response (A.5.19, A.5.20), change management failure (A.8.32, Clause 10.1), asset classification and audit disclosure (A.5.9, A.5.12, Clause 10.1), and group-wide business continuity invocation (A.5.29, A.5.30) with multi-jurisdiction notification. Your competency panel will show your scored performance across all four dimensions.",
       },
     ],
   },
@@ -61,7 +61,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Sign in to an existing account",
         body:
-          "Go to /login. Enter your work email and password. You will land on the Audit Simulator at /audit-simulator. From there you choose a framework and an audit type, then Run Assessment opens the Learning Loop. ISO 27001:2022 is currently the only selectable framework — GDPR and SOC 2 are in development and show as coming soon. If you already have an active scenario session, opening /learning resumes it.",
+          "Go to /login. Enter your work email and password. You will land on the Audit Simulator at /audit-simulator. From there you choose a framework and an audit type, then Start simulation opens the Learning Loop. ISO 27001:2022 is currently the only selectable framework — GDPR and SOC 2 are in development and show as coming soon. If you already have an active scenario session, opening /learning resumes it.",
       },
       {
         title: "Demo account",
@@ -81,13 +81,14 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Navigation",
         body:
-          "The sidebar is grouped as TRAIN (Audit Simulator, Learning Loop, My Progress, Team Ledger), Discover (Review Queue, Control Gaps, Remediation Tracker), Evidence, and Operations. Team Ledger and Settings are admin-only and are hidden from analyst and viewer accounts. Press H anywhere to open the quick reference panel. Press D to return to the Audit Simulator. Press Esc to close the quick reference panel. Replay the first-visit welcome tour from Help (this page or the H panel).",
+          "The sidebar is grouped as TRAIN (Audit Simulator, Learning Loop, My Progress, Team Ledger), Discover (Compliance Overview, Review Queue, Control Gaps, Remediation Tracker), Evidence, and Operations. Team Ledger and Settings are admin-only and are hidden from analyst and viewer accounts. Press H anywhere to open the quick reference panel. Press D to return to the Audit Simulator. Press Esc to close the quick reference panel. Replay the first-visit welcome tour from Help (this page or the H panel).",
       },
       {
         title: "The Audit Simulator",
         body:
-          "The Audit Simulator is your home screen. Choose a framework and an audit type, then click Run Assessment. ISO 27001:2022 is the only selectable framework — GDPR and SOC 2 are in development and carry a Coming Soon badge. Audit type sets the framing of your briefing; it does not yet filter the scenario list. Run Assessment opens the Learning Loop, which lists every active scenario. You can also open /learning directly.",
+          "The Audit Simulator is your home screen. Choose a framework and an audit type, then click Start simulation. ISO 27001:2022 is the only selectable framework — GDPR and SOC 2 are in development and carry a Coming Soon badge. Audit type sets the framing of your briefing; it does not yet filter the scenario list. Start simulation opens the Learning Loop, which lists every active scenario, and both selections are recorded against any session you begin from there. You can also open /learning directly, in which case the session is left unframed.",
         tips: [
+          "Start simulation is training. The Run Assessment button in the top bar is a different thing — it runs the AI assessment engine over your framework library and streams its findings on /frameworks.",
           "Foundation scenarios are the right starting point if you are new to ISO 27001:2022.",
           "You can only run one scenario at a time. Starting a new scenario clears your current session.",
         ],
@@ -142,7 +143,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "The terminal stage",
         body:
-          "The scenario ends when the terminal stage is reached. The agent gives a closing message acknowledging your decision position. Your final competency scores are shown in the panel. To start a new scenario, return to the selector using the navigation or the reset option.",
+          "The scenario ends when the terminal stage is reached. The agent gives a closing message acknowledging your decision position, and the debrief opens with your final competency scores and any control gaps the run left open. The debrief's primary action, View compliance posture, takes you to the Compliance Overview so you can see how the run moved your organisation's position. To start a new scenario, return to the selector using the navigation or the reset option.",
       },
     ],
   },
@@ -205,8 +206,50 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
     ],
   },
   {
+    id: "posture",
+    title: "5. Compliance Overview",
+    intro:
+      "The competency panel is about you in one scenario. The Compliance Overview at /dashboard is about your organisation across every scenario anyone has finished. It is the first item under Discover in the sidebar.",
+    steps: [
+      {
+        title: "What the page is claiming",
+        body:
+          "Every figure on the overview is derived from completed training sessions, so the page reports competency, not compliance. A team scoring well on A.8.2 has demonstrated it handles privileged access correctly under pressure; it has not demonstrated the control is implemented. Nothing here is a self-assessment, and nothing here is audit evidence on its own.",
+      },
+      {
+        title: "The summary strip",
+        body:
+          "Controls assessed shows how many controls have a score against how many the scenario library is able to exercise. Average competency is the mean across assessed controls on the same 0-100 scale as the competency panel. Open gaps counts controls below the gap floor of 60. Not yet assessed counts coverable controls that no completed session has reached.",
+      },
+      {
+        title: "How a control is scored",
+        body:
+          "When you make a decision, the choice you picked is mapped to the specific controls it engages and to the competency dimensions it tests. A control's score for one learner is the mean of that learner's latest scores on those dimensions. The organisation's score for the control is then the mean across every learner who has been assessed on it. Retaking a scenario replaces your earlier contribution rather than adding to it.",
+        tips: [
+          "Only completed sessions count. Abandoning a scenario part-way leaves the overview unchanged.",
+          "A second learner completing the same scenario moves the organisation's number even if your own has not changed.",
+        ],
+      },
+      {
+        title: "Reading the control list",
+        body:
+          "Controls are grouped Gap, then Developing, then Strong, so the work sits at the top. Each row shows the control reference and name, the competency bar, the band, and which dimensions produced the score. Gap and Developing rows carry a Practise button that opens the scenario exercising that control, which is how you close the loop from a weak number back into training.",
+      },
+      {
+        title: "Not yet assessed",
+        body:
+          "Controls listed at the bottom of the page are ones the scenario library can exercise but no completed session has reached. They are unknowns, not passes. Controls outside the scenario library are not listed at all — the overview never implies coverage the content cannot deliver.",
+      },
+      {
+        title: "Scope and isolation",
+        body:
+          "The overview shows your organisation only. Sessions belonging to other tenants never contribute to your figures, and demo organisations are read-only.",
+      },
+    ],
+  },
+  {
     id: "scenarios",
-    title: "5. Scenario Library",
+    title: "6. Scenario Library",
     intro:
       "Astra GRC Community Edition ships five ISO 27001:2022 scenarios across three difficulty levels, Foundation to Expert. ISO 27001:2022 is live; GDPR and SOC 2 are in development and have no scenario content in this release.",
     steps: [
@@ -236,7 +279,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "CX-1003 · Practitioner · Emergency Patch: Change Management Bypass",
         body:
-          "An engineer pushed a CVSS 9.8 patch without CAB approval and took production down. Two decision stages: initial_response and root_cause_decision. Tests A.5.26 (incident response), A.8.32 (change management), A.10.1 (nonconformity and corrective action). Reference answers: invoke_incident_process, raise_nonconformity.",
+          "An engineer pushed a CVSS 9.8 patch without CAB approval and took production down. Two decision stages: initial_response and root_cause_decision. Tests A.5.26 (incident response), A.8.32 (change management), Clause 10.1 (nonconformity and corrective action). Reference answers: invoke_incident_process, raise_nonconformity.",
         tips: [
           "The patch being correct does not excuse bypassing change governance.",
           "Both the technical gap and the process gap require corrective action.",
@@ -245,7 +288,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "CX-1004 · Practitioner · Audit Prep: Sensitive Data on Unclassified Storage",
         body:
-          "Three days before your ISO 27001:2022 surveillance audit, sensitive data is found on an unclassified shared drive accessible to all 340 staff. Two decision stages: initial_assessment and audit_disclosure_decision. Tests A.5.9 (asset inventory), A.5.10 (acceptable use), A.5.12 (classification), A.5.13 (labelling), A.5.26 (incident response), A.5.28 (evidence), A.10.1 (nonconformity). Reference answers: restrict_and_log, disclose_and_self_raise.",
+          "Three days before your ISO 27001:2022 surveillance audit, sensitive data is found on an unclassified shared drive accessible to all 340 staff. Two decision stages: initial_assessment and audit_disclosure_decision. Tests A.5.9 (asset inventory), A.5.10 (acceptable use), A.5.12 (classification), A.5.13 (labelling), A.5.26 (incident response), A.5.28 (evidence), Clause 10.1 (nonconformity). Reference answers: restrict_and_log, disclose_and_self_raise.",
         tips: [
           "Deleting files destroys evidence — do not do it.",
           "Proactive disclosure to an auditor demonstrates ISMS maturity, not weakness.",
@@ -267,7 +310,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
   },
   {
     id: "track",
-    title: "6. The ISO 27001:2022 Track",
+    title: "7. The ISO 27001:2022 Track",
     steps: [
       {
         title: "What the track covers",
@@ -277,7 +320,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "Controls exercised across the track",
         body:
-          "By completing all five scenarios you will have made graded decisions on 17 distinct Annex A controls: A.5.9, A.5.10, A.5.12, A.5.13, A.5.15, A.5.18, A.5.19, A.5.20, A.5.26, A.5.28, A.5.29, A.5.30, A.6.8, A.8.2, A.8.13, A.8.32, A.10.1. These cover the control areas most often examined in surveillance audits.",
+          "By completing all five scenarios you will have made graded decisions on 18 distinct requirements: 16 Annex A controls — A.5.9, A.5.10, A.5.12, A.5.13, A.5.15, A.5.18, A.5.19, A.5.20, A.5.26, A.5.28, A.5.29, A.5.30, A.6.8, A.8.2, A.8.13, A.8.32 — plus Clause 10.1 (nonconformity and corrective action) and Clause 10.2 (continual improvement). These cover the areas most often examined in surveillance audits, and they are exactly the set the Compliance Overview can report on.",
       },
       {
         title: "Using Astra GRC for CPD",
@@ -293,7 +336,7 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
   },
   {
     id: "support",
-    title: "7. Support & Resources",
+    title: "8. Support & Resources",
     steps: [
       {
         title: "In-app quick reference",
