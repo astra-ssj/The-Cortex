@@ -36,15 +36,13 @@ if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${PG_D
 fi
 
 echo "==> Creating Python virtualenv and installing backend deps"
-# The committed requirements.lock.txt is currently internally inconsistent
-# (pins pydantic-core==2.48.0 while pydantic 2.13.5 requires 2.46.5), so the
-# constrained install cannot resolve. Install the editable package with dev
-# extras unconstrained; pyproject floors still apply.
+# Install the editable package with dev extras against the committed constraints
+# lock, mirroring CI (see .github/workflows/ci.yml) for reproducible resolves.
 if [ ! -x .venv/bin/python ]; then
   python3 -m venv .venv
 fi
 .venv/bin/python -m pip install --quiet --upgrade pip
-.venv/bin/pip install --quiet -e ".[dev]"
+.venv/bin/pip install --quiet -e ".[dev]" -c requirements.lock.txt
 
 echo "==> Applying CORTEX schema + seed migrations"
 # The apply script replays every migration from init.sql onward and is only
