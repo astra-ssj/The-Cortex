@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from core.llm.providers.anthropic import AnthropicLLMProvider
 from core.llm.providers.base import LLMProvider
+from core.llm.providers.gemini import GeminiLLMProvider
 from core.llm.providers.openai import OpenAILLMProvider
 from core.llm.providers.stub import StubLLMProvider
 
 _PROVIDERS: dict[str, LLMProvider] = {
+    "gemini": GeminiLLMProvider(),
     "anthropic": AnthropicLLMProvider(),
     "openai": OpenAILLMProvider(),
     "stub": StubLLMProvider(),

@@ -90,6 +90,9 @@ async def _call_llm(
             },
         )
         out = AssessmentLLMOutput.model_validate_json(completion.raw_text)
+        ref = out.reference or _reference_for_control(control)
+        if out.verbatim_quote and "Quote:" not in ref:
+            ref = f"{ref} | Quote: {out.verbatim_quote}"[:500]
         return {
             "kind": "control_result",
             "frameworkId": framework_id,
@@ -101,7 +104,11 @@ async def _call_llm(
             "confidence": out.confidence_score,
             "llm_provider": completion.provider_id,
             "severity": out.severity,
-            "reference": out.reference or _reference_for_control(control),
+            "reference": ref,
+            "verbatim_quote": out.verbatim_quote,
+            "page_offset": out.page_offset,
+            "section_offset": out.section_offset,
+            "conflicting_evidence": out.conflicting_evidence,
         }
 
     return await _invoke()
@@ -118,7 +125,8 @@ async def assess_control_with_llm(
     context: dict[str, Any],
 ) -> dict[str, Any]:
     """
-    Assess one control via LLM (CircuitBreaker). Enqueues human review when confidence < 0.75.
+    Assess one control via LLM (CircuitBreaker). Enqueues human review when confidence < 0.75
+    or when conflicting evidence is detected.
     Falls back to demo finding on LLM failure.
     """
     if not assessment_llm_enabled():
@@ -171,7 +179,8 @@ async def assess_control_with_llm(
         )
 
     confidence = float(result.get("confidence") or 0.0)
-    if confidence < CONFIDENCE_THRESHOLD:
+    conflicting = bool(result.get("conflicting_evidence", False))
+    if confidence < CONFIDENCE_THRESHOLD or conflicting:
         item_id = f"assess-{run_id[:8]}-{control.id}"[:120]
         assessment_label = str(result.get("compliance_status") or "unknown").upper().replace("_", " ")
         await enqueue_assessment_human_review(
@@ -195,6 +204,7 @@ async def assess_control_with_llm(
                 "org_id": org_id,
                 "control_id": control.id,
                 "confidence": confidence,
+                "conflicting_evidence": conflicting,
             },
         )
 

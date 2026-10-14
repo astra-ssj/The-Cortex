@@ -196,3 +196,52 @@ class PostureCalculator:
                 "trend": trend_val,
             },
         )
+
+    def calculate_cross_framework_inheritance(
+        self,
+        framework_id: str,
+        direct_controls_assessed: list[str],
+    ) -> dict[str, Any]:
+        """
+        Calculate transitive control coverage for framework_id based on controls
+        already satisfied in other authoritative frameworks.
+        """
+        from compliance.mappings import get_cross_framework_mappings
+        from compliance import get as get_fw_by_id
+
+        fid = _framework_id_from_str(framework_id)
+        if fid is None:
+            return {"direct_count": len(direct_controls_assessed), "inherited_count": 0, "inherited_controls": []}
+
+        fw = get_fw_by_id(fid)
+        if not fw:
+            return {"direct_count": len(direct_controls_assessed), "inherited_count": 0, "inherited_controls": []}
+
+        mappings = get_cross_framework_mappings(target_framework=framework_id)
+        inherited: list[dict[str, Any]] = []
+        direct_set = {c.strip().lower() for c in direct_controls_assessed}
+
+        for m in mappings:
+            src_match = m.source_control.strip().lower() in direct_set or any(
+                c in m.source_control.strip().lower() or m.source_control.strip().lower() in c
+                for c in direct_set
+            )
+            if src_match:
+                tgt = m.target_control.strip()
+                if tgt.lower() not in direct_set and not any(i["control_id"].lower() == tgt.lower() for i in inherited):
+                    inherited.append({
+                        "control_id": tgt,
+                        "inherited_from_framework": m.source_framework,
+                        "inherited_from_control": m.source_control,
+                        "relationship": m.relationship,
+                        "confidence": m.confidence,
+                        "basis": m.basis,
+                    })
+
+        return {
+            "framework_id": framework_id,
+            "direct_count": len(direct_controls_assessed),
+            "inherited_count": len(inherited),
+            "inherited_controls": inherited,
+        }
+

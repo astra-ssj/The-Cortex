@@ -35,11 +35,12 @@ _FORCE_BAD_OUTPUT_ENV = "CORTEX_LEARNING_FORCE_BAD_OUTPUT"
 
 _STUB_MODEL_NAME = "stub-devops-lead-v1"
 _DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-6"
+_DEFAULT_GEMINI_MODEL = "gemini-4-argon"
 _DEFAULT_OLLAMA_MODEL = "gemma4:12b"
 _DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 _MAX_TOKENS = 1000
 _OLLAMA_TEMPERATURE = 0.3
-_KNOWN_PROVIDERS = frozenset({"anthropic", "ollama", "stub"})
+_KNOWN_PROVIDERS = frozenset({"gemini", "anthropic", "ollama", "stub"})
 
 
 class _AgentProvider(Protocol):
@@ -242,6 +243,51 @@ class _OllamaProvider:
         return _strip_markdown_fences(str(content))
 
 
+class _GeminiProvider:
+    provider_id = "gemini"
+
+    def model_name(self) -> str:
+        return os.getenv("AGENT_MODEL", _DEFAULT_GEMINI_MODEL)
+
+    def validate(self) -> None:
+        if not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")):
+            raise RuntimeError(
+                "MODEL_PROVIDER=gemini requires GEMINI_API_KEY or GOOGLE_API_KEY. "
+                "Refusing to fall back to the stub."
+            )
+
+    async def invoke(self, role_prompt: str, context: dict[str, Any]) -> str:
+        key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or ""
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name()}:generateContent"
+        headers = {
+            "x-goog-api-key": key,
+            "Content-Type": "application/json",
+        }
+        body = {
+            "contents": [
+                {"role": "user", "parts": [{"text": _user_content(context)}]}
+            ],
+            "systemInstruction": {
+                "parts": [{"text": role_prompt}]
+            },
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.2,
+                "maxOutputTokens": _MAX_TOKENS,
+                "thinkingConfig": {
+                    "thinkingLevel": "high"
+                }
+            }
+        }
+        async with httpx.AsyncClient(timeout=llm_timeout_seconds()) as client:
+            response = await client.post(url, headers=headers, json=body)
+            response.raise_for_status()
+        data = response.json()
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        raw = "".join(p.get("text", "") for p in parts).strip()
+        return _strip_markdown_fences(raw)
+
+
 def resolve_agent_provider() -> _AgentProvider:
     """
     Honour MODEL_PROVIDER when set; otherwise Anthropic iff ANTHROPIC_API_KEY
@@ -252,10 +298,12 @@ def resolve_agent_provider() -> _AgentProvider:
         if explicit not in _KNOWN_PROVIDERS:
             raise RuntimeError(
                 f"Unknown MODEL_PROVIDER={explicit!r}. "
-                "Expected anthropic, ollama, or stub."
+                "Expected gemini, anthropic, ollama, or stub."
             )
         provider: _AgentProvider
-        if explicit == "anthropic":
+        if explicit == "gemini":
+            provider = _GeminiProvider()
+        elif explicit == "anthropic":
             provider = _AnthropicProvider()
         elif explicit == "ollama":
             provider = _OllamaProvider()
@@ -266,6 +314,8 @@ def resolve_agent_provider() -> _AgentProvider:
 
     if os.getenv("ANTHROPIC_API_KEY"):
         provider = _AnthropicProvider()
+    elif os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"):
+        provider = _GeminiProvider()
     else:
         provider = _StubProvider()
     provider.validate()

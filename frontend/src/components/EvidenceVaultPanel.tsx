@@ -104,7 +104,8 @@ const panelStyle = {
   borderRadius: 12,
 } as const;
 
-export function EvidenceVault() {
+export function EvidenceVaultPanel() {
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [computeState, setComputeState] = useState<"idle" | "computing" | "done">("idle");
   const [computedHash, setComputedHash] = useState<string | null>(null);
@@ -701,4 +702,6 @@ export function EvidenceVault() {
   );
 }
 
-export default EvidenceVault;
+export const EvidenceVault = EvidenceVaultPanel;
+export default EvidenceVaultPanel;
+

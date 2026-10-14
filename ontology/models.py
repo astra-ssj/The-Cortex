@@ -14,6 +14,9 @@ class ControlRef(BaseModel):
 
     framework_id: str = ""
     control_id: str = ""
+    verbatim_quote: str = ""
+    page_offset: Optional[int] = None
+    section_offset: Optional[str] = None
 
 
 class Obligation(SovereignModel):
@@ -51,6 +54,10 @@ class Evidence(SovereignModel):
     confidence_score: float = 0.0
     requires_human_review: bool = False
     collector: str = ""  # e.g. AI_AGENT for automated scans
+    verbatim_quote: str = ""
+    page_offset: Optional[int] = None
+    section_offset: Optional[str] = None
+    conflicting_evidence: bool = False
 
 
 class Finding(BaseModel):
@@ -110,3 +117,6 @@ class OntologyMappingResult(BaseModel):
     systems: list[SystemAsset] = Field(default_factory=list)
     confidence_score: float = 0.0
     requires_human_review: bool = False
+    verbatim_quote: str = ""
+    conflicting_evidence: bool = False
+

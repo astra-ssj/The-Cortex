@@ -19,6 +19,13 @@ export interface OverviewControl {
   dimensions: string[];
   /** Scenario that exercises this control, for the practise link. */
   scenario_slug: string | null;
+  source_type?: "DIRECT" | "INHERITED";
+  inherited_from?: {
+    framework: string;
+    control: string;
+    relationship?: string;
+    basis?: string;
+  } | null;
 }
 
 export interface UnassessedControl {
@@ -32,6 +39,7 @@ export interface OverviewSummary {
   controls_available: number;
   average_competency: number;
   open_gaps: number;
+  controls_inherited?: number;
 }
 
 export interface ComplianceOverview {
@@ -72,3 +80,33 @@ export function useComplianceOverview(
     staleTime: 15_000,
   });
 }
+
+export interface CrossFrameworkMapping {
+  source_framework: string;
+  source_control: string;
+  target_framework: string;
+  target_control: string;
+  relationship: "EQUIVALENT" | "SUBSET" | "SUPERSET" | "RELATED";
+  basis?: string;
+  transitive_weight?: number;
+}
+
+export function getComplianceMappings(
+  sourceFramework?: string,
+  targetFramework?: string,
+): Promise<CrossFrameworkMapping[]> {
+  const params = new URLSearchParams();
+  if (sourceFramework) params.set("source_framework", sourceFramework);
+  if (targetFramework) params.set("target_framework", targetFramework);
+  const qs = params.toString();
+  return fetchApi<CrossFrameworkMapping[]>(`/api/v1/compliance/mappings${qs ? `?${qs}` : ""}`);
+}
+
+export function useComplianceMappings(sourceFramework?: string, targetFramework?: string) {
+  return useQuery({
+    queryKey: ["compliance-mappings", sourceFramework ?? "all", targetFramework ?? "all"],
+    queryFn: () => getComplianceMappings(sourceFramework, targetFramework),
+    staleTime: 60_000,
+  });
+}
+

@@ -57,8 +57,17 @@ export default function AssessmentStream({
   runAccepted,
   onComplete,
 }: AssessmentStreamProps) {
-  const { events, isStreaming, streamError, startStream, stopStream } = useAssessmentStream();
+  const {
+    events,
+    isStreaming,
+    isReconnecting,
+    isCircuitBreakerOpen,
+    streamError,
+    startStream,
+    stopStream,
+  } = useAssessmentStream();
   const bodyRef = useRef<HTMLDivElement>(null);
+
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
   const completedRef = useRef(false);
@@ -180,8 +189,18 @@ export default function AssessmentStream({
           }}
         >
           <p style={{ fontFamily: "var(--font-sans)", fontSize: 15, color: "var(--text-secondary)", maxWidth: 440, lineHeight: 1.6 }}>
-            Your first assessment is running in the background. Results will appear on your dashboard shortly.
+            Your assessment is running in the background. Results will appear on your dashboard shortly.
           </p>
+          {isCircuitBreakerOpen && (
+            <div style={{ padding: "12px 18px", borderRadius: 8, background: "rgba(245, 158, 11, 0.1)", border: "1px solid rgba(245, 158, 11, 0.3)", maxWidth: 480 }}>
+              <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--amber, #f59e0b)", fontWeight: 600, margin: 0 }}>
+                Circuit Breaker Engaged
+              </p>
+              <p style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--text-secondary)", margin: "4px 0 0 0", lineHeight: 1.5 }}>
+                High load detected. Tasks are being safely queued and processed asynchronously to guarantee evaluation integrity.
+              </p>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => onCompleteRef.current()}
@@ -242,7 +261,7 @@ export default function AssessmentStream({
             gap: "8px",
             fontFamily: "var(--font-mono)",
             fontSize: "11px",
-            color: "var(--green)",
+            color: isReconnecting ? "var(--amber, #f59e0b)" : "var(--green)",
             letterSpacing: "1px",
           }}
         >
@@ -251,13 +270,17 @@ export default function AssessmentStream({
               width: "7px",
               height: "7px",
               borderRadius: "50%",
-              background: "var(--green)",
-              boxShadow: "0 0 8px var(--green)",
+              background: isReconnecting ? "var(--amber, #f59e0b)" : "var(--green)",
+              boxShadow: isReconnecting
+                ? "0 0 8px var(--amber, #f59e0b)"
+                : "0 0 8px var(--green)",
               animation: "pulse 2s infinite",
               display: "inline-block",
             }}
           />
-          ASSESSING {orgName.toUpperCase()}
+          {isReconnecting
+            ? `RECONNECTING STREAM (${orgName.toUpperCase()})`
+            : `ASSESSING ${orgName.toUpperCase()}`}
         </div>
       </div>
 
@@ -280,8 +303,9 @@ export default function AssessmentStream({
               letterSpacing: "1px",
             }}
           >
-            ZTAIP — AI Assessment Engine {isStreaming ? "· LIVE" : ""}
+            ZTAIP — AI Assessment Engine {isStreaming ? (isReconnecting ? "· RECONNECTING" : "· LIVE") : "· COMPLETED"}
           </div>
+
           <div
             ref={bodyRef}
             style={{

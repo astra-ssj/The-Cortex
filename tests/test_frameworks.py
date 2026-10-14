@@ -141,3 +141,38 @@ def test_get_unknown_returns_none() -> None:
     assert f2 is not None
     f3 = get(FrameworkId.NIS2_2022_2555)
     assert f3 is not None
+
+
+def test_registry_has_dora() -> None:
+    """Framework registry loads DORA successfully."""
+    framework = get(FrameworkId.DORA_2022_2554)
+    assert framework is not None
+    assert framework.id == "dora-2022-2554"
+    assert "DORA" in framework.name
+    assert framework.jurisdiction == "EU"
+    assert "dora" in framework.purpose_tags
+    assert len(framework.controls) >= 15
+    assert framework.all_controls_have_requirement()
+    assert framework.all_requirements_have_evidence_type()
+    domains = {c.domain for c in framework.controls}
+    assert "ICT Risk Management" in domains
+    assert "Digital Operational Resilience Testing" in domains
+    assert "Managing ICT Third-Party Risk" in domains
+
+
+def test_registry_has_iso42001() -> None:
+    """Framework registry loads ISO 42001 successfully with 38 controls."""
+    framework = get(FrameworkId.ISO42001_2023)
+    assert framework is not None
+    assert framework.id == "iso42001-2023"
+    assert "42001" in framework.name
+    assert framework.jurisdiction == "international"
+    assert "iso42001" in framework.purpose_tags
+    assert len(framework.controls) == 38
+    assert framework.all_controls_have_requirement()
+    assert framework.all_requirements_have_evidence_type()
+    domains = {c.domain for c in framework.controls}
+    assert "Policies Related to AI" in domains
+    assert "AI System Life Cycle" in domains
+    assert "Data for AI Systems" in domains
+

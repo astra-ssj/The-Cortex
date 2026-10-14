@@ -6,9 +6,23 @@ Release lines **v0.1.0–v0.7.x** below reflect repository tags and merge histor
 
 ## [Unreleased]
 
+### Added
+
+- **First-Class DORA (EU 2022/2554) & ISO 42001:2023 Evaluators:** Implemented backend evaluators in `compliance/dora.py` and `compliance/iso42001.py` derived directly from extracted knowledge bases. Registered all 10 authoritative compliance frameworks with 100% parity across `compliance.REGISTRY` and frontend `frameworkRegistry.ts`.
+- **Cross-Framework Mapping Engine (`/api/v1/compliance/mappings`):** Implemented authoritative cross-mapping catalog in `compliance/mappings.py` linking ISO 27001:2022, NIS2, DORA, GDPR, and ISO 42001:2023 controls with regulatory rationale and transitive confidence weights.
+- **Gemini 4 Argon Provider (`gemini-4-argon`):** Added `GeminiLLMProvider` (`core/llm/providers/gemini.py`) supporting Google's Gemini 4 Argon architecture with configurable `thinking_level` (`low`, `medium`, `high`), strict Pydantic JSON schema output, and context caching for regulatory reference corpora.
+- **Intelligent Task-Based LLM Routing:** Enhanced `core/llm/router.py` to route high-complexity gap assessments & grading to `gemini-4-argon` (`thinking_level="high"`), and untrusted document processing & ontology mapping to `gemini-4-argon` (`thinking_level="medium"`).
+- **Indirect Prompt Injection Hardening:** Hardened `mapping_prompt.py` and `assessment_prompt.py` with strict delimiter spotlighting (`<untrusted_document_content>`, `<untrusted_evidence_context>`) to neutralize prompt injection payloads in uploaded vendor evidence.
+- **Auditor-Grade Evidence Provenance & Offsets:** Enforced exact verbatim quotes, page/section offsets, and confidence metrics on control assessments and evidence mappings. Conflicting evidence or confidence scores below threshold automatically trigger Human Review routing.
+- **Transitive "Assess Once, Comply Many" Graph Engine:** Enhanced `core/control_posture.py` and `core/posture_calculator.py` to propagate transitive satisfaction from authoritative controls to mapped frameworks (ISO 27001 -> DORA / NIS2 / SOC 2 / GDPR) with explicit `source_type` ("DIRECT" vs "INHERITED") badges and regulatory provenance.
+- **SSE Stream Resilience & Reconnection:** Hardened `AssessmentStreamProvider` and `AssessmentStream.tsx` with exponential retry backoff, partial stream recovery deduplication, and active circuit-breaker fallback indicators.
+- **Migration Idempotency & Schema Ledger:** Added `schema_migrations` tracking table to `scripts/apply_cortex_schema.sh` to ensure migration runs are safe and strictly idempotent.
+
 ### Changed
 
+- **Frontend Component De-duplication:** Renamed presentational components (`AuditSimulator.tsx` -> `AuditSimulatorPanel.tsx`, `EvidenceVault.tsx` -> `EvidenceVaultPanel.tsx`) to resolve naming collisions with route pages.
 - **Astra GRC branding:** Product name, star-seal logo, and paper-white / navy theme on auth pages, sidebar, and help. Landing route is **`/audit-simulator`** (framework + audit type, then Learning Loop). Tagline: *Master GRC through adversarial simulation.*
+
 
 ### Added
 

@@ -34,7 +34,9 @@ class AnthropicLLMProvider:
         self._api_key, self._model = anthropic_config()
 
     def is_configured(self) -> bool:
-        return bool(self._api_key and self._api_key.strip())
+        key, _ = anthropic_config()
+        effective_key = key or self._api_key
+        return bool(effective_key and effective_key.strip())
 
     async def complete_structured(
         self,

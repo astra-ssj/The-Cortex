@@ -122,6 +122,22 @@ function ControlRow({
           <span className="truncate text-sm font-medium" style={{ color: "var(--text)" }}>
             {control.name}
           </span>
+          {control.source_type === "INHERITED" ? (
+            <Tooltip
+              content={`Inherited via cross-mapping from ${control.inherited_from?.framework ?? "framework"}: ${control.inherited_from?.control ?? ""}. ${control.inherited_from?.basis ?? ""}`}
+              position="top"
+            >
+              <span tabIndex={0}>
+                <Badge variant="purple" size="xs">
+                  Inherited via Cross-Mapping
+                </Badge>
+              </span>
+            </Tooltip>
+          ) : (
+            <Badge variant="neutral" size="xs">
+              Direct Evidence
+            </Badge>
+          )}
         </div>
         {control.dimensions.length > 0 ? (
           <div className="mt-1 text-xs" style={{ color: "var(--text-quiet)" }}>
@@ -261,7 +277,7 @@ export function ComplianceDashboard() {
             <StatCard
               label="Controls assessed"
               value={`${summary.controls_assessed}/${summary.controls_available}`}
-              hint={`${coverage}% of what the scenario library can exercise`}
+              hint={`${coverage}% coverable${summary.controls_inherited ? ` · ${summary.controls_inherited} inherited via cross-mapping` : ""}`}
             />
             <StatCard
               label="Average competency"

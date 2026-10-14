@@ -465,7 +465,8 @@ function riskColor(risk: RiskLevel): string {
   }
 }
 
-export function AuditSimulator() {
+export function AuditSimulatorPanel() {
+
   const [regulator, setRegulator] = useState<string>("bsi");
   const [framework, setFramework] = useState<string>("nis2");
   const [entity, setEntity] = useState<string>("de");
@@ -975,4 +976,6 @@ function AnimatedQuestion({ delayMs, children }: { delayMs: number; children: Re
   return <div className="intelligence-fade-in-up">{children}</div>;
 }
 
-export default AuditSimulator;
+export const AuditSimulator = AuditSimulatorPanel;
+export default AuditSimulatorPanel;
+

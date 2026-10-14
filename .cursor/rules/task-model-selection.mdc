@@ -10,9 +10,12 @@ Use this mapping for per-task model switching. Suggest the listed model when the
 | Task type | Model |
 |-----------|--------|
 | Architecture decisions, compliance reasoning | **claude-sonnet-4-6** |
+| High-complexity cross-framework gap assessments, grading | **gemini-4-argon** (`thinking_level="high"`) |
+| Document ingestion & ontology mapping (indirect prompt injection defense) | **gemini-4-argon** (`thinking_level="medium"`) |
 | Boilerplate, repetitive code, tests | **claude-haiku-4-5** (faster, cheaper) |
 | Complex multi-file refactors | **claude-sonnet-4-6** |
 
-- **Sonnet** for reasoning-heavy work and cross-file coherence.
+- **Gemini 4 Argon** for cross-framework compliance gap analysis, rubric grading, and adversarial document parsing with context caching.
+- **Sonnet** for reasoning-heavy architecture decisions and cross-file coherence.
 - **Haiku** for formulaic work (boilerplate, repetitive code, tests) to save cost and latency.
-- Default to **claude-sonnet-4-6** when the task is ambiguous or high-stakes.
+- Default to **claude-sonnet-4-6** or **gemini-4-argon** when the task is ambiguous or high-stakes.

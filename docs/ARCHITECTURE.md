@@ -43,26 +43,46 @@ does not fail schema validation.
 
 | `MODEL_PROVIDER` | Result |
 |------------------|--------|
-| unset | Anthropic if `ANTHROPIC_API_KEY` is set, else stub |
+| unset | Anthropic if `ANTHROPIC_API_KEY` set, then Gemini if `GEMINI_API_KEY` set, else stub |
+| `gemini` | Gemini 4 Argon (`gemini-4-argon`); configurable `thinking_level` (`low`, `medium`, `high`), structured JSON schemas, and context caching for regulatory corpora |
 | `anthropic` | Anthropic; missing key is a startup/config error (no silent stub) |
 | `ollama` | `POST {OLLAMA_BASE_URL}/v1/chat/completions` (default `http://localhost:11434`), model `AGENT_MODEL` or `gemma4:12b`, 120s timeout |
 | `stub` | Deterministic canned JSON (tests / no key) |
 
-Every path is wrapped by the module-level circuit breaker
-`learning_agent_model` (open after 5 consecutive failures).
-Ollama connection refusal raises with `OLLAMA_BASE_URL` and
-does not fall through to stub.
+Every path is wrapped by module-level circuit breakers (open after 5 consecutive failures).
+Tasks are dynamically routed by `core/llm/router.py`:
+- High-complexity cross-framework gap analysis & grading → `gemini-4-argon` (`thinking_level="high"`).
+- Untrusted document ingestion & ontology mapping → `gemini-4-argon` (`thinking_level="medium"`).
 
-`MODEL_PROVIDER=ollama` and fence-sharing live on
-`feat/ollama-provider` until that branch merges. On current
-`main`, selection is still `AGENT_MODEL` + `ANTHROPIC_API_KEY`
-→ Claude or stub, with fence-stripping on the Claude path only.
+Authenticated operator snapshot (JWT required — not on public `/api/v1/system/ztaip-status`):
 
-Authenticated operator snapshot (JWT required — not on public
-`/api/v1/system/ztaip-status`):
+`GET /api/v1/system/agent-status` → `{ provider, model, breaker_open }`.
 
-`GET /api/v1/system/agent-status` → `{ provider, model, breaker_open }`
-(shipped on `feat/ollama-provider`).
+## Compliance Frameworks & Cross-Framework Mapping
+
+Astra GRC registers 10 authoritative compliance frameworks with 100% frontend/backend parity (`compliance/registry.py` ↔ `frontend/src/lib/frameworkRegistry.ts`):
+- **ISO 27001:2022** (`iso27001-2022`)
+- **GDPR** (`gdpr-2016-679`)
+- **NIS2** (`nis2-2022-2555`)
+- **DORA** (`dora-2022-2554`) — Digital Operational Resilience Act (ICT Risk, Incident Reporting, Resilience Testing, Third-Party Risk, Information Sharing)
+- **ISO/IEC 42001:2023** (`iso42001-2023`) — Artificial Intelligence Management System (AIMS)
+- **NIST CSF 2.0** (`nist-csf-2.0`)
+- **CSA CCM v4** (`csa-ccm-v4`)
+- **Cyber Essentials v3.1** (`cyber-essentials-v3.1`)
+- **EU AI Act** (`eu-ai-act-2024`)
+- **EU Cybersecurity Act** (`eu-cybersecurity-act`)
+
+### "Assess Once, Comply Many" Graph Engine
+The cross-framework mapping catalog (`compliance/mappings.py`, exposed via `GET /api/v1/compliance/mappings`) maps controls bidirectionally between frameworks with regulatory rationale and transitive confidence weights.
+When evidence or scenario training satisfies an authoritative control in one framework (e.g., ISO 27001:2022 Annex A), `core/control_posture.py` automatically propagates transitive satisfaction to mapped controls across DORA, NIS2, and GDPR. The API and frontend badge controls as either **Direct Evidence** or **Inherited via Cross-Mapping** (with full provenance and discount factor applied).
+
+## Ingestion Security & Indirect Prompt Injection Defense
+
+All vendor compliance documents uploaded to the ingestion pipeline (`core/ingestion/document_processor.py`) undergo strict delimiter isolation:
+- Untrusted document chunks are encapsulated within `<untrusted_document_content>` tags before prompt construction (`core/llm/mapping_prompt.py`, `assessment_prompt.py`).
+- Every ontology mapping and control assessment requires **exact verbatim quotes, page/section offsets, and confidence scores**.
+- Conflicting evidence or mappings with confidence below 0.75 are automatically quarantined into the Human Review queue (`core/human_review.py`).
+
 
 ## Role model
 

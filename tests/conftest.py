@@ -130,6 +130,7 @@ def manual_finding(postgres_reachable: bool) -> Any:
     conn.autocommit = True
     try:
         with conn.cursor() as cur:
+            cur.execute("SET app.current_org = 'demo-org-001'")
             cur.execute(
                 """
                 INSERT INTO findings (
@@ -149,9 +150,11 @@ def manual_finding(postgres_reachable: bool) -> Any:
             )
         yield finding_id
         with conn.cursor() as cur:
+            cur.execute("SET app.current_org = 'demo-org-001'")
             cur.execute("DELETE FROM findings WHERE id = %s", (finding_id,))
     finally:
         conn.close()
+
 
 
 @pytest.fixture

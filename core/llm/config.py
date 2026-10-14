@@ -18,6 +18,14 @@ def llm_timeout_seconds() -> float:
     return float(os.getenv("CORTEX_LLM_TIMEOUT_SECONDS", "90"))
 
 
+def gemini_config() -> tuple[str | None, str, str]:
+    return (
+        os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"),
+        os.getenv("GEMINI_MODEL", "gemini-4-argon"),
+        os.getenv("GEMINI_THINKING_LEVEL", "high"),
+    )
+
+
 def anthropic_config() -> tuple[str | None, str]:
     return os.getenv("ANTHROPIC_API_KEY"), os.getenv(
         "ANTHROPIC_MODEL",

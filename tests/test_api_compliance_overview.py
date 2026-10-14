@@ -44,14 +44,19 @@ def test_overview_shape(
         "controls_available",
         "average_competency",
         "open_gaps",
+        "controls_inherited",
     }
     assert summary["controls_assessed"] == len(body["controls"])
     assert summary["controls_available"] >= summary["controls_assessed"]
     assert summary["open_gaps"] == sum(1 for c in body["controls"] if c["status"] == "gap")
+    assert summary["controls_inherited"] >= 0
 
     known_refs = {c["ref"] for c in body["controls"]}
+    for row in body["controls"]:
+        assert row.get("source_type") in ("DIRECT", "INHERITED")
     for row in body["not_assessed"]:
         assert row["ref"] not in known_refs, "a control cannot be both assessed and not assessed"
+
 
 
 def test_every_control_row_is_named_and_banded(
@@ -112,3 +117,31 @@ def test_fresh_org_reports_the_empty_state_honestly(
     assert body["summary"]["controls_assessed"] == 0
     assert len(body["not_assessed"]) == body["summary"]["controls_available"]
     assert body["summary"]["controls_available"] > 0
+
+
+def test_mappings_endpoint_returns_cross_framework_mappings(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    """GET /api/v1/compliance/mappings returns cross-framework mappings including DORA and ISO 42001."""
+    r = client.get("/api/v1/compliance/mappings", headers=auth_headers)
+    assert r.status_code == 200, r.text
+    mappings = r.json()
+    assert len(mappings) >= 10
+    frameworks = {m["source_framework"] for m in mappings} | {m["target_framework"] for m in mappings}
+    assert "iso27001-2022" in frameworks
+    assert "nis2-2022-2555" in frameworks
+    assert "dora-2022-2554" in frameworks
+    assert "iso42001-2023" in frameworks
+
+    # Filtered query
+    dora_r = client.get(
+        "/api/v1/compliance/mappings",
+        params={"target_framework": "dora-2022-2554"},
+        headers=auth_headers,
+    )
+    assert dora_r.status_code == 200
+    dora_mappings = dora_r.json()
+    assert len(dora_mappings) >= 5
+    for m in dora_mappings:
+        assert m["target_framework"] == "dora-2022-2554"
+

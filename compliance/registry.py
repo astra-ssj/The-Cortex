@@ -1,6 +1,7 @@
 # compliance/registry.py — Central registry for compliance frameworks.
-# Exactly 8 frameworks: iso27001-2022, gdpr-2016-679, nis2-2022-2555, nist-csf-2.0,
-# csa-ccm-v4, cyber-essentials-v3.1, eu-ai-act-2024, eu-cybersecurity-act.
+# 10 frameworks: iso27001-2022, gdpr-2016-679, nis2-2022-2555, nist-csf-2.0,
+# csa-ccm-v4, cyber-essentials-v3.1, eu-ai-act-2024, eu-cybersecurity-act,
+# dora-2022-2554, iso42001-2023.
 
 from __future__ import annotations
 
@@ -37,8 +38,19 @@ def exists(framework_id: str) -> bool:
 
 
 def register_all() -> None:
-    """Register exactly the 8 built-in frameworks. No SOC2, HIPAA, PCI DSS, CCPA."""
-    from compliance import csa_ccm, cyber_essentials, eu_ai_act, eu_cybersecurity_act, gdpr, iso27001, nist_csf, nis2
+    """Register all 10 built-in frameworks including DORA and ISO 42001."""
+    from compliance import (
+        csa_ccm,
+        cyber_essentials,
+        dora,
+        eu_ai_act,
+        eu_cybersecurity_act,
+        gdpr,
+        iso27001,
+        iso42001,
+        nist_csf,
+        nis2,
+    )
 
     register(iso27001.get_iso27001(), FrameworkId.ISO27001_2022)
     register(gdpr.get_gdpr(), FrameworkId.GDPR_2016_679)
@@ -48,3 +60,6 @@ def register_all() -> None:
     register(cyber_essentials.get_cyber_essentials(), FrameworkId.CYBER_ESSENTIALS_V3_1)
     register(eu_ai_act.get_eu_ai_act(), FrameworkId.EU_AI_ACT_2024)
     register(eu_cybersecurity_act.get_eu_cybersecurity_act(), FrameworkId.EU_CYBERSECURITY_ACT)
+    register(dora.get_dora(), FrameworkId.DORA_2022_2554)
+    register(iso42001.get_iso42001(), FrameworkId.ISO42001_2023)
+

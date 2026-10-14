@@ -43,13 +43,22 @@ def create_evidence_from_mapping(
             control_refs=[ctrl],
             confidence_score=mapping.confidence_score,
             requires_human_review=mapping.requires_human_review,
+            verbatim_quote=ctrl.verbatim_quote or mapping.verbatim_quote,
+            page_offset=ctrl.page_offset,
+            section_offset=ctrl.section_offset,
+            conflicting_evidence=mapping.conflicting_evidence,
         )
         evidence_list.append(ev)
         audit_fabric.log(
             "evidence_created",
             entity_type="evidence",
             entity_id=ev_id,
-            payload={"content_hash": digest[:16], "obligations_count": len(obligation_ids)},
+            payload={
+                "content_hash": digest[:16],
+                "obligations_count": len(obligation_ids),
+                "has_verbatim_quote": bool(ev.verbatim_quote),
+                "conflicting_evidence": ev.conflicting_evidence,
+            },
         )
     if not mapping.controls and obligation_ids:
         ev_id = f"ev-{document_id}-0"
@@ -63,6 +72,8 @@ def create_evidence_from_mapping(
             control_refs=[],
             confidence_score=mapping.confidence_score,
             requires_human_review=mapping.requires_human_review,
+            verbatim_quote=mapping.verbatim_quote,
+            conflicting_evidence=mapping.conflicting_evidence,
         )
         evidence_list.append(ev)
         audit_fabric.log("evidence_created", entity_type="evidence", entity_id=ev_id, payload={"content_hash": digest[:16]})

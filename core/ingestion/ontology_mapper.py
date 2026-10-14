@@ -33,14 +33,32 @@ register_circuit_breaker(_ingestion_breaker)
 
 
 def _llm_output_to_result(out: OntologyMappingLLMOutput) -> OntologyMappingResult:
-    controls = [ControlRef(framework_id=c.framework_id, control_id=c.control_id) for c in out.controls]
+    controls = [
+        ControlRef(
+            framework_id=c.framework_id,
+            control_id=c.control_id,
+            verbatim_quote=c.verbatim_quote,
+            page_offset=c.page_offset,
+            section_offset=c.section_offset,
+        )
+        for c in out.controls
+    ]
     obligations = [
         Obligation(
             jurisdiction=o.jurisdiction,
             purpose_tags=list(o.purpose_tags),
             id=o.id,
             description=o.description,
-            control_refs=[ControlRef(framework_id=r.framework_id, control_id=r.control_id) for r in o.control_refs],
+            control_refs=[
+                ControlRef(
+                    framework_id=r.framework_id,
+                    control_id=r.control_id,
+                    verbatim_quote=r.verbatim_quote,
+                    page_offset=r.page_offset,
+                    section_offset=r.section_offset,
+                )
+                for r in o.control_refs
+            ],
         )
         for o in out.obligations
     ]
@@ -65,13 +83,16 @@ def _llm_output_to_result(out: OntologyMappingLLMOutput) -> OntologyMappingResul
         for s in out.systems
     ]
     score = float(out.confidence_score)
+    requires_review = (score < CONFIDENCE_THRESHOLD) or bool(out.conflicting_evidence)
     return OntologyMappingResult(
         controls=controls,
         obligations=obligations,
         people=people,
         systems=systems,
         confidence_score=score,
-        requires_human_review=score < CONFIDENCE_THRESHOLD,
+        requires_human_review=requires_review,
+        verbatim_quote=out.verbatim_quote,
+        conflicting_evidence=out.conflicting_evidence,
     )
 
 
@@ -142,7 +163,7 @@ async def map_chunks_to_ontology(
             payload={"error": str(e)},
         )
         raise
-    if result.confidence_score < CONFIDENCE_THRESHOLD:
+    if result.confidence_score < CONFIDENCE_THRESHOLD or result.conflicting_evidence:
         result.requires_human_review = True
         async with async_session_factory() as session:
             await enqueue_ingestion_human_review(
@@ -160,6 +181,7 @@ async def map_chunks_to_ontology(
                     "org_id": org_id,
                     "confidence": float(result.confidence_score),
                     "document_type": document_type,
+                    "conflicting_evidence": result.conflicting_evidence,
                 },
             )
             await session.commit()

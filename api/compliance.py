@@ -45,6 +45,10 @@ class ControlOut(BaseModel):
     scenario_slug: Optional[str] = Field(
         default=None, description="Scenario that exercises this control, for the practise link"
     )
+    source_type: str = Field(default="DIRECT", description="DIRECT | INHERITED")
+    inherited_from: Optional[dict[str, str]] = Field(
+        default=None, description="Source framework, control, and relationship if inherited"
+    )
 
 
 class UnassessedControlOut(BaseModel):
@@ -57,6 +61,8 @@ class OverviewSummary(BaseModel):
     controls_available: int = Field(description="Controls the active scenarios can exercise")
     average_competency: int
     open_gaps: int
+    controls_inherited: int = Field(default=0, description="Controls inherited via cross-framework mapping")
+
 
 
 class ComplianceOverviewOut(SovereignModel):
@@ -137,6 +143,8 @@ async def get_compliance_overview(
         controls_available=len(coverable),
     )
 
+    inherited_count = sum(1 for row in controls if row.source_type == "INHERITED")
+
     return ComplianceOverviewOut(
         jurisdiction="internal",
         purpose_tags=["compliance", "assessment", "learning"],
@@ -146,9 +154,10 @@ async def get_compliance_overview(
         framework_name=registered.name,
         summary=OverviewSummary(
             controls_assessed=len(controls),
-            controls_available=len(coverable),
+            controls_available=len(coverable) + inherited_count,
             average_competency=average,
             open_gaps=sum(1 for row in controls if row.status == STATUS_GAP),
+            controls_inherited=inherited_count,
         ),
         controls=[
             ControlOut(
@@ -158,6 +167,8 @@ async def get_compliance_overview(
                 status=row.status,
                 dimensions=row.dimensions,
                 scenario_slug=row.scenario_slug,
+                source_type=row.source_type,
+                inherited_from=row.inherited_from,
             )
             for row in controls
         ],
@@ -166,3 +177,42 @@ async def get_compliance_overview(
             for row in not_assessed_controls(assessed, coverable, framework_id)
         ],
     )
+
+
+class ControlMappingOut(BaseModel):
+    source_framework: str
+    source_control: str
+    target_framework: str
+    target_control: str
+    relationship: str
+    confidence: float
+    basis: str
+
+
+@router.get(
+    "/mappings",
+    response_model=list[ControlMappingOut],
+    summary="Cross-framework control mappings (ISO 27001 ↔ NIS2 ↔ DORA ↔ EU AI Act / ISO 42001)",
+)
+async def get_control_mappings_endpoint(
+    source_framework: Optional[str] = Query(None, description="Optional source framework filter"),
+    target_framework: Optional[str] = Query(None, description="Optional target framework filter"),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> list[ControlMappingOut]:
+    """Retrieve cross-framework control mappings supporting 'assess once, comply many'."""
+    from compliance.mappings import get_cross_framework_mappings
+
+    mappings = get_cross_framework_mappings(source_framework, target_framework)
+    return [
+        ControlMappingOut(
+            source_framework=m.source_framework,
+            source_control=m.source_control,
+            target_framework=m.target_framework,
+            target_control=m.target_control,
+            relationship=m.relationship,
+            confidence=m.confidence,
+            basis=m.basis,
+        )
+        for m in mappings
+    ]
+

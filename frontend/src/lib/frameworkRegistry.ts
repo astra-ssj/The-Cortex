@@ -12,6 +12,8 @@ export const FRAMEWORK_IDS_ORDERED = [
   "cyber-essentials-v3.1",
   "eu-ai-act-2024",
   "eu-cybersecurity-act",
+  "dora-2022-2554",
+  "iso42001-2023",
 ] as const;
 
 export type FrameworkApiId = (typeof FRAMEWORK_IDS_ORDERED)[number];
@@ -25,6 +27,8 @@ const LABEL_BY_ID: Record<FrameworkApiId, string> = {
   "cyber-essentials-v3.1": "Cyber Essentials v3.1",
   "eu-ai-act-2024": "EU AI Act 2024",
   "eu-cybersecurity-act": "EU Cybersecurity Act",
+  "dora-2022-2554": "DORA (EU 2022/2554)",
+  "iso42001-2023": "ISO/IEC 42001:2023 (AIMS)",
 };
 
 /** Comma-separated list for assessment streams and API defaults — derived so ids stay in one place. */

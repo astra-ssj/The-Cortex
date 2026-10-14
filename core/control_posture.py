@@ -72,6 +72,9 @@ class ControlPosture:
     status: str
     dimensions: list[str]
     scenario_slug: str | None
+    source_type: str = "DIRECT"
+    inherited_from: dict[str, str] | None = None
+
 
 
 @dataclass(frozen=True)
@@ -268,20 +271,26 @@ def _session_control_scores(
     return scored
 
 
+def _normalize_key(s: str) -> str:
+    """Normalize control references for fuzzy cross-framework matching (e.g. ISO-A.8.4 -> a84)."""
+    return s.strip().lower().replace("-", "").replace("_", "").replace(".", "").replace("iso", "")
+
+
 def derive_control_posture(
     sessions: list[dict[str, Any]],
     catalogue: ScenarioCatalogue,
     framework_id: FrameworkId,
+    include_inherited: bool = True,
 ) -> list[ControlPosture]:
     """
     Roll completed sessions up into one posture row per assessed control.
+    Supports transitive cross-framework posture inheritance ("Assess Once, Comply Many"):
+    when evidence/competency satisfies a control in another authoritative framework (e.g. ISO 27001),
+    it automatically propagates partial/full coverage to mapped controls in NIS2, DORA, GDPR, and ISO 42001.
 
     Each learner contributes their latest score for a control, because competency
     is a current capability claim rather than a running average. Those latest
-    scores are then averaged across learners: one person's bad run must not erase
-    what the team has demonstrated, and one strong run must not mask a weak team.
-
-    Sessions must be ordered oldest-first.
+    scores are then averaged across learners.
     """
     framework = get_framework(framework_id)
     if framework is None:
@@ -291,20 +300,14 @@ def derive_control_posture(
     latest_by_learner: dict[tuple[str, str], int] = {}
     dims_by_control: dict[str, set[str]] = {}
     scenario_by_control: dict[str, str] = {}
+    all_control_latest_by_learner: dict[tuple[str, str], int] = {}
 
     for session in sessions:
         learner = str(session.get("learner_id") or "")
         scenario = str(session.get("scenario") or "")
         for ref, (score, dims) in _session_control_scores(session, catalogue).items():
+            all_control_latest_by_learner[(learner, ref)] = score
             if ref not in names:
-                # Authored against a control this framework does not define. Skip it
-                # rather than invent a row; the migration test catches the content bug.
-                logger.warning(
-                    "control_ref_not_in_framework",
-                    control_ref=ref,
-                    framework_id=framework_id.value,
-                    scenario=scenario,
-                )
                 continue
             latest_by_learner[(learner, ref)] = score
             dims_by_control.setdefault(ref, set()).update(dims)
@@ -315,7 +318,7 @@ def derive_control_posture(
     for (_learner, ref), score in latest_by_learner.items():
         scores_by_control.setdefault(ref, []).append(score)
 
-    posture = [
+    posture: list[ControlPosture] = [
         ControlPosture(
             ref=ref,
             name=names[ref],
@@ -325,18 +328,77 @@ def derive_control_posture(
                 HUMAN_LABELS[dim] for dim in DIMENSIONS if dim in dims_by_control.get(ref, set())
             ],
             scenario_slug=scenario_by_control.get(ref),
+            source_type="DIRECT",
+            inherited_from=None,
         )
         for ref, learner_scores in scores_by_control.items()
     ]
+
+    # Transitive cross-framework inheritance ("Assess Once, Comply Many")
+    if include_inherited:
+        from compliance.mappings import get_cross_framework_mappings
+
+        # Calculate average assessed competency across all frameworks
+        all_scores_grouped: dict[str, list[int]] = {}
+        for (_learner, ref), score in all_control_latest_by_learner.items():
+            all_scores_grouped.setdefault(ref, []).append(score)
+
+        avg_assessed: dict[str, int] = {
+            ref: round(sum(scores) / len(scores))
+            for ref, scores in all_scores_grouped.items()
+        }
+
+        direct_refs = {p.ref for p in posture}
+        normalized_names = {_normalize_key(cid): (cid, name) for cid, name in names.items()}
+
+        cross_mappings = get_cross_framework_mappings(target_framework=framework_id.value)
+        for m in cross_mappings:
+            source_score: int | None = None
+            for assessed_ref, s_val in avg_assessed.items():
+                if _normalize_key(assessed_ref) == _normalize_key(m.source_control):
+                    source_score = s_val
+                    break
+
+            if source_score is not None:
+                matched_target = None
+                norm_target = _normalize_key(m.target_control)
+                if norm_target in normalized_names:
+                    matched_target = normalized_names[norm_target]
+                elif m.target_control in names:
+                    matched_target = (m.target_control, names[m.target_control])
+
+                if matched_target:
+                    target_id, target_name = matched_target
+                    if target_id not in direct_refs and not any(p.ref == target_id for p in posture):
+                        inherited_comp = round(source_score * m.confidence)
+                        posture.append(
+                            ControlPosture(
+                                ref=target_id,
+                                name=target_name,
+                                competency=inherited_comp,
+                                status=band(inherited_comp),
+                                dimensions=[f"Inherited via {m.source_framework}"],
+                                scenario_slug=None,
+                                source_type="INHERITED",
+                                inherited_from={
+                                    "framework": m.source_framework,
+                                    "control": m.source_control,
+                                    "relationship": m.relationship,
+                                    "basis": m.basis,
+                                },
+                            )
+                        )
+
     posture.sort(key=_ref_sort_key)
     return posture
 
 
 def _ref_sort_key(item: ControlPosture) -> tuple[int, int, int, str]:
     """
-    Sort A.5.9 before A.5.12, which a plain string sort inverts, and keep the
-    management clauses after Annex A.
+    Sort Annex A and numbered controls numerically and gracefully handle non-numeric control IDs.
     """
+    import re
+
     parts = item.ref.split(".")
     if parts[0] == "clause":
         head = 1
@@ -346,10 +408,10 @@ def _ref_sort_key(item: ControlPosture) -> tuple[int, int, int, str]:
         rest = parts[1:] if parts[0].startswith("a") else parts
 
     def num(index: int) -> int:
-        try:
-            return int(rest[index])
-        except (IndexError, ValueError):
-            return 0
+        if index < len(rest):
+            digits = re.findall(r"\d+", rest[index])
+            return int(digits[0]) if digits else 0
+        return 0
 
     return (head, num(0), num(1), item.ref)
 

@@ -1,4 +1,5 @@
-import EvidenceVaultPanel from "../components/EvidenceVault";
+import EvidenceVaultPanel from "../components/EvidenceVaultPanel";
+
 
 // Evidence Vault is its own first-class destination under Inventory (no longer a tab
 // inside Intelligence). The append-only, hash-chained record store is an inventory of

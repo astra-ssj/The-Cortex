@@ -51,6 +51,7 @@ def test_llm_platform_status_shape() -> None:
     assert "providers" in status
     assert "anthropic" in status["providers"]
     assert "openai" in status["providers"]
+    assert "gemini" in status["providers"]
     assert "stub" in status["providers"]
 
 
@@ -63,3 +64,36 @@ def test_default_chain_prefers_anthropic() -> None:
         assert chain[0] == "anthropic"
     finally:
         monkeypatch.undo()
+
+
+def test_gemini_provider_instantiation_and_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-4-argon")
+    monkeypatch.setenv("GEMINI_THINKING_LEVEL", "high")
+    gemini = get_provider("gemini")
+    assert gemini is not None
+    assert gemini.provider_id == "gemini"
+    assert gemini.is_configured() is True
+
+
+def test_dynamic_task_routing_for_high_complexity_and_ingestion(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-anthropic-key")
+    monkeypatch.setenv("CORTEX_LLM_PROVIDERS", "anthropic,gemini,stub")
+
+    # Assessment task prioritizes gemini with high thinking level
+    chain_assessment = resolve_provider_chain(task_type="assessment")
+    assert chain_assessment[0].provider_id == "gemini"
+
+    # Grading task prioritizes gemini with high thinking level
+    chain_grading = resolve_provider_chain(task_type="grading")
+    assert chain_grading[0].provider_id == "gemini"
+
+    # Ingestion task prioritizes gemini
+    chain_ingest = resolve_provider_chain(task_type="ingestion")
+    assert chain_ingest[0].provider_id == "gemini"
+
+    # General task follows configured chain
+    chain_general = resolve_provider_chain(task_type="general")
+    assert chain_general[0].provider_id == "anthropic"
+

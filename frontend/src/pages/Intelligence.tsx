@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import AuditSimulator from "../components/AuditSimulator";
+import AuditSimulatorPanel from "../components/AuditSimulatorPanel";
 
 // Audit Simulator is the only remaining surface and is illustrative. The tab bar is
 // kept so the sidebar deep-link and sub-route shape survive future additions.
@@ -146,7 +146,8 @@ export default function Intelligence() {
         ))}
       </div>
 
-      <>{tab === "simulator" && <AuditSimulator />}</>
+      <>{tab === "simulator" && <AuditSimulatorPanel />}</>
     </div>
+
   );
 }

@@ -4,9 +4,36 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export PGPASSWORD="${PGPASSWORD:-}"
+if ! command -v psql &>/dev/null; then
+  for p in /opt/homebrew/opt/libpq/bin /opt/homebrew/Cellar/libpq/*/bin /usr/local/opt/libpq/bin; do
+    if [[ -x "$p/psql" ]]; then
+      export PATH="$p:$PATH"
+      break
+    fi
+  done
+fi
 psql() {
   command psql -v ON_ERROR_STOP=1 "$@"
 }
+
+# Ensure migration tracking table exists
+echo "Verifying schema_migrations tracking table..."
+psql -c "CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR(255) PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);" || true
+
+# If schema was already provisioned in the past but schema_migrations is empty,
+# backfill entries for migrations that are already reflected in the schema.
+HAS_EXISTING_SCHEMA=$(psql -t -A -c "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'scenarios';" 2>/dev/null || true)
+if [[ "$HAS_EXISTING_SCHEMA" == "1" ]]; then
+  COUNT_RECORDED=$(psql -t -A -c "SELECT COUNT(*) FROM schema_migrations;" 2>/dev/null || echo "0")
+  if [[ "$COUNT_RECORDED" == "0" ]]; then
+    echo "Existing schema detected with empty tracker; initializing schema_migrations ledger..."
+    for f in "$ROOT"/migrations/*.sql; do
+      M_NAME="$(basename "$f")"
+      psql -c "INSERT INTO schema_migrations (version) VALUES ('$M_NAME') ON CONFLICT DO NOTHING;" >/dev/null 2>&1 || true
+    done
+  fi
+fi
+
 # Single migration lane: migrations/002 … 035 (filename order == apply order).
 # 009/010/013/014/015 still run before 018 drops their tables: replaying history
 # keeps fresh installs and pre-018 databases converging on the same end state.
@@ -48,9 +75,23 @@ for f in \
   "$ROOT/migrations/034_remove_legacy_cism_scenario_tag.sql" \
   "$ROOT/migrations/035_control_refs_and_session_framework.sql"
   do
-  echo "Applying $(basename "$f")..."
+  M_NAME="$(basename "$f")"
+  if [[ "$M_NAME" != "init.sql" ]]; then
+    IS_APPLIED=$(psql -t -A -c "SELECT 1 FROM schema_migrations WHERE version = '$M_NAME';" 2>/dev/null || true)
+    if [[ "$IS_APPLIED" == "1" ]]; then
+      echo "Skipping already applied migration: $M_NAME"
+      continue
+    fi
+  fi
+
+  echo "Applying $M_NAME..."
   psql -f "$f"
+
+  if [[ "$M_NAME" != "init.sql" ]]; then
+    psql -c "INSERT INTO schema_migrations (version) VALUES ('$M_NAME') ON CONFLICT (version) DO NOTHING;" >/dev/null 2>&1 || true
+  fi
 done
+
 
 # App connects as non-superuser cortex_app (RLS + audit grants actually bind).
 # Sync password to the same secret used by migrations / DATABASE_URL.

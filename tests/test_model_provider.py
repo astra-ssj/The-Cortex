@@ -200,3 +200,60 @@ async def test_ollama_fenced_json_strips_and_validates(monkeypatch: pytest.Monke
     parsed = AgentResponse.model_validate(json.loads(raw))
     assert parsed.speaker == "Account Manager"
     assert parsed.demands == ["Joint customer statement"]
+
+
+def test_explicit_gemini_without_key_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MODEL_PROVIDER", "gemini")
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
+        resolve_agent_provider()
+
+
+def test_explicit_gemini_with_key_selects_gemini(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MODEL_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    provider = resolve_agent_provider()
+    assert provider.provider_id == "gemini"
+
+
+@pytest.mark.asyncio
+async def test_gemini_provider_invoke_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MODEL_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    captured: dict[str, Any] = {}
+
+    class _FakeGeminiClient:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            captured["timeout"] = kwargs.get("timeout")
+
+        async def __aenter__(self) -> _FakeGeminiClient:
+            return self
+
+        async def __aexit__(self, *args: Any) -> None:
+            return None
+
+        async def post(self, url: str, headers: dict[str, Any] | None = None, json: dict[str, Any] | None = None) -> _FakeResponse:
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            payload = {
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [{"text": _valid_agent_json()}]
+                        }
+                    }
+                ]
+            }
+            return _FakeResponse(payload)
+
+    monkeypatch.setattr("core.agents.model.httpx.AsyncClient", _FakeGeminiClient)
+
+    raw = await call_model("You are the Account Manager.", {"stage": "brief"})
+    assert "generativelanguage.googleapis.com" in captured["url"]
+    assert captured["headers"]["x-goog-api-key"] == "test-gemini-key"
+    assert captured["json"]["generationConfig"]["thinkingConfig"]["thinkingLevel"] == "high"
+    parsed = AgentResponse.model_validate(json.loads(raw))
+    assert parsed.speaker == "Account Manager"
+

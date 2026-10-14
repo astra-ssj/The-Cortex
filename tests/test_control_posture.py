@@ -308,3 +308,48 @@ def test_json_encoded_state_is_accepted() -> None:
     session["competency"] = json.dumps(session["competency"])
     posture = derive_control_posture([session], _catalogue(), ISO)
     assert posture[0].competency == 90
+
+
+def test_cross_framework_transitive_posture_inheritance() -> None:
+    """
+    Assess Once, Comply Many:
+    Evidence gathered for ISO 27001:2022 control a.8.2 (Privileged access rights)
+    transitively satisfies mapped controls in DORA (DORA-Art.9).
+    """
+    sessions = [_session("u1", "s1", ["good"], control_mapping=86)]
+    dora_posture = derive_control_posture(sessions, _catalogue(), FrameworkId.DORA)
+
+    assert len(dora_posture) >= 1
+    dora_control = next((p for p in dora_posture if p.ref == "DORA-Art.9"), None)
+    assert dora_control is not None, f"Expected DORA-Art.9 in inherited posture: {[p.ref for p in dora_posture]}"
+    # 86 discounted by mapping confidence 0.94 = 81
+    assert dora_control.competency == 81
+    assert dora_control.status == STATUS_STRONG
+    assert dora_control.source_type == "INHERITED"
+    assert dora_control.inherited_from is not None
+    assert dora_control.inherited_from["framework"] == "iso27001-2022"
+    assert dora_control.inherited_from["control"].lower() == "a.8.2"
+
+
+
+def test_direct_evidence_precedes_inherited_mapping() -> None:
+    """
+    When direct scenario evidence exists for a control, it takes precedence
+    over inherited mappings (source_type == "DIRECT").
+    """
+    catalogue = _catalogue(
+        {
+            ("s1", "stage1", "direct_dora"): _content({"DORA-Art.9"}, {"control_mapping"}),
+            ("s1", "stage1", "iso_mapping"): _content({"a.8.2"}, {"evidence"}),
+        }
+    )
+    sessions = [_session("u1", "s1", ["direct_dora"], control_mapping=75)]
+    posture = derive_control_posture(sessions, catalogue, FrameworkId.DORA)
+
+    dora_control = next((p for p in posture if p.ref == "DORA-Art.9"), None)
+    assert dora_control is not None
+    assert dora_control.competency == 75
+    assert dora_control.source_type == "DIRECT"
+    assert dora_control.inherited_from is None
+
+

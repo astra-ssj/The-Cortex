@@ -8,12 +8,14 @@ from compliance.registry import REGISTRY, get as registry_get, register
 
 
 def test_register_all_populates_registry() -> None:
-    """register_all() registers exactly 8 built-in frameworks."""
+    """register_all() registers all 10 built-in frameworks."""
     register_all()
-    assert len(REGISTRY) == 8
+    assert len(REGISTRY) == 10
     assert FrameworkId.NIST_CSF_2_0 in REGISTRY
     assert FrameworkId.GDPR_2016_679 in REGISTRY
     assert FrameworkId.NIS2_2022_2555 in REGISTRY
+    assert FrameworkId.DORA_2022_2554 in REGISTRY
+    assert FrameworkId.ISO42001_2023 in REGISTRY
 
 
 def test_get_returns_framework() -> None:

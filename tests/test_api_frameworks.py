@@ -17,8 +17,10 @@ def test_list_frameworks(client: TestClient, auth_headers: dict[str, str]) -> No
     assert "nist-csf-2.0" in ids
     assert "gdpr-2016-679" in ids
     assert "nis2-2022-2555" in ids
-    assert payload["total"] == 8  # Exactly 8 frameworks (no SOC2, HIPAA, PCI_DSS, CCPA)
-    assert len(data) == 8
+    assert "dora-2022-2554" in ids
+    assert "iso42001-2023" in ids
+    assert payload["total"] == 10  # Exactly 10 authoritative frameworks
+    assert len(data) == 10
     for fw in data:
         assert "id" in fw and "name" in fw and "version" in fw
         assert "control_count" in fw and isinstance(fw["control_count"], int)

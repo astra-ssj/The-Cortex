@@ -8,6 +8,7 @@ Astra GRC routes all structured LLM calls through `core/llm` — never call vend
 |-------------|-----|----------------|
 | `anthropic` | `ANTHROPIC_API_KEY` | `ANTHROPIC_MODEL` (default `claude-sonnet-4-20250514`) |
 | `openai` | `OPENAI_API_KEY` | `OPENAI_MODEL` (default `gpt-4o-mini`) |
+| `gemini` | `GEMINI_API_KEY` | `GEMINI_MODEL` (default `gemini-4-argon`) |
 | `stub` | (always available) | deterministic JSON for CI / offline |
 
 ## Provider chain (fallback)
@@ -15,18 +16,33 @@ Astra GRC routes all structured LLM calls through `core/llm` — never call vend
 Set ordered fallback with:
 
 ```bash
-export CORTEX_LLM_PROVIDERS=anthropic,openai,stub
+export CORTEX_LLM_PROVIDERS=gemini,anthropic,openai,stub
 ```
 
 Legacy single value still works:
 
 ```bash
-export CORTEX_LLM_PROVIDER=anthropic
+export CORTEX_LLM_PROVIDER=gemini
 ```
 
 The router tries each **configured** provider in order; `stub` is appended automatically if not listed and nothing else is configured.
 
-## Anthropic (recommended)
+## Google Gemini 4 Argon (recommended for high-complexity tasks)
+
+```bash
+export GEMINI_API_KEY=AIzaSy...
+export GEMINI_MODEL=gemini-4-argon
+export GEMINI_THINKING_LEVEL=high   # low | medium | high
+export CORTEX_LLM_PROVIDERS=gemini,anthropic,stub
+```
+
+Features:
+- Configurable **`thinking_level`** (`low`, `medium`, `high`) for deep reasoning on multi-hop regulatory standards.
+- Structured JSON schema enforcement with strict Pydantic output.
+- Explicit context caching for `content/skills/` reference guidelines and standards to minimize latency and token consumption.
+- Dynamic task routing: automatically selected for high-complexity cross-framework gap assessments, grading (`thinking_level="high"`), and indirect prompt-injection-resistant document ingestion (`thinking_level="medium"`).
+
+## Anthropic (multi-vendor)
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
@@ -36,7 +52,7 @@ export CORTEX_LLM_PROVIDERS=anthropic,stub
 
 Uses the [Messages API](https://docs.anthropic.com/en/api/messages) via `httpx` (no Anthropic SDK required).
 
-## OpenAI (optional second vendor)
+## OpenAI (optional multi-vendor)
 
 ```bash
 export OPENAI_API_KEY=sk-...

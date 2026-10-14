@@ -5,6 +5,7 @@ import { primaryIngestProvider, useLlmProviders } from "../hooks/useLlmProviders
 const LABELS: Record<string, string> = {
   anthropic: "Anthropic",
   openai: "OpenAI",
+  gemini: "Gemini 4 Argon",
   stub: "Stub (offline)",
 };
 

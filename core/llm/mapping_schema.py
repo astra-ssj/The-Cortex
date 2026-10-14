@@ -1,6 +1,6 @@
-# core/llm/mapping_schema.py — Pydantic schema for document → ontology LLM output.
-
 from __future__ import annotations
+
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -8,6 +8,9 @@ from pydantic import BaseModel, Field
 class LLMControlRef(BaseModel):
     framework_id: str
     control_id: str
+    verbatim_quote: str = Field(default="", max_length=2000, description="Exact quote supporting mapping")
+    page_offset: Optional[int] = Field(default=None, description="Source page number")
+    section_offset: Optional[str] = Field(default=None, max_length=200, description="Section offset or header")
 
 
 class LLMObligation(BaseModel):
@@ -40,3 +43,6 @@ class OntologyMappingLLMOutput(BaseModel):
     people: list[LLMPerson] = Field(default_factory=list)
     systems: list[LLMSystemAsset] = Field(default_factory=list)
     confidence_score: float = Field(ge=0.0, le=1.0)
+    verbatim_quote: str = Field(default="", max_length=2000)
+    conflicting_evidence: bool = Field(default=False, description="Flagged when contradictory evidence is found")
+
