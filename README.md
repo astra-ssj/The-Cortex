@@ -17,8 +17,8 @@ Counts below are taken from the seed migrations (`migrations/019`–`024`), not 
 | Framework | Status | Scenarios |
 |-----------|--------|-----------|
 | ISO 27001:2022 | Live | **5** (CX-1001–CX-1005) |
-| GDPR | In development | — |
-| SOC 2 | In development | — |
+| GDPR | Live in Simulator | GDPR Article 33 Breach Notification & DPO Escalation |
+| SOC 2 | Live in Simulator | CC6.3 Logical Access & Orphaned Credential Review |
 
 ISO 27001 track:
 

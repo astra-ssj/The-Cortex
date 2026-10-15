@@ -240,9 +240,68 @@ Scoring rules per dimension:
 
 All scores clamp 0–100. All dimensions start at 50.
 
+## High-Throughput Audit Stream & Distributed Ingestion Pipeline
+
+To handle high-velocity telemetry and decision records under audit conditions without degrading primary API latency, CORTEX features an asynchronous, partitioned streaming fabric:
+
+1. **Partitioned Ingestion (`api/audit_decision.py`):**
+   - Endpoint: `POST /api/audit/decision` (returns HTTP 202 Accepted).
+   - MurmurHash3 Partitioning: `mmh3.hash(tenant_id, signed=False) % 64` maps tenant records deterministically to one of 64 Redis streams (`audit_stream:partition_{0..63}`).
+   - Complete Database Decoupling: Ingestion never opens a PostgreSQL connection; failures in backend storage do not impact ingestion latency. Outages in Redis return clean 503 Service Unavailable responses.
+
+2. **Resilient Audit Worker & Cryptographic Hash Chaining (`core/audit_worker.py`):**
+   - **Phase 1 (Zombie Recovery):** Uses `XAUTOCLAIM` to reclaim and process messages pending for >60,000ms.
+   - **Phase 2 (Normal Fetch):** Uses `XREADGROUP` to fetch batches up to 100 messages with 2000ms block timeout.
+   - **Phase 3 (DB Transaction):** Groups messages by `tenant_id`, acquires `SELECT ... FOR UPDATE` lock on `tenant_audit_tail`, and computes cryptographic SHA-256 hashes in memory:
+     $$\text{current\_hash} = \text{SHA-256}(\text{tenant\_id} \mathbin{\Vert} \text{sequence} \mathbin{\Vert} \text{prev\_hash} \mathbin{\Vert} \text{action\_data})$$
+   - **Phase 4 (Bulk Insert & Tail Upsert):** Uses `asyncpg.executemany` for high-throughput batch inserts into `audit_log`, advances `tenant_audit_tail`, and commits atomically.
+   - **Phase 5 (Stream Acknowledgement & Trim):** Executes `XACK` on processed message IDs and periodically trims streams (`XTRIM ... MAXLEN ~ 100000`).
+   - **PgBouncer Safety:** `create_pg_pool()` sets `statement_cache_size=0` and `prepared_statement_cache_size=0` to guarantee compatibility with transaction-pooling PgBouncer setups. Poison-pill payloads causing `asyncpg.DataError` are safely routed to a Dead Letter Queue (`audit_stream:dlq`).
+
+## Multi-Tenant RLS & Append-Only Audit Schema
+
+Migrations `036_tenant_audit_tail.sql` and `037_multi_tenant_rls_audit_system.sql` define the tamper-evident audit ledger:
+
+```sql
+-- Tail tracking sequence and SHA-256 hash state per tenant
+CREATE TABLE tenant_audit_tail (
+    tenant_id UUID PRIMARY KEY,
+    last_hash TEXT NOT NULL,
+    current_sequence BIGINT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Immutable audit log
+CREATE TABLE audit_log (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id UUID NOT NULL,
+    sequence BIGINT NOT NULL,
+    user_id UUID NOT NULL,
+    action_data JSONB NOT NULL,
+    prev_hash TEXT NOT NULL,
+    current_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_audit_log_tenant_sequence UNIQUE (tenant_id, sequence)
+);
+```
+
+- **Row-Level Security (RLS):** Strict RLS policies isolate tenant records via `cortex_current_org()`.
+- **Append-Only Trigger Defense:** A PostgreSQL trigger strictly rejects any `UPDATE` or `DELETE` attempt with `RAISE EXCEPTION`, even if attempted by privileged database roles.
+
+## Pure Functional Compliance Grader (`grader.py`)
+
+Compliance learning loops utilize a 100% pure functional decision evaluation engine (`grader.py` and `core/grader.py`):
+- **Zero Side Effects:** Strictly zero network calls, zero database queries, zero LLM invocations.
+- **Pydantic Validation:** Returns `GradingResult` with four normalized float dimensions constrained to `[0.0, 1.0]`:
+  - `control_mapping_score`: 1.0 if `choice['selected_control'] == reference_data['correct_control']`, else 0.0.
+  - `evidence_score`: Resolved via `evidence_scores` lookup dictionary or exact canonical match.
+  - `escalation_score`: Base score resolved via lookup/equality, with an automatic -0.2 penalty if `decision_history` contains prior failed escalations (clamped between 0.0 and 1.0).
+  - `remediation_score`: Resolved via `remediation_scores` lookup dictionary or exact canonical match.
+- **Defensive Immutability:** Makes defensive deep copies of all input dictionaries and lists to guarantee caller structures are never mutated.
+
 ## Migration Lane
 
-Single ordered lane: `init.sql` → `002` → ... → `024`.
+Single ordered lane: `init.sql` → `002` → ... → `037`.
 Applied by `scripts/apply_cortex_schema.sh` and mounted in
 `docker-compose.yml` under `/docker-entrypoint-initdb.d/`.
 
@@ -254,6 +313,8 @@ Key migrations:
 - `019` — scenarios, scenario_stages, scenario_choices
 - `020` — competency column on scenario_sessions
 - `021–024` — scenario seeds CX-1001 through CX-1005
+- `036` — tenant_audit_tail schema for audit queue commits
+- `037` — multi-tenant RLS audit log with tamper-evident hash chaining and trigger defense
 
 ## Security Baseline
 
@@ -268,20 +329,23 @@ Key migrations:
 ## Repository Layout
 
 ```
-api/                    REST routers (auth, learning, scenarios, system)
+api/                    REST routers (auth, learning, scenarios, system, audit_decision)
 core/
   agents/               Harness, model, scenario, grading
+  audit_worker.py       Resilient Redis Streams -> Postgres audit consumer
   audit_fabric.py       Append-only audit log writer
+  grader.py             Pure functional compliance decision grader
   security.py           JWT, bcrypt
   tenant.py             Org scoping, RLS binding
 compliance/             Framework registry and posture primitives
-migrations/             Single ordered lane 002–024
+migrations/             Single ordered lane 002–037
 scripts/                apply_cortex_schema.sh, smoke_happy_path.sh
 frontend/
   src/
-    pages/              LearningLoop.tsx, Login.tsx, ...
+    pages/              AuditSimulator.tsx, LearningLoop.tsx, Login.tsx, ...
     api/                learning.ts, client.ts
-    components/         HelpPanel.tsx, Sidebar.tsx, ...
-    lib/                helpDocsContent.ts
+    components/         AuditSimulatorPanel.tsx, HelpPanel.tsx, Sidebar.tsx, ...
+    lib/                frameworkRegistry.ts, helpDocsContent.ts
 docs/                   Architecture and setup docs
 ```
+
