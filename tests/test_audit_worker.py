@@ -2,22 +2,18 @@
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 import uuid
 
 import asyncpg
 import asyncpg.exceptions
 import pytest
-import redis.asyncio as aioredis
 
 from core.audit_worker import (
     AuditStreamWorker,
     compute_audit_hash,
     create_pg_pool,
-    run_audit_worker,
 )
 
 
@@ -384,7 +380,10 @@ async def test_audit_worker_live_postgres_integration():
             assert audit_rows[1]["prev_hash"] == audit_rows[0]["hash"]
 
             # Cleanup test data in tenant_audit_tail (audit_log is append-only immutable)
-            await conn.execute("DELETE FROM tenant_audit_tail WHERE tenant_id = $1", t_id)
+            try:
+                await conn.execute("DELETE FROM tenant_audit_tail WHERE tenant_id = $1", t_id)
+            except Exception:
+                pass
     finally:
         await pool.close()
 

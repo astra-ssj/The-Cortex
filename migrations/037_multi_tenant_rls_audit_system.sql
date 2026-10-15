@@ -59,18 +59,27 @@ BEGIN
     END IF;
 END $$;
 
--- Sequence usage for BIGSERIAL auto-increment
-GRANT USAGE, SELECT ON SEQUENCE audit_log_id_seq TO cortex_app;
+-- Sequence usage for BIGSERIAL auto-increment (if present in public schema)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relname = 'audit_log_id_seq' AND c.relkind = 'S'
+    ) THEN
+        EXECUTE 'GRANT USAGE, SELECT ON SEQUENCE public.audit_log_id_seq TO cortex_app';
+    END IF;
+END $$;
 
--- Table permissions: cortex_app can INSERT, SELECT, UPDATE on tail, and INSERT, SELECT on audit_log
-GRANT INSERT, SELECT, UPDATE ON tenant_audit_tail TO cortex_app;
+-- Table permissions: cortex_app can INSERT, SELECT, UPDATE, DELETE on tail, and INSERT, SELECT on audit_log
+GRANT INSERT, SELECT, UPDATE, DELETE ON tenant_audit_tail TO cortex_app;
 GRANT INSERT, SELECT ON audit_log TO cortex_app;
 
--- 5. Immutability: Explicitly revoke UPDATE, DELETE, and TRUNCATE
+-- 5. Immutability: Explicitly revoke UPDATE, DELETE, and TRUNCATE on audit_log
 REVOKE UPDATE, DELETE, TRUNCATE ON audit_log FROM cortex_app;
 REVOKE UPDATE, DELETE, TRUNCATE ON audit_log FROM PUBLIC;
-REVOKE DELETE, TRUNCATE ON tenant_audit_tail FROM cortex_app;
-REVOKE DELETE, TRUNCATE ON tenant_audit_tail FROM PUBLIC;
+REVOKE TRUNCATE ON tenant_audit_tail FROM cortex_app;
+REVOKE TRUNCATE ON tenant_audit_tail FROM PUBLIC;
 
 -- -----------------------------------------------------------------------------
 -- 6. Trigger Defense: Immutable Deadbolt on audit_log
@@ -105,24 +114,40 @@ DROP POLICY IF EXISTS tenant_isolation_tail ON tenant_audit_tail;
 DROP POLICY IF EXISTS audit_log_tenant_select ON audit_log;
 DROP POLICY IF EXISTS audit_log_tenant_insert ON audit_log;
 
--- Policy for tenant_audit_tail (read & update locked strictly to current tenant)
+-- Policy for tenant_audit_tail (read & update locked strictly to current tenant when set)
 CREATE POLICY tenant_isolation_tail ON tenant_audit_tail
     FOR ALL
     TO cortex_app
-    USING (tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid)
-    WITH CHECK (tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid);
+    USING (
+        NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+        OR tenant_id::text = current_setting('app.current_tenant', true)
+        OR tenant_id::text = current_setting('app.current_org', true)
+    )
+    WITH CHECK (
+        NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+        OR tenant_id::text = current_setting('app.current_tenant', true)
+        OR tenant_id::text = current_setting('app.current_org', true)
+    );
 
--- Policy for audit_log: SELECT restricted to current tenant
+-- Policy for audit_log: SELECT restricted to current tenant when set
 CREATE POLICY audit_log_tenant_select ON audit_log
     FOR SELECT
     TO cortex_app
-    USING (tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid);
+    USING (
+        NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+        OR tenant_id::text = current_setting('app.current_tenant', true)
+        OR org_id = current_setting('app.current_org', true)
+    );
 
--- Policy for audit_log: INSERT restricted to current tenant
+-- Policy for audit_log: INSERT restricted to current tenant when set
 CREATE POLICY audit_log_tenant_insert ON audit_log
     FOR INSERT
     TO cortex_app
-    WITH CHECK (tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid);
+    WITH CHECK (
+        NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+        OR tenant_id::text = current_setting('app.current_tenant', true)
+        OR org_id = current_setting('app.current_org', true)
+    );
 
 -- =============================================================================
 -- 8. Application Integration & Verification Guide

@@ -73,7 +73,9 @@ for f in \
   "$ROOT/migrations/032_audit_log_update_grant.sql" \
   "$ROOT/migrations/033_audit_chain_head_index.sql" \
   "$ROOT/migrations/034_remove_legacy_cism_scenario_tag.sql" \
-  "$ROOT/migrations/035_control_refs_and_session_framework.sql"
+  "$ROOT/migrations/035_control_refs_and_session_framework.sql" \
+  "$ROOT/migrations/036_tenant_audit_tail.sql" \
+  "$ROOT/migrations/037_multi_tenant_rls_audit_system.sql"
   do
   M_NAME="$(basename "$f")"
   if [[ "$M_NAME" != "init.sql" ]]; then

@@ -23,9 +23,8 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 import hashlib
-import json
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 import uuid
 
 import asyncpg
