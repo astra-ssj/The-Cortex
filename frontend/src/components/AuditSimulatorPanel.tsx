@@ -46,6 +46,9 @@ const REGULATORS = [
   { id: "bfdi", label: "BfDI (Bundesbeauftragter) — Germany/GDPR" },
   { id: "eu_ai_office", label: "EU AI Office — EU AI Act" },
   { id: "enisa", label: "ENISA — NIS2 Technical Authority" },
+  { id: "eba", label: "EBA (European Banking Authority) — DORA Lead Overseer" },
+  { id: "bafin", label: "BaFin (Finanzdienstleistungsaufsicht) — Germany" },
+  { id: "aicpa", label: "AICPA / CPA Audit Firm — SOC 2 Type II Assessor" },
 ] as const;
 
 const FRAMEWORKS = [
@@ -53,6 +56,9 @@ const FRAMEWORKS = [
   { id: "gdpr", label: "GDPR 2016/679" },
   { id: "eu_ai_act", label: "EU AI Act 2024" },
   { id: "iso27001", label: "ISO/IEC 27001:2022" },
+  { id: "dora", label: "DORA (EU 2022/2554)" },
+  { id: "iso42001", label: "ISO/IEC 42001:2023 (AIMS)" },
+  { id: "soc2", label: "SOC 2 Type II (Trust Services Criteria)" },
 ] as const;
 
 const ENTITIES = [
@@ -380,6 +386,452 @@ const SCENARIOS: Record<string, ScenarioResult> = {
       },
     ],
   },
+  [scenarioKey("eba", "dora", "group")]: {
+    regulatorLabel: "EBA — European Banking Authority",
+    jurisdictionBadge: "European Union · DORA Lead Overseer",
+    enforcementPersonality:
+      "The EBA leads oversight of critical ICT third-party service providers and coordinates national competent authorities under DORA (EU 2022/2554). High focus on operational resilience, 4-hour incident notification, and multi-tier cloud concentration risk.",
+    enforcementDecisionCount: 68,
+    questions: [
+      {
+        text: "Demonstrate your complete Register of Information on all ICT third-party contractual arrangements.",
+        article: "DORA Art.28(3)",
+        risk: "HIGH",
+        why: "Incomplete register leaves cloud supply chain sub-outsourcing unmapped",
+      },
+      {
+        text: "Show your Threat-Led Penetration Testing (TLPT) governance framework and test execution records.",
+        article: "DORA Art.26",
+        risk: "HIGH",
+        why: "Advanced testing program not demonstrated across live critical production functions",
+      },
+      {
+        text: "Can you produce your 4-hour initial notification procedure for major ICT-related incidents?",
+        article: "DORA Art.19(1)",
+        risk: "HIGH",
+        why: "Procedure threshold timing misaligned with RTS criteria",
+      },
+      {
+        text: "Provide documented exit strategies and transition plans for critical ICT service providers.",
+        article: "DORA Art.28(8)",
+        risk: "MEDIUM",
+        why: "Exit plans lack tested alternative vendor capability",
+      },
+    ],
+    evidenceWeaknesses: [
+      "No tested 4-hour major ICT incident notification procedure — DORA Art.19 compliance gap",
+      "Information register missing downstream sub-contractor mapping for Tier-1 CSPs — DORA Art.28(3)",
+      "TLPT cadence and remediation records not archived in evidence vault — DORA Art.26",
+      "Vendor contracts missing mandatory DORA Art.30 SLA termination and audit inspection rights",
+    ],
+    exposureRows: [
+      {
+        framework: "DORA",
+        maxFine: "€5M / 1% turnover",
+        likelyFine: "€1.8M",
+        basis: "Art.50/51 supervisory periodic penalty payments, DORA posture 58%",
+      },
+      {
+        framework: "NIS2",
+        maxFine: "€10M",
+        likelyFine: "€2.0M",
+        basis: "Lex specialis interaction NIS2 Art.1(2)",
+      },
+    ],
+    postureNote: "AstraLabs Group DORA operational resilience score 58%",
+    priorityActions: [
+      {
+        action: "Finalize and validate DORA Information Register with complete CSP supply chain sub-contractor trees.",
+        article: "DORA Art.28(3)",
+        effortDays: 14,
+        ownerRole: "Chief Risk Officer",
+      },
+      {
+        action: "Establish certified 4-hour major ICT incident classification and notification runbooks.",
+        article: "DORA Art.19",
+        effortDays: 7,
+        ownerRole: "CISO",
+      },
+      {
+        action: "Execute DORA Art.30 contract amendment addenda across all Tier-1 critical ICT providers.",
+        article: "DORA Art.30",
+        effortDays: 21,
+        ownerRole: "Legal / Procurement",
+      },
+    ],
+  },
+  [scenarioKey("cnil", "gdpr", "group")]: {
+    regulatorLabel: "CNIL — Commission Nationale de l'Informatique et des Libertés",
+    jurisdictionBadge: "France · EU GDPR Lead Authority",
+    enforcementPersonality:
+      "CNIL is one of Europe's most proactive data protection authorities, pioneering strict enforcement on cookie consent telemetry, online dark patterns, biometric/AI profiling, and cross-border data transfers. Known for imposing heavy Article 83 fines and issuing strict formal notices with 30-day compliance ultimatums.",
+    enforcementDecisionCount: 342,
+    questions: [
+      {
+        text: "Demonstrate that cookie and tracker consent is as easy to withdraw as it is to give, with timestamped consent telemetry.",
+        article: "GDPR Art.7(3) & ePrivacy",
+        risk: "HIGH",
+        why: "Consent mechanism analysis flagged asymmetric reject buttons on public web portals",
+      },
+      {
+        text: "Show your Article 30 Records of Processing Activities (ROPA). When was data flow mapping last validated against production egress traffic?",
+        article: "GDPR Art.30",
+        risk: "HIGH",
+        why: "ROPA lacks recent verification against active cloud API endpoints",
+      },
+      {
+        text: "Produce your tested 72-hour breach notification runbook for notifying CNIL under Article 33.",
+        article: "GDPR Art.33(1)",
+        risk: "HIGH",
+        why: "Incident tabletop drill overdue by 14 months",
+      },
+      {
+        text: "Demonstrate how personal data deletion (Right to Erasure) cascades to third-party SaaS processors and database backups.",
+        article: "GDPR Art.17 & Art.19",
+        risk: "MEDIUM",
+        why: "Automated deletion propagation not configured across analytics data lakes",
+      },
+      {
+        text: "Provide current Standard Contractual Clauses (SCCs) and Transfer Impact Assessments (TIAs) for personal data processed in the US.",
+        article: "GDPR Art.46 & Schrems II",
+        risk: "HIGH",
+        why: "Sub-processor inventory lists US analytics vendors with outdated supplementary measure assessments",
+      },
+    ],
+    evidenceWeaknesses: [
+      "Cookie banner consent logs lack immutable audit records — Art.7(1) proof of consent absent",
+      "ROPA missing data retention periods for 3 subsidiaries — Art.30(1)(f) documentation gap",
+      "No automated erasure tombstone replication to cold analytics storage — Art.17 non-compliance risk",
+      "Breach escalation matrix lacks designated French-speaking DPO liaison for CNIL portal filings",
+    ],
+    exposureRows: [
+      {
+        framework: "GDPR",
+        maxFine: "€20M / 4% global turnover",
+        likelyFine: "€3.8M",
+        basis: "Art.83(5) systemic consent & transparency infringements, GDPR posture 52%",
+      },
+      {
+        framework: "NIS2",
+        maxFine: "€10M",
+        likelyFine: "€1.8M",
+        basis: "Art.34(4) correlated incident response capability",
+      },
+    ],
+    postureNote: "AstraLabs Group GDPR defensibility score 52%",
+    priorityActions: [
+      {
+        action: "Re-architect consent banner to enforce 1-click symmetrical reject/withdraw with cryptographically hashed logs.",
+        article: "GDPR Art.7",
+        effortDays: 7,
+        ownerRole: "Privacy Engineering",
+      },
+      {
+        action: "Reconcile ROPA data inventory with cloud VPC egress logs and establish quarterly automated discovery.",
+        article: "GDPR Art.30",
+        effortDays: 14,
+        ownerRole: "DPO",
+      },
+      {
+        action: "Conduct end-to-end CNIL breach notification simulation including Article 34 individual communication draft.",
+        article: "GDPR Art.33 / 34",
+        effortDays: 10,
+        ownerRole: "CISO",
+      },
+    ],
+  },
+  [scenarioKey("aepd", "gdpr", "es")]: {
+    regulatorLabel: "AEPD — Agencia Española de Protección de Datos",
+    jurisdictionBadge: "Spain · EU GDPR National Authority",
+    enforcementPersonality:
+      "The AEPD is the highest-volume penalty issuer among EU DPAs. Known for intense scrutiny of technical security measures under Article 32, proportional access to employee records, video surveillance/biometric safeguards, and Article 28 data processing agreements.",
+    enforcementDecisionCount: 489,
+    questions: [
+      {
+        text: "Provide technical evidence demonstrating encryption of personal data at rest and in transit across all AstraLabs ES systems.",
+        article: "GDPR Art.32(1)(a)",
+        risk: "HIGH",
+        why: "Legacy database volumes in ES region lack verified AES-256 encryption-at-rest keys",
+      },
+      {
+        text: "Show verified Article 28 Data Processing Agreements (DPAs) for all external IT service providers handling Spanish customer data.",
+        article: "GDPR Art.28(3)",
+        risk: "HIGH",
+        why: "Two local cloud support vendors operating under expired service agreements",
+      },
+      {
+        text: "Demonstrate that access to human resources and payroll data is governed by strict role-based access control (RBAC).",
+        article: "GDPR Art.32(1)(b)",
+        risk: "MEDIUM",
+        why: "Quarterly access privilege audit records not archived in evidence vault",
+      },
+      {
+        text: "Provide proof of official DPO registration with the AEPD registry.",
+        article: "GDPR Art.37(7)",
+        risk: "LOW",
+        why: "Registration confirmation certificate pending upload",
+      },
+    ],
+    evidenceWeaknesses: [
+      "Database snapshot backup files stored unencrypted in ES secondary bucket — Art.32 violation",
+      "Supplier DPA register incomplete for 3 Spanish vendors — Art.28 liability",
+      "Access control audit logs retained for only 30 days instead of recommended 12-month baseline",
+    ],
+    exposureRows: [
+      {
+        framework: "GDPR",
+        maxFine: "€20M / 4% global turnover",
+        likelyFine: "€2.6M",
+        basis: "Art.83(4) technical security vulnerabilities, AstraLabs ES posture 56%",
+      },
+    ],
+    postureNote: "AstraLabs ES GDPR posture score 56%",
+    priorityActions: [
+      {
+        action: "Enforce automated KMS key encryption across all database instances and snapshot storage volumes.",
+        article: "GDPR Art.32(1)(a)",
+        effortDays: 5,
+        ownerRole: "Cloud Platform Lead",
+      },
+      {
+        action: "Execute AEPD-compliant Article 28 DPA addenda with all active Spanish external processors.",
+        article: "GDPR Art.28",
+        effortDays: 12,
+        ownerRole: "Legal / DPO",
+      },
+    ],
+  },
+  [scenarioKey("aicpa", "soc2", "group")]: {
+    regulatorLabel: "AICPA / CPA Audit Firm — SOC 2 Type II Assessor",
+    jurisdictionBadge: "United States / Global · AICPA Trust Services Criteria (2017/2022)",
+    enforcementPersonality:
+      "Independent CPA examination firm conducting annual SOC 2 Type II examination across a 12-month observation period. Rigorously tests the design and operating effectiveness of controls across Common Criteria (Security), Availability, and Confidentiality. Any unmitigated control failure results in a qualified opinion or published audit test exception in the final Service Auditor's Report.",
+    enforcementDecisionCount: 118,
+    questions: [
+      {
+        text: "Provide evidence of formal quarterly User Access Reviews (UAR) for all production AWS accounts, GitHub organizations, and production databases.",
+        article: "SOC 2 CC6.3",
+        risk: "HIGH",
+        why: "Q2 and Q3 access review spreadsheets lack documented manager sign-offs for 14 privileged engineers",
+      },
+      {
+        text: "Show automated CI/CD branch protection rules enforcing mandatory pull request reviews, passing automated tests, and admin override restrictions.",
+        article: "SOC 2 CC8.1",
+        risk: "HIGH",
+        why: "Direct commits allowed on two secondary deployment repositories without peer sign-off",
+      },
+      {
+        text: "Demonstrate that Multi-Factor Authentication (MFA) is strictly enforced for all corporate SSO, VPN, and cloud infrastructure access.",
+        article: "SOC 2 CC6.1 & CC6.2",
+        risk: "HIGH",
+        why: "Three legacy service accounts discovered with password-only authentication",
+      },
+      {
+        text: "Provide documented annual Disaster Recovery (DR) tabletop exercises and technical backup restoration validation meeting RTO/RPO objectives.",
+        article: "SOC 2 A1.2",
+        risk: "HIGH",
+        why: "Last full database restoration test was conducted over 14 months ago",
+      },
+      {
+        text: "Show continuous vulnerability scanning reports and evidence that Critical/High vulnerabilities are remediated within 30-day policy SLAs.",
+        article: "SOC 2 CC7.1",
+        risk: "MEDIUM",
+        why: "Two High-severity CVEs remained unpatched in production staging for 45 days",
+      },
+      {
+        text: "Demonstrate annual vendor risk assessments and current SOC 2 Type II report reviews for all critical third-party cloud subservice organizations.",
+        article: "SOC 2 CC9.2",
+        risk: "MEDIUM",
+        why: "Missing current SOC 2 report for primary transactional email delivery vendor",
+      },
+    ],
+    evidenceWeaknesses: [
+      "Quarterly User Access Review documentation incomplete for Q2 — Auditor will cite CC6.3 test exception",
+      "Two terminated contractor credentials remained active in identity directory 96 hours post-termination — CC6.2 failure",
+      "Disaster recovery restoration testing cadence exceeded 12-month threshold — A1.2 operating effectiveness gap",
+      "Vulnerability remediation ticket SLAs lacked automated executive escalation triggers — CC7.1 gap",
+    ],
+    exposureRows: [
+      {
+        framework: "SOC 2 Type II Report",
+        maxFine: "Qualified Opinion (Adverse)",
+        likelyFine: "Modified Report / 3 Test Exceptions",
+        basis: "CC6.2, CC6.3, A1.2 testing exceptions over 12-month period, SOC 2 posture 59%",
+      },
+      {
+        framework: "Customer Contract Contingency",
+        maxFine: "$15M Enterprise Deal Block",
+        likelyFine: "$3.5M Renewal Delay",
+        basis: "Enterprise customer security addendums requiring unqualified SOC 2 Type II report",
+      },
+      {
+        framework: "Auditor Remediation & Re-testing",
+        maxFine: "$250,000",
+        likelyFine: "$75,000",
+        basis: "Additional CPA fieldwork testing and management letter drafting",
+      },
+    ],
+    postureNote: "AstraLabs Group SOC 2 Trust Services Criteria readiness score 59%",
+    priorityActions: [
+      {
+        action: "Automate HRIS-to-IdP SCIM provisioning and deprovisioning to guarantee zero-hour credential revocation.",
+        article: "SOC 2 CC6.2",
+        effortDays: 5,
+        ownerRole: "Identity & Access Lead",
+      },
+      {
+        action: "Implement automated quarterly user access certification workflows in evidence vault with immutable manager attestations.",
+        article: "SOC 2 CC6.3",
+        effortDays: 10,
+        ownerRole: "Security Operations",
+      },
+      {
+        action: "Execute technical database backup restoration drill to secondary region and archive signed RTO/RPO completion report.",
+        article: "SOC 2 A1.2",
+        effortDays: 7,
+        ownerRole: "Infrastructure / SRE",
+      },
+      {
+        action: "Configure strict GitHub branch protection rules requiring 2 peer approvals and signed commits across all production repos.",
+        article: "SOC 2 CC8.1",
+        effortDays: 3,
+        ownerRole: "DevOps Lead",
+      },
+    ],
+  },
+  [scenarioKey("aicpa", "soc2", "uk")]: {
+    regulatorLabel: "AICPA / CPA Audit Firm — SOC 2 Type II Assessor",
+    jurisdictionBadge: "United Kingdom · AICPA SOC 2 (UK SaaS Platform)",
+    enforcementPersonality:
+      "Independent CPA firm auditing AstraLabs UK customer-facing SaaS product line for SOC 2 Type II compliance. High emphasis on change management, automated testing pipelines, data encryption at rest and in transit, and customer tenant segregation.",
+    enforcementDecisionCount: 94,
+    questions: [
+      {
+        text: "Demonstrate strict logical separation between multi-tenant customer database schemas and object stores.",
+        article: "SOC 2 CC6.1 & CC6.6",
+        risk: "HIGH",
+        why: "Multi-tenant query isolation verified in code but lacking automated penetration test validation",
+      },
+      {
+        text: "Provide evidence that all production code changes are deployed via automated CI/CD with immutable build provenance.",
+        article: "SOC 2 CC8.1",
+        risk: "HIGH",
+        why: "Hotfix bypass procedure lacks automated post-deployment approval ticket reconciliation",
+      },
+      {
+        text: "Show that customer data at rest is encrypted using AWS KMS customer managed keys (CMK) with annual rotation.",
+        article: "SOC 2 CC6.7",
+        risk: "MEDIUM",
+        why: "Key rotation policy active but 1 legacy storage volume utilizes default AWS-managed keys",
+      },
+      {
+        text: "Provide incident response logs demonstrating 24/7 on-call alerting and MTTR under 60 minutes for high-severity alerts.",
+        article: "SOC 2 CC7.3",
+        risk: "MEDIUM",
+        why: "PagerDuty on-call escalation schedules missing secondary coverage for weekend shifts",
+      },
+    ],
+    evidenceWeaknesses: [
+      "Hotfix deployment ticket missing retrospectives in 2 instances — CC8.1 change management gap",
+      "Tenant segregation penetration test report older than 12 months — CC6.6 assurance gap",
+      "SIEM log retention configured for 90 days instead of 365-day SOC 2 baseline requirement",
+    ],
+    exposureRows: [
+      {
+        framework: "SOC 2 Type II",
+        maxFine: "Qualified Opinion",
+        likelyFine: "Unqualified with 1 Noted Exception",
+        basis: "CC8.1 change management documentation exception, AstraLabs UK posture 63%",
+      },
+      {
+        framework: "Customer Contractual Risk",
+        maxFine: "£5M SLA Penalty",
+        likelyFine: "£850k Deal Delay",
+        basis: "UK enterprise SaaS client procurement compliance hurdles",
+      },
+    ],
+    postureNote: "AstraLabs UK SOC 2 SaaS readiness score 63%",
+    priorityActions: [
+      {
+        action: "Remediate hotfix process: enforce automated rollback and mandatory retroactive pull request sign-off within 24h.",
+        article: "SOC 2 CC8.1",
+        effortDays: 4,
+        ownerRole: "Engineering Lead",
+      },
+      {
+        action: "Commission third-party multi-tenant segregation assessment and file executive summary in evidence vault.",
+        article: "SOC 2 CC6.6",
+        effortDays: 14,
+        ownerRole: "Security Engineering",
+      },
+      {
+        action: "Extend SIEM S3 cold storage log retention to 365 days with Object Lock compliance mode.",
+        article: "SOC 2 CC7.2",
+        effortDays: 3,
+        ownerRole: "Cloud Platform Lead",
+      },
+    ],
+  },
+  [scenarioKey("aicpa", "soc2", "de")]: {
+    regulatorLabel: "AICPA / CPA Audit Firm — SOC 2 Type II Assessor",
+    jurisdictionBadge: "Germany · AICPA SOC 2 (DE Infrastructure)",
+    enforcementPersonality:
+      "Independent CPA audit firm reviewing AstraLabs DE critical cloud and container infrastructure. Focused on physical and environmental security, host hardening, root access revocation, and multi-region disaster recovery.",
+    enforcementDecisionCount: 86,
+    questions: [
+      {
+        text: "Demonstrate that root and global administrator access is restricted, requires dual approval, and is monitored in real-time.",
+        article: "SOC 2 CC6.1 & CC6.2",
+        risk: "HIGH",
+        why: "AWS Organizations root credentials lacked automated CloudTrail break-glass alerting",
+      },
+      {
+        text: "Provide third-party SOC 2 Type II or ISO 27001 reports for all European co-location datacenters.",
+        article: "SOC 2 CC6.4 & CC9.2",
+        risk: "MEDIUM",
+        why: "Frankfurt datacenter annual physical security report pending receipt",
+      },
+      {
+        text: "Show evidence of quarterly automated container image vulnerability scanning before production deployment.",
+        article: "SOC 2 CC7.1",
+        risk: "HIGH",
+        why: "CI gate allowed container build with unpatched glibc CVE to deploy to staging",
+      },
+    ],
+    evidenceWeaknesses: [
+      "Break-glass procedure for root accounts tested manually without audit log integration",
+      "Frankfurt physical security attestation expired 3 weeks ago",
+    ],
+    exposureRows: [
+      {
+        framework: "SOC 2 Type II",
+        maxFine: "Qualified Opinion",
+        likelyFine: "Unqualified (Clean Report)",
+        basis: "AstraLabs DE infrastructure posture 68%",
+      },
+      {
+        framework: "Auditor Scope Fee",
+        maxFine: "$120,000",
+        likelyFine: "$45,000",
+        basis: "Standard Type II observation period testing",
+      },
+    ],
+    postureNote: "AstraLabs DE SOC 2 Infrastructure score 68%",
+    priorityActions: [
+      {
+        action: "Implement CloudWatch metric alarm on AWS root account usage with immediate Slack and PagerDuty notification.",
+        article: "SOC 2 CC6.1",
+        effortDays: 2,
+        ownerRole: "Cloud Security Lead",
+      },
+      {
+        action: "Block container CI deployments on High/Critical vulnerabilities via admission controller.",
+        article: "SOC 2 CC7.1",
+        effortDays: 6,
+        ownerRole: "DevSecOps",
+      },
+    ],
+  },
 };
 
 function genericScenario(regulatorId: string, frameworkId: string, entityId: string): ScenarioResult {
@@ -390,67 +842,161 @@ function genericScenario(regulatorId: string, frameworkId: string, entityId: str
   const likelyNis2 = "€2.1M";
   const likelyGdpr = "€2.8M";
 
+  const isSoc2 = frameworkId === "soc2";
+  const isGdpr = frameworkId === "gdpr";
+
   return {
     regulatorLabel: (reg.split("—")[0] ?? reg).trim(),
-    jurisdictionBadge: "Demo scenario · mock posture",
+    jurisdictionBadge: isSoc2
+      ? "AICPA Trust Services Criteria"
+      : isGdpr
+        ? "EU / Global GDPR Oversight"
+        : "Demo scenario · mock posture",
     enforcementPersonality: `${reg} operates under ${fw}. This projection blends published guidance with typical supervisory priorities for ${ent}. Replace with Epic 3 enrichment for jurisdiction-specific enforcement corpora.`,
-    enforcementDecisionCount: 96,
-    questions: [
-      {
-        text: `Demonstrate how ${fw} controls are operationalised day-to-day for ${ent}.`,
-        article: `${fw.split(" ")[0]} — accountability`,
-        risk: "HIGH",
-        why: "Operational evidence sparse vs policy library",
-      },
-      {
-        text: "Provide senior management attestation of residual risk acceptance.",
-        article: "Governance — board accountability",
-        risk: "MEDIUM",
-        why: "Approval trail incomplete for last risk acceptance cycle",
-      },
-      {
-        text: "Show monitoring metrics proving control effectiveness over the past quarter.",
-        article: "Continuous assurance",
-        risk: "MEDIUM",
-        why: "Telemetry exports not mapped to control IDs",
-      },
-      {
-        text: "Outline third-party assurance coverage and sampling methodology.",
-        article: "Supply chain assurance",
-        risk: "LOW",
-        why: "Assurance calendar misaligned with procurement renewals",
-      },
-    ],
-    evidenceWeaknesses: [
-      "No tested breach notification procedure — cross-framework continuity gap",
-      "Penetration test evidence stale relative to policy cadence — ISO 27001 A.8.8 exposure",
-      "Incident drills missing executive participation — crisis governance gap",
-    ],
-    exposureRows: [
-      { framework: "NIS2", maxFine: "€10M", likelyFine: likelyNis2, basis: `Art.34(4), score ${score}%` },
-      { framework: "GDPR", maxFine: "€20M", likelyFine: likelyGdpr, basis: `Art.83(4), score ${score}%` },
-    ],
-    postureNote: `Blended posture score ${score}%`,
-    priorityActions: [
-      {
-        action: "Publish control-to-evidence matrix with owners and refresh SLA.",
-        article: "Audit readiness",
-        effortDays: 9,
-        ownerRole: "GRC Lead",
-      },
-      {
-        action: "Automate evidence pulls from primary IdP and cloud logging.",
-        article: "Tech assurance",
-        effortDays: 14,
-        ownerRole: "Security Engineering",
-      },
-      {
-        action: "Schedule regulator-style mock interview with documentation pack.",
-        article: "Simulation hygiene",
-        effortDays: 5,
-        ownerRole: "Legal",
-      },
-    ],
+    enforcementDecisionCount: isSoc2 ? 112 : isGdpr ? 265 : 96,
+    questions: isSoc2
+      ? [
+          {
+            text: `Demonstrate how SOC 2 Common Criteria controls (CC6–CC9) are verified continuous-evidence for ${ent}.`,
+            article: "SOC 2 CC6.1 — Access Control",
+            risk: "HIGH",
+            why: "Operating effectiveness evidence sparse vs policy library",
+          },
+          {
+            text: "Provide senior management attestation of quarterly access review completions.",
+            article: "SOC 2 CC6.3 — User Access Review",
+            risk: "HIGH",
+            why: "Manager sign-off missing for last cycle",
+          },
+          {
+            text: "Show automated CI/CD branch protection enforcing code reviews before production releases.",
+            article: "SOC 2 CC8.1 — Change Management",
+            risk: "MEDIUM",
+            why: "Release audit trails incomplete",
+          },
+          {
+            text: "Provide annual disaster recovery failover and database restoration verification records.",
+            article: "SOC 2 A1.2 — Availability",
+            risk: "MEDIUM",
+            why: "Drill cadence misaligned with annual requirement",
+          },
+        ]
+      : isGdpr
+        ? [
+            {
+              text: `Show how GDPR accountability and data subject rights are operationalised for ${ent}.`,
+              article: "GDPR Art.5(2) — Accountability",
+              risk: "HIGH",
+              why: "Consent records and ROPA mapping incomplete",
+            },
+            {
+              text: "Provide verified 72-hour breach notification procedures and drill logs under Article 33.",
+              article: "GDPR Art.33 — Breach Notification",
+              risk: "HIGH",
+              why: "Notification timeline not exercised in recent drills",
+            },
+            {
+              text: "Show Article 28 data processing agreements for all active third-party processors.",
+              article: "GDPR Art.28 — Processor Oversight",
+              risk: "MEDIUM",
+              why: "Sub-processor register missing recent contract addenda",
+            },
+            {
+              text: "Provide Transfer Impact Assessments (TIAs) for international data transfers.",
+              article: "GDPR Art.46 — Cross-Border Transfers",
+              risk: "MEDIUM",
+              why: "Schrems II supplementary measures require refresh",
+            },
+          ]
+        : [
+            {
+              text: `Demonstrate how ${fw} controls are operationalised day-to-day for ${ent}.`,
+              article: `${fw.split(" ")[0]} — accountability`,
+              risk: "HIGH",
+              why: "Operational evidence sparse vs policy library",
+            },
+            {
+              text: "Provide senior management attestation of residual risk acceptance.",
+              article: "Governance — board accountability",
+              risk: "MEDIUM",
+              why: "Approval trail incomplete for last risk acceptance cycle",
+            },
+            {
+              text: "Show monitoring metrics proving control effectiveness over the past quarter.",
+              article: "Continuous assurance",
+              risk: "MEDIUM",
+              why: "Telemetry exports not mapped to control IDs",
+            },
+            {
+              text: "Outline third-party assurance coverage and sampling methodology.",
+              article: "Supply chain assurance",
+              risk: "LOW",
+              why: "Assurance calendar misaligned with procurement renewals",
+            },
+          ],
+    evidenceWeaknesses: isSoc2
+      ? [
+          "Quarterly access review evidence missing sign-offs for privileged engineering roles",
+          "Two offboarded contractor accounts retained SSO tokens beyond 24-hour termination SLA",
+          "Annual disaster recovery backup restoration drill documentation not archived in evidence vault",
+        ]
+      : [
+          "No tested breach notification procedure — cross-framework continuity gap",
+          "Penetration test evidence stale relative to policy cadence — ISO 27001 A.8.8 exposure",
+          "Incident drills missing executive participation — crisis governance gap",
+        ],
+    exposureRows: isSoc2
+      ? [
+          { framework: "SOC 2 Type II", maxFine: "Qualified Opinion", likelyFine: "Modified Report (Exceptions)", basis: `AICPA TSC, score ${score}%` },
+          { framework: "Enterprise Pipeline Impact", maxFine: "$10M+ contract blocks", likelyFine: "$2.5M renewal delays", basis: `Customer security addendum compliance at ${score}%` },
+          { framework: "CPA Re-testing Fees", maxFine: "$150k", likelyFine: "$55k", basis: "Interim testing and management letter fieldwork" },
+        ]
+      : [
+          { framework: "NIS2", maxFine: "€10M", likelyFine: likelyNis2, basis: `Art.34(4), score ${score}%` },
+          { framework: "GDPR", maxFine: "€20M", likelyFine: likelyGdpr, basis: `Art.83(4), score ${score}%` },
+        ],
+    postureNote: `${fw} defensibility posture score ${score}%`,
+    priorityActions: isSoc2
+      ? [
+          {
+            action: "Automate quarterly user access reviews with manager sign-off workflows.",
+            article: "SOC 2 CC6.3",
+            effortDays: 10,
+            ownerRole: "Security Operations",
+          },
+          {
+            action: "Enforce automated SCIM deprovisioning across IdP and cloud console access.",
+            article: "SOC 2 CC6.2",
+            effortDays: 5,
+            ownerRole: "Identity Team",
+          },
+          {
+            action: "Execute technical DR failover and database restoration verification test.",
+            article: "SOC 2 A1.2",
+            effortDays: 7,
+            ownerRole: "Infrastructure / SRE",
+          },
+        ]
+      : [
+          {
+            action: "Publish control-to-evidence matrix with owners and refresh SLA.",
+            article: "Audit readiness",
+            effortDays: 9,
+            ownerRole: "GRC Lead",
+          },
+          {
+            action: "Automate evidence pulls from primary IdP and cloud logging.",
+            article: "Tech assurance",
+            effortDays: 14,
+            ownerRole: "Security Engineering",
+          },
+          {
+            action: "Schedule regulator-style mock interview with documentation pack.",
+            article: "Simulation hygiene",
+            effortDays: 5,
+            ownerRole: "Legal",
+          },
+        ],
   };
 }
 

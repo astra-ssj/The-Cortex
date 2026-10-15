@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/Button";
+import AuditSimulatorPanel from "../components/AuditSimulatorPanel";
 import {
   AUDIT_FRAMEWORKS,
   AUDIT_TYPES,
@@ -45,8 +46,8 @@ export default function AuditSimulator() {
   };
 
   return (
-    <div style={{ paddingTop: 8, maxWidth: 820 }}>
-      <div style={{ ...eyebrow, marginBottom: 6 }}>TRAIN</div>
+    <div style={{ paddingTop: 8, maxWidth: 1180 }}>
+      <div style={{ ...eyebrow, marginBottom: 6 }}>TRAIN & SIMULATE</div>
       <h1
         style={{
           margin: 0,
@@ -58,17 +59,17 @@ export default function AuditSimulator() {
       >
         Audit Simulator
       </h1>
-      <p style={{ margin: "8px 0 24px", color: "var(--text-secondary)", fontSize: 13, maxWidth: 560, lineHeight: 1.55 }}>
-        Pick the framework and rehearsal type. The Learning Loop then offers the scenarios that
-        match that frame.
+      <p style={{ margin: "8px 0 24px", color: "var(--text-secondary)", fontSize: 13, maxWidth: 680, lineHeight: 1.55 }}>
+        Choose a framework (ISO 27001, GDPR, SOC 2) and rehearsal type to practice scenario response in the Learning Loop,
+        or run interactive counterfactual regulatory audit simulations below.
       </p>
 
       <section style={{ ...panel, marginBottom: 20 }} aria-label="Framework selector">
-        <div style={eyebrow}>Step A · Framework</div>
+        <div style={eyebrow}>Step A · Framework Rehearsal</div>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
             gap: 12,
             marginTop: 14,
           }}
@@ -175,11 +176,31 @@ export default function AuditSimulator() {
         </section>
       ) : null}
 
-      {/* Not "Run Assessment": that label belongs to the LLM assessment run in the
-          top bar, and having both start entirely different things was confusing. */}
-      <Button variant="primary" size="lg" type="button" disabled={!runnable} onClick={onRun}>
-        Start simulation
-      </Button>
+      <div style={{ marginBottom: 40 }}>
+        <Button variant="primary" size="lg" type="button" disabled={!runnable} onClick={onRun}>
+          Start simulation
+        </Button>
+      </div>
+
+      <div style={{ paddingTop: 32, borderTop: "1px solid var(--border)" }}>
+        <div style={{ ...eyebrow, marginBottom: 6 }}>REGULATORY INTERROGATION ENGINE</div>
+        <h2
+          style={{
+            margin: "0 0 10px",
+            fontSize: 20,
+            fontWeight: 700,
+            color: "var(--text)",
+            fontFamily: "var(--font-sans)",
+          }}
+        >
+          Counterfactual Regulatory Inspection
+        </h2>
+        <p style={{ margin: "0 0 24px", color: "var(--text-secondary)", fontSize: 13, maxWidth: 720, lineHeight: 1.55 }}>
+          Simulate rigorous compliance interrogations under GDPR (CNIL, BfDI, ICO, AEPD) and SOC 2 Type II (AICPA / CPA Assessor).
+          Anticipate auditor inquiries, pinpoint evidence weaknesses, and quantify financial/contractual exposure before official audits.
+        </p>
+        <AuditSimulatorPanel />
+      </div>
     </div>
   );
 }

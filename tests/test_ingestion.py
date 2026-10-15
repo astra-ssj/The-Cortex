@@ -318,6 +318,84 @@ def test_ingest_document_accepts_finding_metadata(auth_headers: dict[str, str]) 
     assert "event: done" in r.text or "event: summary" in r.text
 
 
+@pytest.mark.asyncio
+async def test_ingest_document_persists_evidence_to_finding(auth_headers: dict[str, str]) -> None:
+    """When finding_id is provided, evidence is appended to the finding and persisted event is sent."""
+    import uuid
+    from sqlalchemy import text
+    from db.session import async_session_factory, database_ready
+    from core.tenant import set_tenant_context
+
+    from tests.conftest import make_auth_headers
+
+    if not await database_ready():
+        pytest.skip("database not reachable")
+
+    org_id = f"org-ingest-{uuid.uuid4().hex[:8]}"
+    finding_id = f"finding-ingest-{uuid.uuid4().hex[:8]}"
+    headers = make_auth_headers("admin", org_id=org_id)
+
+    async with async_session_factory() as session:
+        await set_tenant_context(session, org_id)
+        await session.execute(
+            text(
+                """
+                INSERT INTO organizations (id, name, jurisdiction, purpose_tags)
+                VALUES (:id, 'Ingest Test Org', 'EU', '[]'::jsonb)
+                ON CONFLICT (id) DO NOTHING
+                """
+            ),
+            {"id": org_id},
+        )
+        await session.execute(
+            text(
+                """
+                INSERT INTO findings (id, org_id, title, severity, status)
+                VALUES (:id, :org_id, 'Finding for evidence ingestion test', 'HIGH', 'OPEN')
+                """
+            ),
+            {"id": finding_id, "org_id": org_id},
+        )
+        await session.commit()
+
+    r = client.post(
+        "/api/v1/ingest/document",
+        data={
+            "finding_id": finding_id,
+            "control_id": "GDPR-BN-02",
+            "framework_id": "gdpr-2016-679",
+            "org_id": org_id,
+            "description": "Evidence doc upload description",
+        },
+        files={"file": ("policy.txt", io.BytesIO(b"Data breach notification guidelines under Art 33."), "text/plain")},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    assert "event: persisted" in r.text
+    assert "event: summary" in r.text
+    assert '"finding_linked": true' in r.text
+
+    async with async_session_factory() as session:
+        await set_tenant_context(session, org_id)
+        res = await session.execute(
+            text("SELECT evidence, notes FROM findings WHERE id = :id AND org_id = :org_id"),
+            {"id": finding_id, "org_id": org_id},
+        )
+        row = res.mappings().first()
+        assert row is not None
+        evidence_list = row["evidence"]
+        assert isinstance(evidence_list, list) and len(evidence_list) > 0
+        assert any(e.get("filename") == "policy.txt" for e in evidence_list)
+        notes_list = row["notes"]
+        assert isinstance(notes_list, list) and len(notes_list) > 0
+        assert any("Attached evidence policy.txt" in n.get("text", "") for n in notes_list)
+
+        # Cleanup
+        await session.execute(text("DELETE FROM findings WHERE id = :id"), {"id": finding_id})
+        await session.commit()
+
+
+
 def test_ingest_document_pipeline_error_emits_error_event(auth_headers: dict[str, str]) -> None:
     """When mapping raises, stream emits error event (audit ingest_done still runs)."""
     with patch("api.ingest.map_chunks_to_ontology", new_callable=AsyncMock) as mock_map:

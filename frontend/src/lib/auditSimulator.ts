@@ -2,8 +2,8 @@
 
 export const AUDIT_FRAMEWORKS = [
   { slug: "iso27001-2022", label: "ISO 27001:2022", enabled: true, subtitle: "5 scenarios · Foundation to Expert" },
-  { slug: "gdpr-2016-679", label: "GDPR", enabled: false, subtitle: "" },
-  { slug: "soc2", label: "SOC 2", enabled: false, subtitle: "" },
+  { slug: "gdpr-2016-679", label: "GDPR", enabled: true, subtitle: "Art. 33, 30, 28, 46 · DPO & Lead Authority Rehearsal" },
+  { slug: "soc2", label: "SOC 2", enabled: true, subtitle: "AICPA Trust Services Criteria · Security, Availability & Confidentiality (CC6–CC9)" },
 ] as const;
 
 export type AuditFrameworkSlug = (typeof AUDIT_FRAMEWORKS)[number]["slug"];

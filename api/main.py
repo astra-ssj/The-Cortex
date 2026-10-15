@@ -30,6 +30,7 @@ from api.errors import (
 )
 from api.assessments import router as assessments_router
 from api.audit import router as audit_router
+from api.audit_decision import router as audit_decision_router
 from api.auth import router as auth_router
 from api.compliance import router as compliance_router
 from api.limits import limiter
@@ -205,7 +206,7 @@ class ApiVersionEnforcementMiddleware(BaseHTTPMiddleware):
         path = request.url.path.split("?", 1)[0]
         if not path.startswith("/api/"):
             return await call_next(request)
-        if path == "/api/v1" or path.startswith("/api/v1/"):
+        if path == "/api/v1" or path.startswith("/api/v1/") or path == "/api/audit/decision":
             return await call_next(request)
         return JSONResponse(
             status_code=404,
@@ -285,6 +286,7 @@ app.add_middleware(RequestBodySizeLimitMiddleware)
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessments_router)
 app.include_router(audit_router)
+app.include_router(audit_decision_router)
 app.include_router(findings_router, prefix="/api/v1/findings")
 app.include_router(groups_router)
 app.include_router(organisations_router)

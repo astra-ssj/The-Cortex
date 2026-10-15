@@ -32,9 +32,10 @@ register_all()
 
 def _pg_connect():
     url = os.environ.get("DATABASE_URL", "")
+    port = 5434 if ":5434" in url else int(os.environ.get("PGPORT", "5432"))
     return psycopg2.connect(
         host=os.environ.get("PGHOST", "127.0.0.1"),
-        port=int(os.environ.get("PGPORT", "5432")),
+        port=port,
         user=os.environ.get("PGUSER", "cortex"),
         password=os.environ.get(
             "PGPASSWORD", "cortex_ci_test" if "cortex_ci_test" in url else "cortex_ci_test"

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import os
 
-# Ordered fallback chain, e.g. anthropic,openai,stub
-_DEFAULT_CHAIN = "anthropic,openai,stub"
+# Ordered fallback chain, e.g. anthropic,gemini,openai,stub
+_DEFAULT_CHAIN = "anthropic,gemini,openai,stub"
 
 
 def llm_provider_chain() -> list[str]:

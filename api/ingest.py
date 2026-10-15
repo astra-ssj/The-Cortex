@@ -42,6 +42,11 @@ async def _run_ingest_stream(
     document_id: str,
     org_id: str,
     actor: str,
+    filename: str = "",
+    finding_id: str | None = None,
+    control_id: str | None = None,
+    framework_id: str | None = None,
+    description: str | None = None,
 ):
     """Pipeline: process → map → evidence; yield SSE events. Audit before and after."""
     tmp_path = None
@@ -55,6 +60,7 @@ async def _run_ingest_stream(
             "size_bytes": len(content),
             "org_id": org_id,
             "actor": actor,
+            "finding_id": finding_id,
         },
     )
     try:
@@ -85,12 +91,93 @@ async def _run_ingest_stream(
         evidence_list = create_evidence_from_mapping(mapping, full_content, document_id)
         yield _sse("evidence_created", {"count": len(evidence_list)})
 
+        evidence_id = evidence_list[0].id if evidence_list else f"ev-{document_id}-0"
+        finding_linked = False
+        controls_linked = len(mapping.controls)
+
+        if finding_id:
+            try:
+                from datetime import datetime, timezone
+                from sqlalchemy import text
+                from db.session import async_session_factory
+                from core.tenant import set_tenant_context
+                from core.audit_fabric import append_audit_log
+
+                async with async_session_factory() as session:
+                    await set_tenant_context(session, org_id)
+                    res = await session.execute(
+                        text("SELECT id, evidence, notes FROM findings WHERE id = :id AND org_id = :org_id"),
+                        {"id": finding_id, "org_id": org_id},
+                    )
+                    f_row = res.mappings().first()
+                    if f_row:
+                        existing_evidence = list(f_row["evidence"] or [])
+                        existing_notes = list(f_row["notes"] or [])
+                        ev_item = {
+                            "id": evidence_id,
+                            "document_id": document_id,
+                            "filename": filename or f"{document_id}.{ext}",
+                            "content_hash": hashlib.sha256(content).hexdigest(),
+                            "evidence_type": "POLICY_DOCUMENT",
+                            "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                            "uploaded_by": actor,
+                            "controls": [c.control_id for c in mapping.controls],
+                            "description": description or f"Evidence document {filename or document_id}",
+                        }
+                        existing_evidence.append(ev_item)
+                        note_text = f"Attached evidence {filename or document_id} ({len(mapping.controls)} controls mapped)"
+                        existing_notes.append({
+                            "text": note_text,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "author": actor,
+                        })
+                        await session.execute(
+                            text(
+                                "UPDATE findings SET evidence = :evidence, notes = :notes, updated_at = now() "
+                                "WHERE id = :id AND org_id = :org_id"
+                            ),
+                            {
+                                "id": finding_id,
+                                "org_id": org_id,
+                                "evidence": json.dumps(existing_evidence),
+                                "notes": json.dumps(existing_notes),
+                            },
+                        )
+                        await append_audit_log(
+                            session,
+                            event_type="finding_evidence_attached",
+                            entity_type="finding",
+                            entity_id=finding_id,
+                            payload={
+                                "org_id": org_id,
+                                "evidence_id": evidence_id,
+                                "document_id": document_id,
+                                "filename": filename or document_id,
+                            },
+                        )
+                        await session.commit()
+                        finding_linked = True
+            except Exception as e:
+                logger.warning("failed_to_link_finding_evidence", finding_id=finding_id, error=str(e))
+
+        yield _sse(
+            "persisted",
+            {
+                "evidence_id": evidence_id,
+                "controls_linked": controls_linked,
+                "finding_linked": finding_linked,
+            },
+        )
+
         yield _sse(
             "summary",
             {
                 "controls_mapped": len(mapping.controls),
                 "evidence_created": len(evidence_list),
                 "confidence_scores": [mapping.confidence_score],
+                "evidence_id": evidence_id,
+                "controls_linked": controls_linked,
+                "finding_linked": finding_linked,
             },
         )
         yield _sse("done", {})
@@ -166,6 +253,11 @@ async def ingest_document(
             document_id,
             scoped_org,
             actor,
+            filename=file.filename or "",
+            finding_id=finding_id,
+            control_id=control_id,
+            framework_id=framework_id,
+            description=description,
         ),
         media_type="text/event-stream",
         headers={

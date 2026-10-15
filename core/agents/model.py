@@ -205,7 +205,10 @@ class _AnthropicProvider:
         )
         # Models often wrap JSON in markdown fences; the harness json.loads the
         # raw string and rejects a leading ``` as schema_invalid.
-        return _strip_markdown_fences(response.content[0].text)
+        # Support reasoning/thinking models where response.content[0] is a ThinkingBlock.
+        text_parts = [b.text for b in response.content if hasattr(b, "text") and b.text]
+        raw = "\n".join(text_parts).strip() if text_parts else ""
+        return _strip_markdown_fences(raw)
 
 
 class _OllamaProvider:

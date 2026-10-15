@@ -9,20 +9,37 @@ from typing import Any
 # Must run before api.main import so api.limits sees it (SlowAPI /auth/token 10/min).
 os.environ["CORTEX_DISABLE_RATE_LIMIT"] = "1"
 os.environ["CORTEX_TESTING"] = "1"
-os.environ.setdefault("MODEL_PROVIDER", "stub")
-os.environ.setdefault(
-    "DATABASE_URL",
-    "postgresql+asyncpg://cortex_app:cortex_ci_test@127.0.0.1:5432/cortex",
-)
+# Ensure tests default to offline stub provider so ambient API keys don't trigger live HTTP calls.
+os.environ["MODEL_PROVIDER"] = "stub"
+os.environ.pop("ANTHROPIC_API_KEY", None)
+os.environ.pop("OPENAI_API_KEY", None)
+os.environ.pop("GEMINI_API_KEY", None)
+os.environ.pop("GOOGLE_API_KEY", None)
+
+if "DATABASE_URL" not in os.environ:
+    # Check if 5434 (local compose) or 5432 is reachable
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as _s:
+        _s.settimeout(0.5)
+        _port = 5434 if _s.connect_ex(("127.0.0.1", 5434)) == 0 else 5432
+    os.environ["DATABASE_URL"] = f"postgresql+asyncpg://cortex_app:cortex_ci_test@127.0.0.1:{_port}/cortex"
 
 import pytest
 from fastapi.testclient import TestClient
 
 from api.main import app
+from core.circuit_breaker import _breakers
 from core.security import create_access_token
 
 _DEMO_USER = "ciso@astralabs.com"
 _DEMO_PASSWORD = "cortex-ciso-2026"
+
+
+@pytest.fixture(autouse=True)
+def reset_circuit_breakers() -> None:
+    """Isolate tests from circuit breaker state trips in previous tests."""
+    for b in _breakers:
+        b.record_success()
 
 
 @pytest.fixture(scope="session")
@@ -33,14 +50,14 @@ def postgres_reachable() -> bool:
     except ImportError:
         return False
     url = os.environ.get("DATABASE_URL", "")
+    port = 5434 if ":5434" in url else int(os.environ.get("PGPORT", "5432"))
     if "cortex_ci_test" in url or os.environ.get("PGPASSWORD"):
         host = os.environ.get("PGHOST", "127.0.0.1")
-        port = int(os.environ.get("PGPORT", "5432"))
         user = os.environ.get("PGUSER", "cortex")
         password = os.environ.get("PGPASSWORD", "cortex_ci_test")
         dbname = os.environ.get("PGDATABASE", "cortex")
     else:
-        host, port, user, password, dbname = "127.0.0.1", 5432, "cortex", "cortex_ci_test", "cortex"
+        host, user, password, dbname = "127.0.0.1", "cortex", "cortex_ci_test", "cortex"
     try:
         conn = psycopg2.connect(
             host=host,
@@ -120,9 +137,10 @@ def manual_finding(postgres_reachable: bool) -> Any:
 
     finding_id = f"finding-fixture-{uuid.uuid4().hex[:10]}"
     url = os.environ.get("DATABASE_URL", "")
+    port = 5434 if ":5434" in url else int(os.environ.get("PGPORT", "5432"))
     conn = psycopg2.connect(
         host=os.environ.get("PGHOST", "127.0.0.1"),
-        port=int(os.environ.get("PGPORT", "5432")),
+        port=port,
         user=os.environ.get("PGUSER", "cortex"),
         password=os.environ.get("PGPASSWORD", "cortex_ci_test" if "cortex_ci_test" in url else "cortex_ci_test"),
         dbname=os.environ.get("PGDATABASE", "cortex"),
