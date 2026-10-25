@@ -151,6 +151,7 @@ export interface DebriefDecision {
   chosen_id: string;
   chosen_label: string;
   correct: boolean;
+  risk_outcome: string | null;
   consequence: string;
   framework_rationale: string;
   reference_id: string | null;

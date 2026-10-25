@@ -10,6 +10,12 @@ A scenario opens with a brief. An adversarial stakeholder agent presses for a de
 
 The platform is built on **purvapaksha**: in Indian philosophical method, a position may not be asserted until its strongest objection has been stated in full. The stakeholder agent argues to win, not to find truth. Holding a correct position against that pressure is the skill being trained.
 
+Version 1.1 ships 15 reviewed practices with objective-linked evidence tasks,
+choice-dependent paths, explicit qualified alternatives, remediation guidance,
+and five calibrated evaluation paths per practice. Recommendations remain
+deterministic and offline: current competency gaps select the next eligible
+practice and difficulty, while results below 0.75 are marked for human review.
+
 ## Frameworks
 
 Counts below are taken from the seed migrations (`migrations/019`–`024`), not from marketing copy.
@@ -48,7 +54,7 @@ tar -xzf astra-grc-ce-release-files.tar.gz
 ```
 
 Open http://127.0.0.1:8080. The installer generates local secrets, applies the
-checksum-verified migration manifest through migration 043, and waits for all
+checksum-verified migration manifest through migration 044, and waits for all
 services to become healthy. Offline stub providers are the default; no model
 key or telemetry service is required. See [installation](docs/INSTALL.md) and
 [offline operation](docs/OFFLINE.md).

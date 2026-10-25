@@ -1,7 +1,7 @@
 # Astra GRC CE release security status
 
 **Date:** 25 October 2026
-**Release target:** 1.0.0
+**Release target:** 1.1.0
 
 This status narrows the earlier CORTEX assessment to the Astra CE runtime. It
 does not erase inherited findings; modules that remain in source pending

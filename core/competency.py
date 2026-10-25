@@ -153,7 +153,10 @@ def rollup_dimensions(sessions: list[dict[str, Any]]) -> list[DimensionRollup]:
         slug = str(session.get("scenario") or session.get("scenario_slug") or "")
         for dim in DIMENSIONS:
             score = dimension_score(competency, dim)
-            latest[dim] = score
+            # A neutral 50 means this scenario did not assess the dimension. It
+            # must not erase meaningful evidence from an earlier scenario.
+            if score != START_SCORE:
+                latest[dim] = score
             best[dim] = max(best[dim], score)
             if score != START_SCORE and slug:
                 seen[dim].add(slug)

@@ -82,7 +82,12 @@ SELECT EXISTS (
     \echo Skipping verified migration :migration_version
   \else
     \echo Migration checksum mismatch or missing checksum: :migration_version
-    \quit 3
+    -- ON_ERROR_STOP converts this deliberate error into a non-zero psql exit.
+    DO \$migration_error\$
+    BEGIN
+      RAISE EXCEPTION 'migration checksum verification failed';
+    END
+    \$migration_error\$;
   \endif
 \else
   \echo Applying :migration_version

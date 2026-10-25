@@ -44,3 +44,4 @@ migrations/040_curriculum_spine.sql
 migrations/041_learner_journey.sql
 migrations/042_reviewed_launch_curriculum.sql
 migrations/043_instructor_cohorts.sql
+migrations/044_practice_quality_v11.sql

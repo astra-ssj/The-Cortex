@@ -1,32 +1,16 @@
 import { test, expect } from "@playwright/test";
 
-const API_HEALTH = process.env.CORTEX_API_HEALTH_URL ?? "http://127.0.0.1:8000/health";
+test("new learner registration reaches diagnostic onboarding", async ({ page }) => {
+  const email = `e2e-${Date.now()}@example.invalid`;
 
-test("demo admin login reaches the Audit Simulator", async ({ page, request }) => {
-  let apiOk = false;
-  try {
-    const health = await request.get(API_HEALTH);
-    apiOk = health.ok();
-  } catch {
-    apiOk = false;
-  }
-  test.skip(!apiOk, `API not reachable at ${API_HEALTH} — start the API for full-stack E2E.`);
+  await page.goto("/register");
+  await page.getByLabel("Company Name").fill("Astra E2E Learning");
+  await page.getByLabel("Full Name").fill("E2E Learner");
+  await page.getByLabel("Work Email").fill(email);
+  await page.getByLabel("Password", { exact: true }).fill("E2E-Learner-2026!");
+  await page.getByLabel("Confirm Password").fill("E2E-Learner-2026!");
+  await page.getByRole("button", { name: "Create Account →" }).click();
 
-  await page.goto("/login");
-
-  await page.getByLabel("Email").fill("admin@astralabs.com");
-  await page.getByLabel("Password", { exact: true }).fill("admin");
-  await page.getByRole("button", { name: "Sign In" }).click();
-
-  await expect(page).toHaveURL(/\/audit-simulator/, { timeout: 30_000 });
-
-  const skipTour = page.getByRole("button", { name: "Skip" });
-  if (await skipTour.isVisible().catch(() => false)) {
-    await skipTour.click();
-  }
-
-  await expect(
-    page.getByLabel("Page header").getByRole("heading", { name: "Audit Simulator" }),
-  ).toBeVisible();
-  await expect(page.getByRole("region", { name: "Framework selector" })).toBeVisible();
+  await expect(page).toHaveURL(/\/onboarding/, { timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Learner diagnostic" })).toBeVisible();
 });

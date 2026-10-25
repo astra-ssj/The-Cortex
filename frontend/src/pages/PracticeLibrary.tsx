@@ -79,6 +79,9 @@ function PracticeMeta({ practice }: { practice: PracticeCatalogEntry }) {
       <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
         {reviewLabel(practice)}
       </span>
+      <span style={{ color: "var(--green)", fontSize: 11, fontWeight: 700 }}>
+        Quality {practice.quality_score}/100
+      </span>
     </div>
   );
 }
@@ -155,10 +158,18 @@ function ReadyPractice({
   practice,
   onStart,
   recommended,
+  locked,
+  recommendationRationale,
+  targetGaps,
+  requiresReview,
 }: {
   practice: PracticeCatalogEntry;
   onStart: (practice: PracticeCatalogEntry) => void;
   recommended: boolean;
+  locked: boolean;
+  recommendationRationale?: string;
+  targetGaps: string[];
+  requiresReview: boolean;
 }) {
   return (
     <article
@@ -178,7 +189,7 @@ function ReadyPractice({
           <PracticeMeta practice={practice} />
           {recommended ? (
             <div role="status" style={{ ...eyebrow, color: "var(--green)", marginTop: 10 }}>
-              Recommended for your learning plan
+              {requiresReview ? "Suggested · instructor review required" : "Recommended for your learning plan"}
             </div>
           ) : null}
           <h2 style={{ margin: "12px 0 8px", color: "var(--text)", fontSize: 19 }}>
@@ -195,6 +206,11 @@ function ReadyPractice({
           >
             {practice.summary}
           </p>
+          {recommended && recommendationRationale ? (
+            <p style={{ margin: "10px 0 0", color: "var(--text)", fontSize: 12, lineHeight: 1.5 }}>
+              Why this practice: {recommendationRationale}
+            </p>
+          ) : null}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
             {practice.frameworks.map((framework) => (
               <span
@@ -217,9 +233,15 @@ function ReadyPractice({
           {practice.target_dimensions.map((dimension) => (
             <div
               key={dimension}
-              style={{ color: "var(--text-secondary)", fontSize: 12, marginBottom: 5 }}
+              style={{
+                color: targetGaps.includes(dimension) ? "var(--amber)" : "var(--text-secondary)",
+                fontSize: 12,
+                fontWeight: targetGaps.includes(dimension) ? 700 : 400,
+                marginBottom: 5,
+              }}
             >
               {dimensionLabel(dimension)}
+              {targetGaps.includes(dimension) ? " · current focus" : ""}
             </div>
           ))}
           <Button
@@ -227,8 +249,9 @@ function ReadyPractice({
             size="lg"
             style={{ marginTop: 12, width: "100%" }}
             onClick={() => onStart(practice)}
+            disabled={locked}
           >
-            Start practice
+            {locked ? "Complete prerequisites first" : "Start practice"}
           </Button>
         </div>
       </div>
@@ -302,6 +325,10 @@ export default function PracticeLibrary() {
       .filter((practice) => practice.recommended)
       .map((practice) => practice.practice_id),
   );
+  const planPractices = new Map(
+    (planQuery.data?.practices ?? []).map((practice) => [practice.practice_id, practice]),
+  );
+  const recommendation = planQuery.data?.recommendation;
   const ready = filtered
     .filter((practice) => practice.status === "available")
     .sort((a, b) => Number(recommendedIds.has(b.id)) - Number(recommendedIds.has(a.id)));
@@ -447,6 +474,20 @@ export default function PracticeLibrary() {
                     practice={practice}
                     onStart={onStart}
                     recommended={recommendedIds.has(practice.id)}
+                    locked={planPractices.get(practice.id)?.locked ?? false}
+                    recommendationRationale={
+                      recommendedIds.has(practice.id) ? recommendation?.rationale : undefined
+                    }
+                    targetGaps={
+                      recommendedIds.has(practice.id)
+                        ? (recommendation?.target_gap_dimensions ?? [])
+                        : []
+                    }
+                    requiresReview={
+                      recommendedIds.has(practice.id)
+                        ? (recommendation?.requires_human_review ?? false)
+                        : false
+                    }
                   />
                 ))}
               </div>

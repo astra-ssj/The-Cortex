@@ -62,6 +62,9 @@ const practice = (
   license: "MIT",
   author: "Tristan Roth",
   review_state: "adapted",
+  quality_standard_version: "practice-quality-v1",
+  quality_score: 100,
+  quality_findings: [],
   ...overrides,
 });
 
@@ -111,6 +114,7 @@ describe("PracticeLibrary", () => {
     expect(screen.getByText("Risk acceptance memo")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Start practice" })).toBeTruthy();
     expect(screen.getByText("Planned")).toBeTruthy();
+    expect(screen.getAllByText("Quality 100/100").length).toBeGreaterThan(0);
   });
 
   it("starts the linked learning scenario with practice provenance", async () => {

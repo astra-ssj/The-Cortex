@@ -18,6 +18,7 @@ const MISSED_DECISION: DebriefDecision = {
   chosen_id: "notify_authority_immediately",
   chosen_label: "Notify the supervisory authority immediately",
   correct: false,
+  risk_outcome: "qualified_alternative",
   consequence: "The authority opens a file on incomplete facts.",
   framework_rationale: "Premature notification under ISO 27001:2022 A.5.26.",
   reference_id: "invoke_supplier_contract",
@@ -76,7 +77,7 @@ describe("ScenarioDebrief", () => {
 
     expect(screen.getByText("Notify the supervisory authority immediately")).toBeTruthy();
     expect(screen.getByText("Invoke the supplier incident clause")).toBeTruthy();
-    expect(screen.getByText(/MISSED/)).toBeTruthy();
+    expect(screen.getByText(/QUALIFIED ALTERNATIVE/)).toBeTruthy();
     // Both the chosen rationale and why the reference was correct must be shown;
     // a miss with no explanation teaches nothing.
     expect(screen.getByText(/Premature notification under ISO 27001:2022 A.5.26/)).toBeTruthy();

@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
 
   migrate:
-    image: ${ASTRA_API_IMAGE:-ghcr.io/astra-ssj/astra-grc-ce-api:v1.0.0}
+    image: ${ASTRA_API_IMAGE:-ghcr.io/astra-ssj/astra-grc-ce-api:v1.1.0}
     environment:
       PGHOST: postgres
       PGPORT: "5432"
@@ -47,7 +47,7 @@ services:
     restart: "no"
 
   api:
-    image: ${ASTRA_API_IMAGE:-ghcr.io/astra-ssj/astra-grc-ce-api:v1.0.0}
+    image: ${ASTRA_API_IMAGE:-ghcr.io/astra-ssj/astra-grc-ce-api:v1.1.0}
     environment: *api-environment
     depends_on:
       migrate:
@@ -65,7 +65,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ${ASTRA_FRONTEND_IMAGE:-ghcr.io/astra-ssj/astra-grc-ce-frontend:v1.0.0}
+    image: ${ASTRA_FRONTEND_IMAGE:-ghcr.io/astra-ssj/astra-grc-ce-frontend:v1.1.0}
     ports:
       - "127.0.0.1:${ASTRA_PORT:-8080}:8080"
     depends_on:

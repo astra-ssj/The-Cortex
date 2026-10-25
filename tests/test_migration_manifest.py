@@ -24,7 +24,7 @@ def test_manifest_registers_every_schema_file_once() -> None:
 
     assert len(entries) == len(set(entries)), "migration manifest contains duplicates"
     assert set(entries) == expected
-    assert entries[-1] == "migrations/043_instructor_cohorts.sql"
+    assert entries[-1] == "migrations/044_practice_quality_v11.sql"
 
 
 def test_manifest_entries_exist_and_are_ordered() -> None:
@@ -48,3 +48,13 @@ def test_manifest_entries_exist_and_are_ordered() -> None:
     assert numbered.index("042_reviewed_launch_curriculum.sql") < numbered.index(
         "043_instructor_cohorts.sql"
     )
+    assert numbered.index("043_instructor_cohorts.sql") < numbered.index(
+        "044_practice_quality_v11.sql"
+    )
+
+
+def test_checksum_mismatch_is_a_real_psql_error() -> None:
+    script = (ROOT / "scripts/apply_cortex_schema.sh").read_text(encoding="utf-8")
+
+    assert "RAISE EXCEPTION 'migration checksum verification failed'" in script
+    assert "\\quit 3" not in script

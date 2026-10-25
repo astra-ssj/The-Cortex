@@ -1,0 +1,711 @@
+{
+  "fixture_version": "v2",
+  "quality_standard_version": "practice-quality-v1",
+  "paths": [
+    {
+      "scenario_slug": "access_review_exception_handling",
+      "correct": [
+        "triage_correct",
+        "ownership_correct",
+        "closure_correct"
+      ],
+      "qualified_alternative": [
+        "triage_qualified",
+        "ownership_qualified",
+        "closure_qualified"
+      ],
+      "failure": [
+        "triage_failure"
+      ],
+      "defer": [
+        "triage_defer"
+      ],
+      "mixed": [
+        "triage_correct",
+        "ownership_qualified",
+        "closure_correct"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "ai_control_applicability_escalation",
+      "correct": [
+        "use_classification_correct",
+        "control_applicability_correct",
+        "confidence_escalation_correct",
+        "synthesis_4_controlled"
+      ],
+      "qualified_alternative": [
+        "use_classification_qualified",
+        "control_applicability_qualified",
+        "confidence_escalation_qualified",
+        "synthesis_4_qualified_alternative"
+      ],
+      "failure": [
+        "use_classification_failure"
+      ],
+      "defer": [
+        "use_classification_defer"
+      ],
+      "mixed": [
+        "use_classification_correct",
+        "control_applicability_qualified",
+        "confidence_escalation_correct",
+        "synthesis_4_controlled"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "asset_classification_breach",
+      "correct": [
+        "restrict_and_log",
+        "disclose_and_self_raise",
+        "synthesis_3_controlled"
+      ],
+      "qualified_alternative": [
+        "delete_and_reclassify",
+        "partial_disclosure",
+        "synthesis_3_qualified_alternative"
+      ],
+      "failure": [
+        "notify_all_staff"
+      ],
+      "defer": [
+        "wait_for_legal"
+      ],
+      "mixed": [
+        "restrict_and_log",
+        "partial_disclosure",
+        "synthesis_3_controlled"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "audit_sampling_evidence_sufficiency",
+      "correct": [
+        "population_correct",
+        "selection_correct",
+        "exception_correct"
+      ],
+      "qualified_alternative": [
+        "population_qualified",
+        "selection_qualified",
+        "exception_qualified"
+      ],
+      "failure": [
+        "population_failure"
+      ],
+      "defer": [
+        "population_defer"
+      ],
+      "mixed": [
+        "population_correct",
+        "selection_qualified",
+        "exception_correct"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "change_management_failure",
+      "correct": [
+        "invoke_incident_process",
+        "raise_nonconformity",
+        "synthesis_3_controlled"
+      ],
+      "qualified_alternative": [
+        "rollback_immediately",
+        "technical_finding_only",
+        "synthesis_3_qualified_alternative"
+      ],
+      "failure": [
+        "escalate_to_cto"
+      ],
+      "defer": [
+        "let_engineering_resolve"
+      ],
+      "mixed": [
+        "invoke_incident_process",
+        "technical_finding_only",
+        "synthesis_3_controlled"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "cloud_access_onboarding",
+      "correct": [
+        "least_privilege",
+        "least_privilege",
+        "least_privilege"
+      ],
+      "qualified_alternative": [
+        "approve_all",
+        "approve_all",
+        "approve_all"
+      ],
+      "failure": [
+        "challenge"
+      ],
+      "defer": [
+        "deny"
+      ],
+      "mixed": [
+        "least_privilege",
+        "approve_all",
+        "least_privilege"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "dora_ict_incident_classification_reporting",
+      "correct": [
+        "criteria_correct",
+        "initial_report_correct",
+        "report_lifecycle_correct",
+        "synthesis_4_controlled"
+      ],
+      "qualified_alternative": [
+        "criteria_qualified",
+        "initial_report_qualified",
+        "report_lifecycle_qualified",
+        "synthesis_4_qualified_alternative"
+      ],
+      "failure": [
+        "criteria_failure"
+      ],
+      "defer": [
+        "criteria_defer"
+      ],
+      "mixed": [
+        "criteria_correct",
+        "initial_report_qualified",
+        "report_lifecycle_correct",
+        "synthesis_4_controlled"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "evidence_freshness_audit",
+      "correct": [
+        "inspect_content_date",
+        "record_missing_q3",
+        "repull_source_record"
+      ],
+      "qualified_alternative": [
+        "trust_file_timestamp",
+        "call_year_mostly_complete",
+        "edit_existing_copy"
+      ],
+      "failure": [
+        "recreate_current_screenshot"
+      ],
+      "defer": [
+        "accept_owner_assurance"
+      ],
+      "mixed": [
+        "inspect_content_date",
+        "call_year_mostly_complete",
+        "repull_source_record"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "incident_severity_triage",
+      "correct": [
+        "impact_assessment_correct",
+        "clock_and_evidence_correct",
+        "severity_reassessment_correct"
+      ],
+      "qualified_alternative": [
+        "impact_assessment_qualified",
+        "clock_and_evidence_qualified",
+        "severity_reassessment_qualified"
+      ],
+      "failure": [
+        "impact_assessment_failure"
+      ],
+      "defer": [
+        "impact_assessment_defer"
+      ],
+      "mixed": [
+        "impact_assessment_correct",
+        "clock_and_evidence_qualified",
+        "severity_reassessment_correct"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "nonconformity_corrective_action",
+      "correct": [
+        "containment_correct",
+        "root_cause_correct",
+        "effectiveness_correct"
+      ],
+      "qualified_alternative": [
+        "containment_qualified",
+        "root_cause_qualified",
+        "effectiveness_qualified"
+      ],
+      "failure": [
+        "containment_failure"
+      ],
+      "defer": [
+        "containment_defer"
+      ],
+      "mixed": [
+        "containment_correct",
+        "root_cause_qualified",
+        "effectiveness_correct"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "ransomware_group_response",
+      "correct": [
+        "invoke_and_isolate",
+        "image_then_restore",
+        "board_brief_staged_notify",
+        "synthesis_4_controlled"
+      ],
+      "qualified_alternative": [
+        "contain_without_bcp",
+        "restore_immediately",
+        "full_disclosure_notify_all",
+        "synthesis_4_qualified_alternative"
+      ],
+      "failure": [
+        "pay_ransom_first"
+      ],
+      "defer": [
+        "wait_for_forensics"
+      ],
+      "mixed": [
+        "invoke_and_isolate",
+        "restore_immediately",
+        "board_brief_staged_notify",
+        "synthesis_4_controlled"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "risk_acceptance_memo",
+      "correct": [
+        "decision_basis_correct",
+        "authority_correct",
+        "conditions_correct",
+        "synthesis_4_controlled"
+      ],
+      "qualified_alternative": [
+        "decision_basis_qualified",
+        "authority_qualified",
+        "conditions_qualified",
+        "synthesis_4_qualified_alternative"
+      ],
+      "failure": [
+        "decision_basis_failure"
+      ],
+      "defer": [
+        "decision_basis_defer"
+      ],
+      "mixed": [
+        "decision_basis_correct",
+        "authority_qualified",
+        "conditions_correct",
+        "synthesis_4_controlled"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "soa_exclusion_review",
+      "correct": [
+        "fact_test_correct",
+        "supplier_test_correct",
+        "approval_record_correct",
+        "synthesis_4_controlled"
+      ],
+      "qualified_alternative": [
+        "fact_test_qualified",
+        "supplier_test_qualified",
+        "approval_record_qualified",
+        "synthesis_4_qualified_alternative"
+      ],
+      "failure": [
+        "fact_test_failure"
+      ],
+      "defer": [
+        "fact_test_defer"
+      ],
+      "mixed": [
+        "fact_test_correct",
+        "supplier_test_qualified",
+        "approval_record_correct",
+        "synthesis_4_controlled"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "supplier_due_diligence",
+      "correct": [
+        "scope_correct",
+        "assurance_correct",
+        "conditions_correct"
+      ],
+      "qualified_alternative": [
+        "scope_qualified",
+        "assurance_qualified",
+        "conditions_qualified"
+      ],
+      "failure": [
+        "scope_failure"
+      ],
+      "defer": [
+        "scope_defer"
+      ],
+      "mixed": [
+        "scope_correct",
+        "assurance_qualified",
+        "conditions_correct"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    },
+    {
+      "scenario_slug": "supplier_incident_response",
+      "correct": [
+        "invoke_supplier_contract",
+        "notify_authority_assess_subjects",
+        "synthesis_3_controlled"
+      ],
+      "qualified_alternative": [
+        "contain_and_investigate",
+        "notify_authority_and_subjects",
+        "synthesis_3_qualified_alternative"
+      ],
+      "failure": [
+        "notify_authority_immediately"
+      ],
+      "defer": [
+        "escalate_to_dpo"
+      ],
+      "mixed": [
+        "invoke_supplier_contract",
+        "notify_authority_and_subjects",
+        "synthesis_3_controlled"
+      ],
+      "expected": {
+        "correct": {
+          "terminal": "complete",
+          "minimum_score": 70
+        },
+        "qualified_alternative": {
+          "terminal": "complete",
+          "minimum_score": 55
+        },
+        "failure": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "defer": {
+          "terminal": "complete",
+          "maximum_score": 50
+        },
+        "mixed": {
+          "terminal": "complete",
+          "minimum_score": 60
+        }
+      }
+    }
+  ]
+}
