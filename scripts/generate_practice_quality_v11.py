@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build reviewed v1.1 scenarios, evaluation paths and migration 044."""
+"""Build corrected v1.1 scenarios, evaluation paths and migration 045."""
 
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ SOURCE = ROOT / "content" / "practices" / "published_scenarios_source.json"
 CATALOG = ROOT / "content" / "practices" / "index.json"
 OUTPUT = ROOT / "content" / "practices" / "scenarios_v1_1.json"
 FIXTURES = ROOT / "content" / "practices" / "evaluation_fixtures_v2.json"
-MIGRATION = ROOT / "migrations" / "044_practice_quality_v11.sql"
-VERSION = "2026.10.25-v1.1"
+MIGRATION = ROOT / "migrations" / "045_practice_quality_semantics.sql"
+VERSION = "2026.10.25-v1.1.1"
 REVIEWER = "Astra Curriculum Review Board"
 REVIEWED_AT = "2026-10-25T14:00:00Z"
 
@@ -71,6 +71,7 @@ def _new_choice(
         ),
         "next_stage": target,
         "risk_outcome": outcome,
+        "grading_class": outcome,
         "dimension_weights": {
             "control_mapping": weight,
             "evidence": weight,
@@ -94,10 +95,10 @@ def _ensure_outcomes(stage: dict[str, Any], target: str) -> None:
     for choice in choices:
         authored_outcome = str(choice.get("risk_outcome") or "")
         choice["authored_risk_outcome"] = authored_outcome
-        choice["risk_outcome"] = (
+        choice["grading_class"] = (
             "controlled" if choice.get("is_correct") else next(non_reference)
         )
-    present = {str(choice.get("risk_outcome")) for choice in choices}
+    present = {str(choice.get("grading_class")) for choice in choices}
     controls = [str(item) for item in (choices[0].get("control_refs", []) if choices else [])]
     demand = str((stage.get("demands") or [stage["id"]])[0])
     for outcome, _, _ in OUTCOMES:
@@ -106,7 +107,11 @@ def _ensure_outcomes(stage: dict[str, Any], target: str) -> None:
                 _new_choice(
                     str(stage["id"]),
                     outcome,
-                    target=target,
+                    target=(
+                        target
+                        if outcome in {"controlled", "qualified_alternative"}
+                        else "complete"
+                    ),
                     demand=demand,
                     controls=controls,
                     order=len(choices) + 1,
@@ -114,7 +119,7 @@ def _ensure_outcomes(stage: dict[str, Any], target: str) -> None:
             )
     choices.sort(key=lambda choice: int(choice.get("display_order", 99)))
     for index, choice in enumerate(choices, start=1):
-        outcome = str(choice.get("risk_outcome"))
+        outcome = str(choice.get("grading_class"))
         weight = next(item[2] for item in OUTCOMES if item[0] == outcome)
         choice["display_order"] = index
         choice["is_correct"] = outcome == "controlled"
@@ -124,8 +129,6 @@ def _ensure_outcomes(stage: dict[str, Any], target: str) -> None:
             "escalation": weight if outcome != "qualified_alternative" else 6,
             "remediation": weight if outcome != "qualified_alternative" else -2,
         }
-        if outcome in {"controlled", "qualified_alternative"}:
-            choice["next_stage"] = target
         label = str(choice["label"])
         choice["consequence"] = (
             f"{str(choice.get('consequence') or '').rstrip()} The selected action “{label}” "
@@ -195,7 +198,7 @@ def _enhance(raw: dict[str, Any], practice: dict[str, Any]) -> dict[str, Any]:
         for choice in previous.get("choices", []):
             if (
                 choice.get("next_stage") == terminal["id"]
-                and choice.get("risk_outcome") in {"controlled", "qualified_alternative"}
+                and choice.get("is_correct")
             ):
                 choice["next_stage"] = new_stage["id"]
         scenario["stages"].insert(-1, new_stage)
@@ -217,10 +220,28 @@ def _enhance(raw: dict[str, Any], practice: dict[str, Any]) -> dict[str, Any]:
             ],
         }
 
-    entry = next(stage for stage in decisions if stage["id"] == scenario["entry_stage_id"])
-    for choice in entry["choices"]:
-        if choice["risk_outcome"] in {"control_failure", "unmanaged_delay"}:
-            choice["next_stage"] = terminal["id"]
+    if not any(
+        len({str(choice["next_stage"]) for choice in stage["choices"]}) > 1
+        for stage in decisions
+    ):
+        entry = next(
+            stage for stage in decisions if stage["id"] == scenario["entry_stage_id"]
+        )
+        demand = str((entry.get("demands") or [entry["id"]])[0])
+        controls = [
+            str(item)
+            for item in (entry["choices"][0].get("control_refs", []) if entry["choices"] else [])
+        ]
+        branch = _new_choice(
+            str(entry["id"]),
+            "unmanaged_delay",
+            target=terminal["id"],
+            demand=demand,
+            controls=controls,
+            order=len(entry["choices"]) + 1,
+        )
+        branch["id"] = f"{entry['id']}_unmanaged_delay_branch"
+        entry["choices"].append(branch)
 
     for sequence, stage in enumerate(scenario["stages"], start=1):
         stage["sequence"] = sequence
@@ -248,7 +269,7 @@ def _path(scenario: dict[str, Any], outcomes: list[str]) -> list[str]:
             (
                 item
                 for item in stage["choices"]
-                if item["risk_outcome"] == wanted
+                if item["grading_class"] == wanted
             ),
             stage["choices"][0],
         )
@@ -272,8 +293,8 @@ def _fixture(scenario: dict[str, Any]) -> dict[str, Any]:
             ["controlled", "qualified_alternative", "controlled", "controlled"],
         ),
         "expected": {
-            "correct": {"terminal": "complete", "minimum_score": 70},
-            "qualified_alternative": {"terminal": "complete", "minimum_score": 55},
+            "correct": {"terminal": "complete", "minimum_score": 60},
+            "qualified_alternative": {"terminal": "complete", "minimum_score": 53},
             "failure": {"terminal": "complete", "maximum_score": 50},
             "defer": {"terminal": "complete", "maximum_score": 50},
             "mixed": {"terminal": "complete", "minimum_score": 60},
@@ -308,11 +329,12 @@ def _migration(scenarios: list[dict[str, Any]], practices: list[dict[str, Any]])
         )
     track_content = {
         "track_id": "launch-curriculum",
-        "version": 2,
+        "version": 3,
         "scenario_hashes": [scenario["content_hash"] for scenario in scenarios],
     }
-    return f"""-- Astra CE 044 — Practice Quality and Adaptive Learning v1.1 content.
--- All published snapshots remain immutable; v1.1 creates reviewed successor versions.
+    return f"""-- Astra CE 045 — Preserve authored runtime outcomes and transitions.
+-- Migration 044 conflated grading classes with operational risk outcomes. This
+-- immutable successor restores authored semantics while retaining quality grading.
 
 CREATE TEMP TABLE quality_practice_seed (data JSONB) ON COMMIT DROP;
 INSERT INTO quality_practice_seed VALUES ({_sql_json(practice_seed)}::jsonb);
@@ -399,7 +421,7 @@ INSERT INTO track_versions (
   track_id, version, status, title, content_hash, published_at
 )
 VALUES (
-  'launch-curriculum', 2, 'draft', 'Astra CE Launch Curriculum v1.1',
+  'launch-curriculum', 3, 'draft', 'Astra CE Launch Curriculum v1.1.1',
   '{_hash(track_content)}', NULL
 )
 ON CONFLICT (track_id, version) DO NOTHING;
@@ -419,7 +441,7 @@ CROSS JOIN LATERAL jsonb_array_elements(seed.data) item
 JOIN scenario_versions sv
   ON sv.slug = item->>'slug' AND sv.content_hash = item->>'content_hash'
 JOIN track_versions tv
-  ON tv.track_id = 'launch-curriculum' AND tv.version = 2
+  ON tv.track_id = 'launch-curriculum' AND tv.version = 3
 ON CONFLICT DO NOTHING;
 
 INSERT INTO curriculum_reviews (
@@ -444,7 +466,7 @@ SELECT 'track_version', tv.id, '{REVIEWER}', 'approved',
        'All fifteen required v1.1 practices passed deterministic validation.',
        '{REVIEWED_AT}'::timestamptz
 FROM track_versions tv
-WHERE tv.track_id = 'launch-curriculum' AND tv.version = 2;
+WHERE tv.track_id = 'launch-curriculum' AND tv.version = 3;
 
 INSERT INTO curriculum_validation_runs (
   subject_type, subject_id, validator_version, valid, findings, content_hash
@@ -465,7 +487,7 @@ UNION ALL
 SELECT 'track_version', tv.id, 'practice-quality-v1', TRUE, '[]'::jsonb,
        tv.content_hash
 FROM track_versions tv
-WHERE tv.track_id = 'launch-curriculum' AND tv.version = 2;
+WHERE tv.track_id = 'launch-curriculum' AND tv.version = 3;
 
 UPDATE practice_versions
 SET status = 'published', published_at = '{REVIEWED_AT}'::timestamptz
@@ -481,7 +503,7 @@ WHERE status = 'draft' AND EXISTS (
 
 UPDATE track_versions
 SET status = 'published', published_at = '{REVIEWED_AT}'::timestamptz
-WHERE track_id = 'launch-curriculum' AND version = 2 AND status = 'draft';
+WHERE track_id = 'launch-curriculum' AND version = 3 AND status = 'draft';
 """
 
 

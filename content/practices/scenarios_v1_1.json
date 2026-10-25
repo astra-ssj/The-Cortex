@@ -47,6 +47,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform triage the exception and immediate exposure using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -69,6 +70,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform triage the exception and immediate exposure using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -77,7 +79,7 @@
               "consequence": "The control conclusion is unsupported and risk increases. The selected action “Mark the item resolved because the user account is disabled” changes ownership, retained evidence, and residual risk at triage.",
               "is_correct": false,
               "rationale": "This fails the control objective because it substitutes an unsupported conclusion for evidence required by a.5.18, a.8.15.",
-              "next_stage": "complete",
+              "next_stage": "ownership",
               "risk_outcome": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
@@ -91,6 +93,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform triage the exception and immediate exposure using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -99,7 +102,7 @@
               "consequence": "The decision clock continues without accountable action. The selected action “Wait for the former manager to confirm whether the token was used” changes ownership, retained evidence, and residual risk at triage.",
               "is_correct": false,
               "rationale": "Deferral leaves the risk unmanaged and misses the required escalation or remediation under a.5.18, a.8.15.",
-              "next_stage": "complete",
+              "next_stage": "ownership",
               "risk_outcome": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
@@ -113,7 +116,30 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform triage the exception and immediate exposure using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
+            },
+            {
+              "id": "triage_unmanaged_delay_branch",
+              "label": "Wait for another team before assigning ownership for triage the exception and immediate exposure",
+              "consequence": "The decision to “Wait for another team before assigning ownership for triage the exception and immediate exposure” changes the evidence trail, accountable owner, and residual risk for this specific triage decision.",
+              "is_correct": false,
+              "rationale": "This unmanaged delay response is assessed against a.5.18, a.8.15 and the requirement for attributable evidence, bounded authority, and a dated next action.",
+              "next_stage": "complete",
+              "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
+              "dimension_weights": {
+                "control_mapping": -8,
+                "evidence": -8,
+                "escalation": -8,
+                "remediation": -8
+              },
+              "control_refs": [
+                "a.5.18",
+                "a.8.15"
+              ],
+              "display_order": 5,
+              "remediation": "Revisit the evidence checklist for triage the exception and immediate exposure and identify the owner, decision deadline, retained record, and closure test."
             }
           ],
           "objective_id": "objective_1",
@@ -159,6 +185,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform assign accountable remediation ownership using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -181,6 +208,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform assign accountable remediation ownership using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -203,6 +231,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform assign accountable remediation ownership using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -225,6 +254,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform assign accountable remediation ownership using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -271,6 +301,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform require sufficient closure evidence using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -293,6 +324,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform require sufficient closure evidence using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -315,6 +347,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform require sufficient closure evidence using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -337,6 +370,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform require sufficient closure evidence using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -379,7 +413,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "a9bd0275588e285c0f8f156e6f69a9cc3c5d62257abeb3e72af6a2c97ad97293"
+      "content_hash": "c282dfa0b5d514de4341b0103d33a44b3ea3f26bddb0ff73226d577e1a7732e8"
     },
     {
       "practice_id": "ai-control-applicability-escalation",
@@ -424,6 +458,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform classify the ai use from actual function and impact using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -446,6 +481,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform classify the ai use from actual function and impact using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -454,7 +490,7 @@
               "consequence": "The control conclusion is unsupported and risk increases. The selected action “Accept the vendor's summarization label” changes ownership, retained evidence, and residual risk at use_classification.",
               "is_correct": false,
               "rationale": "This fails the control objective because it substitutes an unsupported conclusion for evidence required by a.5.7, a.5.8.",
-              "next_stage": "complete",
+              "next_stage": "control_applicability",
               "risk_outcome": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
@@ -468,6 +504,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform classify the ai use from actual function and impact using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -476,7 +513,7 @@
               "consequence": "The decision clock continues without accountable action. The selected action “Classify only from the underlying model name” changes ownership, retained evidence, and residual risk at use_classification.",
               "is_correct": false,
               "rationale": "Deferral leaves the risk unmanaged and misses the required escalation or remediation under a.5.7, a.5.8.",
-              "next_stage": "complete",
+              "next_stage": "control_applicability",
               "risk_outcome": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
@@ -490,6 +527,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform classify the ai use from actual function and impact using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -536,6 +574,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform determine whether human review removes applicability using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -558,6 +597,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform determine whether human review removes applicability using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -580,6 +620,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform determine whether human review removes applicability using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -602,6 +643,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform determine whether human review removes applicability using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -648,6 +690,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform escalate a consequential low-confidence decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -656,7 +699,7 @@
               "consequence": "Immediate exposure is limited, but a time-bound condition remains open. The selected action “Approve a tightly bounded non-production trial with mandatory review and evidence collection” changes ownership, retained evidence, and residual risk at confidence_escalation.",
               "is_correct": false,
               "rationale": "This is a qualified alternative, not the reference answer: it limits immediate exposure but leaves a named evidence or governance condition unresolved under a.5.2, a.5.35.",
-              "next_stage": "synthesis_4",
+              "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
@@ -670,6 +713,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform escalate a consequential low-confidence decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -692,6 +736,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform escalate a consequential low-confidence decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -714,6 +759,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform escalate a consequential low-confidence decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -748,6 +794,7 @@
               "rationale": "This controlled response is assessed against a.5.2, a.5.35, a.5.7 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "controlled",
+              "grading_class": "controlled",
               "dimension_weights": {
                 "control_mapping": 12,
                 "evidence": 12,
@@ -771,6 +818,7 @@
               "rationale": "This qualified alternative response is assessed against a.5.2, a.5.35, a.5.7 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -794,6 +842,7 @@
               "rationale": "This control failure response is assessed against a.5.2, a.5.35, a.5.7 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -817,6 +866,7 @@
               "rationale": "This unmanaged delay response is assessed against a.5.2, a.5.35, a.5.7 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -872,7 +922,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "14f9444de3749afe253f1ed3e0dd1c1d23008a22b6c6fe19e2b05f3cfe538873"
+      "content_hash": "2b94d0a82a1cfc2da1e0a0848026c4826f609ec1d00fc8ca3069cabd6cd9c095"
     },
     {
       "practice_id": "asset-classification-breach",
@@ -919,6 +969,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform whether to restrict access immediately using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -928,7 +979,7 @@
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 A.5.28 (collection of evidence) — deleting files destroys the evidence needed to assess the exposure period and scope. A.5.12 remediation must preserve the audit trail, not eliminate it.",
               "next_stage": "audit_disclosure_decision",
-              "risk_outcome": "qualified_alternative",
+              "risk_outcome": "evidence_destroyed",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -941,6 +992,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "evidence_destroyed",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform whether to restrict access immediately using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -949,8 +1001,8 @@
               "consequence": "A company-wide notification is sent describing the exposed data. Staff awareness is raised but the notification itself may constitute a secondary disclosure of the sensitive content. The selected action “Notify all staff — transparency first” changes ownership, retained evidence, and residual risk at initial_assessment.",
               "is_correct": false,
               "rationale": "ISO 27001:2022 A.5.13 (labelling of information) and A.5.10 (acceptable use) govern who handles sensitive data. Broad notification of salary and PII content to all 340 staff widens the exposure rather than containing it.",
-              "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "next_stage": "audit_disclosure_decision",
+              "risk_outcome": "secondary_disclosure",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -963,6 +1015,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "secondary_disclosure",
+              "grading_class": "control_failure",
               "remediation": "Reperform whether to restrict access immediately using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -971,8 +1024,8 @@
               "consequence": "No action is taken pending legal review. The drive remains accessible to all staff for the duration. The exposure window extends through the audit. The selected action “Hold all action — wait for legal advice” changes ownership, retained evidence, and residual risk at initial_assessment.",
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 A.5.26 — incidents require timely response. Waiting for legal advice before restricting access is not a recognised hold under the standard. Legal involvement is appropriate in parallel, not as a prerequisite to containment.",
-              "next_stage": "complete",
-              "risk_outcome": "unmanaged_delay",
+              "next_stage": "audit_disclosure_decision",
+              "risk_outcome": "exposure_extended",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -984,6 +1037,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "exposure_extended",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform whether to restrict access immediately using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -1034,6 +1088,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform whether to disclose proactively to the auditor using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1042,8 +1097,8 @@
               "consequence": "You brief the auditor on the unclassified asset and update the register, but do not raise the GDPR notification. The auditor sees a classification finding; the regulatory obligation is unmet. The selected action “Disclose the drive — omit the GDPR angle” changes ownership, retained evidence, and residual risk at audit_disclosure_decision.",
               "is_correct": false,
               "rationale": "Partial disclosure satisfies ISO 27001:2022 A.5.9 and A.5.12 but fails the GDPR Article 33 obligation independently. The two obligations run in parallel — meeting one does not discharge the other.",
-              "next_stage": "synthesis_3",
-              "risk_outcome": "qualified_alternative",
+              "next_stage": "complete",
+              "risk_outcome": "partial_compliance",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -1056,6 +1111,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "partial_compliance",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform whether to disclose proactively to the auditor using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1065,7 +1121,7 @@
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 clause 10 (continual improvement) and A.10.1 — concealing a nonconformity from an auditor is a material audit integrity failure. GDPR Article 33 remains unmet regardless of the audit outcome. This approach risks both certification withdrawal and regulatory enforcement.",
               "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "risk_outcome": "audit_integrity_failure",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -1078,6 +1134,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "audit_integrity_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform whether to disclose proactively to the auditor using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1086,8 +1143,9 @@
               "consequence": "The decision to “Wait for another team before assigning ownership for whether to disclose proactively to the auditor” changes the evidence trail, accountable owner, and residual risk for this specific audit disclosure decision decision. The selected action “Wait for another team before assigning ownership for whether to disclose proactively to the auditor” changes ownership, retained evidence, and residual risk at audit_disclosure_decision.",
               "is_correct": false,
               "rationale": "This unmanaged delay response is assessed against a.5.9, a.5.12, a.5.13, clause.10.1 and the requirement for attributable evidence, bounded authority, and a dated next action.",
-              "next_stage": "synthesis_3",
+              "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -1135,6 +1193,7 @@
               "rationale": "This controlled response is assessed against a.5.10, a.5.12, a.5.13 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "controlled",
+              "grading_class": "controlled",
               "dimension_weights": {
                 "control_mapping": 12,
                 "evidence": 12,
@@ -1158,6 +1217,7 @@
               "rationale": "This qualified alternative response is assessed against a.5.10, a.5.12, a.5.13 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -1181,6 +1241,7 @@
               "rationale": "This control failure response is assessed against a.5.10, a.5.12, a.5.13 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -1204,6 +1265,7 @@
               "rationale": "This unmanaged delay response is assessed against a.5.10, a.5.12, a.5.13 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -1259,7 +1321,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "fa902c6d68421bce0b6156b414da5da3724f9a974ec7a64518b55265fcf50733"
+      "content_hash": "85082a452aaa427a017f61ac86a7a4300353f142ade36e20062b660fabcd9713"
     },
     {
       "practice_id": "audit-sampling-evidence-sufficiency",
@@ -1304,6 +1366,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform establish the population before selecting a sample using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1326,6 +1389,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform establish the population before selecting a sample using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1334,7 +1398,7 @@
               "consequence": "The control conclusion is unsupported and risk increases. The selected action “Accept ten successful records as the population” changes ownership, retained evidence, and residual risk at population.",
               "is_correct": false,
               "rationale": "This fails the control objective because it substitutes an unsupported conclusion for evidence required by a.5.35, a.5.33.",
-              "next_stage": "complete",
+              "next_stage": "selection",
               "risk_outcome": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
@@ -1348,6 +1412,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform establish the population before selecting a sample using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1356,7 +1421,7 @@
               "consequence": "The decision clock continues without accountable action. The selected action “Sample only records the owner labels complete” changes ownership, retained evidence, and residual risk at population.",
               "is_correct": false,
               "rationale": "Deferral leaves the risk unmanaged and misses the required escalation or remediation under a.5.35, a.5.33.",
-              "next_stage": "complete",
+              "next_stage": "selection",
               "risk_outcome": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
@@ -1370,7 +1435,30 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform establish the population before selecting a sample using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
+            },
+            {
+              "id": "population_unmanaged_delay_branch",
+              "label": "Wait for another team before assigning ownership for establish the population before selecting a sample",
+              "consequence": "The decision to “Wait for another team before assigning ownership for establish the population before selecting a sample” changes the evidence trail, accountable owner, and residual risk for this specific population decision.",
+              "is_correct": false,
+              "rationale": "This unmanaged delay response is assessed against a.5.35, a.5.33 and the requirement for attributable evidence, bounded authority, and a dated next action.",
+              "next_stage": "complete",
+              "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
+              "dimension_weights": {
+                "control_mapping": -8,
+                "evidence": -8,
+                "escalation": -8,
+                "remediation": -8
+              },
+              "control_refs": [
+                "a.5.35",
+                "a.5.33"
+              ],
+              "display_order": 5,
+              "remediation": "Revisit the evidence checklist for establish the population before selecting a sample and identify the owner, decision deadline, retained record, and closure test."
             }
           ],
           "objective_id": "objective_1",
@@ -1416,6 +1504,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform choose a representative selection method using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1438,6 +1527,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform choose a representative selection method using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1460,6 +1550,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform choose a representative selection method using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1482,6 +1573,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform choose a representative selection method using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -1528,6 +1620,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform decide whether evidence is sufficient using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1550,6 +1643,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform decide whether evidence is sufficient using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1572,6 +1666,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform decide whether evidence is sufficient using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1594,6 +1689,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform decide whether evidence is sufficient using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -1636,7 +1732,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "cab5e4da104cfb17041569a65eea888de86b4a296329c7668fa3c93bf0853d4f"
+      "content_hash": "9c758e20a79ea759462a6c353197436fcf705c5a6ede10f1eef40505dcfa0597"
     },
     {
       "practice_id": "change-management-failure",
@@ -1681,6 +1777,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform incident classification decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1690,7 +1787,7 @@
               "is_correct": false,
               "rationale": "ISO 27001:2022 A.8.32 requires change management to consider the impact of changes including rollback — but rolling back to a CVSS 9.8 vulnerable state without a compensating control trades one risk for a larger one. The correct path is forward-fix under incident process, not rollback.",
               "next_stage": "root_cause_decision",
-              "risk_outcome": "qualified_alternative",
+              "risk_outcome": "vulnerability_restored",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -1702,6 +1799,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "vulnerability_restored",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform incident classification decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1710,8 +1808,8 @@
               "consequence": "You transfer the response decision to the CTO. Leadership is involved but the incident process is not invoked and no incident commander is assigned. The timeline is uncontrolled. The selected action “Escalate to CTO — make it a leadership decision” changes ownership, retained evidence, and residual risk at initial_response.",
               "is_correct": false,
               "rationale": "ISO 27001:2022 A.5.26 assigns incident response responsibility to defined roles — escalating the decision does not invoke the process. CTO involvement is appropriate for communication, not as a substitute for the incident response track.",
-              "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "next_stage": "root_cause_decision",
+              "risk_outcome": "ungoverned",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -1723,6 +1821,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "ungoverned",
+              "grading_class": "control_failure",
               "remediation": "Reperform incident classification decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1731,8 +1830,8 @@
               "consequence": "Engineering forward-fixes the portal without incident classification. The outage resolves but no timeline is preserved, no incident commander is assigned, and the root cause report has no auditable basis. The selected action “Let engineering resolve it — stay out of the way” changes ownership, retained evidence, and residual risk at initial_response.",
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 A.5.26 — incidents must be assessed and responded to through defined processes. An unclassified outage with no incident record cannot support a nonconformity finding or corrective action under A.10.1.",
-              "next_stage": "complete",
-              "risk_outcome": "unmanaged_delay",
+              "next_stage": "root_cause_decision",
+              "risk_outcome": "unclassified",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -1745,6 +1844,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unclassified",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform incident classification decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -1793,6 +1893,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform root cause attribution — technical or process failure using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1801,8 +1902,8 @@
               "consequence": "The report attributes the outage to the staging environment gap. The change management bypass is noted but not raised as a nonconformity. No corrective action on the process. The selected action “Technical finding only — staging gap, no process nonconformity” changes ownership, retained evidence, and residual risk at root_cause_decision.",
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 A.8.32 — the absence of an emergency change procedure is a control gap, not a one-off deviation. Attributing only the technical cause leaves the process vulnerability unaddressed and creates recurrence risk.",
-              "next_stage": "synthesis_3",
-              "risk_outcome": "qualified_alternative",
+              "next_stage": "complete",
+              "risk_outcome": "partial_remediation",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -1814,6 +1915,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "partial_remediation",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform root cause attribution — technical or process failure using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1823,7 +1925,7 @@
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 A.10.1 and A.8.32. The legitimacy of the patch does not excuse the absence of a controlled emergency change path. Closing without a finding signals that CVSS severity overrides change governance — that precedent undermines the ISMS.",
               "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "risk_outcome": "unresolved",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -1836,6 +1938,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "unresolved",
+              "grading_class": "control_failure",
               "remediation": "Reperform root cause attribution — technical or process failure using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -1844,8 +1947,9 @@
               "consequence": "The decision to “Wait for another team before assigning ownership for root cause attribution — technical or process failure” changes the evidence trail, accountable owner, and residual risk for this specific root cause decision decision. The selected action “Wait for another team before assigning ownership for root cause attribution — technical or process failure” changes ownership, retained evidence, and residual risk at root_cause_decision.",
               "is_correct": false,
               "rationale": "This unmanaged delay response is assessed against clause.10.1, a.8.32 and the requirement for attributable evidence, bounded authority, and a dated next action.",
-              "next_stage": "synthesis_3",
+              "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -1891,6 +1995,7 @@
               "rationale": "This controlled response is assessed against a.5.26, a.8.32, clause.10.1 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "controlled",
+              "grading_class": "controlled",
               "dimension_weights": {
                 "control_mapping": 12,
                 "evidence": 12,
@@ -1914,6 +2019,7 @@
               "rationale": "This qualified alternative response is assessed against a.5.26, a.8.32, clause.10.1 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -1937,6 +2043,7 @@
               "rationale": "This control failure response is assessed against a.5.26, a.8.32, clause.10.1 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -1960,6 +2067,7 @@
               "rationale": "This unmanaged delay response is assessed against a.5.26, a.8.32, clause.10.1 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -2015,7 +2123,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "c307dccf2d729c5490367a2a3412b8d2e682a7d8bf0e42c10a8cd9fe9ffe5539"
+      "content_hash": "c3afe10315f34d55f69ba4ee33731f946f8ebd24f3c5406433f225ce31c3a5e2"
     },
     {
       "practice_id": "cloud-access-onboarding",
@@ -2048,8 +2156,8 @@
               "consequence": "All three grants are issued for the cutover. The lead ships on time, but production admin, staging, and shared CI now sit outside any reviewed entitlement set. The selected action “Approve all requested access” changes ownership, retained evidence, and residual risk at access_request.",
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 a.8.2 — privileged access rights must be managed and restricted — and NIST CSF 2.0 PR.AA-4, because permissions are granted well beyond the task need.",
-              "next_stage": "escalation",
-              "risk_outcome": "qualified_alternative",
+              "next_stage": "complete",
+              "risk_outcome": "over-provisioned",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -2061,6 +2169,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "over-provisioned",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform production admin role using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2069,7 +2178,7 @@
               "consequence": "Only the entitlements the cutover actually needs are granted, time-bound to the window. The lead can migrate and roll back; standing admin is never issued. The selected action “Grant least privilege only” changes ownership, retained evidence, and residual risk at access_request.",
               "is_correct": true,
               "rationale": "Satisfies ISO 27001:2022 a.8.2 and a.5.18 by provisioning access proportionate to the task and removing it after the window, and NIST CSF 2.0 PR.AA-4 by managing permissions against a defined need.",
-              "next_stage": "escalation",
+              "next_stage": "complete",
               "risk_outcome": "controlled",
               "dimension_weights": {
                 "control_mapping": 12,
@@ -2083,6 +2192,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform production admin role using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2091,8 +2201,8 @@
               "consequence": "The request is held pending written justification. The lead escalates and the cutover clock keeps running, so the access question is still open. The selected action “Challenge — demand justification” changes ownership, retained evidence, and residual risk at access_request.",
               "is_correct": false,
               "rationale": "Sound evidence-gathering under ISO 27001:2022 a.5.15, but the control objective is unmet until an access decision is recorded — challenging alone restricts nothing.",
-              "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "next_stage": "escalation",
+              "risk_outcome": "under_review",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -2104,6 +2214,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "under_review",
+              "grading_class": "control_failure",
               "remediation": "Reperform production admin role using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2112,8 +2223,8 @@
               "consequence": "No access is granted. The cutover cannot proceed, and the lead routes around the block by borrowing another engineer's session. The selected action “Deny the request” changes ownership, retained evidence, and residual risk at access_request.",
               "is_correct": false,
               "rationale": "Disproportionate under ISO 27001:2022 a.5.15: access rules must still serve legitimate business need, and a flat denial pushes the same work into unmonitored paths.",
-              "next_stage": "complete",
-              "risk_outcome": "unmanaged_delay",
+              "next_stage": "business_escalation",
+              "risk_outcome": "politically_escalated",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -2125,6 +2236,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "politically_escalated",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform production admin role using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -2158,8 +2270,8 @@
               "consequence": "Conceding after the justification hands over full production admin anyway — the challenge produced evidence but no control. The selected action “Approve all requested access” changes ownership, retained evidence, and residual risk at escalation.",
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 a.8.2 and NIST CSF 2.0 PR.AA-4: a documented justification does not licence access wider than the justification itself supports.",
-              "next_stage": "business_escalation",
-              "risk_outcome": "qualified_alternative",
+              "next_stage": "complete",
+              "risk_outcome": "over-provisioned",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -2171,6 +2283,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "over-provisioned",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform a named approver on call during the cutover using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2179,7 +2292,7 @@
               "consequence": "With the justification on record, scope is cut to the migration and rollback paths, time-bound and tied to a named approver. The decision is evidenced end to end. The selected action “Grant least privilege only” changes ownership, retained evidence, and residual risk at escalation.",
               "is_correct": true,
               "rationale": "Satisfies ISO 27001:2022 a.8.2 with a.5.18 review, and NIST CSF 2.0 PR.AA-4/PR.AA-5: privileged rights are restricted to the justified scope and revoked when the window closes.",
-              "next_stage": "business_escalation",
+              "next_stage": "complete",
               "risk_outcome": "controlled",
               "dimension_weights": {
                 "control_mapping": 12,
@@ -2193,6 +2306,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform a named approver on call during the cutover using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2202,7 +2316,7 @@
               "is_correct": false,
               "rationale": "Disproportionate under ISO 27001:2022 a.5.15 once a business justification exists — the documented need should be scoped, not refused.",
               "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "risk_outcome": "blocked",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -2214,6 +2328,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "blocked",
+              "grading_class": "control_failure",
               "remediation": "Reperform a named approver on call during the cutover using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2222,8 +2337,9 @@
               "consequence": "The decision to “Wait for another team before assigning ownership for a named approver on call during the cutover” changes the evidence trail, accountable owner, and residual risk for this specific escalation decision. The selected action “Wait for another team before assigning ownership for a named approver on call during the cutover” changes ownership, retained evidence, and residual risk at escalation.",
               "is_correct": false,
               "rationale": "This unmanaged delay response is assessed against a.8.2 and the requirement for attributable evidence, bounded authority, and a dated next action.",
-              "next_stage": "business_escalation",
+              "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -2268,7 +2384,7 @@
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 A.8.2: political pressure is not a substitute for a scoped entitlement review. Risk was accepted without a recorded owner.",
               "next_stage": "complete",
-              "risk_outcome": "qualified_alternative",
+              "risk_outcome": "over-provisioned",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -2280,6 +2396,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "over-provisioned",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform a scoped grant or a named risk acceptance using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2302,6 +2419,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform a scoped grant or a named risk acceptance using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2311,7 +2429,7 @@
               "is_correct": false,
               "rationale": "Disproportionate under A.5.15 once a business justification and escalation exist. Avoidance without an alternative path pushes work into unmonitored channels.",
               "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "risk_outcome": "blocked",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -2323,6 +2441,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "blocked",
+              "grading_class": "control_failure",
               "remediation": "Reperform a scoped grant or a named risk acceptance using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2333,6 +2452,7 @@
               "rationale": "This unmanaged delay response is assessed against a.8.2 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -2385,7 +2505,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "e8d57768b8c3a9a373fd3bee0f0e87edfa1c21a4dd3f66e3d66abce959bf578e"
+      "content_hash": "2761a7be3ee263288d65046eacf409546f57e4c66b6913ee727fbe83efa9f85f"
     },
     {
       "practice_id": "dora-ict-incident-classification-reporting",
@@ -2430,6 +2550,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform apply incident classification criteria using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2452,6 +2573,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform apply incident classification criteria using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2460,7 +2582,7 @@
               "consequence": "The control conclusion is unsupported and risk increases. The selected action “Delay classification until every loss figure is final” changes ownership, retained evidence, and residual risk at criteria.",
               "is_correct": false,
               "rationale": "This fails the control objective because it substitutes an unsupported conclusion for evidence required by a.5.24, a.5.25.",
-              "next_stage": "complete",
+              "next_stage": "initial_report",
               "risk_outcome": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
@@ -2474,6 +2596,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform apply incident classification criteria using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2482,7 +2605,7 @@
               "consequence": "The decision clock continues without accountable action. The selected action “Classify minor because direct losses are not yet known” changes ownership, retained evidence, and residual risk at criteria.",
               "is_correct": false,
               "rationale": "Deferral leaves the risk unmanaged and misses the required escalation or remediation under a.5.24, a.5.25.",
-              "next_stage": "complete",
+              "next_stage": "initial_report",
               "risk_outcome": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
@@ -2496,6 +2619,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform apply incident classification criteria using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -2542,6 +2666,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform protect the initial reporting obligation using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2564,6 +2689,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform protect the initial reporting obligation using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2586,6 +2712,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform protect the initial reporting obligation using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2608,6 +2735,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform protect the initial reporting obligation using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -2654,6 +2782,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform manage intermediate and final reporting using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2662,7 +2791,7 @@
               "consequence": "Immediate exposure is limited, but a time-bound condition remains open. The selected action “Issue an intermediate update using the internal timeline while flagging the supplier discrepancy and investigation” changes ownership, retained evidence, and residual risk at report_lifecycle.",
               "is_correct": false,
               "rationale": "This is a qualified alternative, not the reference answer: it limits immediate exposure but leaves a named evidence or governance condition unresolved under a.5.27, a.5.28.",
-              "next_stage": "synthesis_4",
+              "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
@@ -2676,6 +2805,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform manage intermediate and final reporting using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2698,6 +2828,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform manage intermediate and final reporting using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2720,6 +2851,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform manage intermediate and final reporting using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -2754,6 +2886,7 @@
               "rationale": "This controlled response is assessed against a.5.24, a.5.25, a.5.26 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "controlled",
+              "grading_class": "controlled",
               "dimension_weights": {
                 "control_mapping": 12,
                 "evidence": 12,
@@ -2777,6 +2910,7 @@
               "rationale": "This qualified alternative response is assessed against a.5.24, a.5.25, a.5.26 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -2800,6 +2934,7 @@
               "rationale": "This control failure response is assessed against a.5.24, a.5.25, a.5.26 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -2823,6 +2958,7 @@
               "rationale": "This unmanaged delay response is assessed against a.5.24, a.5.25, a.5.26 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -2878,7 +3014,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "28694c7fb67f54fbccd0da1473e1398f5b67ffeb46ff13511554c3756a3b398d"
+      "content_hash": "63009ce5296c16ac5271e49afd62df3a0947bc61038f3e4ecf34d884ec1ab38f"
     },
     {
       "practice_id": "evidence-freshness-check",
@@ -2910,7 +3046,7 @@
               "is_correct": true,
               "rationale": "The internal report date is the supportable evidence date. ISO 27001:2022 A.5.33 protects the integrity of records used to demonstrate activity.",
               "next_stage": "coverage_check",
-              "risk_outcome": "controlled",
+              "risk_outcome": "under_review",
               "dimension_weights": {
                 "control_mapping": 12,
                 "evidence": 12,
@@ -2922,6 +3058,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "under_review",
+              "grading_class": "controlled",
               "remediation": "Reperform decide which date is authoritative using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2931,7 +3068,7 @@
               "is_correct": false,
               "rationale": "File metadata changes when records are copied or exported and does not establish when the control activity occurred.",
               "next_stage": "coverage_check",
-              "risk_outcome": "qualified_alternative",
+              "risk_outcome": "evidence_stale",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -2943,6 +3080,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "evidence_stale",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform decide which date is authoritative using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2951,8 +3089,8 @@
               "consequence": "Current state is presented as historical evidence, weakening the audit trail. The selected action “Take a new screenshot and file it as evidence of the earlier review” changes ownership, retained evidence, and residual risk at artefact_date.",
               "is_correct": false,
               "rationale": "A new screenshot can show today's state but cannot prove that a review occurred nine months ago.",
-              "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "next_stage": "coverage_check",
+              "risk_outcome": "evidence_compromised",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -2964,6 +3102,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "evidence_compromised",
+              "grading_class": "control_failure",
               "remediation": "Reperform decide which date is authoritative using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -2972,8 +3111,8 @@
               "consequence": "An unsupported assurance replaces an attributable record. The selected action “Accept the owner's statement that nothing material changed” changes ownership, retained evidence, and residual risk at artefact_date.",
               "is_correct": false,
               "rationale": "A verbal assurance does not make an undated or stale record current and attributable.",
-              "next_stage": "complete",
-              "risk_outcome": "unmanaged_delay",
+              "next_stage": "coverage_check",
+              "risk_outcome": "unsupported_claim",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -2985,7 +3124,29 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unsupported_claim",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform decide which date is authoritative using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
+            },
+            {
+              "id": "artefact_date_unmanaged_delay_branch",
+              "label": "Wait for another team before assigning ownership for decide which date is authoritative",
+              "consequence": "The decision to “Wait for another team before assigning ownership for decide which date is authoritative” changes the evidence trail, accountable owner, and residual risk for this specific artefact date decision.",
+              "is_correct": false,
+              "rationale": "This unmanaged delay response is assessed against a.5.33 and the requirement for attributable evidence, bounded authority, and a dated next action.",
+              "next_stage": "complete",
+              "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
+              "dimension_weights": {
+                "control_mapping": -8,
+                "evidence": -8,
+                "escalation": -8,
+                "remediation": -8
+              },
+              "control_refs": [
+                "a.5.33"
+              ],
+              "display_order": 5,
+              "remediation": "Revisit the evidence checklist for decide which date is authoritative and identify the owner, decision deadline, retained record, and closure test."
             }
           ],
           "objective_id": "objective_1",
@@ -3031,6 +3192,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform assess occurrence coverage using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3040,7 +3202,7 @@
               "is_correct": false,
               "rationale": "Three records do not prove four expected occurrences. The missing quarter must remain visible to the reviewer.",
               "next_stage": "refresh_action",
-              "risk_outcome": "qualified_alternative",
+              "risk_outcome": "coverage_gap_hidden",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -3052,6 +3214,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "coverage_gap_hidden",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform assess occurrence coverage using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3061,7 +3224,7 @@
               "is_correct": false,
               "rationale": "Running the activity now may correct the present state, but it cannot recreate evidence that Q3 occurred.",
               "next_stage": "refresh_action",
-              "risk_outcome": "control_failure",
+              "risk_outcome": "evidence_compromised",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -3074,6 +3237,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "evidence_compromised",
+              "grading_class": "control_failure",
               "remediation": "Reperform assess occurrence coverage using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3083,7 +3247,7 @@
               "is_correct": false,
               "rationale": "Known missing coverage must be disclosed; selectively removing it undermines independent review.",
               "next_stage": "refresh_action",
-              "risk_outcome": "unmanaged_delay",
+              "risk_outcome": "audit_integrity_risk",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -3095,6 +3259,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "audit_integrity_risk",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform assess occurrence coverage using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -3140,6 +3305,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform choose a truthful refresh action using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3149,7 +3315,7 @@
               "is_correct": false,
               "rationale": "Dates must come from the record itself or its authoritative source; editing the copy weakens integrity.",
               "next_stage": "complete",
-              "risk_outcome": "qualified_alternative",
+              "risk_outcome": "evidence_compromised",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -3161,6 +3327,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "evidence_compromised",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform choose a truthful refresh action using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3170,7 +3337,7 @@
               "is_correct": false,
               "rationale": "A current screenshot proves current state only; it does not prove that the Q4 review occurred.",
               "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "risk_outcome": "unsupported_claim",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -3182,6 +3349,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "unsupported_claim",
+              "grading_class": "control_failure",
               "remediation": "Reperform choose a truthful refresh action using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3191,7 +3359,7 @@
               "is_correct": false,
               "rationale": "An owner note may explain the gap but does not transform an undated copy into dated evidence.",
               "next_stage": "complete",
-              "risk_outcome": "unmanaged_delay",
+              "risk_outcome": "evidence_stale",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -3203,6 +3371,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "evidence_stale",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform choose a truthful refresh action using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -3245,7 +3414,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "b059d2a5d0ac1a03053307b4d35c518932057bc4889e391d794fecd3d9bcb2fa"
+      "content_hash": "d7ffe4acb6df48ce09de3b6a06be73e0551b26c918b99d0211737eddecafa8e2"
     },
     {
       "practice_id": "incident-severity-triage",
@@ -3291,6 +3460,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform classify the initial severity from known impact using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3313,6 +3483,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform classify the initial severity from known impact using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3321,7 +3492,7 @@
               "consequence": "The control conclusion is unsupported and risk increases. The selected action “Classify it low because only a few alerts fired” changes ownership, retained evidence, and residual risk at impact_assessment.",
               "is_correct": false,
               "rationale": "This fails the control objective because it substitutes an unsupported conclusion for evidence required by a.5.24, a.5.25.",
-              "next_stage": "complete",
+              "next_stage": "clock_and_evidence",
               "risk_outcome": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
@@ -3335,6 +3506,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform classify the initial severity from known impact using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3343,7 +3515,7 @@
               "consequence": "The decision clock continues without accountable action. The selected action “Wait for a complete root cause before opening an incident” changes ownership, retained evidence, and residual risk at impact_assessment.",
               "is_correct": false,
               "rationale": "Deferral leaves the risk unmanaged and misses the required escalation or remediation under a.5.24, a.5.25.",
-              "next_stage": "complete",
+              "next_stage": "clock_and_evidence",
               "risk_outcome": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
@@ -3357,7 +3529,30 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform classify the initial severity from known impact using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
+            },
+            {
+              "id": "impact_assessment_unmanaged_delay_branch",
+              "label": "Wait for another team before assigning ownership for classify the initial severity from known impact",
+              "consequence": "The decision to “Wait for another team before assigning ownership for classify the initial severity from known impact” changes the evidence trail, accountable owner, and residual risk for this specific impact assessment decision.",
+              "is_correct": false,
+              "rationale": "This unmanaged delay response is assessed against a.5.24, a.5.25 and the requirement for attributable evidence, bounded authority, and a dated next action.",
+              "next_stage": "complete",
+              "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
+              "dimension_weights": {
+                "control_mapping": -8,
+                "evidence": -8,
+                "escalation": -8,
+                "remediation": -8
+              },
+              "control_refs": [
+                "a.5.24",
+                "a.5.25"
+              ],
+              "display_order": 5,
+              "remediation": "Revisit the evidence checklist for classify the initial severity from known impact and identify the owner, decision deadline, retained record, and closure test."
             }
           ],
           "objective_id": "objective_1",
@@ -3403,6 +3598,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform protect the timeline and applicable reporting clocks using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3425,6 +3621,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform protect the timeline and applicable reporting clocks using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3447,6 +3644,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform protect the timeline and applicable reporting clocks using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3469,6 +3667,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform protect the timeline and applicable reporting clocks using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -3515,6 +3714,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform reassess severity and escalation after containment using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3537,6 +3737,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform reassess severity and escalation after containment using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3559,6 +3760,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform reassess severity and escalation after containment using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3581,6 +3783,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform reassess severity and escalation after containment using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -3623,7 +3826,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "4260a82c8753e8fb387384e926f894dd1c2bf9a62123b0c2be6f1631883a4df5"
+      "content_hash": "1286c756353d7d885a7cada4786c5aae4e20f7cfc26dd102ec2f6b4a5b8c363d"
     },
     {
       "practice_id": "nonconformity-root-cause-and-corrective-action",
@@ -3668,6 +3871,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform separate immediate correction from corrective action using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3690,6 +3894,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform separate immediate correction from corrective action using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3698,7 +3903,7 @@
               "consequence": "The control conclusion is unsupported and risk increases. The selected action “Close because the sampled accounts are disabled” changes ownership, retained evidence, and residual risk at containment.",
               "is_correct": false,
               "rationale": "This fails the control objective because it substitutes an unsupported conclusion for evidence required by clause.10.2, a.5.18.",
-              "next_stage": "complete",
+              "next_stage": "root_cause",
               "risk_outcome": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
@@ -3712,6 +3917,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform separate immediate correction from corrective action using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3720,7 +3926,7 @@
               "consequence": "The decision clock continues without accountable action. The selected action “Delete the sample after remediation to avoid duplicate records” changes ownership, retained evidence, and residual risk at containment.",
               "is_correct": false,
               "rationale": "Deferral leaves the risk unmanaged and misses the required escalation or remediation under clause.10.2, a.5.18.",
-              "next_stage": "complete",
+              "next_stage": "root_cause",
               "risk_outcome": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
@@ -3734,7 +3940,30 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform separate immediate correction from corrective action using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
+            },
+            {
+              "id": "containment_unmanaged_delay_branch",
+              "label": "Wait for another team before assigning ownership for separate immediate correction from corrective action",
+              "consequence": "The decision to “Wait for another team before assigning ownership for separate immediate correction from corrective action” changes the evidence trail, accountable owner, and residual risk for this specific containment decision.",
+              "is_correct": false,
+              "rationale": "This unmanaged delay response is assessed against clause.10.2, a.5.18 and the requirement for attributable evidence, bounded authority, and a dated next action.",
+              "next_stage": "complete",
+              "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
+              "dimension_weights": {
+                "control_mapping": -8,
+                "evidence": -8,
+                "escalation": -8,
+                "remediation": -8
+              },
+              "control_refs": [
+                "clause.10.2",
+                "a.5.18"
+              ],
+              "display_order": 5,
+              "remediation": "Revisit the evidence checklist for separate immediate correction from corrective action and identify the owner, decision deadline, retained record, and closure test."
             }
           ],
           "objective_id": "objective_1",
@@ -3780,6 +4009,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform identify a controllable root cause using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3802,6 +4032,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform identify a controllable root cause using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3824,6 +4055,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform identify a controllable root cause using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3846,6 +4078,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform identify a controllable root cause using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -3892,6 +4125,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform design the extent and effectiveness checks using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3914,6 +4148,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform design the extent and effectiveness checks using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3936,6 +4171,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform design the extent and effectiveness checks using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -3958,6 +4194,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform design the extent and effectiveness checks using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -4000,7 +4237,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "e3b959cfb8a7ce91d65b0dd2cc6f263640e2556f65bdd32ca73cccfc6df0f63f"
+      "content_hash": "f86259ab924a2602c58752ab86e6b41a3bfee43edb785996176657c115d10e11"
     },
     {
       "practice_id": "ransomware-group-response",
@@ -4047,6 +4284,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform whether to invoke business continuity now using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4056,7 +4294,7 @@
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 A.5.29 — BCP exists to govern the response to disruption, not only to restore services. Containing without invocation means no defined roles, no escalation path, and no recovery time objective in force. The three connected entities remain at unquantified risk without a formal response framework.",
               "next_stage": "containment_strategy",
-              "risk_outcome": "qualified_alternative",
+              "risk_outcome": "ungoverned",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -4068,6 +4306,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "ungoverned",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform whether to invoke business continuity now using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4076,8 +4315,8 @@
               "consequence": "Ransom negotiation begins while encryption continues. The spread window stays open across the three connected entities. Payment does not guarantee decryption and may violate sanctions obligations depending on the threat actor's jurisdiction. The selected action “Negotiate the ransom — explore payment before isolation” changes ownership, retained evidence, and residual risk at invocation_decision.",
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 A.5.26 and A.5.29 — the incident response obligation is to contain and recover, not to negotiate while the attack is active. A.8.13 (information backup) and A.5.30 require a recovery path that does not depend on attacker cooperation. Sanctions risk is a legal exposure outside the ISMS but material to the decision.",
-              "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "next_stage": "containment_strategy",
+              "risk_outcome": "spread_risk",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -4092,6 +4331,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "spread_risk",
+              "grading_class": "control_failure",
               "remediation": "Reperform whether to invoke business continuity now using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4100,8 +4340,8 @@
               "consequence": "No BCP invocation until forensics confirm scope. Encryption continues during the forensic window. The three connected entities remain exposed. The board meeting arrives with no formal response structure in place. The selected action “Wait for forensic confirmation before invoking” changes ownership, retained evidence, and residual risk at invocation_decision.",
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 A.5.29 and A.5.30 — BCP invocation is triggered by disruption to critical operations, not by forensic confirmation of scope. Waiting extends the spread window and leaves the response ungoverned. Forensics run in parallel with containment, not before it.",
-              "next_stage": "complete",
-              "risk_outcome": "unmanaged_delay",
+              "next_stage": "containment_strategy",
+              "risk_outcome": "spread_risk",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -4114,6 +4354,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "spread_risk",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform whether to invoke business continuity now using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -4164,6 +4405,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform whether to forensically image before restoring using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4173,7 +4415,7 @@
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 A.5.28 — evidence must be collected before remediation where possible. Restoring without imaging destroys the forensic record. A.5.30 requires ICT recovery to be evidenced and auditable — an unevidenced restore cannot support post-incident review or regulatory inquiry.",
               "next_stage": "board_communication",
-              "risk_outcome": "qualified_alternative",
+              "risk_outcome": "evidence_destroyed",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -4186,6 +4428,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "evidence_destroyed",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform whether to forensically image before restoring using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4195,7 +4438,7 @@
               "is_correct": false,
               "rationale": "Fails ISO 27001:2022 A.5.28 and A.5.29. Payment without forensic imaging destroys evidence and funds the threat actor. A.8.13 requires backup capability precisely to avoid operational dependency on attacker cooperation. Sanctions exposure is a material legal risk outside the ISMS that the CISO must escalate to legal before any payment is considered.",
               "next_stage": "board_communication",
-              "risk_outcome": "control_failure",
+              "risk_outcome": "sanctions_risk",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -4209,6 +4452,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "sanctions_risk",
+              "grading_class": "control_failure",
               "remediation": "Reperform whether to forensically image before restoring using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4217,8 +4461,9 @@
               "consequence": "The decision to “Wait for another team before assigning ownership for whether to forensically image before restoring” changes the evidence trail, accountable owner, and residual risk for this specific containment strategy decision. The selected action “Wait for another team before assigning ownership for whether to forensically image before restoring” changes ownership, retained evidence, and residual risk at containment_strategy.",
               "is_correct": false,
               "rationale": "This unmanaged delay response is assessed against a.5.28, a.5.29, a.5.30, a.8.13 and the requirement for attributable evidence, bounded authority, and a dated next action.",
-              "next_stage": "board_communication",
+              "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -4266,8 +4511,8 @@
               "consequence": "The board receives a complete incident briefing. Supervisory authority notifications are filed across all six jurisdictions simultaneously. NIS2 early warning is filed where applicable. Customer notification is issued group-wide. The selected action “Full board disclosure — notify all authorities across all jurisdictions now” changes ownership, retained evidence, and residual risk at board_communication.",
               "is_correct": false,
               "rationale": "ISO 27001:2022 A.5.26 requires notification through proper channels with accurate scope. Filing across all jurisdictions simultaneously before scope is confirmed in the three connected entities risks materially inaccurate notifications. GDPR Article 33 and NIS2 obligations are jurisdiction-specific — a blanket filing without confirmed scope in each entity is procedurally premature and may require amendment.",
-              "next_stage": "synthesis_4",
-              "risk_outcome": "qualified_alternative",
+              "next_stage": "complete",
+              "risk_outcome": "premature_notification",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -4279,6 +4524,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "premature_notification",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform board communication scope and framing using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4301,6 +4547,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform board communication scope and framing using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4310,7 +4557,7 @@
               "is_correct": false,
               "rationale": "Fails GDPR Article 33 and NIS2 Article 19 — both impose time-bound notification obligations that run from awareness, not from resolution. ISO 27001:2022 A.5.26 requires timely notification through defined channels. Deferring until resolution guarantees late notification across multiple jurisdictions and compounds the regulatory exposure.",
               "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "risk_outcome": "late_notification",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -4322,6 +4569,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "late_notification",
+              "grading_class": "control_failure",
               "remediation": "Reperform board communication scope and framing using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4330,8 +4578,9 @@
               "consequence": "The decision to “Wait for another team before assigning ownership for board communication scope and framing” changes the evidence trail, accountable owner, and residual risk for this specific board communication decision. The selected action “Wait for another team before assigning ownership for board communication scope and framing” changes ownership, retained evidence, and residual risk at board_communication.",
               "is_correct": false,
               "rationale": "This unmanaged delay response is assessed against a.5.26 and the requirement for attributable evidence, bounded authority, and a dated next action.",
-              "next_stage": "synthesis_4",
+              "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -4376,6 +4625,7 @@
               "rationale": "This controlled response is assessed against a.5.26, a.5.28, a.5.29 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "controlled",
+              "grading_class": "controlled",
               "dimension_weights": {
                 "control_mapping": 12,
                 "evidence": 12,
@@ -4399,6 +4649,7 @@
               "rationale": "This qualified alternative response is assessed against a.5.26, a.5.28, a.5.29 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -4422,6 +4673,7 @@
               "rationale": "This control failure response is assessed against a.5.26, a.5.28, a.5.29 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -4445,6 +4697,7 @@
               "rationale": "This unmanaged delay response is assessed against a.5.26, a.5.28, a.5.29 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -4500,7 +4753,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "53026ccdbdf18906c08982426a41b28e2037bf86af9351a52ade1b9fdb166212"
+      "content_hash": "d4a69d9014a9effb264484bdd75b647232a72a72067a9afc44ff6391631a3472"
     },
     {
       "practice_id": "risk-acceptance-memo",
@@ -4545,6 +4798,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform test whether the acceptance basis is complete using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4567,6 +4821,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform test whether the acceptance basis is complete using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4575,7 +4830,7 @@
               "consequence": "The control conclusion is unsupported and risk increases. The selected action “State that replacement cost alone justifies acceptance” changes ownership, retained evidence, and residual risk at decision_basis.",
               "is_correct": false,
               "rationale": "This fails the control objective because it substitutes an unsupported conclusion for evidence required by a.5.7, a.5.15.",
-              "next_stage": "complete",
+              "next_stage": "authority",
               "risk_outcome": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
@@ -4589,6 +4844,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform test whether the acceptance basis is complete using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4597,7 +4853,7 @@
               "consequence": "The decision clock continues without accountable action. The selected action “Copy last year's acceptance without reassessment” changes ownership, retained evidence, and residual risk at decision_basis.",
               "is_correct": false,
               "rationale": "Deferral leaves the risk unmanaged and misses the required escalation or remediation under a.5.7, a.5.15.",
-              "next_stage": "complete",
+              "next_stage": "authority",
               "risk_outcome": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
@@ -4611,6 +4867,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform test whether the acceptance basis is complete using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -4657,6 +4914,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform route the decision to valid authority using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4679,6 +4937,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform route the decision to valid authority using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4701,6 +4960,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform route the decision to valid authority using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4723,6 +4983,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform route the decision to valid authority using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -4769,6 +5030,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform make acceptance bounded and reviewable using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4777,7 +5039,7 @@
               "consequence": "Immediate exposure is limited, but a time-bound condition remains open. The selected action “Set a shorter review date and manual monitoring while automation evidence is completed” changes ownership, retained evidence, and residual risk at conditions.",
               "is_correct": false,
               "rationale": "This is a qualified alternative, not the reference answer: it limits immediate exposure but leaves a named evidence or governance condition unresolved under a.5.1, a.8.16.",
-              "next_stage": "synthesis_4",
+              "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
@@ -4791,6 +5053,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform make acceptance bounded and reviewable using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4813,6 +5076,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform make acceptance bounded and reviewable using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -4835,6 +5099,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform make acceptance bounded and reviewable using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -4869,6 +5134,7 @@
               "rationale": "This controlled response is assessed against a.5.1, a.5.15, a.5.2 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "controlled",
+              "grading_class": "controlled",
               "dimension_weights": {
                 "control_mapping": 12,
                 "evidence": 12,
@@ -4892,6 +5158,7 @@
               "rationale": "This qualified alternative response is assessed against a.5.1, a.5.15, a.5.2 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -4915,6 +5182,7 @@
               "rationale": "This control failure response is assessed against a.5.1, a.5.15, a.5.2 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -4938,6 +5206,7 @@
               "rationale": "This unmanaged delay response is assessed against a.5.1, a.5.15, a.5.2 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -4993,7 +5262,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "2d604bd66bb0c9afd9232614518410a5573be7cb9424137b600e7d22429918af"
+      "content_hash": "09d4602f727d1bd0f4238270e2ca9c50df58732aa11a63532a0b54a2f1b10fdd"
     },
     {
       "practice_id": "soa-exclusion-justification-review",
@@ -5038,6 +5307,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform test the exclusion against actual activities using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5060,6 +5330,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform test the exclusion against actual activities using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5068,7 +5339,7 @@
               "consequence": "The control conclusion is unsupported and risk increases. The selected action “Keep the exclusion because the company is not a software vendor” changes ownership, retained evidence, and residual risk at fact_test.",
               "is_correct": false,
               "rationale": "This fails the control objective because it substitutes an unsupported conclusion for evidence required by a.8.25, a.8.26.",
-              "next_stage": "complete",
+              "next_stage": "supplier_test",
               "risk_outcome": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
@@ -5082,6 +5353,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform test the exclusion against actual activities using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5090,7 +5362,7 @@
               "consequence": "The decision clock continues without accountable action. The selected action “Ask engineering to rename scripts as configuration” changes ownership, retained evidence, and residual risk at fact_test.",
               "is_correct": false,
               "rationale": "Deferral leaves the risk unmanaged and misses the required escalation or remediation under a.8.25, a.8.26.",
-              "next_stage": "complete",
+              "next_stage": "supplier_test",
               "risk_outcome": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
@@ -5104,6 +5376,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform test the exclusion against actual activities using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -5150,6 +5423,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform assess whether outsourcing removes applicability using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5172,6 +5446,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform assess whether outsourcing removes applicability using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5194,6 +5469,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform assess whether outsourcing removes applicability using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5216,6 +5492,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform assess whether outsourcing removes applicability using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -5262,6 +5539,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform resolve and record the applicability decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5270,7 +5548,7 @@
               "consequence": "Immediate exposure is limited, but a time-bound condition remains open. The selected action “Publish a provisional status with unresolved items visibly marked and a near-term governance decision” changes ownership, retained evidence, and residual risk at approval_record.",
               "is_correct": false,
               "rationale": "This is a qualified alternative, not the reference answer: it limits immediate exposure but leaves a named evidence or governance condition unresolved under a.5.1, a.5.2.",
-              "next_stage": "synthesis_4",
+              "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
@@ -5284,6 +5562,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform resolve and record the applicability decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5306,6 +5585,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform resolve and record the applicability decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5328,6 +5608,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform resolve and record the applicability decision using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -5362,6 +5643,7 @@
               "rationale": "This controlled response is assessed against a.5.1, a.5.19, a.5.2 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "controlled",
+              "grading_class": "controlled",
               "dimension_weights": {
                 "control_mapping": 12,
                 "evidence": 12,
@@ -5385,6 +5667,7 @@
               "rationale": "This qualified alternative response is assessed against a.5.1, a.5.19, a.5.2 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -5408,6 +5691,7 @@
               "rationale": "This control failure response is assessed against a.5.1, a.5.19, a.5.2 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -5431,6 +5715,7 @@
               "rationale": "This unmanaged delay response is assessed against a.5.1, a.5.19, a.5.2 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -5486,7 +5771,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "665af53493306b103e91b4be4e996ea4957fa4893d6d78c92c956d131671e865"
+      "content_hash": "44873c914013b17b90eaea1d7b4c5540ccb85069afd6bf8af1f8e56b9641bc19"
     },
     {
       "practice_id": "supplier-due-diligence",
@@ -5531,6 +5816,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform scope diligence to the actual service using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5553,6 +5839,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform scope diligence to the actual service using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5561,7 +5848,7 @@
               "consequence": "The control conclusion is unsupported and risk increases. The selected action “Approve based on the completed generic questionnaire” changes ownership, retained evidence, and residual risk at scope.",
               "is_correct": false,
               "rationale": "This fails the control objective because it substitutes an unsupported conclusion for evidence required by a.5.19, a.5.21.",
-              "next_stage": "complete",
+              "next_stage": "assurance",
               "risk_outcome": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
@@ -5575,6 +5862,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform scope diligence to the actual service using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5583,7 +5871,7 @@
               "consequence": "The decision clock continues without accountable action. The selected action “Use the provider's marketing security page as scope evidence” changes ownership, retained evidence, and residual risk at scope.",
               "is_correct": false,
               "rationale": "Deferral leaves the risk unmanaged and misses the required escalation or remediation under a.5.19, a.5.21.",
-              "next_stage": "complete",
+              "next_stage": "assurance",
               "risk_outcome": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
@@ -5597,7 +5885,30 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform scope diligence to the actual service using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
+            },
+            {
+              "id": "scope_unmanaged_delay_branch",
+              "label": "Wait for another team before assigning ownership for scope diligence to the actual service",
+              "consequence": "The decision to “Wait for another team before assigning ownership for scope diligence to the actual service” changes the evidence trail, accountable owner, and residual risk for this specific scope decision.",
+              "is_correct": false,
+              "rationale": "This unmanaged delay response is assessed against a.5.19, a.5.21 and the requirement for attributable evidence, bounded authority, and a dated next action.",
+              "next_stage": "complete",
+              "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
+              "dimension_weights": {
+                "control_mapping": -8,
+                "evidence": -8,
+                "escalation": -8,
+                "remediation": -8
+              },
+              "control_refs": [
+                "a.5.19",
+                "a.5.21"
+              ],
+              "display_order": 5,
+              "remediation": "Revisit the evidence checklist for scope diligence to the actual service and identify the owner, decision deadline, retained record, and closure test."
             }
           ],
           "objective_id": "objective_1",
@@ -5643,6 +5954,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform evaluate assurance boundaries using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5665,6 +5977,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform evaluate assurance boundaries using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5687,6 +6000,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform evaluate assurance boundaries using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5709,6 +6023,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform evaluate assurance boundaries using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -5755,6 +6070,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform convert residual risk into governed conditions using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5777,6 +6093,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform convert residual risk into governed conditions using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5799,6 +6116,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "remediation": "Reperform convert residual risk into governed conditions using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5821,6 +6139,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform convert residual risk into governed conditions using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -5863,7 +6182,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "43bf92fcdeeeaaa57d77f1eb95c5c9ee86c076d7979f752c4cf4706e2e23adca"
+      "content_hash": "63417b863b4e28e7d37e47b3fee7f5c5709ef1dc905db27ca9e9c8876cf3b482"
     },
     {
       "practice_id": "supplier-incident-response",
@@ -5896,7 +6215,7 @@
               "is_correct": false,
               "rationale": "ISO 27001:2022 A.5.26 requires response to information security incidents — containment alone without parallel notification assessment fails the response objective. GDPR Article 33 runs independently of forensic completion.",
               "next_stage": "notification_decision",
-              "risk_outcome": "qualified_alternative",
+              "risk_outcome": "delayed_response",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -5908,6 +6227,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "delayed_response",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform full forensic report within 24 hours using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5930,6 +6250,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform full forensic report within 24 hours using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5938,8 +6259,8 @@
               "consequence": "You file a precautionary Article 33 notification before forensics complete. The authority is informed but the notification may need material amendment once scope is confirmed. The selected action “Notify supervisory authority immediately” changes ownership, retained evidence, and residual risk at initial_assessment.",
               "is_correct": false,
               "rationale": "ISO 27001:2022 A.6.8 requires reporting through proper channels with accurate information. A premature notification without confirmed scope risks a materially inaccurate filing — the obligation is to notify without undue delay once you know, not before.",
-              "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "next_stage": "notification_decision",
+              "risk_outcome": "premature_notification",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -5951,6 +6272,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "premature_notification",
+              "grading_class": "control_failure",
               "remediation": "Reperform full forensic report within 24 hours using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -5959,8 +6281,8 @@
               "consequence": "You route the incident to the DPO and stand down from the technical response. The DPO takes over notification assessment but the technical investigation loses its security lead. The selected action “Escalate to DPO — delegate the response decision” changes ownership, retained evidence, and residual risk at initial_assessment.",
               "is_correct": false,
               "rationale": "ISO 27001:2022 A.5.26 assigns incident response responsibility — the security lead does not transfer that responsibility by escalating. DPO involvement is required but does not substitute for the security response track.",
-              "next_stage": "complete",
-              "risk_outcome": "unmanaged_delay",
+              "next_stage": "notification_decision",
+              "risk_outcome": "delegated",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -5972,6 +6294,7 @@
               ],
               "display_order": 4,
               "authored_risk_outcome": "delegated",
+              "grading_class": "unmanaged_delay",
               "remediation": "Reperform full forensic report within 24 hours using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             }
           ],
@@ -6006,8 +6329,8 @@
               "consequence": "You file the Article 33 notification to the supervisory authority and send Article 34 communications to the 340 affected employees. Full compliance posture, evidence preserved. The selected action “Notify authority and affected individuals” changes ownership, retained evidence, and residual risk at notification_decision.",
               "is_correct": false,
               "rationale": "Article 34 individual notification is only mandatory when the breach is likely to result in high risk to individuals. Names and emails with uncertain exfiltration warrants authority notification (Article 33) but individual notification requires a risk assessment first — notifying without that assessment is procedurally premature.",
-              "next_stage": "synthesis_3",
-              "risk_outcome": "qualified_alternative",
+              "next_stage": "complete",
+              "risk_outcome": "over-notified",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -6020,6 +6343,7 @@
               ],
               "display_order": 1,
               "authored_risk_outcome": "over-notified",
+              "grading_class": "qualified_alternative",
               "remediation": "Reperform a decision on supervisory authority notification using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -6042,6 +6366,7 @@
               ],
               "display_order": 2,
               "authored_risk_outcome": "controlled",
+              "grading_class": "controlled",
               "remediation": "Reperform a decision on supervisory authority notification using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -6051,7 +6376,7 @@
               "is_correct": false,
               "rationale": "Fails GDPR Article 33 — notification must be made without undue delay and where feasible within 72 hours of becoming aware. Forensic completion is not a prerequisite. ISO 27001:2022 A.5.26 requires timely response, not perfect information.",
               "next_stage": "complete",
-              "risk_outcome": "control_failure",
+              "risk_outcome": "late_notification",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -6063,6 +6388,7 @@
               ],
               "display_order": 3,
               "authored_risk_outcome": "late_notification",
+              "grading_class": "control_failure",
               "remediation": "Reperform a decision on supervisory authority notification using a named owner, attributable evidence, a decision deadline, and an effectiveness check."
             },
             {
@@ -6071,8 +6397,9 @@
               "consequence": "The decision to “Wait for another team before assigning ownership for a decision on supervisory authority notification” changes the evidence trail, accountable owner, and residual risk for this specific notification decision decision. The selected action “Wait for another team before assigning ownership for a decision on supervisory authority notification” changes ownership, retained evidence, and residual risk at notification_decision.",
               "is_correct": false,
               "rationale": "This unmanaged delay response is assessed against a.5.26, a.5.28 and the requirement for attributable evidence, bounded authority, and a dated next action.",
-              "next_stage": "synthesis_3",
+              "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -6118,6 +6445,7 @@
               "rationale": "This controlled response is assessed against a.5.19, a.5.20, a.5.26 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "controlled",
+              "grading_class": "controlled",
               "dimension_weights": {
                 "control_mapping": 12,
                 "evidence": 12,
@@ -6141,6 +6469,7 @@
               "rationale": "This qualified alternative response is assessed against a.5.19, a.5.20, a.5.26 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "qualified_alternative",
+              "grading_class": "qualified_alternative",
               "dimension_weights": {
                 "control_mapping": 5,
                 "evidence": 5,
@@ -6164,6 +6493,7 @@
               "rationale": "This control failure response is assessed against a.5.19, a.5.20, a.5.26 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "control_failure",
+              "grading_class": "control_failure",
               "dimension_weights": {
                 "control_mapping": -12,
                 "evidence": -12,
@@ -6187,6 +6517,7 @@
               "rationale": "This unmanaged delay response is assessed against a.5.19, a.5.20, a.5.26 and the requirement for attributable evidence, bounded authority, and a dated next action.",
               "next_stage": "complete",
               "risk_outcome": "unmanaged_delay",
+              "grading_class": "unmanaged_delay",
               "dimension_weights": {
                 "control_mapping": -8,
                 "evidence": -8,
@@ -6242,7 +6573,7 @@
         "reviewed_by": "Astra Curriculum Review Board",
         "reviewed_at": "2026-10-25T14:00:00Z"
       },
-      "content_hash": "96b65e67d7ef69e4d4c83993ddd861fe63aa0793fa0f54f14e46bf9bdd0da171"
+      "content_hash": "4c61cd5d5e9993e9c06d726237e0612b89862c14c1aa3a43cfcd4ed488b03f6e"
     }
   ]
 }

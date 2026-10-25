@@ -106,7 +106,8 @@ def audit_practice(
                     )
                 )
             for choice in choices:
-                outcome_counts[str(choice.get("risk_outcome") or "")] += 1
+                grading_class = choice.get("grading_class") or choice.get("risk_outcome")
+                outcome_counts[str(grading_class or "")] += 1
                 consequence = str(choice.get("consequence") or "").strip()
                 consequences.append(consequence)
                 if len(consequence) < 25:
