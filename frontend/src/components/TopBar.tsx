@@ -6,6 +6,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/progress": "Progress",
   "/team": "Team",
   "/settings": "Settings",
+  "/scenarios/new": "Scenario studio",
   "/help": "Help",
 };
 

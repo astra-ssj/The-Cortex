@@ -1,16 +1,24 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Button } from "../components/ui/Button";
-import { inviteOrgUser, listOrgUsers } from "../api/orgUsers";
+import { getUser } from "../api/client";
+import {
+  changePassword,
+  getOrganisation,
+  inviteOrgUser,
+  listOrgUsers,
+  updateOrganisation,
+} from "../api/orgUsers";
+import { useOrgContext } from "../hooks/useOrgContext";
 import { useRole } from "../hooks/useRole";
 
-type TabId = "org" | "users" | "api";
+type TabId = "org" | "users" | "account";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "org", label: "Organisation" },
   { id: "users", label: "Users" },
-  { id: "api", label: "API Keys" },
+  { id: "account", label: "Account" },
 ];
 
 export default function Settings() {
@@ -34,13 +42,7 @@ export default function Settings() {
         ))}
       </div>
 
-      {tab === "org" ? (
-        <EmptyState
-          icon="🏢"
-          title="Coming soon"
-          description="Organisation settings will be available in a future release."
-        />
-      ) : null}
+      {tab === "org" ? <OrganisationTab /> : null}
       {tab === "users" ? (
         can("canAccessSettings") ? (
           <UsersTab />
@@ -48,10 +50,130 @@ export default function Settings() {
           <EmptyState icon="👥" title="Restricted" description="Only admins can manage organisation members." />
         )
       ) : null}
-      {tab === "api" ? (
-        <EmptyState icon="🔑" title="Coming soon" description="API key management is not available yet." />
-      ) : null}
+      {tab === "account" ? <AccountTab /> : null}
     </div>
+  );
+}
+
+function OrganisationTab() {
+  const { orgId } = useOrgContext();
+  const { can } = useRole();
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const [jurisdiction, setJurisdiction] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [region, setRegion] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const editable = can("canAccessSettings");
+  const organisation = useQuery({
+    queryKey: ["organisation", orgId],
+    queryFn: () => getOrganisation(orgId),
+  });
+
+  const loaded = organisation.data;
+  useEffect(() => {
+    if (!loaded) return;
+    setName(loaded.name);
+    setJurisdiction(loaded.jurisdiction);
+    setIndustry(loaded.industry ?? "");
+    setRegion(loaded.region ?? "");
+  }, [loaded]);
+  const save = useMutation({
+    mutationFn: () =>
+      updateOrganisation(orgId, {
+        name,
+        jurisdiction,
+        industry,
+        region,
+      }),
+    onSuccess: (profile) => {
+      setMessage("Organisation profile saved.");
+      setError("");
+      queryClient.setQueryData(["organisation", orgId], profile);
+    },
+    onError: (err: Error) => {
+      setMessage("");
+      setError(err.message || "Organisation profile could not be saved.");
+    },
+  });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 640 }}>
+      {organisation.isPending ? <p role="status">Loading organisation…</p> : null}
+      {organisation.isError ? (
+        <p role="alert" style={{ color: "var(--red)" }}>The organisation profile could not be loaded.</p>
+      ) : null}
+      {loaded ? (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (editable) save.mutate();
+          }}
+          style={{ display: "grid", gap: 10 }}
+        >
+          <label htmlFor="org-name">Organisation name</label>
+          <input id="org-name" value={name} onChange={(event) => setName(event.target.value)} required minLength={2} disabled={!editable} style={fieldStyle} />
+          <label htmlFor="org-jurisdiction">Jurisdiction</label>
+          <input id="org-jurisdiction" value={jurisdiction} onChange={(event) => setJurisdiction(event.target.value)} required minLength={2} disabled={!editable} style={fieldStyle} />
+          <label htmlFor="org-industry">Industry</label>
+          <input id="org-industry" value={industry} onChange={(event) => setIndustry(event.target.value)} disabled={!editable} style={fieldStyle} />
+          <label htmlFor="org-region">Region</label>
+          <input id="org-region" value={region} onChange={(event) => setRegion(event.target.value)} disabled={!editable} style={fieldStyle} />
+          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
+            Target frameworks: {(loaded.selectedFrameworks ?? []).join(", ") || "Set during the learner diagnostic."}
+          </p>
+          {editable ? (
+            <Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save organisation"}</Button>
+          ) : null}
+          {message ? <p role="status">{message}</p> : null}
+          {error ? <p role="alert" style={{ color: "var(--red)" }}>{error}</p> : null}
+        </form>
+      ) : null}
+      <a href="/onboarding">Review learner diagnostic</a>
+    </div>
+  );
+}
+
+function AccountTab() {
+  const user = getUser();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const save = useMutation({
+    mutationFn: () => changePassword({ current_password: currentPassword, new_password: newPassword }),
+    onSuccess: (result) => {
+      setMessage(result.message);
+      setError("");
+      setCurrentPassword("");
+      setNewPassword("");
+    },
+    onError: (err: Error) => {
+      setMessage("");
+      setError(err.message || "Password could not be changed.");
+    },
+  });
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        save.mutate();
+      }}
+      style={{ display: "grid", gap: 10, maxWidth: 640 }}
+    >
+      <h2 style={{ margin: 0, fontSize: 16 }}>Your account</h2>
+      <p style={{ margin: 0, color: "var(--text-secondary)" }}>{String(user?.email ?? "Signed-in learner")}</p>
+      <p style={{ margin: 0, color: "var(--text-secondary)" }}>Role: {String(user?.role ?? "learner")}</p>
+      <label htmlFor="current-password">Current password</label>
+      <input id="current-password" type="password" required value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} style={fieldStyle} />
+      <label htmlFor="new-password">New password</label>
+      <input id="new-password" type="password" required minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} style={fieldStyle} />
+      <Button type="submit" disabled={save.isPending}>{save.isPending ? "Updating…" : "Update password"}</Button>
+      {message ? <p role="status">{message}</p> : null}
+      {error ? <p role="alert" style={{ color: "var(--red)" }}>{error}</p> : null}
+    </form>
   );
 }
 

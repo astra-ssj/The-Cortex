@@ -261,9 +261,10 @@ async def complete_attempt(
     await db.execute(
         text(
             "UPDATE organizations SET onboarding_complete = TRUE, onboarding_step = 3, "
-            "updated_at = NOW() WHERE id = :org_id"
+            "selected_frameworks = CAST(:frameworks AS text[]), updated_at = NOW() "
+            "WHERE id = :org_id"
         ),
-        {"org_id": org_id},
+        {"org_id": org_id, "frameworks": [profile.target_framework]},
     )
     await append_audit_log(
         db,

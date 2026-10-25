@@ -27,6 +27,7 @@ const NAV_GROUPS: NavGroupDef[] = [
       { label: "Team", path: "/team", icon: "☰" },
       { label: "Instructor", path: "/instructor", icon: "◎" },
       { label: "Settings", path: "/settings", icon: "⚙" },
+      { label: "Scenario studio", path: "/scenarios/new", icon: "✎" },
     ],
   },
 ];
@@ -144,6 +145,7 @@ export function Sidebar({
   const canSettings = can("canAccessSettings");
   const canTeam = can("canViewTeamCompetency");
   const canInstructor = can("canCoachLearners");
+  const canAuthor = can("canManageCurriculum");
 
   // Hide Settings and the org ledger when the role lacks access.
   const groups = NAV_GROUPS.map((g) => ({
@@ -152,6 +154,7 @@ export function Sidebar({
       if (it.path === "/settings") return canSettings;
       if (it.path === "/team") return canTeam;
       if (it.path === "/instructor") return canInstructor;
+      if (it.path === "/scenarios/new") return canAuthor;
       return true;
     }),
   }));

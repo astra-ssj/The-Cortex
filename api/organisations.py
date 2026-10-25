@@ -12,10 +12,12 @@ from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
-from api.schemas import CompliancePosture, FrameworkPosture, OrgProfile
+from api.schemas import CompliancePosture, FrameworkPosture, OrgProfile, OrgProfileUpdate
 from compliance import FrameworkId
+from core.audit_fabric import append_audit_log
+from core.rbac import Permission, require_permission
 from core.security import get_current_user
-from core.tenant import DEMO_ORG_ID, bind_scoped_org
+from core.tenant import DEMO_ORG_ID, bind_scoped_org, bind_writable_org
 
 logger = structlog.get_logger()
 
@@ -133,13 +135,7 @@ async def get_organisation(
     effective = await bind_scoped_org(session, current_user, org_id)
     row = await _fetch_org(session, effective)
     if row:
-        return OrgProfile(
-            id=row["id"],
-            name=row["name"],
-            jurisdiction=row.get("jurisdiction") or "",
-            industry=row.get("industry"),
-            region=row.get("region"),
-        )
+        return _profile_from_row(row)
     if effective == DEMO_ORG_ID:
         return OrgProfile(
             id=DEMO_ORG["id"],
@@ -149,6 +145,72 @@ async def get_organisation(
             region=DEMO_ORG["region"],
         )
     raise HTTPException(status_code=404, detail=f"Organisation not found: {effective}")
+
+
+def _profile_from_row(row: dict[str, Any]) -> OrgProfile:
+    frameworks = row.get("selected_frameworks") or []
+    return OrgProfile(
+        id=row["id"],
+        name=row["name"],
+        jurisdiction=row.get("jurisdiction") or "",
+        industry=row.get("industry"),
+        region=row.get("region"),
+        selected_frameworks=[str(item) for item in frameworks],
+    )
+
+
+@router.patch("/organisations/{org_id}", response_model=OrgProfile)
+async def update_organisation(
+    org_id: str,
+    body: OrgProfileUpdate,
+    session: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(require_permission(Permission.access_settings)),
+) -> OrgProfile:
+    """Rename the training organisation. This does not change compliance posture."""
+    effective = await bind_writable_org(session, current_user, org_id)
+    before = await append_audit_log(
+        session,
+        event_type="organization.profile.update.start",
+        entity_type="organization",
+        entity_id=effective,
+        org_id=effective,
+        actor=str(current_user.get("sub") or current_user.get("email") or "unknown"),
+        payload={"name": body.name, "jurisdiction": body.jurisdiction},
+    )
+    await session.execute(
+        text(
+            """
+            UPDATE organizations
+            SET name = :name,
+                jurisdiction = :jurisdiction,
+                industry = :industry,
+                region = :region,
+                updated_at = NOW()
+            WHERE id = :id
+            """
+        ),
+        {
+            "id": effective,
+            "name": body.name.strip(),
+            "jurisdiction": body.jurisdiction.strip(),
+            "industry": (body.industry or "").strip() or None,
+            "region": (body.region or "").strip() or None,
+        },
+    )
+    row = await _fetch_org(session, effective)
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"Organisation not found: {effective}")
+    await append_audit_log(
+        session,
+        event_type="organization.profile.update.complete",
+        entity_type="organization",
+        entity_id=effective,
+        org_id=effective,
+        actor=str(current_user.get("sub") or current_user.get("email") or "unknown"),
+        prev_hash_override=before,
+        payload={"name": row["name"]},
+    )
+    return _profile_from_row(row)
 
 
 @router.get("/organisations/{org_id}/posture", response_model=CompliancePosture)

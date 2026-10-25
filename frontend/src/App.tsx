@@ -16,6 +16,7 @@ import Onboarding from "./pages/Onboarding";
 import { logoutCortexBrowserSession } from "./lib/cortexSession";
 import { Sidebar, SIDEBAR_WIDTH_PX } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
+import ScenarioStudio from "./pages/ScenarioStudio";
 import Settings from "./pages/Settings";
 import HelpDocs from "./pages/HelpDocs";
 import LearningLoop from "./pages/LearningLoop";
@@ -160,6 +161,7 @@ function AppRoutes() {
           <Route path="/instructor" element={<InstructorDashboard />} />
           <Route path="/instructor/assignments/:assignmentId" element={<AssignmentDetail />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/scenarios/new" element={<ScenarioStudio />} />
           <Route path="/help" element={<HelpDocs />} />
           <Route path="*" element={<Navigate to="/practices" replace />} />
         </Route>

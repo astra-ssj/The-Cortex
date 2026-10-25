@@ -76,12 +76,18 @@ function LocationProbe() {
 function renderPage(practices: PracticeCatalogEntry[]) {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () =>
-      new Response(JSON.stringify(practices), {
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const body = url.includes("/sessions")
+        ? []
+        : url.includes("/learning-plan")
+          ? { practices: [], tracks: [], recommendation: null }
+          : practices;
+      return new Response(JSON.stringify(body), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }),
-    ),
+      });
+    }),
   );
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(

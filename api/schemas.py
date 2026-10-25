@@ -161,6 +161,14 @@ class OrgProfile(BaseModel):
     jurisdiction: str = Field("", serialization_alias="jurisdiction")
     industry: Optional[str] = Field(None, serialization_alias="industry")
     region: Optional[str] = Field(None, serialization_alias="region")
+    selected_frameworks: list[str] = Field(default_factory=list, serialization_alias="selectedFrameworks")
+
+
+class OrgProfileUpdate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=160)
+    jurisdiction: str = Field(..., min_length=2, max_length=80)
+    industry: Optional[str] = Field(None, max_length=80)
+    region: Optional[str] = Field(None, max_length=80)
 
 
 # ---- ZTAIP system status (matches frontend ZTAIPStatus) ----

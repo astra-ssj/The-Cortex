@@ -277,9 +277,15 @@ export default function LearningLoop() {
   const { orgId } = useOrgContext();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const requestedSession = searchParams.get("session");
   const [sessionId, setSessionId] = useState<string | null>(
-    () => localStorage.getItem("cortex_learning_session_id"),
+    () => requestedSession || localStorage.getItem("cortex_learning_session_id"),
   );
+  useEffect(() => {
+    if (!requestedSession) return;
+    setSessionId(requestedSession);
+    localStorage.setItem("cortex_learning_session_id", requestedSession);
+  }, [requestedSession]);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [rationale, setRationale] = useState("");
   const [confidence, setConfidence] = useState(0.7);
@@ -362,7 +368,7 @@ export default function LearningLoop() {
   const retakeStarted = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!retakeSlug || retakeStarted.current === retakeSlug) return;
+    if (requestedSession || !retakeSlug || retakeStarted.current === retakeSlug) return;
     retakeStarted.current = retakeSlug;
     // Replace any session in progress: the learner asked for this scenario
     // specifically, and resuming an unrelated one would silently ignore that.
@@ -373,7 +379,7 @@ export default function LearningLoop() {
     const next = new URLSearchParams(searchParams);
     next.delete("scenario");
     setSearchParams(next, { replace: true });
-  }, [retakeSlug, searchParams, setSearchParams, createMut, qc]);
+  }, [requestedSession, retakeSlug, searchParams, setSearchParams, createMut, qc]);
 
   const session: LearningSession | undefined = sessionQuery.data;
   const choices = (session?.state?.choices as { id: string; label: string }[] | undefined) ?? [];

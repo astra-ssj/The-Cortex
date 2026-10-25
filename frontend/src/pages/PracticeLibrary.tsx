@@ -1,12 +1,15 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
+import { getSessions } from "../api/learning";
 import { getPractices, type PracticeCatalogEntry } from "../api/practices";
 import { getLearningPlan } from "../api/learnerJourney";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Button } from "../components/ui/Button";
 import { Skeleton } from "../components/Skeleton";
+import { useOrgContext } from "../hooks/useOrgContext";
+import { useRole } from "../hooks/useRole";
 import { frameworkLabelFromId } from "../lib/frameworkRegistry";
 
 const panel: CSSProperties = {
@@ -301,10 +304,16 @@ function PlannedPractice({ practice }: { practice: PracticeCatalogEntry }) {
 
 export default function PracticeLibrary() {
   const navigate = useNavigate();
+  const { orgId } = useOrgContext();
+  const { can } = useRole();
   const [framework, setFramework] = useState("all");
   const [category, setCategory] = useState("all");
   const query = useQuery({ queryKey: ["practice-catalog"], queryFn: getPractices });
   const planQuery = useQuery({ queryKey: ["learning-plan"], queryFn: getLearningPlan });
+  const attemptsQuery = useQuery({
+    queryKey: ["practice-attempts", orgId],
+    queryFn: () => getSessions(orgId, "mine"),
+  });
 
   const practices = query.data ?? [];
   const frameworks = useMemo(
@@ -361,6 +370,37 @@ export default function PracticeLibrary() {
         Build demonstrated GRC judgment through source-traceable exercises. Practices use
         simulated records and decisions; they never act on organizational systems.
       </p>
+      {can("canManageCurriculum") ? (
+        <p style={{ margin: "-12px 0 22px" }}>
+          <Link to="/scenarios/new">Author a customer scenario</Link>
+        </p>
+      ) : null}
+      <section aria-label="Your practice runs" style={{ ...panel, padding: 16, marginBottom: 22 }}>
+        <div style={{ ...eyebrow, marginBottom: 10 }}>Your practice runs</div>
+        {attemptsQuery.isPending ? <p role="status">Loading practice runs…</p> : null}
+        {attemptsQuery.isError ? <p role="alert">Practice history could not be loaded.</p> : null}
+        {attemptsQuery.data && attemptsQuery.data.length === 0 ? (
+          <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: 13 }}>No practice runs yet. Start one below.</p>
+        ) : null}
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+          {(attemptsQuery.data ?? []).slice(0, 8).map((attempt) => {
+            const finished = attempt.stage === "complete";
+            return (
+              <li key={attempt.session_id} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                <span>{attempt.scenario_title} · {finished ? "complete" : attempt.stage}</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => navigate(`/learning?session=${encodeURIComponent(attempt.session_id)}`)}
+                >
+                  {finished ? "Review" : "Continue"}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
       <fieldset
         style={{
