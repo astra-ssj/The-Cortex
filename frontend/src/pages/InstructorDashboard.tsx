@@ -22,6 +22,8 @@ export default function InstructorDashboard() {
   const [noteLearner, setNoteLearner] = useState("");
   const [noteBody, setNoteBody] = useState("");
   const [noteVisibility, setNoteVisibility] = useState<"learner_visible" | "private">("learner_visible");
+  const [briefingText, setBriefingText] = useState("");
+  const [briefingSource, setBriefingSource] = useState("");
 
   const cohorts = useQuery({
     queryKey: ["instruction-cohorts", orgId],
@@ -33,6 +35,14 @@ export default function InstructorDashboard() {
     queryFn: () => instructionApi.assignments(orgId),
     enabled: allowed,
   });
+  const briefing = useMutation({
+    mutationFn: () => instructionApi.briefing(orgId, cohortId || undefined),
+    onSuccess: (result) => {
+      setBriefingText(result.narrative);
+      setBriefingSource(result.source === "local_model" ? "Local Gemma 4" : "Reviewed briefing");
+    },
+  });
+
   const progress = useQuery({
     queryKey: ["instruction-progress", orgId],
     queryFn: () => instructionApi.progress(orgId),
@@ -124,6 +134,27 @@ export default function InstructorDashboard() {
             <Stat label="Assignments" value={(assignments.data ?? []).length} />
             <Stat label="Learners" value={learners.length} />
             <Stat label="Overdue" value={overdue} warning={overdue > 0} />
+          </section>
+
+          <section style={panel}>
+            <h2 style={heading}>Cohort briefing</h2>
+            <p style={muted}>
+              Draft an explanation from the current counts. This does not create an assignment or change a score.
+            </p>
+            <button
+              type="button"
+              className="cortex-btn-primary"
+              disabled={briefing.isPending}
+              onClick={() => briefing.mutate()}
+            >
+              {briefing.isPending ? "Drafting briefing" : "Draft briefing"}
+            </button>
+            {briefingText ? (
+              <p style={{ margin: "12px 0 0", color: "var(--text)", fontSize: 13, lineHeight: 1.55 }}>
+                <span style={muted}>{briefingSource}. </span>
+                {briefingText}
+              </p>
+            ) : null}
           </section>
 
           <section style={panel}>

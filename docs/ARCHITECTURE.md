@@ -46,8 +46,14 @@ does not fail schema validation.
 | unset | Anthropic if `ANTHROPIC_API_KEY` set, then Gemini if `GEMINI_API_KEY` set, else stub |
 | `gemini` | Gemini 4 Argon (`gemini-4-argon`); configurable `thinking_level` (`low`, `medium`, `high`), structured JSON schemas, and context caching for regulatory corpora |
 | `anthropic` | Anthropic; missing key is a startup/config error (no silent stub) |
-| `ollama` | `POST {OLLAMA_BASE_URL}/v1/chat/completions` (default `http://localhost:11434`), model `AGENT_MODEL` or `gemma4:12b`, 120s timeout |
-| `stub` | Deterministic canned JSON (tests / no key) |
+| `ollama` | Local Gemma 4 12B at `{OLLAMA_BASE_URL}/v1/chat/completions`. Context is capped with `OLLAMA_CONTEXT_LENGTH` (default 4096). |
+| `stub` | Reviewed offline personas in `content/offline_personas/v1` |
+
+`core/agents/narration.py` may ask the local model to explain a debrief, the
+ranker's next practice, or an instructor cohort briefing. The explanation is
+accepted only when every cited fact was supplied and the practice id matches.
+Confidence below 0.75, invalid JSON, or an open circuit breaker keeps the
+deterministic sentence and marks the draft for human review.
 
 Every path is wrapped by module-level circuit breakers (open after 5 consecutive failures).
 Tasks are dynamically routed by `core/llm/router.py`:

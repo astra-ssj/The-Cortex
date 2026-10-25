@@ -78,14 +78,14 @@ signed releases instead use `scripts/install.sh`, which selects
 `release/compose.yml` and pinned `astra-grc-ce-*` images; do not use plain
 `docker compose up` as a release installation command.
 
-Optional local AI uses Gemma 4 through Ollama. It is not downloaded with the default install:
+Optional local AI uses Gemma 4 12B through Ollama. The weights are a separate checksum-verified archive, `astra-gemma4-12b.tar`, loaded by `scripts/install.sh` when the file is present. They are not inside the API image, and CI does not download them.
 
 ```bash
 AGENT_MODEL=gemma4:12b MODEL_PROVIDER=ollama docker compose --profile local-ai up -d --build --wait
 docker compose exec ollama ollama pull gemma4:12b
 ```
 
-The default install remains API-free and uses reviewed deterministic personas. Customer scenario drafts stay unpublished until curriculum review.
+The default install remains API-free and uses reviewed deterministic personas. With the local model enabled, Gemma explains the debrief, the next practice, and an instructor briefing. Scores, the next practice id, and assignments stay with the deterministic engines. Customer scenario drafts stay unpublished until curriculum review.
 
 Open http://localhost:8080. For native backend/frontend development and
 environment-specific database credentials, see [AGENTS.md](AGENTS.md) and

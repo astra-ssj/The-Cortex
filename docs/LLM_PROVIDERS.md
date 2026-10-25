@@ -60,6 +60,24 @@ export OPENAI_MODEL=gpt-4o-mini
 export CORTEX_LLM_PROVIDERS=anthropic,openai,stub
 ```
 
+## Learning loop and local Gemma 4
+
+Stakeholder turns and training narration use `core/agents/model.py`, which is
+separate from the compliance router above. Release and CI keep
+`MODEL_PROVIDER=stub`.
+
+```bash
+export MODEL_PROVIDER=ollama
+export AGENT_MODEL=gemma4:12b
+export OLLAMA_BASE_URL=http://127.0.0.1:11434
+export OLLAMA_CONTEXT_LENGTH=4096
+```
+
+Gemma 4 12B may explain a debrief, the next-practice sentence, and an
+instructor briefing. The grader still owns the score. The ranker still owns
+the practice id. Customer scenario drafts stay unpublished. See
+[OFFLINE.md](OFFLINE.md).
+
 ## Docker Compose
 
 The `api` service passes through LLM env vars from your shell or `.env`:

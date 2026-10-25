@@ -102,6 +102,8 @@ export interface LearningPlan {
     rationale: string;
     confidence: number;
     requires_human_review: boolean;
+    narrative_source?: "deterministic" | "local_model";
+    narrative_confidence?: number;
     ranked: {
       practice_id: string;
       practice_version_id: string;

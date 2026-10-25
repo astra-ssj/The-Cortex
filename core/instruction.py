@@ -107,10 +107,17 @@ async def assignment_progress(
     *,
     cohort_id: str | None = None,
 ) -> list[LearnerProgress]:
+    cohort_filter = ""
+    params: dict[str, Any] = {"org_id": org_id}
+    if cohort_id:
+        # asyncpg cannot infer a NULL uuid parameter, so the filter is omitted
+        # when the caller wants every cohort in the tenant.
+        cohort_filter = "AND a.cohort_id = CAST(:cohort_id AS uuid)"
+        params["cohort_id"] = cohort_id
     rows = (
         await db.execute(
             text(
-                """
+                f"""
                 SELECT al.learner_id, COALESCE(u.email, al.learner_id) AS display_name,
                        count(DISTINCT al.id)::int AS assigned,
                        count(DISTINCT al.id) FILTER (WHERE al.status = 'completed')::int AS completed,
@@ -125,12 +132,12 @@ async def assignment_progress(
                 LEFT JOIN scenario_sessions ss
                   ON ss.org_id = al.org_id AND ss.learner_id = al.learner_id
                 WHERE al.org_id = :org_id
-                  AND (:cohort_id IS NULL OR a.cohort_id = CAST(:cohort_id AS uuid))
+                  {cohort_filter}
                 GROUP BY al.learner_id, u.email
                 ORDER BY overdue DESC, display_name
                 """
             ),
-            {"org_id": org_id, "cohort_id": cohort_id},
+            params,
         )
     ).mappings().all()
     return [

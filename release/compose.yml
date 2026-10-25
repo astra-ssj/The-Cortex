@@ -11,6 +11,8 @@ x-api-environment: &api-environment
   CORTEX_LLM_PROVIDERS: ${CORTEX_LLM_PROVIDERS:-stub}
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+  AGENT_MODEL: ${AGENT_MODEL:-gemma4:12b}
 
 services:
   postgres:
@@ -64,6 +66,22 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
 
+  ollama:
+    profiles: ["offline-ai"]
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
+    environment:
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-4096}
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
   frontend:
     image: ${ASTRA_FRONTEND_IMAGE:-ghcr.io/astra-ssj/astra-grc-ce-frontend:v1.1.0}
     ports:
@@ -83,3 +101,5 @@ services:
 volumes:
   postgres_data:
     name: ${ASTRA_DATA_VOLUME:-astra_grc_ce_postgres_data}
+  ollama_data:
+    name: ${ASTRA_OLLAMA_VOLUME:-astra_grc_ce_ollama_data}

@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.deps import get_db
 from api.limits import authenticated_rate_limit_key, limiter
 from core.agents.grading import grade_decision
+from core.agents.narration import audit_invoked_narration, debrief_facts, narrate
 from core.agents.scenario import (
     ENTRY_STAGE,
     SCENARIO_ID,
@@ -199,6 +200,10 @@ class DebriefOut(SovereignModel):
     scenario_content_hash: Optional[str] = None
     agent_provenance: list[dict[str, Any]] = Field(default_factory=list)
     learning_objectives: list[str] = Field(default_factory=list)
+    coaching_narrative: str = ""
+    coaching_source: str = "deterministic"
+    coaching_confidence: float = 1.0
+    coaching_requires_human_review: bool = False
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -1139,7 +1144,35 @@ async def get_debrief(
             str(row["scenario_version_id"]) if row["scenario_version_id"] else None
         ),
     )
-    return _build_debrief(row, content)
+    debrief = _build_debrief(row, content)
+    facts = debrief_facts(debrief)
+    gaps = ", ".join(debrief.gap_dimensions) or "none"
+    narration = await narrate(
+        kind="debrief",
+        facts=facts,
+        fallback=(
+            f"{debrief.correct_count} of {debrief.decision_count} decisions matched "
+            f"the reference answer. Open gaps: {gaps}."
+        ),
+        required_practice_id=None,
+    )
+    await audit_invoked_narration(
+        db,
+        kind="debrief",
+        entity_type="scenario_session",
+        entity_id=str(session_id),
+        org_id=effective,
+        actor=str(current_user.get("sub") or current_user.get("email") or "anonymous"),
+        narration=narration,
+    )
+    return debrief.model_copy(
+        update={
+            "coaching_narrative": narration.narrative,
+            "coaching_source": narration.source,
+            "coaching_confidence": narration.confidence,
+            "coaching_requires_human_review": narration.requires_human_review,
+        }
+    )
 
 
 @router.post(

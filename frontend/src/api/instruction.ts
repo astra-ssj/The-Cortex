@@ -38,6 +38,18 @@ export interface LearnerProgress extends Governed {
   last_active_at: string | null;
 }
 
+export interface CohortBriefing extends Governed {
+  cohort_id: string | null;
+  narrative: string;
+  cited_facts: string[];
+  confidence: number;
+  source: "local_model" | "deterministic";
+  requires_human_review: boolean;
+  suggested_practice_id: string | null;
+  provider: string;
+  model: string;
+}
+
 export interface CoachingNote extends Governed {
   id: string;
   learner_id: string;
@@ -103,6 +115,11 @@ export const instructionApi = {
     fetchApi<{ status: string }>(
       `/api/v1/instruction/assignments/${encodeURIComponent(id)}/status${orgQuery(orgId)}`,
       json("POST", { status }),
+    ),
+  briefing: (orgId: string, cohortId?: string) =>
+    fetchApi<CohortBriefing>(
+      `/api/v1/instruction/briefing${orgQuery(orgId)}`,
+      json("POST", { cohort_id: cohortId ?? null }),
     ),
   progress: (orgId: string, cohortId?: string) => {
     const params = new URLSearchParams({ org_id: orgId });

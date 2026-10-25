@@ -1,0 +1,9 @@
+Gemma 4 weights redistributed with Astra GRC Community Edition are licensed
+under the Apache License, Version 2.0.
+
+https://www.apache.org/licenses/LICENSE-2.0
+https://ai.google.dev/gemma/docs/gemma_4_license
+
+The application image does not contain the weights. The offline archive
+astra-gemma4-12b.tar is verified by its sha256 sidecar before it is loaded
+into the local Ollama volume.
