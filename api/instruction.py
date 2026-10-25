@@ -769,32 +769,42 @@ async def create_briefing(
         if found is None:
             raise HTTPException(status_code=404, detail="Cohort not found")
     progress = await assignment_progress(db, effective, cohort_id=cohort_id)
-    suggested_filter = ""
-    suggested_params: dict[str, Any] = {"org_id": effective}
     if cohort_id is not None:
-        suggested_filter = "AND a.cohort_id = CAST(:cohort_id AS uuid)"
-        suggested_params["cohort_id"] = cohort_id
-    suggested = (
-        await db.execute(
-            text(
-                f"""
-                SELECT ap.scenario_slug
-                FROM assignment_practices ap
-                JOIN assignments a
-                  ON a.org_id = ap.org_id AND a.id = ap.assignment_id
-                JOIN assignment_learners al
-                  ON al.org_id = a.org_id AND al.assignment_id = a.id
-                WHERE a.org_id = :org_id
-                  {suggested_filter}
-                  AND al.status NOT IN ('completed', 'excused')
-                GROUP BY ap.scenario_slug
-                ORDER BY count(*) DESC, ap.scenario_slug
-                LIMIT 1
-                """
-            ),
-            suggested_params,
+        suggested_statement = text(
+            """
+            SELECT ap.scenario_slug
+            FROM assignment_practices ap
+            JOIN assignments a
+              ON a.org_id = ap.org_id AND a.id = ap.assignment_id
+            JOIN assignment_learners al
+              ON al.org_id = a.org_id AND al.assignment_id = a.id
+            WHERE a.org_id = :org_id
+              AND a.cohort_id = CAST(:cohort_id AS uuid)
+              AND al.status NOT IN ('completed', 'excused')
+            GROUP BY ap.scenario_slug
+            ORDER BY count(*) DESC, ap.scenario_slug
+            LIMIT 1
+            """
         )
-    ).scalar_one_or_none()
+        suggested_params: dict[str, Any] = {"org_id": effective, "cohort_id": cohort_id}
+    else:
+        suggested_statement = text(
+            """
+            SELECT ap.scenario_slug
+            FROM assignment_practices ap
+            JOIN assignments a
+              ON a.org_id = ap.org_id AND a.id = ap.assignment_id
+            JOIN assignment_learners al
+              ON al.org_id = a.org_id AND al.assignment_id = a.id
+            WHERE a.org_id = :org_id
+              AND al.status NOT IN ('completed', 'excused')
+            GROUP BY ap.scenario_slug
+            ORDER BY count(*) DESC, ap.scenario_slug
+            LIMIT 1
+            """
+        )
+        suggested_params = {"org_id": effective}
+    suggested = (await db.execute(suggested_statement, suggested_params)).scalar_one_or_none()
     suggested_practice_id = str(suggested) if suggested else None
     rows = [item.model_dump() for item in progress]
     facts = briefing_facts(rows, suggested_practice_id)

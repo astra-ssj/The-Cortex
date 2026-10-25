@@ -107,39 +107,53 @@ async def assignment_progress(
     *,
     cohort_id: str | None = None,
 ) -> list[LearnerProgress]:
-    cohort_filter = ""
-    params: dict[str, Any] = {"org_id": org_id}
+    # Two static statements: asyncpg cannot infer a NULL uuid bind parameter.
     if cohort_id:
-        # asyncpg cannot infer a NULL uuid parameter, so the filter is omitted
-        # when the caller wants every cohort in the tenant.
-        cohort_filter = "AND a.cohort_id = CAST(:cohort_id AS uuid)"
-        params["cohort_id"] = cohort_id
-    rows = (
-        await db.execute(
-            text(
-                f"""
-                SELECT al.learner_id, COALESCE(u.email, al.learner_id) AS display_name,
-                       count(DISTINCT al.id)::int AS assigned,
-                       count(DISTINCT al.id) FILTER (WHERE al.status = 'completed')::int AS completed,
-                       count(DISTINCT al.id) FILTER (
-                         WHERE a.status = 'published' AND a.due_at < NOW()
-                           AND al.status NOT IN ('completed', 'excused')
-                       )::int AS overdue,
-                       max(ss.updated_at) AS last_active_at
-                FROM assignment_learners al
-                JOIN assignments a ON a.org_id = al.org_id AND a.id = al.assignment_id
-                LEFT JOIN users u ON u.id::text = al.learner_id
-                LEFT JOIN scenario_sessions ss
-                  ON ss.org_id = al.org_id AND ss.learner_id = al.learner_id
-                WHERE al.org_id = :org_id
-                  {cohort_filter}
-                GROUP BY al.learner_id, u.email
-                ORDER BY overdue DESC, display_name
-                """
-            ),
-            params,
+        statement = text(
+            """
+            SELECT al.learner_id, COALESCE(u.email, al.learner_id) AS display_name,
+                   count(DISTINCT al.id)::int AS assigned,
+                   count(DISTINCT al.id) FILTER (WHERE al.status = 'completed')::int AS completed,
+                   count(DISTINCT al.id) FILTER (
+                     WHERE a.status = 'published' AND a.due_at < NOW()
+                       AND al.status NOT IN ('completed', 'excused')
+                   )::int AS overdue,
+                   max(ss.updated_at) AS last_active_at
+            FROM assignment_learners al
+            JOIN assignments a ON a.org_id = al.org_id AND a.id = al.assignment_id
+            LEFT JOIN users u ON u.id::text = al.learner_id
+            LEFT JOIN scenario_sessions ss
+              ON ss.org_id = al.org_id AND ss.learner_id = al.learner_id
+            WHERE al.org_id = :org_id
+              AND a.cohort_id = CAST(:cohort_id AS uuid)
+            GROUP BY al.learner_id, u.email
+            ORDER BY overdue DESC, display_name
+            """
         )
-    ).mappings().all()
+        params: dict[str, Any] = {"org_id": org_id, "cohort_id": cohort_id}
+    else:
+        statement = text(
+            """
+            SELECT al.learner_id, COALESCE(u.email, al.learner_id) AS display_name,
+                   count(DISTINCT al.id)::int AS assigned,
+                   count(DISTINCT al.id) FILTER (WHERE al.status = 'completed')::int AS completed,
+                   count(DISTINCT al.id) FILTER (
+                     WHERE a.status = 'published' AND a.due_at < NOW()
+                       AND al.status NOT IN ('completed', 'excused')
+                   )::int AS overdue,
+                   max(ss.updated_at) AS last_active_at
+            FROM assignment_learners al
+            JOIN assignments a ON a.org_id = al.org_id AND a.id = al.assignment_id
+            LEFT JOIN users u ON u.id::text = al.learner_id
+            LEFT JOIN scenario_sessions ss
+              ON ss.org_id = al.org_id AND ss.learner_id = al.learner_id
+            WHERE al.org_id = :org_id
+            GROUP BY al.learner_id, u.email
+            ORDER BY overdue DESC, display_name
+            """
+        )
+        params = {"org_id": org_id}
+    rows = (await db.execute(statement, params)).mappings().all()
     return [
         LearnerProgress(
             **governed(

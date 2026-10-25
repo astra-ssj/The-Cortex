@@ -2,19 +2,19 @@
 
 Run before tagging a release or merging main-facing work. Commands assume repo root and match CI intent.
 
-## Latest verification run (2026-05-21)
+## Latest verification run (2026-10-25)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Frontend `tsc` / lint / test / build | ✅ | 5 Vitest tests; 56 ESLint security warnings (0 errors) |
-| `npm audit --audit-level=high` | ✅ | 6 moderate (dev-only) |
-| Ruff + Bandit | ✅ | 4 unused imports auto-fixed; see [`SAST-REPORT.md`](archive/SAST-REPORT.md) |
-| Pytest (Compose DB via `docker compose run … api`) | ⚠️ | 135 passed, **2 failed**, 10 skipped |
-| `pip-audit` | ❌ | `idna` 3.13 → upgrade ≥ 3.15 |
-| `smoke_happy_path.sh` | ✅ | |
-| `smoke_ingest_llm.sh` | ✅ | Track B |
-| `smoke_assessment_llm.sh` | ❌ | SSE missing `run_done` |
-| Mypy `api core` | ⚠️ | 33 errors — advisory only |
+| Frontend `tsc` / lint / test / build | Pass | 66 Vitest tests; ESLint 86 security warnings, 0 errors |
+| `npm audit --omit=dev --audit-level=high` | Pass | 0 vulnerabilities |
+| Ruff | Pass | `api core compliance db ontology tests`, E501 ignored |
+| Bandit `-ll --skip B101` | Pass | Medium SQL findings fixed by using static queries |
+| Pytest | Pass | 219 passed against local Postgres `127.0.0.1:5434` |
+| `pip-audit -r requirements.lock.txt` | Pass | No known vulnerabilities |
+| `smoke_happy_path.sh` | Pass | health, ready, register, catalog, curriculum, learning plan, scenarios |
+
+Historical run (2026-05-21): frontend passed; pytest 135 passed and 2 failed; `pip-audit` failed on `idna` 3.13; assessment SSE smoke missed `run_done`. See [`QA-REPORT.md`](archive/QA-REPORT.md).
 
 Full log: [`QA-REPORT.md`](archive/QA-REPORT.md).
 
