@@ -10,8 +10,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
+from core.audit_fabric import append_audit_log
 from core.competency import rollup_dimensions
 from core.governance import SovereignModel
+from core.rbac import Permission, require_permission
+from core.scenario_draft import draft_customer_scenario
 from core.learning_recommendations import (
     CompetencySignal,
     LearningRecommendation,
@@ -19,7 +22,7 @@ from core.learning_recommendations import (
     rank_practices,
 )
 from core.security import get_current_user
-from core.tenant import bind_scoped_org
+from core.tenant import bind_scoped_org, bind_writable_org
 
 router = APIRouter(prefix="/api/v1/curriculum", tags=["curriculum"])
 
@@ -354,4 +357,58 @@ async def get_learning_plan(
         recommendation=recommendation,
         tracks=await _tracks(db, learner_id, track_id),
         practices=practices,
+    )
+
+
+class ScenarioDraftRequest(SovereignModel):
+    brief: str = Field(min_length=20, max_length=1000)
+    framework: str = Field(default="iso27001", min_length=2, max_length=64)
+
+
+class ScenarioDraft(SovereignModel):
+    scenario: dict[str, Any]
+    published: bool = False
+    provider: str
+    model: str
+    mode: str
+
+
+@router.post("/scenario-drafts", response_model=ScenarioDraft)
+async def create_scenario_draft(
+    body: ScenarioDraftRequest,
+    current_user: dict[str, Any] = Depends(require_permission(Permission.manage_curriculum)),
+    db: AsyncSession = Depends(get_db),
+) -> ScenarioDraft:
+    """Create an unpublished customer scenario. A local model may draft the narrative."""
+    org_id = str(current_user.get("org_id") or "")
+    await bind_writable_org(db, current_user, org_id)
+    actor = str(current_user.get("email") or current_user.get("sub") or "curriculum-admin")
+    before = await append_audit_log(
+        db,
+        event_type="scenario.draft.start",
+        entity_type="scenario_draft",
+        entity_id=None,
+        org_id=org_id,
+        actor=actor,
+        payload={"framework": body.framework},
+    )
+    drafted = await draft_customer_scenario(
+        body.brief,
+        framework=body.framework,
+        author=actor,
+    )
+    await append_audit_log(
+        db,
+        event_type="scenario.draft.complete",
+        entity_type="scenario_draft",
+        entity_id=str(drafted["scenario"]["id"]),
+        org_id=org_id,
+        actor=actor,
+        prev_hash_override=before,
+        payload={"provider": drafted["provider"], "published": False},
+    )
+    return ScenarioDraft(
+        jurisdiction=body.jurisdiction,
+        purpose_tags=body.purpose_tags,
+        **drafted,
     )

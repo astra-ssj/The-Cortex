@@ -29,6 +29,39 @@ export function listOrgUsers(): Promise<OrgUserList> {
   return fetchApi<OrgUserList>("/api/v1/auth/users");
 }
 
+export interface OrganisationProfile {
+  id: string;
+  name: string;
+  jurisdiction: string;
+  industry: string | null;
+  region: string | null;
+  selectedFrameworks: string[];
+}
+
+export function getOrganisation(orgId: string): Promise<OrganisationProfile> {
+  return fetchApi<OrganisationProfile>(`/api/v1/organisations/${encodeURIComponent(orgId)}`);
+}
+
+export function updateOrganisation(
+  orgId: string,
+  body: { name: string; jurisdiction: string; industry?: string; region?: string },
+): Promise<OrganisationProfile> {
+  return fetchApi<OrganisationProfile>(`/api/v1/organisations/${encodeURIComponent(orgId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function changePassword(body: {
+  current_password: string;
+  new_password: string;
+}): Promise<{ message: string }> {
+  return fetchApi<{ message: string }>("/api/v1/auth/password", {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
 export function inviteOrgUser(body: {
   email: string;
   role?: string;

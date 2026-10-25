@@ -67,12 +67,18 @@ def _strip_markdown_fences(raw: str) -> str:
 
 
 def _user_content(context: dict[str, Any]) -> str:
-    return (
-        f"Context:\n{json.dumps(context, indent=2)}\n\n"
-        "Respond ONLY as JSON with keys: "
-        "speaker, stance, message, demands. "
-        "No preamble, no markdown, no explanation."
+    contract = context.get("response_contract")
+    payload = {key: value for key, value in context.items() if key != "response_contract"}
+    instruction = (
+        str(contract)
+        if contract
+        else (
+            "Respond ONLY as JSON with keys: "
+            "speaker, stance, message, demands. "
+            "No preamble, no markdown, no explanation."
+        )
     )
+    return f"Context:\n{json.dumps(payload, indent=2)}\n\n{instruction}"
 
 
 def _ollama_base_url() -> str:

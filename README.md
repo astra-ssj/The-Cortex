@@ -10,7 +10,7 @@ A scenario opens with a brief. An adversarial stakeholder agent presses for a de
 
 The platform is built on **purvapaksha**: in Indian philosophical method, a position may not be asserted until its strongest objection has been stated in full. The stakeholder agent argues to win, not to find truth. Holding a correct position against that pressure is the skill being trained.
 
-Version 1.1 ships 15 reviewed practices with objective-linked evidence tasks,
+Version 1.1.0 ships 15 reviewed practices with objective-linked evidence tasks,
 choice-dependent paths, explicit qualified alternatives, remediation guidance,
 and five calibrated evaluation paths per practice. Recommendations remain
 deterministic and offline: current competency gaps select the next eligible
@@ -20,11 +20,9 @@ practice and difficulty, while results below 0.75 are marked for human review.
 
 Counts below are taken from the seed migrations (`migrations/019`–`024`), not from marketing copy.
 
-| Framework | Status | Scenarios |
+| Framework | Status | Practices |
 |-----------|--------|-----------|
-| ISO 27001:2022 | Live | **5** (CX-1001–CX-1005) |
-| GDPR | Live in Simulator | GDPR Article 33 Breach Notification & DPO Escalation |
-| SOC 2 | Live in Simulator | CC6.3 Logical Access & Orphaned Credential Review |
+| ISO 27001, NIST CSF, NIS2, DORA, GDPR, SOC 2, ISO 42001 | Live in the Practice Library | **15** reviewed practices |
 
 ISO 27001 track:
 
@@ -54,7 +52,7 @@ tar -xzf astra-grc-ce-release-files.tar.gz
 ```
 
 Open http://127.0.0.1:8080. The installer generates local secrets, applies the
-checksum-verified migration manifest through migration 044, and waits for all
+checksum-verified migration manifest through migration 045, and waits for all
 services to become healthy. Offline stub providers are the default; no model
 key or telemetry service is required. See [installation](docs/INSTALL.md) and
 [offline operation](docs/OFFLINE.md).
@@ -79,6 +77,15 @@ equivalent. These source-development commands build local images. Downloaded,
 signed releases instead use `scripts/install.sh`, which selects
 `release/compose.yml` and pinned `astra-grc-ce-*` images; do not use plain
 `docker compose up` as a release installation command.
+
+Optional local AI uses Gemma 4 through Ollama. It is not downloaded with the default install:
+
+```bash
+AGENT_MODEL=gemma4:12b MODEL_PROVIDER=ollama docker compose --profile local-ai up -d --build --wait
+docker compose exec ollama ollama pull gemma4:12b
+```
+
+The default install remains API-free and uses reviewed deterministic personas. Customer scenario drafts stay unpublished until curriculum review.
 
 Open http://localhost:8080. For native backend/frontend development and
 environment-specific database credentials, see [AGENTS.md](AGENTS.md) and

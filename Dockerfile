@@ -47,6 +47,7 @@ COPY --chown=astra:astra core ./core
 COPY --chown=astra:astra db ./db
 COPY --chown=astra:astra ontology ./ontology
 COPY --chown=astra:astra content ./content
+COPY --chown=astra:astra contrib ./contrib
 COPY --chown=astra:astra migrations ./migrations
 COPY --chown=astra:astra scripts/apply_cortex_schema.sh ./scripts/apply_cortex_schema.sh
 COPY --chown=astra:astra init.sql README.md pyproject.toml VERSION ./
