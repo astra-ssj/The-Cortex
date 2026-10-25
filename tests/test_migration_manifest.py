@@ -24,7 +24,7 @@ def test_manifest_registers_every_schema_file_once() -> None:
 
     assert len(entries) == len(set(entries)), "migration manifest contains duplicates"
     assert set(entries) == expected
-    assert entries[-1] == "migrations/044_practice_quality_v11.sql"
+    assert entries[-1] == "migrations/045_practice_quality_semantics.sql"
 
 
 def test_manifest_entries_exist_and_are_ordered() -> None:
@@ -50,6 +50,9 @@ def test_manifest_entries_exist_and_are_ordered() -> None:
     )
     assert numbered.index("043_instructor_cohorts.sql") < numbered.index(
         "044_practice_quality_v11.sql"
+    )
+    assert numbered.index("044_practice_quality_v11.sql") < numbered.index(
+        "045_practice_quality_semantics.sql"
     )
 
 

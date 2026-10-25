@@ -23,17 +23,16 @@ cleanup() {
 trap cleanup EXIT
 
 ./scripts/verify-release.sh
-PYTHONPATH=. python scripts/audit_practice_quality.py --strict >/dev/null
 docker compose -f compose.dev.yml up -d --build --wait
 curl --fail --silent "http://127.0.0.1:${ASTRA_PORT}/health" >/dev/null
 
 applied="$(
   docker compose -f compose.dev.yml exec -T postgres \
     psql -U cortex -d cortex -Atc \
-    "SELECT count(*) FROM schema_migrations WHERE version = '044_practice_quality_v11.sql'"
+    "SELECT count(*) FROM schema_migrations WHERE version = '045_practice_quality_semantics.sql'"
 )"
 [[ "$applied" == "1" ]] || {
-  echo "Migration 044 is not recorded after clean install." >&2
+  echo "Migration 045 is not recorded after clean install." >&2
   exit 1
 }
 

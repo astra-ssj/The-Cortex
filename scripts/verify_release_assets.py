@@ -41,8 +41,8 @@ manifest = [
     for line in (ROOT / "migrations/manifest.txt").read_text(encoding="utf-8").splitlines()
     if line.strip() and not line.lstrip().startswith("#")
 ]
-if not manifest or manifest[-1] != "migrations/044_practice_quality_v11.sql":
-    fail("migration manifest must end at migration 044")
+if not manifest or manifest[-1] != "migrations/045_practice_quality_semantics.sql":
+    fail("migration manifest must end at migration 045")
 for relative in manifest:
     if not (ROOT / relative).is_file():
         fail(f"manifest entry is missing: {relative}")
@@ -87,4 +87,4 @@ for required in (
     if required not in release_text:
         fail(f"required Astra CE release name is absent: {required}")
 
-print(f"Astra GRC CE release assets verified at version {version} through migration 044.")
+print(f"Astra GRC CE release assets verified at version {version} through migration 045.")
