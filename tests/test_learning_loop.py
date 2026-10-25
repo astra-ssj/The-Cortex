@@ -95,6 +95,40 @@ async def test_cross_tenant_session_returns_403(client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_same_tenant_learner_cannot_read_or_mutate_peer_session(
+    client: TestClient,
+) -> None:
+    """Organisation membership is not ownership of another learner's record."""
+    if not await database_ready():
+        pytest.skip("database not reachable")
+
+    org_id = f"org-peer-isolation-{uuid.uuid4().hex[:8]}"
+    await _ensure_org(org_id, "Peer Isolation Org")
+    alice = _headers(org_id, sub=f"alice-{uuid.uuid4()}", email="alice@example.com")
+    bob = _headers(org_id, sub=f"bob-{uuid.uuid4()}", email="bob@example.com")
+
+    created = client.post(
+        "/api/v1/learning/sessions",
+        headers=alice,
+        json={"org_id": org_id, "scenario": "cloud_access_onboarding"},
+    )
+    assert created.status_code == 200, created.text
+    session_id = created.json()["id"]
+
+    assert client.get(
+        f"/api/v1/learning/sessions/{session_id}", headers=bob
+    ).status_code == 403
+    assert client.get(
+        f"/api/v1/learning/sessions/{session_id}/debrief", headers=bob
+    ).status_code == 403
+    assert client.post(
+        f"/api/v1/learning/sessions/{session_id}/decide",
+        headers=bob,
+        json={"choice": "approve_all"},
+    ).status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_decide_approve_all_sets_over_provisioned_and_audits(
     client: TestClient,
 ) -> None:
@@ -126,6 +160,7 @@ async def test_decide_approve_all_sets_over_provisioned_and_audits(
     assert decisions and decisions[-1]["choice"] == "approve_all"
 
     async with async_session_factory() as session:
+        await set_tenant_context(session, org_id)
         rows = (
             await session.execute(
                 text(
@@ -688,13 +723,10 @@ async def test_non_cx1001_scenarios_score_every_dimension(
 
 
 @pytest.mark.asyncio
-async def test_expert_wrong_decision_enqueues_review_queue_item(
+async def test_expert_wrong_decision_stays_in_astra_learning_record(
     client: TestClient,
 ) -> None:
-    """
-    Foundation misses stay off the queue. An expert miss with sub-0.75 confidence
-    is a signal about the person, so it must appear as a learn-* review item.
-    """
+    """Expert misses remain learner evidence and never enter a Cortex review queue."""
     if not await database_ready():
         pytest.skip("database not reachable")
 
@@ -718,13 +750,7 @@ async def test_expert_wrong_decision_enqueues_review_queue_item(
         json={"choice": "pay_ransom_first"},
     )
     assert decided.status_code == 200, decided.text
+    assert decided.json()["state"]["decisions"][-1]["choice"] == "pay_ransom_first"
 
     queue = client.get("/api/v1/assessments/review-queue", headers=headers)
-    if queue.status_code == 503:
-        pytest.skip("human_review schema not applied")
-    assert queue.status_code == 200, queue.text
-    items = queue.json()["items"]
-    learn_items = [item for item in items if str(item.get("id", "")).startswith("learn-")]
-    assert learn_items, "expert miss must enqueue a learning review item"
-    assert any(session_id[:8] in str(item.get("id", "")) for item in learn_items)
-    assert all(float(item.get("confidence", 1)) < 0.75 for item in learn_items)
+    assert queue.status_code == 404

@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "fixture_version": "2026.10.1",
+  "scenarios": {
+    "cloud_access_onboarding": {
+      "speaker": "DevOps Lead",
+      "stance": "delivery-focused",
+      "message": "Friday's cutover is at risk. I need a decision on production, staging, and shared CI access, with any restrictions stated clearly.",
+      "demands": ["Confirm the minimum access that can be granted", "State who approves any exception"]
+    },
+    "supplier_incident_response": {
+      "speaker": "Supplier Account Manager",
+      "stance": "cooperative but guarded",
+      "message": "We have contained the HR platform incident and are validating affected records. I need an agreed notification and evidence-preservation path.",
+      "demands": ["Confirm the notification owner", "Agree the evidence handoff"]
+    },
+    "change_management_failure": {
+      "speaker": "Engineering Lead",
+      "stance": "defensive",
+      "message": "I bypassed CAB because the vulnerability was critical, but the emergency patch caused the outage. I need a decision on containment and retrospective review.",
+      "demands": ["Set the immediate recovery priority", "Define the emergency-change review"]
+    },
+    "asset_classification_breach": {
+      "speaker": "Junior Security Analyst",
+      "stance": "anxious",
+      "message": "I found sensitive data on an unclassified shared drive three days before the audit. I have preserved what I found and need direction.",
+      "demands": ["Choose the containment action", "Assign classification ownership"]
+    },
+    "ransomware_group_response": {
+      "speaker": "Group SOC Lead",
+      "stance": "calm and urgent",
+      "message": "Ransomware is confirmed at the largest subsidiary. Segmentation is holding, and I need executive decisions on containment, notification, and ransom policy.",
+      "demands": ["Authorize the containment boundary", "Confirm notification authority"]
+    },
+    "evidence_freshness_audit": {
+      "speaker": "Audit Manager",
+      "stance": "cautious",
+      "message": "The evidence pack contains stale and undated records. We need to classify each artefact honestly and preserve the review trail.",
+      "demands": ["Choose an evidence-handling decision", "Record the freshness rationale"]
+    },
+    "incident_severity_triage": {
+      "speaker": "Incident Commander",
+      "stance": "urgent and evidence-led",
+      "message": "Customer authentication is failing across two regions. I need a provisional severity based on business impact, with the incident clock and assumptions recorded now.",
+      "demands": ["Classify severity from current impact", "Name the next reassessment trigger"]
+    },
+    "nonconformity_corrective_action": {
+      "speaker": "Process Owner",
+      "stance": "accountable but closure-focused",
+      "message": "The six leaver accounts are disabled, but I understand that correction alone may not prevent recurrence. I need a bounded root-cause and effectiveness plan.",
+      "demands": ["Separate correction from corrective action", "Define the closure evidence"]
+    },
+    "risk_acceptance_memo": {
+      "speaker": "Business Risk Owner",
+      "stance": "commercially pragmatic",
+      "message": "The legacy payment service cannot support administrator MFA before replacement. I need a supportable acceptance recommendation with authority, conditions, and an expiry.",
+      "demands": ["State the residual-risk basis", "Identify the authorized approver"]
+    },
+    "soa_exclusion_review": {
+      "speaker": "ISMS Manager",
+      "stance": "skeptical and methodical",
+      "message": "Several Statement of Applicability exclusions rely on labels and outsourcing claims rather than verified activities. I need each conclusion tested against evidence.",
+      "demands": ["Test the exclusion against organizational facts", "Record the governance decision path"]
+    },
+    "audit_sampling_evidence_sufficiency": {
+      "speaker": "Lead Auditor",
+      "stance": "independent and probing",
+      "message": "The owner supplied ten successful records without reconciling the population. I need a reproducible sample and a defensible sufficiency conclusion.",
+      "demands": ["Define the complete population", "Explain how exceptions affect testing"]
+    },
+    "supplier_due_diligence": {
+      "speaker": "Procurement Director",
+      "stance": "deadline-focused but cooperative",
+      "message": "The payroll supplier is commercially ready, but its assurance scope does not yet match our data flow and subcontractor exposure. I need clear approval conditions.",
+      "demands": ["State the evidence still required", "Set contract and monitoring conditions"]
+    },
+    "access_review_exception_handling": {
+      "speaker": "Application Owner",
+      "stance": "concerned and action-oriented",
+      "message": "A departed contractor's account is disabled, but its privileged API token remains valid. I need immediate containment and an accountable exception owner.",
+      "demands": ["Choose the immediate token action", "Define sufficient closure evidence"]
+    },
+    "dora_ict_incident_classification_reporting": {
+      "speaker": "Regulatory Incident Lead",
+      "stance": "precise and time-conscious",
+      "message": "The outage spans three Member States and a critical outsourced service, while some loss figures remain unknown. I need a documented classification and staged reporting decision.",
+      "demands": ["Apply the available materiality criteria", "Protect the reporting timeline"]
+    },
+    "ai_control_applicability_escalation": {
+      "speaker": "AI Product Owner",
+      "stance": "launch-focused but transparent",
+      "message": "The assistant ranks employee misconduct cases even though investigators make the final decision. I need an applicability decision that reflects actual influence and our incomplete evidence.",
+      "demands": ["Classify the AI use from its real function", "Escalate any consequential low-confidence decision"]
+    }
+  }
+}

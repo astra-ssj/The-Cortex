@@ -1,110 +1,19 @@
-import { useMemo, useState, useEffect } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { DemoToggle } from "./DemoToggle";
-import { RunAssessmentModal } from "./RunAssessmentModal";
-import { useOrgContext } from "../hooks/useOrgContext";
-import { useRole } from "../hooks/useRole";
-import { useFramework, useFrameworks } from "../hooks/useFrameworks";
-import { useCompliancePosture } from "../store/complianceStore";
-import { useAssessmentStream } from "../store/assessmentStream";
-import { Button } from "./ui/Button";
-import { LlmProviderBadge } from "./LlmProviderBadge";
-
-function LiveClock() {
-  const [time, setTime] = useState(new Date());
-  useEffect(() => {
-    const t = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <span className="cortex-text-mono" style={{ color: "var(--text-quiet)", fontSize: "13px" }}>
-      {time.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-    </span>
-  );
-}
+import { useLocation } from "react-router-dom";
 
 const ROUTE_TITLES: Record<string, string> = {
-  "/dashboard": "Compliance Overview",
-  "/group": "Group View",
-  "/frameworks": "Frameworks",
-  "/findings": "Findings",
-  "/remediation": "Remediation",
-  "/evidence": "Evidence Vault",
-  "/review-queue": "Review Queue",
-  "/audit-simulator": "Audit Simulator",
-  "/learning": "Learning Loop",
-  "/intelligence": "Intelligence",
-  "/intelligence/simulator": "Intelligence",
-  "/roadmap": "Roadmap",
+  "/practices": "Practices",
+  "/learning": "Learning",
+  "/progress": "Progress",
+  "/team": "Team",
   "/settings": "Settings",
-  "/help": "Help & Documentation",
+  "/help": "Help",
 };
-
-function formatAssessed(iso: string | undefined): string {
-  if (!iso?.trim()) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export function TopBar() {
   const { pathname } = useLocation();
-  const params = useParams();
-  const navigate = useNavigate();
-  const { orgId, demoMode } = useOrgContext();
-  const { can } = useRole();
-  const { data: posture } = useCompliancePosture(orgId);
-  const { data: frameworks } = useFrameworks();
-  const { isStreaming, startStream } = useAssessmentStream();
-  const canRunAssessment = can("canRunAssessment");
-  const [runModalOpen, setRunModalOpen] = useState(false);
-
-  const frameworkId =
-    pathname.startsWith("/frameworks/") && pathname !== "/frameworks"
-      ? (params.id ?? null)
-      : null;
-  const { data: framework } = useFramework(frameworkId);
-
-  const title = useMemo(() => {
-    if (frameworkId) {
-      return framework?.name ?? "Framework";
-    }
-    return ROUTE_TITLES[pathname] ?? "Astra GRC";
-  }, [frameworkId, framework?.name, pathname]);
-
-  const subtitle = useMemo(() => {
-    const orgName = posture?.organisationName?.trim() || "Organisation";
-    const nFw = posture?.frameworks?.length ?? "—";
-    const last = formatAssessed(posture?.lastAssessed ?? posture?.updatedAt);
-    const demo = demoMode ? " · Demo data view" : "";
-    return `${orgName} · ${nFw} frameworks · Last assessed ${last}${demo}`;
-  }, [demoMode, posture?.frameworks?.length, posture?.lastAssessed, posture?.organisationName, posture?.updatedAt]);
-
-  const modalFrameworks =
-    frameworks?.map((f) => ({ id: f.id, name: f.name })) ?? null;
+  const title = ROUTE_TITLES[pathname] ?? "Astra";
 
   return (
-    <>
-      <RunAssessmentModal
-        open={runModalOpen}
-        onClose={() => {
-          setRunModalOpen(false);
-        }}
-        frameworks={modalFrameworks}
-        disabled={isStreaming || !canRunAssessment}
-        onConfirm={(ids) => {
-          startStream(orgId, ids);
-          // The assessment stream renders on Frameworks. /dashboard is now the
-          // training-derived posture and would show none of this run's output.
-          navigate("/frameworks");
-        }}
-      />
     <header
       style={{
         display: "flex",
@@ -118,7 +27,7 @@ export function TopBar() {
       aria-label="Page header"
     >
       <div style={{ minWidth: 0, flex: "1 1 240px" }}>
-        <h1
+        <p
           style={{
             margin: 0,
             fontSize: 20,
@@ -128,7 +37,7 @@ export function TopBar() {
           }}
         >
           {title}
-        </h1>
+        </p>
         <p
           className="cortex-text-caption"
           style={{
@@ -137,46 +46,9 @@ export function TopBar() {
             maxWidth: 720,
           }}
         >
-          {subtitle}
+          Build and demonstrate GRC decision-making competency.
         </p>
       </div>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          flexShrink: 0,
-          flexWrap: "wrap",
-        }}
-      >
-        {can("canToggleDemo") ? <DemoToggle /> : null}
-        <LlmProviderBadge />
-        <LiveClock />
-        <Button
-          type="button"
-          variant="ghost"
-          size="md"
-          onClick={() => window.dispatchEvent(new Event("cortex:open-command-palette"))}
-          title="Open command palette (Cmd/Ctrl + K)"
-          aria-label="Open global search"
-        >
-          ⌕ Search
-        </Button>
-        <Button
-          type="button"
-          variant="primary"
-          size="md"
-          disabled={isStreaming || !canRunAssessment}
-          title={!canRunAssessment ? "Admin or Analyst required" : undefined}
-          onClick={() => {
-            setRunModalOpen(true);
-          }}
-        >
-          {isStreaming ? "Streaming…" : "Run Assessment"}
-        </Button>
-      </div>
     </header>
-    </>
   );
 }

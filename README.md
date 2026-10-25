@@ -30,45 +30,53 @@ ISO 27001 track:
 | CX-1004 | Asset classification breach | Practitioner |
 | CX-1005 | Ransomware group response | Expert |
 
-## Quickstart
+## Quickstart — signed release
+
+Download `astra-grc-ce-release-files.tar.gz`, `SHA256SUMS`, and
+`SHA256SUMS.sigstore.json` from the desired GitHub Release. Verify the keyless
+signature and checksums before installation:
+
+```bash
+cosign verify-blob \
+  --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity-regexp 'https://github.com/astra-ssj/The-Cortex/.github/workflows/release.yml@refs/tags/.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  SHA256SUMS
+grep 'astra-grc-ce-release-files.tar.gz' SHA256SUMS | sha256sum --check
+tar -xzf astra-grc-ce-release-files.tar.gz
+./scripts/install.sh
+```
+
+Open http://127.0.0.1:8080. The installer generates local secrets, applies the
+checksum-verified migration manifest through migration 043, and waits for all
+services to become healthy. Offline stub providers are the default; no model
+key or telemetry service is required. See [installation](docs/INSTALL.md) and
+[offline operation](docs/OFFLINE.md).
+
+## Source development
+
+The root `docker-compose.yml` is a safe development shim that includes
+`compose.dev.yml`. Therefore plain `docker compose up` always starts the Astra
+GRC CE development topology (`postgres`, one-shot `migrate`, `api`, and
+`frontend`) and never the inherited platform topology.
 
 ```bash
 git clone https://github.com/astra-ssj/The-Cortex
 cd The-Cortex
-
-docker compose up -d postgres
-bash scripts/apply_cortex_schema.sh
-
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e "."
-
-export PYTHONPATH=.
-export DATABASE_URL="postgresql+asyncpg://cortex_app:cortex_ci_test@127.0.0.1:5432/cortex"
-export JWT_SECRET="dev-secret-key-minimum-32-characters-long-xx"
-export CORTEX_LEGACY_DEMO_PASSWORD="admin"
-
-# Learning-loop agent (see Model providers)
-export MODEL_PROVIDER=anthropic          # requires ANTHROPIC_API_KEY
-# export MODEL_PROVIDER=ollama           # requires `ollama serve`; AGENT_MODEL default gemma4:12b
-# unset MODEL_PROVIDER                  # current main: Anthropic if ANTHROPIC_API_KEY is set, else stub
-
-uvicorn api.main:app --port 8000
+cp .env.example .env
+# Replace every CHANGE_ME value in .env.
+docker compose up -d --build --wait
 ```
 
-In another terminal:
+`docker compose -f compose.dev.yml up -d --build --wait` is the explicit
+equivalent. These source-development commands build local images. Downloaded,
+signed releases instead use `scripts/install.sh`, which selects
+`release/compose.yml` and pinned `astra-grc-ce-*` images; do not use plain
+`docker compose up` as a release installation command.
 
-```bash
-cd frontend && npm ci && npm run dev
-```
-
-Open http://localhost:3000. Seeded login: `admin@astralabs.com` / `admin` (username `admin` is the same account).
-
-> **Without a model provider configured, agent responses are served by a stub.**
-> The product will run, but every stakeholder persona will be the same default role regardless of scenario. Check the startup log for the resolved provider.
-
-`MODEL_PROVIDER=ollama` and the authenticated `GET /api/v1/system/agent-status` route ship on `feat/ollama-provider`. Until that branch is on `main`, unset `MODEL_PROVIDER` follows `ANTHROPIC_API_KEY` → Claude, otherwise stub.
-
-Postgres credentials differ by environment — see [AGENTS.md](AGENTS.md) (Cursor Cloud) and [docs/CORTEX_SETUP.md](docs/CORTEX_SETUP.md) (local Docker vs CI). Do not copy Cloud VM passwords into Docker Compose.
+Open http://localhost:8080. For native backend/frontend development and
+environment-specific database credentials, see [AGENTS.md](AGENTS.md) and
+[docs/CORTEX_SETUP.md](docs/CORTEX_SETUP.md).
 
 ## Release tags
 

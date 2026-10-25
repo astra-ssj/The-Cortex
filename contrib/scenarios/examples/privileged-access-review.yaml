@@ -1,0 +1,60 @@
+schema_version: 1
+id: privileged-access-review
+title: Emergency privileged access review
+summary: A release manager pressures the learner to grant standing production access during an incident.
+track: access-governance
+difficulty: foundation
+frameworks:
+  - iso27001-2022
+practice_area: Identity and access management
+estimated_minutes: 12
+learning_objectives:
+  - Distinguish time-bound emergency access from standing privilege.
+  - Request evidence that supports an auditable access decision.
+provenance:
+  authors:
+    - Astra CE maintainers
+  license: Apache-2.0
+  source_url: https://github.com/AstraLabs-AI/The-Cortex
+  source_version: community-example-v1
+stages:
+  - id: access_request
+    sequence: 1
+    agent_message: Production is degraded. Give my whole team permanent admin access so we can move quickly.
+    demands:
+      - Approve access immediately.
+      - Avoid an expiry because the incident may recur.
+    choices:
+      - id: grant_standing_admin
+        label: Grant permanent administrator access to the team
+        consequence: Excess privilege persists after the incident and has no automatic review point.
+        is_correct: false
+        framework_rationale: Least privilege requires access to be limited to the task, people, and duration justified.
+        next_stage: complete
+        risk_outcome: over_provisioned
+        dimension_weights:
+          judgment: -2
+          control_mapping: -2
+          escalation: -1
+        control_refs:
+          - ISO 27001:2022 A.5.18
+      - id: issue_time_bound_access
+        label: Issue approved, time-bound access with logging
+        consequence: Responders can restore service while privilege expires and activity remains reviewable.
+        is_correct: true
+        framework_rationale: Time-bound authorization, activity logging, and post-incident review preserve least privilege.
+        next_stage: complete
+        risk_outcome: controlled
+        dimension_weights:
+          judgment: 2
+          control_mapping: 2
+          evidence: 2
+          escalation: 1
+        control_refs:
+          - ISO 27001:2022 A.5.18
+          - ISO 27001:2022 A.8.15
+  - id: complete
+    sequence: 2
+    agent_message: The access decision is recorded for post-incident review.
+    demands: []
+    choices: []

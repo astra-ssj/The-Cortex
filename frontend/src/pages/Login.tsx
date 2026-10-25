@@ -53,8 +53,7 @@ export default function Login({ onSuccess }: LoginProps) {
       const form = new URLSearchParams();
       form.append("username", email);
       form.append("password", password);
-      const base = import.meta.env.DEV ? "" : "http://localhost:8000";
-      const res = await fetch(`${base}/api/v1/auth/token`, {
+      const res = await fetch("/api/v1/auth/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: form.toString(),
@@ -131,7 +130,7 @@ export default function Login({ onSuccess }: LoginProps) {
   };
 
   return (
-    <div
+    <main
       style={{
         minHeight: "100vh",
         background: "var(--bg)",
@@ -142,6 +141,7 @@ export default function Login({ onSuccess }: LoginProps) {
       }}
     >
       <div
+        className="cortex-auth-card"
         style={{
           width: "100%",
           maxWidth: 420,
@@ -163,6 +163,7 @@ export default function Login({ onSuccess }: LoginProps) {
         >
           <LogoIcon size={64} glow={true} />
           <LogoWordmark fontSize={28} />
+          <h1 style={{ margin: 0, fontSize: 20 }}>Sign in to Astra GRC</h1>
           <span
             style={{
               fontFamily: "var(--font-mono)",
@@ -189,6 +190,7 @@ export default function Login({ onSuccess }: LoginProps) {
         <form onSubmit={handleSubmit} noValidate>
         {error && (
           <div
+            id="login-error"
             role="alert"
             aria-live="polite"
             style={{
@@ -211,7 +213,7 @@ export default function Login({ onSuccess }: LoginProps) {
           </label>
           <input
             id="email"
-            type="text"
+            type="email"
             inputMode="email"
             autoCapitalize="none"
             autoCorrect="off"
@@ -221,6 +223,8 @@ export default function Login({ onSuccess }: LoginProps) {
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="username"
             style={inputStyle}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "login-error" : undefined}
           />
         </div>
 
@@ -236,6 +240,8 @@ export default function Login({ onSuccess }: LoginProps) {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               style={{ ...inputStyle, paddingRight: 40 }}
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "login-error" : undefined}
             />
             <button
               type="button"
@@ -277,6 +283,9 @@ export default function Login({ onSuccess }: LoginProps) {
         >
           {loading ? "Signing in..." : "Sign In"}
         </button>
+        <span role="status" aria-live="polite" className="sr-only">
+          {loading ? "Signing in" : ""}
+        </span>
         </form>
 
         <div style={{ marginTop: 18, marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
@@ -323,7 +332,7 @@ export default function Login({ onSuccess }: LoginProps) {
           API.
         </p>
       </div>
-    </div>
+    </main>
   );
 }
 

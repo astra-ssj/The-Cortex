@@ -1,0 +1,85 @@
+name: astra-grc-ce
+
+x-api-environment: &api-environment
+  DATABASE_URL: postgresql+asyncpg://cortex_app:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cortex}
+  CORTEX_ENVIRONMENT: production
+  JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+  CORTEX_LEGACY_DEMO_PASSWORD: ""
+  COMPLIANCE_ENGINE_STUB_PASSWORD: ${COMPLIANCE_ENGINE_STUB_PASSWORD:?set COMPLIANCE_ENGINE_STUB_PASSWORD}
+  COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN: ${COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN:?set COMPLIANCE_ENGINE_STUB_ACCESS_TOKEN}
+  MODEL_PROVIDER: ${MODEL_PROVIDER:-stub}
+  CORTEX_LLM_PROVIDERS: ${CORTEX_LLM_PROVIDERS:-stub}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cortex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-cortex}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortex} -d ${POSTGRES_DB:-cortex}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  migrate:
+    image: ${ASTRA_API_IMAGE:-ghcr.io/astra-ssj/astra-grc-ce-api:v1.0.0}
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: ${POSTGRES_USER:-cortex}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-cortex}
+    command: ["bash", "scripts/apply_cortex_schema.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+
+  api:
+    image: ${ASTRA_API_IMAGE:-ghcr.io/astra-ssj/astra-grc-ce-api:v1.0.0}
+    environment: *api-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8000/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  frontend:
+    image: ${ASTRA_FRONTEND_IMAGE:-ghcr.io/astra-ssj/astra-grc-ce-frontend:v1.0.0}
+    ports:
+      - "127.0.0.1:${ASTRA_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: ${ASTRA_DATA_VOLUME:-astra_grc_ce_postgres_data}

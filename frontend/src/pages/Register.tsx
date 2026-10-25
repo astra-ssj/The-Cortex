@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import type { CSSProperties } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { LogoIcon, LogoWordmark } from "../components/Logo";
@@ -93,18 +93,22 @@ export default function Register() {
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     const nextErrors = validateForm(form);
     setErrors(nextErrors);
     setBannerError("");
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) {
+      const first = Object.keys(nextErrors)[0];
+      document.getElementById(`register-${first}`)?.focus();
+      return;
+    }
 
     setLoading(true);
     try {
-      const base = import.meta.env.DEV ? "" : "http://localhost:8000";
       const joining = Boolean(form.invite_token.trim());
       const response = await fetch(
-        joining ? `${base}/api/v1/auth/accept-invite` : `${base}/api/v1/auth/register`,
+        joining ? "/api/v1/auth/accept-invite" : "/api/v1/auth/register",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -164,7 +168,7 @@ export default function Register() {
       setStoredOrgId(data.org_id);
       localStorage.setItem("cortex_jurisdiction", form.jurisdiction);
       localStorage.setItem("cortex_demo_mode", "false");
-      navigate("/audit-simulator", { replace: true });
+      navigate("/onboarding", { replace: true });
     } catch (error) {
       setBannerError(error instanceof Error ? error.message : "Registration failed.");
     } finally {
@@ -173,7 +177,7 @@ export default function Register() {
   };
 
   return (
-    <div
+    <main
       style={{
         minHeight: "100vh",
         background: "var(--bg)",
@@ -185,6 +189,7 @@ export default function Register() {
       }}
     >
       <div
+        className="cortex-auth-card"
         style={{
           width: "100%",
           maxWidth: 480,
@@ -198,6 +203,7 @@ export default function Register() {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 20 }}>
           <LogoIcon size={48} glow />
           <LogoWordmark fontSize={24} />
+          <h1 style={{ margin: 0, fontSize: 20 }}>Create your Astra GRC account</h1>
           <span
             style={{
               fontFamily: "var(--font-mono)",
@@ -222,6 +228,7 @@ export default function Register() {
 
         {bannerError && (
           <div
+            role="alert"
             style={{
               background: "var(--red-soft)",
               border: "1px solid color-mix(in srgb, var(--red) 40%, transparent)",
@@ -236,28 +243,35 @@ export default function Register() {
           </div>
         )}
 
-        <Field label="Invite token (optional)" error={errors.invite_token}>
+        <form onSubmit={handleSubmit} noValidate>
+        <Field id="register-invite_token" label="Invite token (optional)" error={errors.invite_token}>
           <input
+            id="register-invite_token"
             value={form.invite_token}
             onChange={(e) => setField("invite_token", e.target.value)}
             placeholder="Paste a token from your admin to join their org"
             style={inputStyle}
+            aria-invalid={Boolean(errors.invite_token)}
+            aria-describedby={errors.invite_token ? "register-invite_token-error" : undefined}
           />
         </Field>
 
         {!form.invite_token.trim() ? (
           <>
-            <Field label="Company Name" error={errors.company_name}>
+            <Field id="register-company_name" label="Company Name" error={errors.company_name}>
               <input
+                id="register-company_name"
                 value={form.company_name}
                 onChange={(e) => setField("company_name", e.target.value)}
                 placeholder="AstraLabs GmbH"
                 style={inputStyle}
+                aria-invalid={Boolean(errors.company_name)}
+                aria-describedby={errors.company_name ? "register-company_name-error" : undefined}
               />
             </Field>
 
-            <Field label="Jurisdiction" error={errors.jurisdiction}>
-              <select value={form.jurisdiction} onChange={(e) => setField("jurisdiction", e.target.value)} style={inputStyle}>
+            <Field id="register-jurisdiction" label="Jurisdiction" error={errors.jurisdiction}>
+              <select id="register-jurisdiction" value={form.jurisdiction} onChange={(e) => setField("jurisdiction", e.target.value)} style={inputStyle}>
                 {JURIS_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -266,8 +280,8 @@ export default function Register() {
               </select>
             </Field>
 
-            <Field label="Industry" error={errors.industry}>
-              <select value={form.industry} onChange={(e) => setField("industry", e.target.value)} style={inputStyle}>
+            <Field id="register-industry" label="Industry" error={errors.industry}>
+              <select id="register-industry" value={form.industry} onChange={(e) => setField("industry", e.target.value)} style={inputStyle}>
                 {INDUSTRY_OPTIONS.map((value) => (
                   <option key={value} value={value}>
                     {value}
@@ -278,46 +292,61 @@ export default function Register() {
           </>
         ) : null}
 
-        <Field label="Full Name" error={errors.full_name}>
+        <Field id="register-full_name" label="Full Name" error={errors.full_name}>
           <input
+            id="register-full_name"
             value={form.full_name}
             onChange={(e) => setField("full_name", e.target.value)}
             placeholder="Jane Smith"
             style={inputStyle}
+            aria-invalid={Boolean(errors.full_name)}
+            aria-describedby={errors.full_name ? "register-full_name-error" : undefined}
           />
         </Field>
 
-        <Field label="Work Email" error={errors.email}>
+        <Field id="register-email" label="Work Email" error={errors.email}>
           <input
+            id="register-email"
             type="email"
             value={form.email}
             onChange={(e) => setField("email", e.target.value)}
             placeholder="ciso@company.com"
             style={inputStyle}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "register-email-error" : undefined}
+            autoComplete="email"
           />
         </Field>
 
-        <Field label="Password" error={errors.password}>
+        <Field id="register-password" label="Password" error={errors.password}>
           <input
+            id="register-password"
             type="password"
             value={form.password}
             onChange={(e) => setField("password", e.target.value)}
             placeholder="Min. 8 characters"
             style={inputStyle}
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? "register-password-error" : undefined}
+            autoComplete="new-password"
           />
         </Field>
 
-        <Field label="Confirm Password" error={errors.confirmPassword}>
+        <Field id="register-confirmPassword" label="Confirm Password" error={errors.confirmPassword}>
           <input
+            id="register-confirmPassword"
             type="password"
             value={form.confirmPassword}
             onChange={(e) => setField("confirmPassword", e.target.value)}
             placeholder="Repeat password"
             style={inputStyle}
+            aria-invalid={Boolean(errors.confirmPassword)}
+            aria-describedby={errors.confirmPassword ? "register-confirmPassword-error" : undefined}
+            autoComplete="new-password"
           />
         </Field>
 
-        <button type="button" onClick={handleSubmit} disabled={loading} style={submitStyle(loading)}>
+        <button type="submit" disabled={loading} style={submitStyle(loading)} aria-busy={loading}>
           {loading
             ? form.invite_token.trim()
               ? "Joining organisation..."
@@ -326,33 +355,39 @@ export default function Register() {
               ? "Join organisation →"
               : "Create Account →"}
         </button>
+        <span role="status" aria-live="polite" className="sr-only">
+          {loading ? "Registration in progress" : ""}
+        </span>
+        </form>
 
         <p style={{ marginTop: 16, textAlign: "center", color: "var(--text-secondary)", fontSize: 13 }}>
           Already have an account?{" "}
-          <Link to="/login" style={{ color: "var(--cyan)", textDecoration: "none" }}>
+          <Link to="/login" style={{ color: "var(--cyan)", textDecoration: "underline" }}>
             Sign in →
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 }
 
 function Field({
+  id,
   label,
   error,
   children,
 }: {
+  id: string;
   label: string;
   error?: string;
   children: ReactNode;
 }) {
   return (
     <div style={{ marginBottom: 12 }}>
-      <label style={labelStyle}>{label}</label>
+      <label htmlFor={id} style={labelStyle}>{label}</label>
       {children}
       {error ? (
-        <div style={{ color: "var(--red)", fontSize: 11, marginTop: 4 }}>{error}</div>
+        <div id={`${id}-error`} role="alert" style={{ color: "var(--red)", fontSize: 11, marginTop: 4 }}>{error}</div>
       ) : null}
     </div>
   );

@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (vMAJOR.MINOR.PATCH)"
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE: ghcr.io/${{ github.repository_owner }}/astra-grc-ce-api
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/astra-grc-ce-frontend
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            version="$INPUT_VERSION"
+          else
+            version="$GITHUB_REF_NAME"
+          fi
+          [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+          echo "semver=${version#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify release assets
+        run: ./scripts/verify-release.sh
+
+      - name: Build and push API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.API_IMAGE }}:${{ steps.version.outputs.value }}
+          build-args: |
+            ASTRA_VERSION=${{ steps.version.outputs.semver }}
+            VCS_REF=${{ github.sha }}
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.FRONTEND_IMAGE }}:${{ steps.version.outputs.value }}
+          build-args: |
+            ASTRA_VERSION=${{ steps.version.outputs.semver }}
+            VCS_REF=${{ github.sha }}
+
+      - uses: sigstore/cosign-installer@v3
+      - name: Keyless-sign image indexes
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          cosign sign --yes "$API_IMAGE:$VERSION"
+          cosign sign --yes "$FRONTEND_IMAGE:$VERSION"
+
+      - name: Generate API SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.API_IMAGE }}:${{ steps.version.outputs.value }}
+          format: spdx-json
+          output-file: astra-grc-ce-api.spdx.json
+
+      - name: Generate frontend SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.FRONTEND_IMAGE }}:${{ steps.version.outputs.value }}
+          format: spdx-json
+          output-file: astra-grc-ce-frontend.spdx.json
+
+      - name: Build downloadable bundle
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: ./scripts/build-release.sh "$VERSION"
+
+      - name: Checksum and sign release artifacts
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          cp ./*.spdx.json "release/dist/$VERSION/"
+          cd "release/dist/$VERSION"
+          sha256sum ./*.tar.gz ./*.spdx.json > SHA256SUMS
+          cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/dist/${{ steps.version.outputs.value }}/*

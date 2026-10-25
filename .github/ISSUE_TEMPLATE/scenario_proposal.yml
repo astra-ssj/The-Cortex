@@ -1,0 +1,60 @@
+name: Community scenario proposal
+description: Propose a framework-grounded training scenario
+title: "[Scenario]: "
+labels:
+  - scenario
+  - community
+body:
+  - type: input
+    id: title
+    attributes:
+      label: Working title
+    validations:
+      required: true
+  - type: textarea
+    id: decision
+    attributes:
+      label: Learner decision and stakeholder pressure
+      description: Describe the consequential judgment and the strongest credible pressure.
+    validations:
+      required: true
+  - type: input
+    id: frameworks
+    attributes:
+      label: Frameworks and controls
+      placeholder: ISO 27001:2022 A.5.18
+    validations:
+      required: true
+  - type: textarea
+    id: objectives
+    attributes:
+      label: Learning objectives
+      description: List observable competencies this scenario should exercise.
+    validations:
+      required: true
+  - type: dropdown
+    id: license
+    attributes:
+      label: Proposed content license
+      options:
+        - Apache-2.0
+        - CC-BY-4.0
+        - CC0-1.0
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Sources and provenance
+      description: Provide HTTPS links and versions. Do not paste copyrighted or confidential source material.
+  - type: checkboxes
+    id: attestations
+    attributes:
+      label: Contributor attestations
+      options:
+        - label: I have the right to submit this content under the selected license.
+          required: true
+        - label: The proposal contains no personal, customer, or confidential data.
+          required: true
+        - label: I have read docs/COMMUNITY_CONTRIBUTING.md.
+          required: true

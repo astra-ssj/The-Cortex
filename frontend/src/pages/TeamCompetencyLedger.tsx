@@ -47,12 +47,12 @@ export default function TeamCompetencyLedger() {
       </div>
 
       {query.isPending ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div role="status" aria-label="Loading team competency" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <Skeleton height="160px" />
           <Skeleton height="160px" />
         </div>
       ) : query.isError ? (
-        <div style={panel}>
+        <div role="alert" style={panel}>
           <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: 14 }}>
             Could not load the team ledger.
           </p>

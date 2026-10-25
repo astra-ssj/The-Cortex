@@ -27,6 +27,7 @@ export default function Settings() {
             variant={tab === t.id ? "primary" : "ghost"}
             size="sm"
             onClick={() => setTab(t.id)}
+            aria-pressed={tab === t.id}
           >
             {t.label}
           </Button>
@@ -80,6 +81,7 @@ function UsersTab() {
       setEmail("");
       setFullName("");
       void queryClient.invalidateQueries({ queryKey: ["org-users"] });
+      window.requestAnimationFrame(() => document.getElementById("invite-result")?.focus());
     },
     onError: (err: Error) => {
       setIssuedToken(null);
@@ -98,9 +100,9 @@ function UsersTab() {
       </div>
 
       {usersQuery.isPending ? (
-        <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>Loading members…</p>
+        <p role="status" aria-live="polite" style={{ color: "var(--text-secondary)", fontSize: 13 }}>Loading members…</p>
       ) : usersQuery.isError ? (
-        <p style={{ color: "var(--red)", fontSize: 13 }}>Could not load members.</p>
+        <p role="alert" style={{ color: "var(--red)", fontSize: 13 }}>Could not load members.</p>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
           {(usersQuery.data?.users ?? []).map((user) => (
@@ -144,26 +146,29 @@ function UsersTab() {
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 700 }}>Invite a learner</div>
+        <label htmlFor="invite-email">Invite email</label>
         <input
+          id="invite-email"
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="learner@company.com"
-          aria-label="Invite email"
           style={fieldStyle}
         />
+        <label htmlFor="invite-name">Full name (optional)</label>
         <input
+          id="invite-name"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           placeholder="Full name (optional)"
-          aria-label="Invite full name"
           style={fieldStyle}
         />
+        <label htmlFor="invite-role">Role</label>
         <select
+          id="invite-role"
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          aria-label="Invite role"
           style={fieldStyle}
         >
           <option value="ANALYST">Analyst</option>
@@ -172,9 +177,9 @@ function UsersTab() {
         <Button type="submit" disabled={invite.isPending || !email.trim()}>
           {invite.isPending ? "Issuing…" : "Issue invite"}
         </Button>
-        {error ? <p style={{ margin: 0, color: "var(--red)", fontSize: 12 }}>{error}</p> : null}
+        {error ? <p role="alert" style={{ margin: 0, color: "var(--red)", fontSize: 12 }}>{error}</p> : null}
         {issuedToken ? (
-          <div>
+          <div id="invite-result" role="status" aria-live="polite" tabIndex={-1}>
             <p style={{ margin: "0 0 6px", fontSize: 12, color: "var(--text-secondary)" }}>
               Share this token once. It will not be shown again.
             </p>

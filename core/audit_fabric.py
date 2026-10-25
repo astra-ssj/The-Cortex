@@ -118,24 +118,35 @@ class AuditFabric:
         self._tail_loaded: bool = False
         self._lock = asyncio.Lock()
 
-    async def load_tail(self) -> None:
-        """Load the latest hash from audit_log so restarts continue the chain."""
+    async def load_tail(self, org_id: str | None = None) -> None:
+        """Load one tenant's latest hash; fail-closed RLS forbids a global tail."""
         if not await database_ready():
             self._tail_hash = None
             self._tail_loaded = True
             logger.warning("audit_fabric_tail_skipped_db_unreachable")
             return
+        if not org_id:
+            self._tail_hash = None
+            self._tail_loaded = True
+            logger.info("audit_fabric_tail_deferred_until_tenant_bound")
+            return
         try:
             async with engine.connect() as conn:
+                await conn.execute(
+                    text("SELECT set_config('app.current_org', :org_id, true)"),
+                    {"org_id": org_id},
+                )
                 row = (
                     await conn.execute(
                         text(
                             """
                             SELECT hash FROM audit_log
+                            WHERE org_id = :org_id
                             ORDER BY created_at DESC, id DESC
                             LIMIT 1
                             """
-                        )
+                        ),
+                        {"org_id": org_id},
                     )
                 ).first()
                 self._tail_hash = str(row[0]) if row and row[0] else None
@@ -190,6 +201,10 @@ class AuditFabric:
             if org_id is None:
                 result = await conn.execute(text("SELECT COUNT(*) FROM audit_log"))
             else:
+                await conn.execute(
+                    text("SELECT set_config('app.current_org', :org_id, true)"),
+                    {"org_id": org_id},
+                )
                 result = await conn.execute(
                     text("SELECT COUNT(*) FROM audit_log WHERE org_id = :org_id"),
                     {"org_id": org_id},
@@ -206,6 +221,10 @@ class AuditFabric:
                     text("SELECT created_at FROM audit_log ORDER BY created_at DESC, id DESC LIMIT 1")
                 )
             else:
+                await conn.execute(
+                    text("SELECT set_config('app.current_org', :org_id, true)"),
+                    {"org_id": org_id},
+                )
                 result = await conn.execute(
                     text(
                         "SELECT created_at FROM audit_log "
@@ -253,9 +272,15 @@ async def append_audit_log(
     resolved_type = resource_type if resource_type is not None else entity_type
     resolved_id = resource_id if resource_id is not None else entity_id
     payload_dict = payload or {}
-    resolved_org = org_id or payload_dict.get("org_id")
+    resolved_org = org_id or payload_dict.get("org_id") or payload_dict.get("organization_id")
     resolved_actor = actor or payload_dict.get("actor") or "system"
     payload_json = canonical_payload_json(payload_dict)
+    if not resolved_org:
+        raise ValueError("Audit events require an organisation id")
+    await session.execute(
+        text("SELECT set_config('app.current_org', :org_id, true)"),
+        {"org_id": str(resolved_org)},
+    )
 
     # Serialise chain extension for this transaction (SELECT FOR UPDATE needs UPDATE priv).
     await session.execute(
@@ -314,11 +339,18 @@ async def _persist_audit_entry_standalone(entry: dict[str, Any]) -> None:
         async with engine.begin() as conn:
             # engine.begin() yields AsyncConnection; wrap via raw SQL only.
             session_proxy = conn
+            org_id = str(entry.get("org_id") or "").strip()
+            if not org_id:
+                raise ValueError("Standalone audit events require an organisation id")
+            await session_proxy.execute(
+                text("SELECT set_config('app.current_org', :org_id, true)"),
+                {"org_id": org_id},
+            )
             await session_proxy.execute(
                 text("SELECT pg_advisory_xact_lock(:k)"),
                 {"k": _AUDIT_CHAIN_LOCK_KEY},
             )
-            prev_hash = await _org_tail_hash(session_proxy, entry.get("org_id"))
+            prev_hash = await _org_tail_hash(session_proxy, org_id)
             payload_json = canonical_payload_json(entry.get("payload"))
             action = str(entry.get("action") or "")
             resource_type = entry.get("resource_type")
@@ -344,7 +376,7 @@ async def _persist_audit_entry_standalone(entry: dict[str, Any]) -> None:
                     """
                 ),
                 {
-                    "org_id": entry.get("org_id"),
+                    "org_id": org_id,
                     "actor": entry.get("actor") or "system",
                     "action": action,
                     "resource_type": resource_type,

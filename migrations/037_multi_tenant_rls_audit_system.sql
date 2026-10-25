@@ -71,15 +71,15 @@ BEGIN
     END IF;
 END $$;
 
--- Table permissions: cortex_app can INSERT, SELECT, UPDATE, DELETE on tail, and INSERT, SELECT on audit_log
-GRANT INSERT, SELECT, UPDATE, DELETE ON tenant_audit_tail TO cortex_app;
+-- Table permissions: cortex_app can INSERT, SELECT, UPDATE on tail, and INSERT, SELECT on audit_log
+GRANT INSERT, SELECT, UPDATE ON tenant_audit_tail TO cortex_app;
 GRANT INSERT, SELECT ON audit_log TO cortex_app;
 
--- 5. Immutability: Explicitly revoke UPDATE, DELETE, and TRUNCATE on audit_log
+-- 5. Immutability: Explicitly revoke UPDATE, DELETE, and TRUNCATE on audit_log and DELETE/TRUNCATE on tail
 REVOKE UPDATE, DELETE, TRUNCATE ON audit_log FROM cortex_app;
 REVOKE UPDATE, DELETE, TRUNCATE ON audit_log FROM PUBLIC;
-REVOKE TRUNCATE ON tenant_audit_tail FROM cortex_app;
-REVOKE TRUNCATE ON tenant_audit_tail FROM PUBLIC;
+REVOKE DELETE, TRUNCATE ON tenant_audit_tail FROM cortex_app;
+REVOKE DELETE, TRUNCATE ON tenant_audit_tail FROM PUBLIC;
 
 -- -----------------------------------------------------------------------------
 -- 6. Trigger Defense: Immutable Deadbolt on audit_log
@@ -119,12 +119,18 @@ CREATE POLICY tenant_isolation_tail ON tenant_audit_tail
     FOR ALL
     TO cortex_app
     USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+        (
+            NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+            AND NULLIF(current_setting('app.current_org', true), '') IS NULL
+        )
         OR tenant_id::text = current_setting('app.current_tenant', true)
         OR tenant_id::text = current_setting('app.current_org', true)
     )
     WITH CHECK (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+        (
+            NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+            AND NULLIF(current_setting('app.current_org', true), '') IS NULL
+        )
         OR tenant_id::text = current_setting('app.current_tenant', true)
         OR tenant_id::text = current_setting('app.current_org', true)
     );
@@ -134,9 +140,13 @@ CREATE POLICY audit_log_tenant_select ON audit_log
     FOR SELECT
     TO cortex_app
     USING (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+        (
+            NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+            AND NULLIF(current_setting('app.current_org', true), '') IS NULL
+        )
         OR tenant_id::text = current_setting('app.current_tenant', true)
         OR org_id = current_setting('app.current_org', true)
+        OR (org_id IS NULL AND tenant_id IS NULL)
     );
 
 -- Policy for audit_log: INSERT restricted to current tenant when set
@@ -144,9 +154,13 @@ CREATE POLICY audit_log_tenant_insert ON audit_log
     FOR INSERT
     TO cortex_app
     WITH CHECK (
-        NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+        (
+            NULLIF(current_setting('app.current_tenant', true), '') IS NULL
+            AND NULLIF(current_setting('app.current_org', true), '') IS NULL
+        )
         OR tenant_id::text = current_setting('app.current_tenant', true)
         OR org_id = current_setting('app.current_org', true)
+        OR (org_id IS NULL AND tenant_id IS NULL)
     );
 
 -- =============================================================================

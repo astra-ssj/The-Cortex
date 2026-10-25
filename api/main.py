@@ -1,4 +1,4 @@
-# api/main.py — FastAPI app for CORTEX compliance API.
+# api/main.py — FastAPI app for the Astra learning product.
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from contextlib import asynccontextmanager
 from typing import Callable
 from urllib.parse import urlparse
 
-import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
@@ -28,33 +27,23 @@ from api.errors import (
     starlette_http_exception_handler,
     unhandled_exception_handler,
 )
-from api.assessments import router as assessments_router
-from api.audit import router as audit_router
-from api.audit_decision import router as audit_decision_router
 from api.auth import router as auth_router
-from api.compliance import router as compliance_router
 from api.limits import limiter
-from api.findings import router as findings_router
-from api.groups import router as groups_router
 from api.organisations import router as organisations_router
-from api.system import router as system_router
-from api.ingest import router as ingest_router
 from api.skills import router as skills_router
 from api.learning import router as learning_router
+from api.curriculum import router as curriculum_router
+from api.diagnostic import router as diagnostic_router
+from api.instruction import router as instruction_router
 from core.circuit_breaker import load_circuit_breaker_states_from_db
 from core.audit_fabric import audit_fabric
 from core.environment import is_production_environment
 from db.session import (
     assert_application_role_is_rls_safe,
+    assert_schema_current,
     database_ready,
-    ensure_learning_loop_schema,
-    ensure_org_invitations_schema,
-    ensure_org_onboarding_schema,
-    ensure_security_auth_schema,
-    ensure_zero_trust_schema,
+    expected_schema_version,
 )
-
-logger = structlog.get_logger()
 
 _MAX_BODY_BYTES = int(os.getenv("CORTEX_MAX_BODY_BYTES", str(2 * 1024 * 1024)))
 _CSRF_PROTECT = os.getenv("CORTEX_CSRF_PROTECT", "0").lower() in ("1", "true", "yes")
@@ -63,15 +52,8 @@ _HTTPS_ENABLED = os.getenv("CORTEX_HTTPS_ENABLED", "").lower() in ("1", "true", 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ensure compliance registry is loaded (side effect of import).
-    import compliance  # noqa: F401
-
     await assert_application_role_is_rls_safe()
-    await ensure_org_onboarding_schema()
-    await ensure_security_auth_schema()
-    await ensure_org_invitations_schema()
-    await ensure_zero_trust_schema()
-    await ensure_learning_loop_schema()
+    await assert_schema_current()
     await audit_fabric.load_tail()
     await load_circuit_breaker_states_from_db()
 
@@ -79,26 +61,12 @@ async def lifespan(app: FastAPI):
 
     log_resolved_agent_provider()
 
-    try:
-        from core.skills_loader import get_skills_loader
-
-        loader = get_skills_loader()
-        summary = loader.summary()
-        logger.info(
-            "grc_skills_ready",
-            loaded=summary["loaded"],
-            total=summary["total"],
-            skills=summary.get("skills", []),
-        )
-    except Exception as e:
-        logger.warning("grc_skills_load_failed", error=str(e))
-
     yield
 
 
 app = FastAPI(
-    title="CORTEX Compliance API",
-    version="0.1.0",
+    title="Astra GRC Community Edition API",
+    version="1.0.0",
     lifespan=lifespan,
 )
 app.state.limiter = limiter
@@ -206,13 +174,13 @@ class ApiVersionEnforcementMiddleware(BaseHTTPMiddleware):
         path = request.url.path.split("?", 1)[0]
         if not path.startswith("/api/"):
             return await call_next(request)
-        if path == "/api/v1" or path.startswith("/api/v1/") or path == "/api/audit/decision":
+        if path == "/api/v1" or path.startswith("/api/v1/"):
             return await call_next(request)
         return JSONResponse(
             status_code=404,
             content=error_body(
                 "NOT_FOUND",
-                "API routes require the /api/v1 prefix (for example /api/v1/frameworks).",
+                "API routes require the /api/v1 prefix (for example /api/v1/learning/scenarios).",
             ),
         )
 
@@ -282,19 +250,15 @@ app.add_middleware(ApiVersionEnforcementMiddleware)
 app.add_middleware(CsrfProtectionMiddleware)
 app.add_middleware(RequestBodySizeLimitMiddleware)
 
-# Canonical routers — single FastAPI surface (no nested compliance-engine mount).
+# Astra product API boundary. Operational Cortex routers remain in the repository
+# for compatibility work but are intentionally not exposed by this application.
 app.include_router(auth_router, prefix="/api/v1")
-app.include_router(assessments_router)
-app.include_router(audit_router)
-app.include_router(audit_decision_router)
-app.include_router(findings_router, prefix="/api/v1/findings")
-app.include_router(groups_router)
 app.include_router(organisations_router)
 app.include_router(skills_router, prefix="/api/v1/skills")
 app.include_router(learning_router)
-app.include_router(compliance_router)
-app.include_router(ingest_router, prefix="/api/v1")
-app.include_router(system_router)
+app.include_router(curriculum_router)
+app.include_router(diagnostic_router)
+app.include_router(instruction_router)
 
 
 @app.get("/health")
@@ -305,11 +269,23 @@ async def health() -> dict[str, str]:
 
 @app.get("/ready", response_model=None)
 async def ready() -> dict[str, str] | JSONResponse:
-    """Readiness: Postgres must accept connections."""
+    """Readiness requires both Postgres connectivity and the manifest head."""
     if not await database_ready():
         return json_error(
             "SERVICE_UNAVAILABLE",
             "Database is not reachable",
             503,
         )
-    return {"status": "ready", "database": "ok"}
+    try:
+        await assert_schema_current()
+    except Exception:
+        return json_error(
+            "SERVICE_UNAVAILABLE",
+            "Database migrations are incomplete",
+            503,
+        )
+    return {
+        "status": "ready",
+        "database": "ok",
+        "schema": expected_schema_version(),
+    }

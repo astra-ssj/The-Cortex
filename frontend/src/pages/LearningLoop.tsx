@@ -15,7 +15,6 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { Button } from "../components/ui/Button";
 import { ScenarioDebrief } from "../components/ScenarioDebrief";
 import { Skeleton } from "../components/Skeleton";
-import { systemApi } from "../api/client";
 import { useOrgContext } from "../hooks/useOrgContext";
 import { frameworkLabelFromId } from "../lib/frameworkRegistry";
 
@@ -281,15 +280,10 @@ export default function LearningLoop() {
   const [sessionId, setSessionId] = useState<string | null>(
     () => localStorage.getItem("cortex_learning_session_id"),
   );
-  const showEngineRoom = import.meta.env.DEV;
-
-  const agentStatusQuery = useQuery({
-    queryKey: ["system", "agent-status"],
-    queryFn: () => systemApi.getAgentStatus(),
-    enabled: showEngineRoom,
-    staleTime: 60_000,
-    retry: 1,
-  });
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const [rationale, setRationale] = useState("");
+  const [confidence, setConfidence] = useState(0.7);
+  const interactionRef = useRef<HTMLElement>(null);
 
   // `/learning?scenario=<slug>&gap=<finding-id>` is how Remediation hands a gap
   // back to Train. A competency gap can only be closed by retaking the scenario
@@ -301,6 +295,7 @@ export default function LearningLoop() {
   // selection over. Stamped onto the session so the completed run carries the frame.
   const selectedFramework = searchParams.get("framework");
   const selectedAuditType = searchParams.get("audit_type");
+  const selectedPractice = searchParams.get("practice");
 
   const sessionQuery = useQuery({
     queryKey: ["learning-session", sessionId, orgId],
@@ -324,10 +319,20 @@ export default function LearningLoop() {
   });
 
   const decideMut = useMutation({
-    mutationFn: (choice: string) =>
-      decideLearningSession(sessionId!, choice, orgId),
+    mutationFn: (input: { choice: string; rationale: string; confidence: number }) =>
+      decideLearningSession(
+        sessionId!,
+        input.choice,
+        orgId,
+        input.rationale,
+        input.confidence,
+      ),
     onSuccess: (s) => {
       qc.setQueryData(["learning-session", s.id, orgId], s);
+      setSelectedChoice(null);
+      setRationale("");
+      setConfidence(0.7);
+      window.requestAnimationFrame(() => interactionRef.current?.focus());
     },
   });
 
@@ -374,7 +379,18 @@ export default function LearningLoop() {
   const choices = (session?.state?.choices as { id: string; label: string }[] | undefined) ?? [];
   const messages =
     (session?.state?.messages as
-      | { speaker: string; stance: string; message: string; demands?: string[] }[]
+      | {
+          speaker: string;
+          stance: string;
+          message: string;
+          demands?: string[];
+          provenance?: {
+            type: "live_model" | "stub" | "safe_fallback";
+            provider: string;
+            model: string;
+            fixture_version?: string | null;
+          } | null;
+        }[]
       | undefined) ?? [];
   const brief = String(session?.state?.brief ?? "");
 
@@ -420,8 +436,9 @@ export default function LearningLoop() {
               maxWidth: 560,
             }}
           >
-            One-agent onboarding scenario — you decide; the DevOps Lead responds through the
-            harness. The controller owns stage and risk.
+            {selectedPractice
+              ? "Practice a reviewed GRC method through staged decisions. The harness validates every simulated stakeholder response."
+              : "One-agent onboarding scenario — you decide; the stakeholder responds through the harness. The controller owns stage and risk."}
           </p>
         </div>
         {sessionId ? (
@@ -463,7 +480,9 @@ export default function LearningLoop() {
           ) : null}
         </>
       ) : sessionQuery.isPending || createMut.isPending ? (
-        <LearningLoopSkeleton />
+        <div role="status" aria-live="polite" aria-label="Loading learning session">
+          <LearningLoopSkeleton />
+        </div>
       ) : sessionQuery.isError ? (
         <EmptyState
           icon="⚠"
@@ -478,12 +497,12 @@ export default function LearningLoop() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: showEngineRoom ? "1.4fr 1fr" : "1fr",
+            gridTemplateColumns: "1fr",
             gap: 20,
             alignItems: "start",
           }}
         >
-          <section style={panel} aria-label="Scenario interaction">
+          <section ref={interactionRef} tabIndex={-1} style={panel} aria-label="Scenario interaction">
             <div
               style={{
                 display: "flex",
@@ -574,6 +593,19 @@ export default function LearningLoop() {
                       ))}
                     </ul>
                   ) : null}
+                  {m.provenance ? (
+                    <p
+                      role="status"
+                      aria-live="polite"
+                      style={{ margin: "10px 0 0", fontSize: 11, color: "var(--text-tertiary)" }}
+                    >
+                      Response provenance: {m.provenance.type.replace(/_/g, " ")} ·{" "}
+                      {m.provenance.provider} / {m.provenance.model}
+                      {m.provenance.type !== "live_model"
+                        ? " · A governed fallback was used; no unverified model output was shown."
+                        : ""}
+                    </p>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -586,29 +618,72 @@ export default function LearningLoop() {
             ) : null}
 
             {choices.length > 0 ? (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {choices.map((c) => (
-                  <Button
-                    key={c.id}
-                    variant={c.id === "approve_all" ? "secondary" : "primary"}
-                    size="md"
-                    type="button"
-                    disabled={decideMut.isPending}
-                    onClick={() => decideMut.mutate(c.id)}
+              <div>
+                <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+                  <legend style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>
+                    Choose your decision
+                  </legend>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                    {choices.map((c) => (
+                      <Button
+                        key={c.id}
+                        variant={selectedChoice === c.id ? "primary" : "secondary"}
+                        size="md"
+                        type="button"
+                        disabled={decideMut.isPending}
+                        onClick={() => setSelectedChoice(c.id)}
+                        aria-pressed={selectedChoice === c.id}
+                      >
+                        {c.label}
+                      </Button>
+                    ))}
+                  </div>
+                </fieldset>
+                {selectedChoice ? (
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      decideMut.mutate({ choice: selectedChoice, rationale, confidence });
+                    }}
+                    style={{ display: "grid", gap: 10, marginTop: 16 }}
                   >
-                    {c.label}
-                  </Button>
-                ))}
+                    <label style={{ display: "grid", gap: 5, fontSize: 12, color: "var(--text-secondary)" }}>
+                      Explain your rationale
+                      <textarea
+                        required
+                        minLength={10}
+                        rows={3}
+                        value={rationale}
+                        onChange={(event) => setRationale(event.target.value)}
+                        style={{ padding: 10, borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
+                      />
+                    </label>
+                    <label style={{ display: "grid", gap: 5, fontSize: 12, color: "var(--text-secondary)" }}>
+                      Confidence: {Math.round(confidence * 100)}%
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={confidence}
+                        onChange={(event) => setConfidence(Number(event.target.value))}
+                      />
+                    </label>
+                    <Button variant="primary" size="md" type="submit" disabled={decideMut.isPending || rationale.trim().length < 10}>
+                      {decideMut.isPending ? "Submitting…" : "Submit decision"}
+                    </Button>
+                  </form>
+                ) : null}
               </div>
             ) : debriefQuery.isPending ? (
               <Skeleton height="120px" />
             ) : debriefQuery.isError ? (
-              <p style={{ margin: 0, fontSize: 13, color: "var(--amber)" }}>
+              <p role="alert" style={{ margin: 0, fontSize: 13, color: "var(--amber)" }}>
                 Scenario complete, but the debrief could not be loaded.
               </p>
             ) : null}
             {decideMut.isError ? (
-              <p style={{ marginTop: 12, color: "var(--red)", fontSize: 12 }}>
+              <p role="alert" style={{ marginTop: 12, color: "var(--red)", fontSize: 12 }}>
                 Decision failed — try again or start a new session.
               </p>
             ) : null}
@@ -619,58 +694,6 @@ export default function LearningLoop() {
             <div style={{ gridColumn: "1 / -1" }}>
               <ScenarioDebrief debrief={debriefQuery.data} onRestart={onReset} />
             </div>
-          ) : null}
-
-          {showEngineRoom ? (
-            <aside style={panel} aria-label="Engine room">
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: "0.12em",
-                  color: "var(--amber)",
-                  marginBottom: 10,
-                }}
-              >
-                ENGINE ROOM
-              </div>
-              <p style={{ margin: "0 0 12px", fontSize: 12, color: "var(--text-secondary)" }}>
-                Live session state and last harness result — architecture visibility while testing.
-              </p>
-              <p style={{ margin: "0 0 12px", fontSize: 12, color: "var(--text-secondary)" }}>
-                provider={agentStatusQuery.data?.provider ?? "…"}{"  "}
-                model={agentStatusQuery.data?.model ?? "…"}
-              </p>
-              <pre
-                style={{
-                  margin: 0,
-                  padding: 12,
-                  maxHeight: 480,
-                  overflow: "auto",
-                  fontSize: 11,
-                  lineHeight: 1.45,
-                  background: "var(--bg)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 6,
-                  color: "var(--text-secondary)",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-              >
-                {JSON.stringify(
-                  {
-                    id: session.id,
-                    org_id: session.org_id,
-                    stage: session.stage,
-                    risk: session.risk,
-                    last_harness: session.state?.last_harness ?? null,
-                    decisions: session.state?.decisions ?? [],
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
-            </aside>
           ) : null}
         </div>
       ) : null}

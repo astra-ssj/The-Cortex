@@ -15,7 +15,9 @@ export type HelpDocSection = {
   steps: HelpDocStep[];
 };
 
-export const HELP_DOC_SECTIONS: HelpDocSection[] = [
+// Retained as non-exported source material while the Astra-only shell is rolled
+// out; the active help surface below deliberately excludes operational modules.
+const LEGACY_HELP_DOC_SECTIONS: HelpDocSection[] = [
   {
     id: "overview",
     title: "What is Astra GRC?",
@@ -371,6 +373,113 @@ export const HELP_DOC_SECTIONS: HelpDocSection[] = [
         title: "Astra GRC Community Edition",
         body:
           "Competence you can evidence. Astra GRC Community Edition is open source under the Apache License 2.0. The source is at github.com/astra-ssj/The-Cortex. Community Edition trains the practitioner; Enterprise is a separate offering from AstraLabs Group, along with commercial licensing and support.",
+      },
+    ],
+  },
+];
+
+void LEGACY_HELP_DOC_SECTIONS;
+
+export const HELP_DOC_SECTIONS: HelpDocSection[] = [
+  {
+    id: "overview",
+    title: "What is Astra?",
+    intro:
+      "Astra is case-based GRC competency training. It places you inside realistic scenarios, grades your decisions against framework-grounded reference answers, and tracks how your judgment develops over time.",
+    steps: [
+      {
+        title: "Who it is for",
+        body:
+          "Security leads, GRC practitioners, compliance officers, risk managers, and teams that want to practise decision-making in realistic situations.",
+      },
+      {
+        title: "How learning works",
+        body:
+          "Choose a practice, work through staged decisions, review the rationale and outcome, then use Progress to see your completed sessions and competency trends.",
+      },
+    ],
+  },
+  {
+    id: "getting-started",
+    title: "1. Getting Started",
+    steps: [
+      {
+        title: "Choose a practice",
+        body:
+          "Practices is the Astra home page. Filter the reviewed catalogue by framework or category, inspect the learning objectives, and start a practice when you are ready.",
+      },
+      {
+        title: "Complete the learning loop",
+        body:
+          "Read the brief and stakeholder message before each decision. Your choices advance the scenario and update the competency dimensions being exercised.",
+      },
+      {
+        title: "Review your debrief",
+        body:
+          "At the end of a session, compare your choices with the reference answers, review the rationale, and choose whether to revisit Progress, select another practice, or restart.",
+      },
+    ],
+  },
+  {
+    id: "navigation",
+    title: "2. Astra Navigation",
+    steps: [
+      {
+        title: "Practices",
+        body: "Browse the reviewed practice catalogue and begin a focused learning session.",
+      },
+      {
+        title: "Learning",
+        body: "Continue the current scenario or select an available scenario.",
+      },
+      {
+        title: "Progress",
+        body: "Review your session history and competency rollups.",
+      },
+      {
+        title: "Team",
+        body: "Authorised team leads can review aggregate learner competency.",
+      },
+      {
+        title: "Settings and Help",
+        body: "Manage your organisation membership where permitted and return here for product guidance.",
+      },
+    ],
+  },
+  {
+    id: "competency",
+    title: "3. Understanding Competency",
+    steps: [
+      {
+        title: "Four dimensions",
+        body:
+          "Astra scores control mapping, evidence quality, escalation judgment, and remediation independently so that one strength does not conceal another development area.",
+      },
+      {
+        title: "Development areas",
+        body:
+          "A dimension below the competency floor is a recommendation for more practice. Retake the scenario or choose another practice that exercises the same skill.",
+      },
+      {
+        title: "Learning records",
+        body:
+          "Completed sessions contribute to your learning history. Progress shows your own record; Team is available only to roles permitted to view team competency.",
+      },
+    ],
+  },
+  {
+    id: "support",
+    title: "4. Support",
+    steps: [
+      {
+        title: "Report a content issue",
+        body:
+          "When reporting a scenario issue, include the practice or scenario name, the decision stage, the exact text, and the correction you suggest.",
+      },
+      {
+        title: "Report a technical issue",
+        body:
+          "For login failures or unexpected behaviour, include your browser, the page URL, and the visible error message.",
       },
     ],
   },

@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageSnapshot } from "../components/help/PageSnapshot";
 import { HELP_DOC_SECTIONS, HELP_TOC } from "../lib/helpDocsContent";
-import { replayTour } from "../lib/welcomeTour";
 
 function scrollToSection(id: string) {
   const el = document.getElementById(id);
   if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    el.setAttribute("tabindex", "-1");
+    el.focus({ preventScroll: true });
   }
 }
 
@@ -76,25 +78,8 @@ export default function HelpDocs() {
           Astra GRC Help & Onboarding
         </h1>
         <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: 640 }}>
-          Step-by-step guide from registration through the scenario learning loop. Illustrations mirror each
-          screen — use the table of contents to jump to a topic.
+          Guidance for choosing practices, completing learning sessions, and reviewing competency progress.
         </p>
-        <button
-          type="button"
-          onClick={() => replayTour()}
-          style={{
-            marginTop: 12,
-            padding: 0,
-            border: "none",
-            background: "none",
-            fontSize: 13,
-            color: "var(--cyan)",
-            cursor: "pointer",
-            fontFamily: "var(--font-sans)",
-          }}
-        >
-          Replay welcome tour
-        </button>
         <div
           style={{
             display: "flex",
@@ -104,7 +89,9 @@ export default function HelpDocs() {
             alignItems: "center",
           }}
         >
+          <label htmlFor="help-search" className="sr-only">Search documentation</label>
           <input
+            id="help-search"
             type="search"
             placeholder="Search documentation…"
             value={query}
@@ -120,13 +107,11 @@ export default function HelpDocs() {
               fontSize: 13,
             }}
           />
-          <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
-            Press <kbd style={kbdStyle}>H</kbd> for quick help · <kbd style={kbdStyle}>⌘K</kbd> command palette
-          </span>
         </div>
       </header>
 
       <div
+        className="cortex-help-layout"
         style={{
           display: "grid",
           gridTemplateColumns: "minmax(200px, 220px) minmax(0, 1fr)",
@@ -135,6 +120,7 @@ export default function HelpDocs() {
         }}
       >
         <nav
+          className="cortex-help-toc"
           aria-label="Documentation contents"
           style={{
             position: "sticky",
@@ -192,7 +178,7 @@ export default function HelpDocs() {
           </div>
         </nav>
 
-        <div>
+        <div aria-live="polite" aria-atomic="false">
           {filteredSections.length === 0 ? (
             <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>No topics match your search.</p>
           ) : null}
@@ -329,13 +315,3 @@ export default function HelpDocs() {
     </div>
   );
 }
-
-const kbdStyle: CSSProperties = {
-  display: "inline-block",
-  padding: "2px 6px",
-  borderRadius: 4,
-  border: "1px solid var(--border)",
-  background: "var(--elevated)",
-  fontFamily: "var(--font-mono)",
-  fontSize: 11,
-};

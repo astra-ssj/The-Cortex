@@ -1,0 +1,624 @@
+{
+  "catalog_version": "2.0.0",
+  "source_repository": "https://github.com/better-isms/grcskills",
+  "source_release": "v2026.10.19.2",
+  "source_commit": "e99f09d4b836bcf596e032a8ab0dc54668faf4d5",
+  "license": "MIT",
+  "practices": [
+    {
+      "id": "cloud-access-onboarding",
+      "scenario_slug": "cloud_access_onboarding",
+      "title": "Privileged cloud access decision",
+      "summary": "Apply least privilege and proportionate escalation to a time-pressured production access request.",
+      "category": "access-control",
+      "frameworks": [
+        "iso27001",
+        "nist-csf"
+      ],
+      "tags": [
+        "access",
+        "least-privilege",
+        "escalation"
+      ],
+      "difficulty": "foundation",
+      "estimated_minutes": 12,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Apply least privilege under delivery pressure",
+        "Separate justified access from broad convenience access",
+        "Escalate unresolved privilege decisions without bypassing approval"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/cloud-access-onboarding/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "cfeba867f9a14063be7572dbdfe92afa45ccbaf014f4d98652173a906076566e"
+    },
+    {
+      "id": "supplier-incident-response",
+      "scenario_slug": "supplier_incident_response",
+      "title": "Supplier incident response",
+      "summary": "Coordinate a supplier breach response while preserving facts, contracts, and notification decisions.",
+      "category": "incidents-continuity",
+      "frameworks": [
+        "iso27001",
+        "gdpr"
+      ],
+      "tags": [
+        "supplier",
+        "incident",
+        "notification"
+      ],
+      "difficulty": "practitioner",
+      "estimated_minutes": 15,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Invoke contractual incident duties",
+        "Preserve notification evidence and clocks",
+        "Escalate privacy decisions using verified facts"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/supplier-incident-response/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "2c26998c404c46d25c4c6c3a3b6ba16ab0498efa17f516b377ad2373321eb0a0"
+    },
+    {
+      "id": "change-management-failure",
+      "scenario_slug": "change_management_failure",
+      "title": "Emergency change failure",
+      "summary": "Respond to an emergency production change that bypassed approval and caused an outage.",
+      "category": "operations",
+      "frameworks": [
+        "iso27001"
+      ],
+      "tags": [
+        "change-management",
+        "incident",
+        "corrective-action"
+      ],
+      "difficulty": "practitioner",
+      "estimated_minutes": 15,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Preserve the technical timeline",
+        "Distinguish recovery from process correction",
+        "Raise a proportionate nonconformity"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/change-management-failure/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "a2155a2065c519ed0c599716f9cc492e0fb048af4e32b739a35be4c736a59312"
+    },
+    {
+      "id": "asset-classification-breach",
+      "scenario_slug": "asset_classification_breach",
+      "title": "Asset classification breach",
+      "summary": "Contain and disclose sensitive data found on an unclassified shared drive before an audit.",
+      "category": "information-handling",
+      "frameworks": [
+        "iso27001"
+      ],
+      "tags": [
+        "classification",
+        "evidence",
+        "audit"
+      ],
+      "difficulty": "practitioner",
+      "estimated_minutes": 15,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Contain exposure without destroying evidence",
+        "Correct classification and ownership records",
+        "Disclose the issue honestly during audit"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/asset-classification-breach/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "4befddd6d8e3e7daf62d08f35164dc7db51224b5a4e9de635a1f2ac30475ecdf"
+    },
+    {
+      "id": "ransomware-group-response",
+      "scenario_slug": "ransomware_group_response",
+      "title": "Group ransomware response",
+      "summary": "Direct group-wide containment, recovery, and executive communication during ransomware.",
+      "category": "incidents-continuity",
+      "frameworks": [
+        "iso27001",
+        "dora"
+      ],
+      "tags": [
+        "ransomware",
+        "continuity",
+        "executive-escalation"
+      ],
+      "difficulty": "expert",
+      "estimated_minutes": 20,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Invoke continuity and isolate affected systems",
+        "Preserve forensic evidence before restoration",
+        "Stage accurate executive and regulatory communication"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/ransomware-group-response/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "926b4668b02d707b5cc98a783fbc72bb098dd00f826a03cd81b4ec41efd9ef24"
+    },
+    {
+      "id": "evidence-freshness-check",
+      "scenario_slug": "evidence_freshness_audit",
+      "title": "Evidence freshness check",
+      "summary": "Challenge stale, undated, unowned, and incomplete audit evidence before it reaches an auditor.",
+      "category": "evidence",
+      "frameworks": [
+        "general",
+        "iso27001",
+        "soc2"
+      ],
+      "tags": [
+        "evidence",
+        "audit-readiness",
+        "audit-period"
+      ],
+      "difficulty": "foundation",
+      "estimated_minutes": 12,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Use the date inside an artefact rather than its file modification date",
+        "Count recurring evidence by expected occurrence across the audit period",
+        "Choose an honest refresh action without recreating historical evidence"
+      ],
+      "content_hash": "713d89b9b3f74106c82d322c91e3dbfbe7c8e3ba738a464fd31734a138abe954",
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/evidence-freshness-check/SKILL.md",
+      "author": "Astra Labs curriculum adaptation"
+    },
+    {
+      "id": "incident-severity-triage",
+      "scenario_slug": "incident_severity_triage",
+      "title": "Incident severity triage",
+      "summary": "Classify a live incident by impact, preserve evidence, start applicable clocks, and escalate proportionately.",
+      "category": "incidents-continuity",
+      "frameworks": [
+        "iso27001",
+        "nis2",
+        "dora"
+      ],
+      "tags": [
+        "incident-response",
+        "severity",
+        "triage"
+      ],
+      "difficulty": "practitioner",
+      "estimated_minutes": 15,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Anchor severity in business impact",
+        "Preserve detection and awareness times",
+        "Escalate against defined thresholds"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/incident-severity-triage/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "63ee02ba20afd1ca42a2e8ce89f2417fdc9c86b1f9358cdac3856fade6f559c0"
+    },
+    {
+      "id": "nonconformity-root-cause-and-corrective-action",
+      "scenario_slug": "nonconformity_corrective_action",
+      "title": "Nonconformity root cause and corrective action",
+      "summary": "Separate correction from corrective action and build an evidenced response that prevents recurrence.",
+      "category": "audit",
+      "frameworks": [
+        "iso27001",
+        "iso42001"
+      ],
+      "tags": [
+        "nonconformity",
+        "root-cause",
+        "corrective-action"
+      ],
+      "difficulty": "practitioner",
+      "estimated_minutes": 16,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Separate containment from systemic correction",
+        "Trace causes to controlled processes",
+        "Define an extent check and effectiveness test"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/nonconformity-root-cause-and-corrective-action/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "afcb4187b840d3cb945b87e0b25ca2b2c026a28ee68eeb5dd7216c910dee4426"
+    },
+    {
+      "id": "risk-acceptance-memo",
+      "scenario_slug": "risk_acceptance_memo",
+      "title": "Risk acceptance memo",
+      "summary": "Test whether acceptance is justified and identify authority, conditions, expiry, and reopen triggers.",
+      "category": "risk",
+      "frameworks": [
+        "iso27001",
+        "dora"
+      ],
+      "tags": [
+        "risk-acceptance",
+        "residual-risk",
+        "exception"
+      ],
+      "difficulty": "expert",
+      "estimated_minutes": 18,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Recognize treatment deferral disguised as acceptance",
+        "Route acceptance to authorized ownership",
+        "Require conditions, expiry, and reopen triggers"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/risk-acceptance-memo/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "83f26971604881195c5e0a4cc3dbae7fd5c2f5183292a8c2631a0a0e2984ddbe"
+    },
+    {
+      "id": "soa-exclusion-justification-review",
+      "scenario_slug": "soa_exclusion_review",
+      "title": "Statement of Applicability exclusion review",
+      "summary": "Challenge control exclusions against activities, assets, suppliers, risks, and commitments.",
+      "category": "statement-of-applicability",
+      "frameworks": [
+        "iso27001",
+        "iso42001"
+      ],
+      "tags": [
+        "soa",
+        "exclusion",
+        "applicability"
+      ],
+      "difficulty": "expert",
+      "estimated_minutes": 18,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Test exclusions against organizational facts",
+        "Reject outsourcing as automatic exclusion",
+        "Keep, rewrite, reverse, or investigate an exclusion"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/soa-exclusion-justification-review/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "29e732016f835b7784fff4d005ba6010148294669e9179a45fc55e0a1f2cfad3"
+    },
+    {
+      "id": "audit-sampling-evidence-sufficiency",
+      "scenario_slug": "audit_sampling_evidence_sufficiency",
+      "title": "Audit sampling and evidence sufficiency",
+      "summary": "Design a defensible sample, evaluate exceptions, and decide when evidence is sufficient.",
+      "category": "evidence",
+      "frameworks": [
+        "iso27001",
+        "soc2"
+      ],
+      "tags": [
+        "audit",
+        "sampling",
+        "evidence-sufficiency"
+      ],
+      "difficulty": "practitioner",
+      "estimated_minutes": 16,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Define the population before sampling",
+        "Avoid convenience and replacement bias",
+        "Expand or qualify testing when exceptions occur"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/audit-sampling-evidence-sufficiency/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "2a5238dcf5517c6808746221974e53e6a2af138f4b559e3af623a095b98e5cf6"
+    },
+    {
+      "id": "supplier-due-diligence",
+      "scenario_slug": "supplier_due_diligence",
+      "title": "Supplier due diligence",
+      "summary": "Evaluate a critical supplier using scoped evidence, risk ownership, and contract-ready conditions.",
+      "category": "supplier-risk",
+      "frameworks": [
+        "iso27001",
+        "dora"
+      ],
+      "tags": [
+        "supplier",
+        "due-diligence",
+        "contracting"
+      ],
+      "difficulty": "practitioner",
+      "estimated_minutes": 17,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Scope diligence to the service and data flow",
+        "Validate assurance boundaries and exceptions",
+        "Translate residual risk into contract and monitoring conditions"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/supplier-due-diligence/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "acfc0dc1aac32038f8884bdb32abf482d71a7dd7e6aa651ba9cbe8dea0557080"
+    },
+    {
+      "id": "access-review-exception-handling",
+      "scenario_slug": "access_review_exception_handling",
+      "title": "Access-review exception handling",
+      "summary": "Investigate, contain, and close access-review exceptions without erasing the audit trail.",
+      "category": "access-control",
+      "frameworks": [
+        "iso27001",
+        "soc2"
+      ],
+      "tags": [
+        "access-review",
+        "exception",
+        "least-privilege"
+      ],
+      "difficulty": "practitioner",
+      "estimated_minutes": 15,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Triage exceptions by privilege and exposure",
+        "Preserve reviewer decisions and ownership",
+        "Verify revocation and systemic follow-up"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/access-review-exception-handling/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "f28d240e284146715c67f08e4bd2e005e08991fb46d19bcb5dfce7aaa3fbc667"
+    },
+    {
+      "id": "dora-ict-incident-classification-reporting",
+      "scenario_slug": "dora_ict_incident_classification_reporting",
+      "title": "DORA ICT incident classification and reporting",
+      "summary": "Classify an ICT incident using current facts, preserve reporting evidence, and manage staged notifications.",
+      "category": "regulatory-incident",
+      "frameworks": [
+        "dora",
+        "iso27001"
+      ],
+      "tags": [
+        "dora",
+        "ict-incident",
+        "regulatory-reporting"
+      ],
+      "difficulty": "expert",
+      "estimated_minutes": 20,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Apply materiality criteria with documented assumptions",
+        "Preserve classification and clock evidence",
+        "Manage initial, intermediate, and final reporting as facts evolve"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/dora-ict-incident-classification-reporting/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "281985ea4fca8c197b89b610b4026711c0ed76a0c932081d6dc6d3e733fb10de"
+    },
+    {
+      "id": "ai-control-applicability-escalation",
+      "scenario_slug": "ai_control_applicability_escalation",
+      "title": "AI control applicability and escalation",
+      "summary": "Determine AI control applicability from system context and escalate uncertain or high-impact use.",
+      "category": "ai-governance",
+      "frameworks": [
+        "iso42001",
+        "iso27001"
+      ],
+      "tags": [
+        "ai",
+        "applicability",
+        "human-oversight"
+      ],
+      "difficulty": "expert",
+      "estimated_minutes": 19,
+      "target_dimensions": [
+        "control_mapping",
+        "evidence",
+        "escalation",
+        "remediation"
+      ],
+      "learning_objectives": [
+        "Classify AI use from intended purpose and impact",
+        "Avoid vendor claims as substitutes for evidence",
+        "Escalate low-confidence and consequential applicability decisions"
+      ],
+      "jurisdiction": "international",
+      "purpose_tags": [
+        "learning",
+        "competency"
+      ],
+      "status": "available",
+      "review_state": "reviewed",
+      "reviewed_by": "Astra Curriculum Review Board",
+      "reviewed_at": "2026-10-25T12:00:00Z",
+      "source_path": "skills/reviewed/ai-control-applicability-escalation/SKILL.md",
+      "author": "Astra Labs curriculum adaptation",
+      "content_hash": "f42e3d4b157af9481048863e9b1620fdd5a0ee3b6ff3cd8d2366542810064bfe"
+    }
+  ]
+}

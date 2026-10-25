@@ -115,7 +115,7 @@ export function TrackProgress({ rollup }: { rollup: LearnerCompetency }) {
     <div style={ledgerPanel}>
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 12 }}>
         <div>
-          <div style={ledgerEyebrow}>ISO 27001:2022 track</div>
+          <div style={ledgerEyebrow}>Current learning track</div>
           <p style={{ margin: "8px 0 0", fontSize: 13, color: "var(--text)" }}>
             <strong>
               {done} of {total || "—"}

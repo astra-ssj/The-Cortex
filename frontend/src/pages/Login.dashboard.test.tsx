@@ -38,13 +38,13 @@ function LoginHarness() {
     <Routes>
       <Route
         path="/login"
-        element={<Login onSuccess={() => navigate("/dashboard", { replace: true })} />}
+        element={<Login onSuccess={() => navigate("/practices", { replace: true })} />}
       />
       <Route
-        path="/dashboard"
+        path="/practices"
         element={
           <main>
-            <h1 className="cortex-text-page-title">Compliance overview</h1>
+            <h1 className="cortex-text-page-title">Practices</h1>
           </main>
         }
       />
@@ -52,7 +52,7 @@ function LoginHarness() {
   );
 }
 
-describe("Login → dashboard", () => {
+describe("Login → practices", () => {
   beforeEach(() => {
     vi.stubGlobal("localStorage", createMemoryStorage());
     vi.stubGlobal(
@@ -88,7 +88,7 @@ describe("Login → dashboard", () => {
     vi.unstubAllGlobals();
   });
 
-  it("stores session and navigates to dashboard content after sign-in", async () => {
+  it("stores session and navigates to practices after sign-in", async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={["/login"]}>
@@ -101,7 +101,7 @@ describe("Login → dashboard", () => {
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /compliance overview/i })).toBeTruthy();
+      expect(screen.getByRole("heading", { name: /practices/i })).toBeTruthy();
     });
     expect(localStorage.getItem("cortex_token")).toBeTruthy();
   });

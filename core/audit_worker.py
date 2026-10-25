@@ -51,7 +51,11 @@ async def create_pg_pool(
     cannot be pinned to backend connections across transactions.
     """
     if dsn is None:
-        dsn = os.getenv("DATABASE_URL", "postgresql://cortex:cortex-dev@localhost:5432/cortex")
+        dsn = os.getenv("DATABASE_URL")
+    if not dsn:
+        raise RuntimeError(
+            "DATABASE_URL must be set for AuditStreamWorker pool initialization."
+        )
 
     # In case DATABASE_URL uses SQLAlchemy async prefix (e.g. postgresql+asyncpg://)
     if dsn.startswith("postgresql+asyncpg://"):

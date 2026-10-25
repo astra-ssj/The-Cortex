@@ -791,8 +791,8 @@ async def update_onboarding_step(
         if isinstance(fw, list):
             updates["selected_frameworks"] = [str(x) for x in fw]
 
-    if step == 3:
-        updates["onboarding_complete"] = True
+    # Step three records wizard progress only. Completion is controlled by the
+    # persisted diagnostic result (or its explicitly audited skip endpoint).
 
     # Single static statement; NULL binds skip columns via COALESCE (Bandit B608 / injection-safe).
     stmt = text(

@@ -1,10 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { LogoIcon, LogoWordmark } from "./Logo";
-import { useOrgContext } from "../hooks/useOrgContext";
-import { useCompliancePosture } from "../store/complianceStore";
-import { useReviewQueue } from "../api/client";
 import { isPrimaryNavActive } from "../lib/navActive";
-import { showNavSoonForPath } from "../lib/featureFlags";
 import { Badge } from "./ui/Badge";
 import { useRole } from "../hooks/useRole";
 import { ROLE_LABELS } from "../lib/roles";
@@ -17,46 +13,19 @@ type NavItem = {
   label: string;
   path: string;
   icon: string;
-  badge?: "findings" | "review";
-  soon?: boolean;
-  tour?: string;
 };
 
-type NavGroupDef = { label: string; items: NavItem[]; tour?: string };
+type NavGroupDef = { label: string; items: NavItem[] };
 
-// Audit Simulator is the post-login landing page; Learning Loop is the session.
 const NAV_GROUPS: NavGroupDef[] = [
   {
-    label: "Train",
-    tour: "train",
+    label: "Astra",
     items: [
-      { label: "Audit Simulator", path: "/audit-simulator", icon: "▷", tour: "audit-simulator" },
-      { label: "Learning Loop", path: "/learning", icon: "↻", tour: "learning" },
-      { label: "My Progress", path: "/progress", icon: "▲" },
-      { label: "Team Ledger", path: "/team", icon: "☰" },
-    ],
-  },
-  {
-    label: "Discover",
-    tour: "discover",
-    items: [
-      { label: "Compliance Overview", path: "/dashboard", icon: "◎" },
-      { label: "Review Queue", path: "/review-queue", icon: "⇌", badge: "review" },
-      { label: "Control Gaps", path: "/findings", icon: "⚑", badge: "findings" },
-      { label: "Remediation Tracker", path: "/remediation", icon: "↻" },
-    ],
-  },
-  {
-    label: "Evidence",
-    tour: "evidence",
-    items: [
-      { label: "Evidence Vault", path: "/evidence", icon: "▤" },
-    ],
-  },
-  {
-    label: "Operations",
-    items: [
-      { label: "Roadmap", path: "/roadmap", icon: "▸", soon: showNavSoonForPath("/roadmap") },
+      { label: "Practices", path: "/practices", icon: "◆" },
+      { label: "Learning", path: "/learning", icon: "↻" },
+      { label: "Progress", path: "/progress", icon: "▲" },
+      { label: "Team", path: "/team", icon: "☰" },
+      { label: "Instructor", path: "/instructor", icon: "◎" },
       { label: "Settings", path: "/settings", icon: "⚙" },
     ],
   },
@@ -92,22 +61,16 @@ function userDisplayName(user: Record<string, unknown> | null): string {
 function NavGroup({
   label,
   items,
-  tour,
+  onNavigate,
 }: {
   label: string;
   items: NavItem[];
-  tour?: string;
+  onNavigate: () => void;
 }) {
-  const { orgId } = useOrgContext();
   const { pathname } = useLocation();
-  const { data: posture } = useCompliancePosture(orgId);
-  const { items: rqItems } = useReviewQueue(orgId);
-
-  const findingsCount = posture?.criticalGapsCount ?? 0;
-  const reviewCount = rqItems?.length ?? 0;
 
   return (
-    <div style={{ marginBottom: 18 }} data-tour={tour}>
+    <div style={{ marginBottom: 18 }}>
       <div
         style={{
           fontSize: "10px",
@@ -124,20 +87,14 @@ function NavGroup({
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {items.map((item) => {
           const active = isPrimaryNavActive(item.path, pathname);
-          const badgeCount =
-            item.badge === "findings"
-              ? findingsCount
-              : item.badge === "review"
-                ? reviewCount
-                : null;
           return (
             <NavLink
               key={item.path}
               to={item.path}
-              end={item.path !== "/frameworks"}
+              end
               aria-current={active ? "page" : undefined}
               className="cortex-sidebar-link"
-              data-tour={item.tour}
+              onClick={onNavigate}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -164,31 +121,6 @@ function NavGroup({
                 {item.icon}
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>{item.label}</span>
-              {item.soon ? (
-                <Badge variant="neutral" size="xs">
-                  Soon
-                </Badge>
-              ) : null}
-              {badgeCount != null && badgeCount > 0 ? (
-                <span
-                  style={{
-                    minWidth: 22,
-                    height: 22,
-                    padding: "0 6px",
-                    borderRadius: "var(--radius-pill)",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background:
-                      item.badge === "findings" ? "var(--red-soft)" : "var(--amber-soft)",
-                    color: item.badge === "findings" ? "var(--red)" : "var(--amber)",
-                  }}
-                >
-                  {badgeCount > 99 ? "99+" : badgeCount}
-                </span>
-              ) : null}
             </NavLink>
           );
         })}
@@ -200,13 +132,18 @@ function NavGroup({
 export function Sidebar({
   user,
   onLogout,
+  open = false,
+  onNavigate = () => undefined,
 }: {
   user: Record<string, unknown> | null;
   onLogout: () => void;
+  open?: boolean;
+  onNavigate?: () => void;
 }) {
   const { role, can } = useRole();
   const canSettings = can("canAccessSettings");
   const canTeam = can("canViewTeamCompetency");
+  const canInstructor = can("canCoachLearners");
 
   // Hide Settings and the org ledger when the role lacks access.
   const groups = NAV_GROUPS.map((g) => ({
@@ -214,13 +151,16 @@ export function Sidebar({
     items: g.items.filter((it) => {
       if (it.path === "/settings") return canSettings;
       if (it.path === "/team") return canTeam;
+      if (it.path === "/instructor") return canInstructor;
       return true;
     }),
   }));
 
   return (
     <aside
+      id="primary-sidebar"
       className="cortex-sidebar"
+      data-open={open}
       style={{
         width: SIDEBAR_W,
         position: "fixed",
@@ -265,7 +205,7 @@ export function Sidebar({
         aria-label="Application sections"
       >
         {groups.map((g) => (
-          <NavGroup key={g.label} label={g.label} items={g.items} tour={g.tour} />
+          <NavGroup key={g.label} label={g.label} items={g.items} onNavigate={onNavigate} />
         ))}
       </nav>
 
@@ -280,7 +220,7 @@ export function Sidebar({
         >
           <NavLink
             to="/help"
-            data-tour="help"
+            onClick={onNavigate}
             className={({ isActive }) => (isActive ? "cortex-sidebar-link-active" : undefined)}
             style={({ isActive }) => ({
               display: "flex",

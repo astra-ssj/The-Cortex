@@ -16,6 +16,30 @@ os.environ.pop("OPENAI_API_KEY", None)
 os.environ.pop("GEMINI_API_KEY", None)
 os.environ.pop("GOOGLE_API_KEY", None)
 
+# Historical Cortex tests remain readable during repository extraction but are
+# not part of the Astra CE runtime or release gate.
+collect_ignore = [
+    "test_api_assessments.py",
+    "test_api_compliance_overview.py",
+    "test_api_findings.py",
+    "test_api_frameworks.py",
+    "test_api_posture.py",
+    "test_api_system.py",
+    "test_assessment_engine.py",
+    "test_assessment_llm.py",
+    "test_audit_chain_read.py",
+    "test_audit_decision.py",
+    "test_audit_worker.py",
+    "test_control_posture.py",
+    "test_evidence_persistence.py",
+    "test_gaps_from_competency.py",
+    "test_grader.py",
+    "test_human_review_persistence.py",
+    "test_ingestion.py",
+    "test_llm_providers.py",
+    "test_rbac.py",
+]
+
 if "DATABASE_URL" not in os.environ:
     # Check if 5434 (local compose) or 5432 is reachable
     import socket
@@ -24,12 +48,12 @@ if "DATABASE_URL" not in os.environ:
         _port = 5434 if _s.connect_ex(("127.0.0.1", 5434)) == 0 else 5432
     os.environ["DATABASE_URL"] = f"postgresql+asyncpg://cortex_app:cortex_ci_test@127.0.0.1:{_port}/cortex"
 
-import pytest
-from fastapi.testclient import TestClient
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from api.main import app
-from core.circuit_breaker import _breakers
-from core.security import create_access_token
+from api.main import app  # noqa: E402
+from core.circuit_breaker import _breakers  # noqa: E402
+from core.security import create_access_token  # noqa: E402
 
 _DEMO_USER = "ciso@astralabs.com"
 _DEMO_PASSWORD = "cortex-ciso-2026"

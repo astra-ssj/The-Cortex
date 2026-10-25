@@ -1,0 +1,57 @@
+# Copy this file to contrib/scenarios/submissions/<scenario-id>.yaml.
+# Narrative values are stored as plain text. Markdown is neither required nor executed.
+schema_version: 1
+id: your-scenario-id
+title: Your scenario title
+summary: Describe the decision, pressure, and learning context.
+track: your-track
+difficulty: foundation
+frameworks:
+  - framework-id
+practice_area: Your practice area
+estimated_minutes: 15
+learning_objectives:
+  - Explain the observable judgment the learner should demonstrate.
+provenance:
+  authors:
+    - Your name or GitHub handle
+  license: Apache-2.0
+  # source_url: https://example.com/source
+  # source_version: "1.0"
+  # content_sha256 is optional. Add the hash printed by the validator to pin content.
+stages:
+  - id: opening
+    sequence: 1
+    agent_message: A stakeholder asks the learner to make a consequential decision.
+    demands:
+      - Decide before the stated deadline.
+    choices:
+      - id: verify_then_act
+        label: Verify the facts, then take the least-risk action
+        consequence: The decision is delayed long enough to establish the relevant facts.
+        is_correct: true
+        framework_rationale: The selected framework requires evidence-based, proportionate action.
+        next_stage: complete
+        risk_outcome: controlled
+        dimension_weights:
+          judgment: 2
+          evidence: 2
+        control_refs:
+          - FRAMEWORK CONTROL-ID
+      - id: act_without_evidence
+        label: Act immediately without verification
+        consequence: The action creates avoidable operational and compliance risk.
+        is_correct: false
+        framework_rationale: Acting without evidence bypasses the required control process.
+        next_stage: complete
+        risk_outcome: uncontrolled
+        dimension_weights:
+          judgment: -2
+          evidence: -2
+        control_refs:
+          - FRAMEWORK CONTROL-ID
+  - id: complete
+    sequence: 2
+    agent_message: The stakeholder acknowledges the final decision.
+    demands: []
+    choices: []
