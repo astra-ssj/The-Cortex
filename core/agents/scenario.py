@@ -75,6 +75,7 @@ class ScenarioChoice:
     # Absolute per-dimension competency deltas (migration 027). None means the
     # row predates the column, and grading applies its CX-1001 heuristic instead.
     dimension_weights: dict[str, int] | None = None
+    control_refs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,18 @@ class Scenario:
     frameworks: tuple[str, ...]
     difficulty: str
     stages: tuple[ScenarioStage, ...]
+    source_skill_id: str | None = None
+    source_skill_version: str | None = None
+    source_skill_url: str | None = None
+    source_skill_hash: str | None = None
+    source_skill_license: str | None = None
+    source_review_state: str | None = None
+    practice_area: str | None = None
+    estimated_minutes: int | None = None
+    learning_objectives: tuple[str, ...] = ()
+    version_id: str | None = None
+    version: int | None = None
+    content_hash: str | None = None
 
     @property
     def entry_stage(self) -> ScenarioStage | None:
@@ -164,6 +177,7 @@ _LOAD_SQL = text(
            s.track         AS track,
            s.frameworks    AS frameworks,
            s.difficulty    AS difficulty,
+           to_jsonb(s)     AS scenario_extra,
            st.slug         AS stage_slug,
            st.sequence     AS stage_sequence,
            st.agent_message AS agent_message,
@@ -179,6 +193,52 @@ _LOAD_SQL = text(
     LEFT JOIN scenario_choices c ON c.stage_id = st.id
     WHERE s.slug = :slug AND s.active
     ORDER BY st.sequence, c.display_order, c.choice_id
+    """
+)
+
+_LOAD_VERSION_SQL = text(
+    """
+    SELECT sv.slug AS scenario_slug,
+           sv.title,
+           sv.brief,
+           sv.track,
+           sv.frameworks,
+           sv.difficulty,
+           jsonb_build_object(
+             'version_id', sv.id::text,
+             'version', sv.version,
+             'content_hash', sv.content_hash,
+             'source_skill_id', pv.practice_id,
+             'source_skill_version', pv.version,
+             'source_skill_url', pv.provenance->>'source_url',
+             'source_skill_hash', pv.provenance->>'source_hash',
+             'source_skill_license', pv.provenance->>'license',
+             'source_review_state', pv.provenance->>'review_state',
+             'practice_area', pv.content->>'practice_area',
+             'estimated_minutes', pv.content->>'estimated_minutes',
+             'learning_objectives', COALESCE(pv.content->'learning_objectives', '[]'::jsonb)
+           ) AS scenario_extra,
+           st.stable_id AS stage_slug,
+           st.sequence AS stage_sequence,
+           st.agent_message,
+           ARRAY(SELECT jsonb_array_elements_text(st.demands)) AS demands,
+           c.stable_id AS choice_id,
+           c.label,
+           c.consequence,
+           c.is_correct,
+           c.framework_rationale,
+           jsonb_build_object(
+             'next_stage', c.next_stage_id,
+             'risk_outcome', c.risk_outcome,
+             'dimension_weights', c.dimension_weights,
+             'control_refs', c.control_refs
+           ) AS choice_extra
+    FROM scenario_versions sv
+    LEFT JOIN practice_versions pv ON pv.id = sv.practice_version_id
+    LEFT JOIN scenario_stage_versions st ON st.scenario_version_id = sv.id
+    LEFT JOIN scenario_choice_versions c ON c.stage_version_id = st.id
+    WHERE sv.id = CAST(:version_id AS uuid)
+    ORDER BY st.sequence, c.display_order, c.stable_id
     """
 )
 
@@ -214,9 +274,21 @@ def _dimension_weights(raw: Any) -> dict[str, int] | None:
     return weights or None
 
 
+def _string_tuple(raw: Any) -> tuple[str, ...]:
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            return ()
+    if not isinstance(raw, (list, tuple)):
+        return ()
+    return tuple(str(item) for item in raw if item is not None)
+
+
 def _rows_to_scenario(rows: list[Any]) -> Scenario:
     """Fold the stage/choice join back into nested objects, preserving row order."""
     head = rows[0]
+    scenario_extra = _choice_extra(head["scenario_extra"])
     stage_meta: dict[str, tuple[int, str, tuple[str, ...]]] = {}
     stage_choices: dict[str, list[ScenarioChoice]] = {}
 
@@ -246,6 +318,7 @@ def _rows_to_scenario(rows: list[Any]) -> Scenario:
                     next_stage=str(next_stage) if next_stage is not None else None,
                     risk_outcome=str(risk_outcome) if risk_outcome is not None else None,
                     dimension_weights=_dimension_weights(extra.get("dimension_weights")),
+                    control_refs=_string_tuple(extra.get("control_refs")),
                 )
             )
 
@@ -256,6 +329,26 @@ def _rows_to_scenario(rows: list[Any]) -> Scenario:
         track=str(head["track"]),
         frameworks=tuple(head["frameworks"] or ()),
         difficulty=str(head["difficulty"]),
+        source_skill_id=scenario_extra.get("source_skill_id"),
+        source_skill_version=scenario_extra.get("source_skill_version"),
+        source_skill_url=scenario_extra.get("source_skill_url"),
+        source_skill_hash=scenario_extra.get("source_skill_hash"),
+        source_skill_license=scenario_extra.get("source_skill_license"),
+        source_review_state=scenario_extra.get("source_review_state"),
+        practice_area=scenario_extra.get("practice_area"),
+        estimated_minutes=scenario_extra.get("estimated_minutes"),
+        learning_objectives=_string_tuple(scenario_extra.get("learning_objectives")),
+        version_id=(
+            str(scenario_extra["version_id"])
+            if scenario_extra.get("version_id") is not None
+            else None
+        ),
+        version=(
+            int(scenario_extra["version"])
+            if scenario_extra.get("version") is not None
+            else None
+        ),
+        content_hash=scenario_extra.get("content_hash"),
         stages=tuple(
             ScenarioStage(
                 slug=slug,
@@ -269,7 +362,12 @@ def _rows_to_scenario(rows: list[Any]) -> Scenario:
     )
 
 
-async def load_scenario(scenario_slug: str, db: AsyncSession | None = None) -> Scenario:
+async def load_scenario(
+    scenario_slug: str,
+    db: AsyncSession | None = None,
+    *,
+    version_id: str | None = None,
+) -> Scenario:
     """
     Resolve scenario content by slug, preferring the database.
 
@@ -291,6 +389,17 @@ async def load_scenario(scenario_slug: str, db: AsyncSession | None = None) -> S
         return _fallback("env_flag")
     if db is None:
         return _fallback("no_session")
+
+    if version_id is not None:
+        version_rows = (
+            await db.execute(_LOAD_VERSION_SQL, {"version_id": version_id})
+        ).mappings().all()
+        if not version_rows:
+            raise ScenarioNotFound(f"{slug}@{version_id}")
+        versioned = _rows_to_scenario(list(version_rows))
+        if versioned.slug != slug:
+            raise ScenarioNotFound(f"{slug}@{version_id}")
+        return versioned
 
     # to_regclass rather than a bare SELECT: a missing table would abort the
     # caller's transaction, taking the session insert and audit writes with it.
@@ -325,6 +434,9 @@ def initial_state(
                 "stance": opening.stance,
                 "message": opening.message,
                 "demands": list(opening.demands),
+                "provenance": (
+                    opening.provenance.model_dump() if opening.provenance is not None else None
+                ),
             }
         ],
         "choices": active.choices_for_stage(entry),
@@ -453,6 +565,9 @@ async def advance_after_decision(
             "stance": agent.stance,
             "message": agent.message,
             "demands": list(agent.demands),
+            "provenance": (
+                agent.provenance.model_dump() if agent.provenance is not None else None
+            ),
         }
     )
     new_state: dict[str, Any] = {

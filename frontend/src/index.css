@@ -21,8 +21,8 @@
   /* Text hierarchy — ink on paper */
   --text: #1c1917;
   --text-secondary: #57534e;
-  --text-tertiary: #8a847b;
-  --text-quiet: #a8a29e;
+  --text-tertiary: #6f6962;
+  --text-quiet: #6f6962;
   --on-accent: #ffffff;
 
   /* Semantic — navy chrome, restrained status */
@@ -139,6 +139,19 @@ body,
   color: var(--text);
 }
 
+html {
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 /* Skip link: first focusable, off-screen until focus */
 .cortex-skip-link {
   position: absolute;
@@ -172,9 +185,22 @@ body,
   box-sizing: border-box;
 }
 
+.cortex-mobile-menu {
+  display: none;
+}
+
+.cortex-sidebar-backdrop {
+  display: none;
+}
+
 .cortex-sidebar-link:hover,
 .cortex-sidebar-link-external:hover {
   background: var(--card-hover) !important;
+}
+
+.cortex-sidebar-link,
+.cortex-sidebar-link-active {
+  min-height: 44px;
 }
 
 .cortex-sidebar-link[aria-current="page"]:hover {
@@ -294,6 +320,7 @@ body,
 
 /* Buttons — shell actions */
 .cortex-btn-primary {
+  min-height: 44px;
   padding: 6px 14px;
   border-radius: var(--radius-sm);
   border: none;
@@ -309,6 +336,7 @@ body,
   opacity: 0.65;
 }
 .cortex-btn-ghost {
+  min-height: 44px;
   padding: 4px 12px;
   border-radius: var(--radius-sm);
   background: var(--elevated);
@@ -318,8 +346,8 @@ body,
   cursor: pointer;
 }
 .cortex-btn-icon {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-pill);
   background: var(--border);
   border: 1px solid var(--border-l);
@@ -331,6 +359,26 @@ body,
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.cortex-action-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--text-body);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cortex-action-link-primary {
+  border-color: transparent;
+  background: var(--blue);
+  color: var(--on-accent);
 }
 
 /* Tables — shared data surface */
@@ -380,9 +428,100 @@ body,
 /* Visible focus for interactive controls inside app shell */
 .cortex-app a:focus-visible,
 .cortex-app button:focus-visible,
-.cortex-app [role="tab"]:focus-visible {
+.cortex-app [role="tab"]:focus-visible,
+.cortex-app input:focus-visible,
+.cortex-app select:focus-visible,
+.cortex-app textarea:focus-visible,
+body > div a:focus-visible,
+body > div button:focus-visible,
+body > div input:focus-visible,
+body > div select:focus-visible,
+body > div textarea:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+button,
+input,
+select,
+textarea,
+summary {
+  font: inherit;
+}
+
+button,
+select,
+summary,
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  min-height: 44px;
+}
+
+@media (max-width: 760px) {
+  .cortex-main-chrome {
+    margin-left: 0 !important;
+    padding: 0 16px 32px !important;
+    width: 100%;
+  }
+
+  .cortex-mobile-menu {
+    display: inline-flex;
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    z-index: 40;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .cortex-sidebar {
+    transform: translateX(-100%);
+    transition: transform 160ms ease;
+    width: min(280px, 86vw) !important;
+    z-index: 50 !important;
+  }
+
+  .cortex-sidebar[data-open="true"] {
+    transform: translateX(0);
+  }
+
+  .cortex-sidebar-backdrop[data-open="true"] {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    border: 0;
+    background: rgba(28, 25, 23, 0.55);
+  }
+
+  .cortex-help-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  .cortex-help-toc {
+    position: static !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-right: 0 !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .cortex-main-chrome {
+    padding-inline: 12px !important;
+  }
+
+  .cortex-auth-card {
+    padding: 20px 16px !important;
+  }
 }
 
 /* ── Stagger card entrance ── */
@@ -512,6 +651,13 @@ body,
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
   .card-stagger,
   .bar-animated,
   .skeleton-shimmer,

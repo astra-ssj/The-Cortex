@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Apply CORTEX SQL migrations in the same order as docker-compose (postgres service).
+# Apply the immutable Astra migration manifest with checksums in one locked psql session.
 # Usage: PGHOST=localhost PGPORT=5432 PGUSER=cortex PGPASSWORD=... PGDATABASE=cortex ./scripts/apply_cortex_schema.sh
 set -euo pipefail
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MANIFEST="$ROOT/migrations/manifest.txt"
 export PGPASSWORD="${PGPASSWORD:-}"
+
 if ! command -v psql &>/dev/null; then
   for p in /opt/homebrew/opt/libpq/bin /opt/homebrew/Cellar/libpq/*/bin /usr/local/opt/libpq/bin; do
     if [[ -x "$p/psql" ]]; then
@@ -12,94 +15,97 @@ if ! command -v psql &>/dev/null; then
     fi
   done
 fi
-psql() {
-  command psql -v ON_ERROR_STOP=1 "$@"
+command -v psql >/dev/null || {
+  echo "psql is required to apply Astra migrations" >&2
+  exit 127
+}
+[[ -f "$MANIFEST" ]] || {
+  echo "Migration manifest not found: $MANIFEST" >&2
+  exit 2
 }
 
-# Ensure migration tracking table exists
-echo "Verifying schema_migrations tracking table..."
-psql -c "CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR(255) PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP);" || true
-
-# If schema was already provisioned in the past but schema_migrations is empty,
-# backfill entries for migrations that are already reflected in the schema.
-HAS_EXISTING_SCHEMA=$(psql -t -A -c "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'scenarios';" 2>/dev/null || true)
-if [[ "$HAS_EXISTING_SCHEMA" == "1" ]]; then
-  COUNT_RECORDED=$(psql -t -A -c "SELECT COUNT(*) FROM schema_migrations;" 2>/dev/null || echo "0")
-  if [[ "$COUNT_RECORDED" == "0" ]]; then
-    echo "Existing schema detected with empty tracker; initializing schema_migrations ledger..."
-    for f in "$ROOT"/migrations/*.sql; do
-      M_NAME="$(basename "$f")"
-      psql -c "INSERT INTO schema_migrations (version) VALUES ('$M_NAME') ON CONFLICT DO NOTHING;" >/dev/null 2>&1 || true
-    done
+sha256_file() {
+  if command -v sha256sum >/dev/null; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    shasum -a 256 "$1" | awk '{print $1}'
   fi
+}
+
+sql_file="$(mktemp "${TMPDIR:-/tmp}/astra-migrate.XXXXXX.sql")"
+trap 'rm -f "$sql_file"' EXIT
+
+cat >"$sql_file" <<'SQL'
+\set ON_ERROR_STOP on
+SELECT pg_advisory_lock(87201402);
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version VARCHAR(255) PRIMARY KEY,
+  checksum CHAR(64),
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE schema_migrations ADD COLUMN IF NOT EXISTS checksum CHAR(64);
+SQL
+
+if [[ "${ASTRA_MIGRATION_ADOPT_CHECKSUMS:-0}" == "1" ]]; then
+  echo "\\echo Adopting checksums for legacy migration ledger entries" >>"$sql_file"
 fi
 
-# Single migration lane: migrations/002 … 035 (filename order == apply order).
-# 009/010/013/014/015 still run before 018 drops their tables: replaying history
-# keeps fresh installs and pre-018 databases converging on the same end state.
-for f in \
-  "$ROOT/init.sql" \
-  "$ROOT/migrations/002_cortex_ontology.sql" \
-  "$ROOT/migrations/003_assessment_results.sql" \
-  "$ROOT/migrations/004_controls_authoritative.sql" \
-  "$ROOT/migrations/005_multi_tenancy.sql" \
-  "$ROOT/migrations/006_assessment_results_status_risk.sql" \
-  "$ROOT/migrations/007_assessment_results_fix.sql" \
-  "$ROOT/migrations/008_human_review_queue.sql" \
-  "$ROOT/migrations/009_shasta_cloud.sql" \
-  "$ROOT/migrations/010_shasta_evidence_control_links.sql" \
-  "$ROOT/migrations/011_operational_persistence.sql" \
-  "$ROOT/migrations/012_security_auth.sql" \
-  "$ROOT/migrations/013_compliance_graph.sql" \
-  "$ROOT/migrations/014_microsoft_integration.sql" \
-  "$ROOT/migrations/015_relationship_graph.sql" \
-  "$ROOT/migrations/016_rls_and_append_only_audit.sql" \
-  "$ROOT/migrations/017_learning_loop.sql" \
-  "$ROOT/migrations/018_drop_decommissioned_modules.sql" \
-  "$ROOT/migrations/019_scenario_content.sql" \
-  "$ROOT/migrations/019_scenario_content_seed.sql" \
-  "$ROOT/migrations/020_competency_scores.sql" \
-  "$ROOT/migrations/021_scenario_cx1002_seed.sql" \
-  "$ROOT/migrations/022_scenario_cx1003_seed.sql" \
-  "$ROOT/migrations/023_scenario_cx1004_seed.sql" \
-  "$ROOT/migrations/024_scenario_cx1005_seed.sql" \
-  "$ROOT/migrations/025_scenario_choice_transitions.sql" \
-  "$ROOT/migrations/026_scenario_transitions_seed.sql" \
-  "$ROOT/migrations/027_scenario_choice_dimension_weights.sql" \
-  "$ROOT/migrations/028_scenario_dimension_weights_seed.sql" \
-  "$ROOT/migrations/029_findings_from_competency.sql" \
-  "$ROOT/migrations/030_review_queue_from_learning.sql" \
-  "$ROOT/migrations/031_org_invitations.sql" \
-  "$ROOT/migrations/032_audit_log_update_grant.sql" \
-  "$ROOT/migrations/033_audit_chain_head_index.sql" \
-  "$ROOT/migrations/034_remove_legacy_cism_scenario_tag.sql" \
-  "$ROOT/migrations/035_control_refs_and_session_framework.sql" \
-  "$ROOT/migrations/036_tenant_audit_tail.sql" \
-  "$ROOT/migrations/037_multi_tenant_rls_audit_system.sql"
-  do
-  M_NAME="$(basename "$f")"
-  if [[ "$M_NAME" != "init.sql" ]]; then
-    IS_APPLIED=$(psql -t -A -c "SELECT 1 FROM schema_migrations WHERE version = '$M_NAME';" 2>/dev/null || true)
-    if [[ "$IS_APPLIED" == "1" ]]; then
-      echo "Skipping already applied migration: $M_NAME"
-      continue
-    fi
+while IFS= read -r relative || [[ -n "$relative" ]]; do
+  [[ -z "$relative" || "$relative" == \#* ]] && continue
+  file="$ROOT/$relative"
+  [[ -f "$file" ]] || {
+    echo "Manifest entry does not exist: $relative" >&2
+    exit 2
+  }
+  version="$(basename "$relative")"
+  checksum="$(sha256_file "$file")"
+
+  if [[ "${ASTRA_MIGRATION_ADOPT_CHECKSUMS:-0}" == "1" ]]; then
+    printf "UPDATE schema_migrations SET checksum = '%s' WHERE version = '%s' AND checksum IS NULL;\n" \
+      "$checksum" "$version" >>"$sql_file"
   fi
 
-  echo "Applying $M_NAME..."
-  psql -f "$f"
+  cat >>"$sql_file" <<SQL
+\set migration_version '$version'
+\set migration_checksum '$checksum'
+SELECT EXISTS (
+         SELECT 1 FROM schema_migrations WHERE version = :'migration_version'
+       ) AS migration_exists,
+       COALESCE((
+         SELECT checksum = :'migration_checksum'
+         FROM schema_migrations
+         WHERE version = :'migration_version'
+       ), false) AS checksum_matches
+\gset
+\if :migration_exists
+  \if :checksum_matches
+    \echo Skipping verified migration :migration_version
+  \else
+    \echo Migration checksum mismatch or missing checksum: :migration_version
+    \quit 3
+  \endif
+\else
+  \echo Applying :migration_version
+  BEGIN;
+  \i '$file'
+  INSERT INTO schema_migrations (version, checksum)
+  VALUES (:'migration_version', :'migration_checksum');
+  COMMIT;
+\endif
+SQL
+done <"$MANIFEST"
 
-  if [[ "$M_NAME" != "init.sql" ]]; then
-    psql -c "INSERT INTO schema_migrations (version) VALUES ('$M_NAME') ON CONFLICT (version) DO NOTHING;" >/dev/null 2>&1 || true
-  fi
-done
+cat >>"$sql_file" <<'SQL'
+SELECT pg_advisory_unlock(87201402);
+SQL
 
+psql -X -v ON_ERROR_STOP=1 -f "$sql_file"
 
-# App connects as non-superuser cortex_app (RLS + audit grants actually bind).
-# Sync password to the same secret used by migrations / DATABASE_URL.
+# The API uses the constrained role so RLS and append-only grants bind.
 if [[ -n "${PGPASSWORD:-}" ]]; then
-  echo "Syncing cortex_app password..."
-  psql -v ON_ERROR_STOP=1 -c "ALTER ROLE cortex_app WITH PASSWORD '${PGPASSWORD}';" || true
+  psql -X -v ON_ERROR_STOP=1 --set=app_password="$PGPASSWORD" <<'SQL'
+SELECT format('ALTER ROLE cortex_app WITH PASSWORD %L', :'app_password') \gexec
+SQL
 fi
 
-echo "Schema apply complete."
+echo "Astra schema apply complete."

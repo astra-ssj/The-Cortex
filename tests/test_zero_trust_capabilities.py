@@ -121,10 +121,14 @@ async def test_b_audit_survives_reload_of_tail() -> None:
         await session.commit()
 
     # Simulate API restart: new fabric state loads tail from table, not empty memory.
-    await audit_fabric.load_tail()
+    await audit_fabric.load_tail("demo-org-001")
     assert audit_fabric._tail_hash is not None
 
     async with engine.connect() as conn:
+        await conn.execute(
+            text("SELECT set_config('app.current_org', :org_id, true)"),
+            {"org_id": "demo-org-001"},
+        )
         row = (
             await conn.execute(
                 text("SELECT action, hash FROM audit_log WHERE action = :a LIMIT 1"),

@@ -16,6 +16,7 @@ import structlog
 
 from core.circuit_breaker import CircuitBreaker, CircuitState, register_circuit_breaker
 from core.llm.config import llm_timeout_seconds
+from core.offline_personas import OfflinePersonaError, offline_persona_turn
 
 logger = structlog.get_logger()
 
@@ -94,6 +95,16 @@ class _StubProvider:
         choice = str(context.get("last_choice") or "").strip()
         stage = str(context.get("stage") or "brief")
         situation = str(context.get("situation") or "")
+        scenario = str(context.get("scenario") or "").strip()
+
+        # Disconnected deployments use the reviewed, versioned persona catalog.
+        # Choice-specific CX-1001 responses below remain for backwards-compatible
+        # consequence narration after the opening turn.
+        if scenario and (not choice or scenario != "cloud_access_onboarding"):
+            try:
+                return json.dumps(offline_persona_turn(scenario).as_agent_payload())
+            except OfflinePersonaError:
+                logger.warning("offline_persona_missing", scenario=scenario)
 
         # Canned role-consistent DevOps Lead responses keyed by learner choice / stage.
         if choice == "approve_all":
@@ -330,6 +341,22 @@ def agent_model_name() -> str:
     return resolve_agent_provider().model_name()
 
 
+def agent_model_provenance() -> dict[str, str | None]:
+    """Typed metadata persisted with every validated harness turn."""
+    provider = resolve_agent_provider()
+    is_stub = provider.provider_id == "stub"
+    return {
+        "type": "stub" if is_stub else "live_model",
+        "provider": provider.provider_id,
+        "model": provider.model_name(),
+        "fixture_version": (
+            offline_persona_turn("cloud_access_onboarding").fixture_version
+            if is_stub
+            else None
+        ),
+    }
+
+
 def agent_provider_status() -> dict[str, Any]:
     """Safe operator snapshot — no secrets."""
     provider = resolve_agent_provider()
@@ -348,7 +375,10 @@ def log_resolved_agent_provider() -> None:
             "learning_agent_provider",
             provider="stub",
             model=status["model"],
-            detail="Personas will not match scenario roles on the stub path.",
+            detail=(
+                "Using reviewed deterministic offline persona fixtures; "
+                "no live model calls will be made."
+            ),
         )
         return
     logger.info(

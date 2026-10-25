@@ -24,6 +24,8 @@ class Permission(str, Enum):
     # Competency is per-person performance data. Reading someone else's is a
     # management action, so it is gated separately from every read in the product.
     view_team_competency = "view_team_competency"
+    coach_learners = "coach_learners"
+    manage_curriculum = "manage_curriculum"
 
 
 ROLE_PERMISSIONS: dict[CanonicalRole, frozenset[Permission]] = {
@@ -40,6 +42,8 @@ ROLE_PERMISSIONS: dict[CanonicalRole, frozenset[Permission]] = {
             Permission.toggle_demo,
             Permission.access_settings,
             Permission.view_team_competency,
+            Permission.coach_learners,
+            Permission.manage_curriculum,
         }
     ),
     CanonicalRole.analyst: frozenset(
@@ -50,6 +54,7 @@ ROLE_PERMISSIONS: dict[CanonicalRole, frozenset[Permission]] = {
             Permission.ingest_document,
             Permission.manage_integrations,
             Permission.generate_report,
+            Permission.coach_learners,
         }
     ),
     CanonicalRole.viewer: frozenset(

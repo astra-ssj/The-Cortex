@@ -89,23 +89,23 @@ describe("ScenarioDebrief", () => {
     for (const label of ["Control mapping", "Evidence quality", "Escalation judgment", "Remediation"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
-    expect(screen.getAllByText(/raised as a control gap/)).toHaveLength(2);
+    expect(screen.getAllByText(/recommended for more practice/)).toHaveLength(2);
   });
 
-  it("hands off to Control Gaps and Evidence by naming the weak dimensions", () => {
+  it("hands off to Astra progress and practices by naming weak dimensions", () => {
     renderDebrief(debrief());
 
-    const handoff = screen.getByText(/now open control gaps/);
+    const handoff = screen.getByText(/prioritised for more practice/);
     expect(handoff.textContent).toContain("Control mapping");
     expect(handoff.textContent).toContain("Escalation judgment");
-    expect(handoff.textContent).toMatch(/hash-chained into the evidence log/);
+    expect(handoff.textContent).toMatch(/recorded in your learning history/);
 
-    expect(screen.getByText("View control gaps").closest("a")?.getAttribute("href")).toBe("/findings");
-    expect(screen.getByText("View evidence trail").closest("a")?.getAttribute("href")).toBe("/evidence");
-    expect(screen.getByText("Competency ledger").closest("a")?.getAttribute("href")).toBe("/progress");
+    expect(screen.getByText("View progress").closest("a")?.getAttribute("href")).toBe("/progress");
+    expect(screen.getByText("Choose another practice").closest("a")?.getAttribute("href")).toBe("/practices");
+    expect(screen.queryByText(/compliance posture|control gaps|evidence trail/i)).toBeNull();
   });
 
-  it("says so explicitly when no gaps were raised", () => {
+  it("says so explicitly when every dimension meets the floor", () => {
     renderDebrief(
       debrief({
         competency: debrief().competency.map((d) => ({ ...d, score: 80, is_gap: false })),
@@ -114,8 +114,8 @@ describe("ScenarioDebrief", () => {
       }),
     );
 
-    expect(screen.getByText(/raised no new control gaps/)).toBeTruthy();
-    expect(screen.queryByText(/raised as a control gap/)).toBeNull();
+    expect(screen.getByText(/Every dimension is at or above the competency floor/)).toBeTruthy();
+    expect(screen.queryByText(/recommended for more practice/)).toBeNull();
   });
 
   it("hides the reference answer when the learner was correct", () => {
@@ -125,6 +125,23 @@ describe("ScenarioDebrief", () => {
 
     expect(screen.getByText(/MATCHED REFERENCE/)).toBeTruthy();
     expect(screen.queryByText("Reference answer")).toBeNull();
+  });
+
+  it("shows source provenance for a skill-derived practice", () => {
+    renderDebrief(
+      debrief({
+        source_skill_id: "evidence-freshness-check",
+        source_skill_version: "v2026.10.19.2",
+        source_skill_hash: "713d89b9b3f74106c82d322c91e3dbfbe7c8e3ba738a464fd31734a138abe954",
+        source_skill_license: "MIT",
+        source_review_state: "adapted",
+        learning_objectives: ["Read the date inside the artefact"],
+      }),
+    );
+
+    expect(screen.getByText("evidence freshness check")).toBeTruthy();
+    expect(screen.getByText(/Better ISMS · v2026.10.19.2 · MIT/)).toBeTruthy();
+    expect(screen.getByText("Read the date inside the artefact")).toBeTruthy();
   });
 
   it("restarts the loop from the debrief", async () => {

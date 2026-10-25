@@ -10,7 +10,7 @@
  * modules into one product by naming what the session just produced downstream.
  */
 
-import { type CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import {
   type DebriefDecision,
@@ -97,7 +97,7 @@ function DimensionCard({ dim }: { dim: DebriefDimension }) {
       </div>
       {dim.is_gap ? (
         <p style={{ margin: "10px 0 0", fontSize: 11, fontWeight: 700, color: "var(--red)" }}>
-          Below the competency floor — raised as a control gap
+          Below the competency floor — recommended for more practice
         </p>
       ) : null}
       {dim.observations.length > 0 ? (
@@ -160,6 +160,16 @@ function DecisionCard({ decision }: { decision: DebriefDecision }) {
         ) : null}
       </dl>
 
+      {decision.learner_rationale ? (
+        <p style={{ margin: "12px 0 0", fontSize: 12, lineHeight: 1.55, color: "var(--text-secondary)" }}>
+          <strong style={{ color: "var(--text)" }}>Your rationale: </strong>
+          {decision.learner_rationale}
+          {decision.learner_confidence != null
+            ? ` · Confidence ${Math.round(decision.learner_confidence * 100)}%`
+            : ""}
+        </p>
+      ) : null}
+
       {decision.framework_rationale ? (
         <p
           style={{
@@ -214,6 +224,10 @@ export function ScenarioDebrief({
   debrief: ScenarioDebriefData;
   onRestart: () => void;
 }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
   const { decision_count: total, correct_count: correct } = debrief;
   const gapLabels = debrief.competency
     .filter((d) => d.is_gap)
@@ -222,14 +236,82 @@ export function ScenarioDebrief({
   return (
     <section style={panel} aria-label="Scenario debrief">
       <div style={eyebrow}>Debrief</div>
-      <h2 style={{ margin: "6px 0 0", fontSize: 20, fontWeight: 700, color: "var(--text)" }}>
+      <h2 ref={headingRef} tabIndex={-1} style={{ margin: "6px 0 0", fontSize: 20, fontWeight: 700, color: "var(--text)" }}>
         {debrief.scenario_title}
       </h2>
       <p style={{ margin: "10px 0 0", fontSize: 13, color: "var(--text-secondary)" }}>
         {correct} of {total} {total === 1 ? "decision" : "decisions"} matched the reference
-        control. Final risk outcome:{" "}
+        answer. Final scenario outcome:{" "}
         <strong style={{ color: "var(--text)" }}>{debrief.risk ?? "unknown"}</strong>.
       </p>
+
+      {debrief.source_skill_id ? (
+        <div
+          style={{
+            marginTop: 18,
+            padding: 14,
+            background: "var(--bg)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: "var(--radius-sm)",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 18,
+          }}
+        >
+          <div>
+            <div style={{ ...eyebrow, marginBottom: 7 }}>Method practiced</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+              {debrief.source_skill_id.replace(/-/g, " ")}
+            </div>
+            <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-secondary)" }}>
+              Better ISMS · {debrief.source_skill_version ?? "version unavailable"} ·{" "}
+              {debrief.source_skill_license ?? "license unavailable"}
+            </div>
+            <div style={{ marginTop: 4, fontSize: 11, color: "var(--text-tertiary)" }}>
+              {debrief.source_review_state === "reviewed"
+                ? "SME reviewed"
+                : "Adapted for training"}
+              {debrief.source_skill_hash
+                ? ` · source ${debrief.source_skill_hash.slice(0, 10)}`
+                : ""}
+            </div>
+          </div>
+          {debrief.learning_objectives && debrief.learning_objectives.length > 0 ? (
+            <div>
+              <div style={{ ...eyebrow, marginBottom: 7 }}>Learning objectives</div>
+              <ul
+                style={{
+                  margin: 0,
+                  paddingLeft: 18,
+                  color: "var(--text-secondary)",
+                  fontSize: 12,
+                  lineHeight: 1.55,
+                }}
+              >
+                {debrief.learning_objectives.map((objective) => (
+                  <li key={objective}>{objective}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <p style={{ margin: "12px 0 0", fontSize: 11, color: "var(--text-tertiary)" }}>
+        Scenario version {debrief.scenario_version ?? "unavailable"}
+        {debrief.scenario_content_hash
+          ? ` · content ${debrief.scenario_content_hash.slice(0, 12)}`
+          : ""}
+      </p>
+      {debrief.agent_provenance?.length ? (
+        <div aria-label="Agent response provenance" style={{ marginTop: 8, fontSize: 11, color: "var(--text-tertiary)" }}>
+          {debrief.agent_provenance.map((item, index) => (
+            <div key={`${item.type}-${index}`}>
+              Turn {index + 1}: {item.type.replace(/_/g, " ")} · {item.provider} / {item.model}
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <h3 style={{ ...eyebrow, margin: "28px 0 12px" }}>Competency after this session</h3>
       <div
@@ -274,40 +356,22 @@ export function ScenarioDebrief({
             <>
               Your weakest {gapLabels.length === 1 ? "dimension" : "dimensions"} —{" "}
               <strong>{gapLabels.join(" and ")}</strong> — {gapLabels.length === 1 ? "is" : "are"}{" "}
-              now open control gaps. Close {gapLabels.length === 1 ? "it" : "them"} by retaking the
-              scenario that produced {gapLabels.length === 1 ? "it" : "them"}.
+              now prioritised for more practice. Strengthen {gapLabels.length === 1 ? "it" : "them"} by
+              retaking this scenario or choosing another practice that exercises the same skills.
             </>
           ) : (
             <>
-              Every dimension is at or above the competency floor, so this session raised no new
-              control gaps.
+              Every dimension is at or above the competency floor. Continue with another practice
+              or review your progress over time.
             </>
-          )}{" "}
-          Your decision trail is hash-chained into the evidence log and cannot be edited.
+          )} Your completed session is recorded in your learning history.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
-          {/* Posture leads: the point of finishing a scenario is that the org's
-              standing against the controls it exercised has just moved. Control
-              gaps are the personal to-do list that follows from it. */}
-          <Link to="/dashboard" style={{ textDecoration: "none" }}>
-            <Button variant="primary" size="md" type="button">
-              View compliance posture
-            </Button>
+          <Link to="/progress" className="cortex-action-link cortex-action-link-primary">
+            View progress
           </Link>
-          <Link to="/findings" style={{ textDecoration: "none" }}>
-            <Button variant="secondary" size="md" type="button">
-              View control gaps
-            </Button>
-          </Link>
-          <Link to="/evidence" style={{ textDecoration: "none" }}>
-            <Button variant="secondary" size="md" type="button">
-              View evidence trail
-            </Button>
-          </Link>
-          <Link to="/progress" style={{ textDecoration: "none" }}>
-            <Button variant="secondary" size="md" type="button">
-              Competency ledger
-            </Button>
+          <Link to="/practices" className="cortex-action-link">
+            Choose another practice
           </Link>
           <Button variant="secondary" size="md" type="button" onClick={onRestart}>
             Next scenario

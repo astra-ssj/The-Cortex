@@ -191,3 +191,25 @@ def test_cortex_main_app_integration(mock_redis: AsyncMock):
     # Clean up override
     main_app.dependency_overrides.pop(get_redis_client, None)
 
+
+def test_audit_decision_rejects_cross_tenant_bearer_spoofing(
+    test_client: TestClient, mock_redis: AsyncMock
+):
+    """Authenticated caller for org-a cannot spoof events into org-b's audit stream."""
+    from core.security import create_access_token
+
+    token = create_access_token(
+        {"sub": "analyst@org-a.local", "org_id": "org-a", "role": "analyst", "is_demo": True}
+    )
+    r = test_client.post(
+        "/api/audit/decision",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "tenant_id": "org-b",
+            "user_id": "spoofed-user",
+            "action_data": {"decision": "forged"},
+        },
+    )
+    assert r.status_code == 403
+    mock_redis.xadd.assert_not_awaited()
+

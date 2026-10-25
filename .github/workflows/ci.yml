@@ -232,3 +232,12 @@ jobs:
           # Only required if this repo ever moves under a GitHub Organization —
           # personal-account repos don't need a license key. See gitleaks.io.
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  release-gates:
+    name: Release — Clean Install + Upgrade
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Exercise release gates
+        run: ./scripts/ci-release-gates.sh

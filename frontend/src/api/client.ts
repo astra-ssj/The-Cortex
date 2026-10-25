@@ -4,8 +4,8 @@ import { useCallback } from "react";
 import { ALL_FRAMEWORK_IDS as ALL_FRAMEWORK_IDS_BUNDLE } from "../lib/frameworkRegistry";
 import { clearCortexBrowserSession } from "../lib/cortexSession";
 
-// In dev use relative URLs so Vite proxy (→ localhost:8000) is used; avoids CORS and connection to wrong host.
-const API_BASE = import.meta.env.DEV ? "" : "http://localhost:8000";
+// Development and release builds are same-origin. Vite/nginx proxy `/api` to the API.
+const API_BASE = "";
 
 /** Abort hung fetches (proxy waiting on dead API). Set VITE_FETCH_TIMEOUT_MS=0 to disable. */
 const FETCH_TIMEOUT_MS = Number(import.meta.env.VITE_FETCH_TIMEOUT_MS ?? 45000);

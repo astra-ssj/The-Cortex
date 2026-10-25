@@ -34,6 +34,12 @@ export interface ScenarioSummary {
   track: string;
   frameworks: string[];
   difficulty: string;
+  source_skill_id?: string | null;
+  source_skill_version?: string | null;
+  source_review_state?: string | null;
+  practice_area?: string | null;
+  estimated_minutes?: number | null;
+  learning_objectives?: string[];
 }
 
 export function getScenarios(): Promise<ScenarioSummary[]> {
@@ -127,12 +133,14 @@ export function getLearningSession(
 export function decideLearningSession(
   sessionId: string,
   choice: string,
-  orgId?: string
+  orgId?: string,
+  rationale?: string,
+  confidence?: number,
 ): Promise<LearningSession> {
   const qs = orgId ? `?org_id=${encodeURIComponent(orgId)}` : "";
   return postJson<LearningSession>(
     `/api/v1/learning/sessions/${encodeURIComponent(sessionId)}/decide${qs}`,
-    { choice }
+    { choice, rationale, confidence }
   );
 }
 
@@ -151,6 +159,8 @@ export interface DebriefDecision {
   controls: string[];
   observations: string[];
   decided_at: string | null;
+  learner_rationale?: string | null;
+  learner_confidence?: number | null;
 }
 
 export interface DebriefDimension {
@@ -177,6 +187,21 @@ export interface ScenarioDebriefData {
   gap_dimensions: string[];
   correct_count: number;
   decision_count: number;
+  source_skill_id?: string | null;
+  source_skill_version?: string | null;
+  source_skill_url?: string | null;
+  source_skill_hash?: string | null;
+  source_skill_license?: string | null;
+  source_review_state?: string | null;
+  scenario_version?: number | null;
+  scenario_content_hash?: string | null;
+  agent_provenance?: {
+    type: "live_model" | "stub" | "safe_fallback";
+    provider: string;
+    model: string;
+    fixture_version?: string | null;
+  }[];
+  learning_objectives?: string[];
   created_at: string | null;
   updated_at: string | null;
 }

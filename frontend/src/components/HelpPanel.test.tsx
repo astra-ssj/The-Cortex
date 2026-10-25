@@ -108,18 +108,14 @@ describe("HelpPanel content honesty", () => {
 describe("help docs content", () => {
   const copy = JSON.stringify(HELP_DOC_SECTIONS);
 
-  it("matches the README framework coverage statement", () => {
-    expect(copy).toMatch(/ISO 27001:2022 is the only selectable framework/);
-    expect(copy).toMatch(/GDPR and SOC 2 are in development/);
+  it("documents the Astra learning journey", () => {
+    expect(copy).toMatch(/Practices is the Astra home page/);
+    expect(copy).toMatch(/Progress shows your own record/);
   });
 
-  it("does not claim a disabled framework can be chosen", () => {
-    expect(copy).not.toMatch(/ISO 27001:2022 or GDPR/);
-  });
-
-  it("does not claim audit type filters the scenario list", () => {
-    expect(copy).not.toMatch(/matching scenario list/);
-    expect(copy).toMatch(/does not yet filter the scenario list/);
+  it("does not advertise unmounted operational products", () => {
+    expect(copy).not.toMatch(/Audit Simulator|Compliance Overview|Review Queue|Control Gaps/);
+    expect(copy).not.toMatch(/command palette|Run Assessment/);
   });
 
   it("does not advertise a glossary the panel never renders", () => {

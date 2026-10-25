@@ -8,8 +8,8 @@ where = ["."]
 include = ["api*", "compliance*", "core*", "db*", "ontology*"]
 
 [project]
-name = "cortex"
-version = "0.1.0"
+name = "astra-grc-ce"
+version = "1.0.0"
 description = "Astra GRC Community Edition — GRC competency training (ZTAIP)"
 readme = "README.md"
 license = "Apache-2.0"
@@ -22,7 +22,7 @@ dependencies = [
     "uvicorn[standard]>=0.54.0",
     "sqlalchemy[asyncio]>=2.1.5",
     "asyncpg",
-    "pypdf>=6.21.1",
+    "pypdf>=6.21.2",
     "python-docx>=1.2.0",
     "python-multipart>=0.0.32",
     "PyJWT>=2.15.1",

@@ -22,10 +22,51 @@ from redis.exceptions import (
     TimeoutError as RedisTimeoutError,
 )
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 logger = structlog.get_logger()
+
+_bearer_optional = HTTPBearer(auto_error=False)
+
+
+def verify_audit_stream_caller(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer_optional),
+) -> Optional[dict[str, Any]]:
+    """Enforce JWT bearer authentication when CORTEX_AUDIT_STREAM_REQUIRE_AUTH=1 or when a Bearer token is supplied.
+
+    Remains 100% decoupled from SQLAlchemy/asyncpg by verifying HS256 JWT claims directly.
+    When authenticated, prevents cross-tenant spoofing by requiring payload.tenant_id to match
+    the caller's org_id (unless the caller holds an admin role).
+    """
+    require_auth = os.getenv("CORTEX_AUDIT_STREAM_REQUIRE_AUTH", "").lower() in ("1", "true", "yes")
+    token: Optional[str] = credentials.credentials if credentials and credentials.credentials else None
+    if not token:
+        if require_auth:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required for audit decision stream",
+            )
+        return None
+
+    import jwt
+    from jwt.exceptions import InvalidTokenError
+
+    secret = (
+        os.getenv("JWT_SECRET")
+        or os.getenv("CORTEX_SECRET_KEY")
+        or "cortex-dev-jwt-signing-placeholder-not-for-production"
+    )
+    try:
+        claims = jwt.decode(token, secret, algorithms=["HS256"])
+    except InvalidTokenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        ) from exc
+    return claims
 
 # Connection pool for high-throughput async Redis operations.
 _redis_pool: Optional[aioredis.ConnectionPool] = None
@@ -101,9 +142,18 @@ router = APIRouter(tags=["audit-decision-stream"])
 async def _handle_decision_event(
     payload: DecisionEventPayload,
     redis: aioredis.Redis,
+    caller_claims: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
-    # 1. Standardize tenant_id as string
+    # 1. Standardize tenant_id as string and enforce tenant boundary when caller is authenticated
     tenant_id_str = str(payload.tenant_id)
+    if caller_claims is not None:
+        caller_org = str(caller_claims.get("org_id") or "").strip()
+        caller_role = str(caller_claims.get("role") or "").lower()
+        if caller_org and caller_org != tenant_id_str and caller_role not in ("admin", "ciso"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Cross-tenant audit stream write is not permitted",
+            )
 
     # 2. Partitioning logic: mmh3.hash(tenant_id, signed=False) % 64
     partition_id = mmh3.hash(tenant_id_str, signed=False) % 64
@@ -156,6 +206,7 @@ async def _handle_decision_event(
 async def ingest_audit_decision(
     payload: DecisionEventPayload,
     redis: aioredis.Redis = Depends(get_redis_client),
+    caller_claims: Optional[dict[str, Any]] = Depends(verify_audit_stream_caller),
 ) -> dict[str, Any]:
     """High-throughput event ingestion endpoint returning HTTP 202 Accepted.
 
@@ -164,7 +215,7 @@ async def ingest_audit_decision(
     - Guaranteed zero Postgres / SQLAlchemy dependencies.
     - Returns HTTP 503 on Redis connectivity failures.
     """
-    return await _handle_decision_event(payload, redis)
+    return await _handle_decision_event(payload, redis, caller_claims)
 
 
 @router.post(
@@ -176,9 +227,10 @@ async def ingest_audit_decision(
 async def ingest_audit_decision_prefixed(
     payload: DecisionEventPayload,
     redis: aioredis.Redis = Depends(get_redis_client),
+    caller_claims: Optional[dict[str, Any]] = Depends(verify_audit_stream_caller),
 ) -> dict[str, Any]:
     """Prefixed mount fallback (e.g. if router is mounted at /api/audit)."""
-    return await _handle_decision_event(payload, redis)
+    return await _handle_decision_event(payload, redis, caller_claims)
 
 
 @router.post(
@@ -190,6 +242,7 @@ async def ingest_audit_decision_prefixed(
 async def ingest_audit_decision_v1(
     payload: DecisionEventPayload,
     redis: aioredis.Redis = Depends(get_redis_client),
+    caller_claims: Optional[dict[str, Any]] = Depends(verify_audit_stream_caller),
 ) -> dict[str, Any]:
     """Versioned alias matching CORTEX /api/v1 routing standards."""
-    return await _handle_decision_event(payload, redis)
+    return await _handle_decision_event(payload, redis, caller_claims)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import AsyncGenerator
 
 import structlog
@@ -82,6 +83,41 @@ async def database_ready() -> bool:
         return True
     except Exception:
         return False
+
+
+def expected_schema_version() -> str:
+    """Return the final immutable migration declared by the release manifest."""
+    manifest = Path(__file__).resolve().parent.parent / "migrations" / "manifest.txt"
+    entries = [
+        line.strip()
+        for line in manifest.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    if not entries:
+        raise RuntimeError("Migration manifest is empty")
+    return Path(entries[-1]).name
+
+
+async def assert_schema_current() -> None:
+    """Fail startup instead of mutating an incomplete schema as the API role."""
+    expected = expected_schema_version()
+    async with engine.connect() as conn:
+        present = (
+            await conn.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM schema_migrations
+                    WHERE version = :expected
+                    """
+                ),
+                {"expected": expected},
+            )
+        ).scalar_one_or_none()
+    if present != 1:
+        raise RuntimeError(
+            f"Database schema is behind; apply migrations through {expected}"
+        )
 
 
 # Mirrors migrations/005_multi_tenancy.sql — heals DBs created before that migration.

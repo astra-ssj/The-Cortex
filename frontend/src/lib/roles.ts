@@ -10,6 +10,8 @@ export const ROLE_PERMISSIONS = {
     canToggleDemo: true,
     canAccessSettings: true,
     canViewTeamCompetency: true,
+    canCoachLearners: true,
+    canManageCurriculum: true,
   },
   analyst: {
     canRunAssessment: true,
@@ -20,6 +22,8 @@ export const ROLE_PERMISSIONS = {
     canToggleDemo: false,
     canAccessSettings: false,
     canViewTeamCompetency: false,
+    canCoachLearners: true,
+    canManageCurriculum: false,
   },
   viewer: {
     canRunAssessment: false,
@@ -30,6 +34,8 @@ export const ROLE_PERMISSIONS = {
     canToggleDemo: false,
     canAccessSettings: false,
     canViewTeamCompetency: false,
+    canCoachLearners: false,
+    canManageCurriculum: false,
   },
 } as const;
 

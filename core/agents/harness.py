@@ -6,12 +6,13 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import structlog
 from pydantic import BaseModel, Field, StringConstraints, ValidationError
 
-from core.agents.model import call_model
+from core.governance import SovereignModel
+from core.agents.model import agent_model_provenance, call_model
 
 logger = structlog.get_logger()
 
@@ -59,6 +60,13 @@ _ROLE_PROMPTS: dict[str, str] = {
         "under pressure. Respond ONLY as JSON with keys: "
         "speaker, stance, message, demands."
     ),
+    "evidence_freshness_audit": (
+        "You are the Audit Manager preparing for a surveillance audit. "
+        "Speak in first person. You want the evidence pack finished quickly, "
+        "but you will engage honestly when the learner challenges stale, undated, "
+        "or incomplete records. Never suggest altering or backdating evidence. "
+        "Respond ONLY as JSON with keys: speaker, stance, message, demands."
+    ),
 }
 
 _FALLBACK = {
@@ -69,6 +77,18 @@ _FALLBACK = {
         "and choose least privilege, challenge, approve, or deny."
     ),
     "demands": ["Re-confirm access decision"],
+}
+
+_SCENARIO_FALLBACKS: dict[str, dict[str, Any]] = {
+    "evidence_freshness_audit": {
+        "speaker": "Audit Manager",
+        "stance": "cautious",
+        "message": (
+            "The evidence question remains open. Please decide how we should classify "
+            "the artefact and preserve an auditable record."
+        ),
+        "demands": ["Choose an evidence-handling decision"],
+    },
 }
 
 
@@ -87,6 +107,17 @@ _MAX_DEMAND_CHARS = 240
 _MAX_HISTORY_TURNS = 12
 
 
+class AgentTurnProvenance(SovereignModel):
+    """Typed origin record: consumers never infer whether a turn was generated."""
+
+    type: Literal["live_model", "stub", "safe_fallback"]
+    provider: str = Field(..., min_length=1)
+    model: str = Field(..., min_length=1)
+    fixture_version: str | None = None
+
+    model_config = {"extra": "forbid", "frozen": True}
+
+
 class AgentResponse(BaseModel):
     """Validated agent turn — harness refuses anything outside this schema."""
 
@@ -97,11 +128,24 @@ class AgentResponse(BaseModel):
         default_factory=list,
         max_length=_MAX_DEMANDS,
     )
+    provenance: AgentTurnProvenance | None = None
 
 
-def _safe_fallback(*, reason: str) -> AgentResponse:
-    logger.warning("learning_harness_fallback", reason=reason)
-    return AgentResponse.model_validate(_FALLBACK)
+def _safe_fallback(*, reason: str, role_key: str) -> AgentResponse:
+    logger.warning("learning_harness_fallback", reason=reason, role_key=role_key)
+    payload = _SCENARIO_FALLBACKS.get(role_key, _FALLBACK)
+    return AgentResponse.model_validate(
+        {
+            **payload,
+            "provenance": {
+                "jurisdiction": "internal",
+                "purpose_tags": ["learning", "provenance"],
+                "type": "safe_fallback",
+                "provider": "harness",
+                "model": "deterministic-fallback-v1",
+            },
+        }
+    )
 
 
 async def call_agent(
@@ -146,12 +190,22 @@ async def call_agent(
         raw = await call_model(role_prompt, context)
     except Exception as e:
         logger.warning("learning_harness_model_error", error=str(e))
-        return _safe_fallback(reason=f"model_error:{e}")
+        return _safe_fallback(reason=f"model_error:{e}", role_key=role_key)
 
     try:
         data = json.loads(raw) if isinstance(raw, str) else raw
         if not isinstance(data, dict):
-            return _safe_fallback(reason="non_object_json")
-        return AgentResponse.model_validate(data)
+            return _safe_fallback(reason="non_object_json", role_key=role_key)
+        provenance = agent_model_provenance()
+        return AgentResponse.model_validate(
+            {
+                **data,
+                "provenance": {
+                    "jurisdiction": "internal",
+                    "purpose_tags": ["learning", "provenance"],
+                    **provenance,
+                },
+            }
+        )
     except (json.JSONDecodeError, TypeError, ValidationError) as e:
-        return _safe_fallback(reason=f"schema_invalid:{e}")
+        return _safe_fallback(reason=f"schema_invalid:{e}", role_key=role_key)

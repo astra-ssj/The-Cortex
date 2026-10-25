@@ -28,6 +28,8 @@ async def test_call_agent_returns_valid_agent_response() -> None:
     assert out.speaker
     assert out.message
     assert isinstance(out.demands, list)
+    assert out.provenance is not None
+    assert out.provenance.type == "stub"
 
 
 @pytest.mark.asyncio
@@ -47,6 +49,28 @@ async def test_call_agent_fallback_on_bad_model(
     assert out.speaker == "DevOps Lead"
     assert "NOT_JSON" not in out.message
     assert out.demands
+    assert out.provenance is not None
+    assert out.provenance.type == "safe_fallback"
+
+
+@pytest.mark.asyncio
+async def test_skill_practice_fallback_stays_in_scenario(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CORTEX_LEARNING_FORCE_BAD_OUTPUT", "1")
+    out = await call_agent(
+        "devops_lead",
+        "Classify the evidence",
+        {
+            "stage": "artefact_date",
+            "state": {"decisions": []},
+            "scenario": "evidence_freshness_audit",
+        },
+    )
+
+    assert out.speaker == "Audit Manager"
+    assert "evidence" in out.message.lower()
+    assert "access" not in out.message.lower()
 
 
 def test_approve_all_risk_mapping() -> None:

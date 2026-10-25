@@ -140,9 +140,9 @@ export default function CompetencyHistory() {
       </div>
 
       {query.isPending ? (
-        <HistorySkeleton />
+        <div role="status" aria-label="Loading competency history"><HistorySkeleton /></div>
       ) : query.isError ? (
-        <div style={{ ...panel, textAlign: "center" }}>
+        <div role="alert" style={{ ...panel, textAlign: "center" }}>
           <p style={{ margin: "0 0 16px", color: "var(--text-secondary)", fontSize: 14 }}>
             Could not load your progress.
           </p>

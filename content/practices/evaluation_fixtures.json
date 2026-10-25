@@ -1,0 +1,167 @@
+{
+  "fixture_version": "v1",
+  "paths": [
+    {
+      "scenario_slug": "incident_severity_triage",
+      "correct": [
+        "impact_assessment_correct",
+        "clock_and_evidence_correct",
+        "severity_reassessment_correct"
+      ],
+      "qualified_alternative": [
+        "impact_assessment_qualified",
+        "clock_and_evidence_qualified",
+        "severity_reassessment_qualified"
+      ],
+      "failure": [
+        "impact_assessment_failure",
+        "clock_and_evidence_failure",
+        "severity_reassessment_failure"
+      ]
+    },
+    {
+      "scenario_slug": "nonconformity_corrective_action",
+      "correct": [
+        "containment_correct",
+        "root_cause_correct",
+        "effectiveness_correct"
+      ],
+      "qualified_alternative": [
+        "containment_qualified",
+        "root_cause_qualified",
+        "effectiveness_qualified"
+      ],
+      "failure": [
+        "containment_failure",
+        "root_cause_failure",
+        "effectiveness_failure"
+      ]
+    },
+    {
+      "scenario_slug": "risk_acceptance_memo",
+      "correct": [
+        "decision_basis_correct",
+        "authority_correct",
+        "conditions_correct"
+      ],
+      "qualified_alternative": [
+        "decision_basis_qualified",
+        "authority_qualified",
+        "conditions_qualified"
+      ],
+      "failure": [
+        "decision_basis_failure",
+        "authority_failure",
+        "conditions_failure"
+      ]
+    },
+    {
+      "scenario_slug": "soa_exclusion_review",
+      "correct": [
+        "fact_test_correct",
+        "supplier_test_correct",
+        "approval_record_correct"
+      ],
+      "qualified_alternative": [
+        "fact_test_qualified",
+        "supplier_test_qualified",
+        "approval_record_qualified"
+      ],
+      "failure": [
+        "fact_test_failure",
+        "supplier_test_failure",
+        "approval_record_failure"
+      ]
+    },
+    {
+      "scenario_slug": "audit_sampling_evidence_sufficiency",
+      "correct": [
+        "population_correct",
+        "selection_correct",
+        "exception_correct"
+      ],
+      "qualified_alternative": [
+        "population_qualified",
+        "selection_qualified",
+        "exception_qualified"
+      ],
+      "failure": [
+        "population_failure",
+        "selection_failure",
+        "exception_failure"
+      ]
+    },
+    {
+      "scenario_slug": "supplier_due_diligence",
+      "correct": [
+        "scope_correct",
+        "assurance_correct",
+        "conditions_correct"
+      ],
+      "qualified_alternative": [
+        "scope_qualified",
+        "assurance_qualified",
+        "conditions_qualified"
+      ],
+      "failure": [
+        "scope_failure",
+        "assurance_failure",
+        "conditions_failure"
+      ]
+    },
+    {
+      "scenario_slug": "access_review_exception_handling",
+      "correct": [
+        "triage_correct",
+        "ownership_correct",
+        "closure_correct"
+      ],
+      "qualified_alternative": [
+        "triage_qualified",
+        "ownership_qualified",
+        "closure_qualified"
+      ],
+      "failure": [
+        "triage_failure",
+        "ownership_failure",
+        "closure_failure"
+      ]
+    },
+    {
+      "scenario_slug": "dora_ict_incident_classification_reporting",
+      "correct": [
+        "criteria_correct",
+        "initial_report_correct",
+        "report_lifecycle_correct"
+      ],
+      "qualified_alternative": [
+        "criteria_qualified",
+        "initial_report_qualified",
+        "report_lifecycle_qualified"
+      ],
+      "failure": [
+        "criteria_failure",
+        "initial_report_failure",
+        "report_lifecycle_failure"
+      ]
+    },
+    {
+      "scenario_slug": "ai_control_applicability_escalation",
+      "correct": [
+        "use_classification_correct",
+        "control_applicability_correct",
+        "confidence_escalation_correct"
+      ],
+      "qualified_alternative": [
+        "use_classification_qualified",
+        "control_applicability_qualified",
+        "confidence_escalation_qualified"
+      ],
+      "failure": [
+        "use_classification_failure",
+        "control_applicability_failure",
+        "confidence_escalation_failure"
+      ]
+    }
+  ]
+}

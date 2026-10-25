@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import uuid
 from typing import Any, Optional
 
@@ -14,11 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
 from api.limits import authenticated_rate_limit_key, limiter
-from compliance.models import SovereignModel
 from core.agents.grading import grade_decision
 from core.agents.scenario import (
     ENTRY_STAGE,
-    EXPERT_DIFFICULTY,
     SCENARIO_ID,
     TERMINAL_STAGE,
     Scenario,
@@ -29,6 +28,7 @@ from core.agents.scenario import (
     open_session_agent_turn,
 )
 from core.audit_fabric import append_audit_log
+from core.governance import SovereignModel
 from core.competency import (
     DIMENSIONS,
     HUMAN_LABELS,
@@ -39,9 +39,6 @@ from core.competency import (
     track_complete,
     weak_dimensions,
 )
-from core.assessment_llm import CONFIDENCE_THRESHOLD
-from core.gaps import reconcile_gaps_for_session
-from core.human_review import enqueue_learning_decision_review
 from core.rbac import Permission, user_has_permission
 from core.security import get_current_user
 from core.tenant import (
@@ -83,6 +80,10 @@ class CreateSessionRequest(BaseModel):
 
 class DecideRequest(BaseModel):
     choice: str = Field(..., min_length=1, description="Learner choice id")
+    # Older API clients can still replay historical fixtures without these
+    # fields; the learner UI requires both before enabling submission.
+    rationale: Optional[str] = Field(default=None, min_length=10, max_length=4000)
+    confidence: Optional[float] = Field(default=None, ge=0, le=1)
 
 
 class ScenarioSummary(BaseModel):
@@ -94,6 +95,12 @@ class ScenarioSummary(BaseModel):
     track: str
     frameworks: list[str]
     difficulty: str
+    source_skill_id: Optional[str] = None
+    source_skill_version: Optional[str] = None
+    source_review_state: Optional[str] = None
+    practice_area: Optional[str] = None
+    estimated_minutes: Optional[int] = None
+    learning_objectives: list[str] = Field(default_factory=list)
 
 
 class SessionOut(SovereignModel):
@@ -109,6 +116,10 @@ class SessionOut(SovereignModel):
     competency: dict[str, Any] = Field(default_factory=dict)
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    scenario_version_id: Optional[str] = None
+    track_version_id: Optional[str] = None
+    learner_rationale: Optional[str] = None
+    learner_confidence: Optional[float] = None
 
 
 class SessionSummary(SovereignModel):
@@ -142,6 +153,8 @@ class DebriefDecision(BaseModel):
     controls: list[str] = Field(default_factory=list)
     observations: list[str] = Field(default_factory=list)
     decided_at: Optional[str] = None
+    learner_rationale: Optional[str] = None
+    learner_confidence: Optional[float] = None
 
 
 class DebriefDimension(BaseModel):
@@ -175,6 +188,16 @@ class DebriefOut(SovereignModel):
     gap_dimensions: list[str] = Field(default_factory=list)
     correct_count: int = 0
     decision_count: int = 0
+    source_skill_id: Optional[str] = None
+    source_skill_version: Optional[str] = None
+    source_skill_url: Optional[str] = None
+    source_skill_hash: Optional[str] = None
+    source_skill_license: Optional[str] = None
+    source_review_state: Optional[str] = None
+    scenario_version: Optional[int] = None
+    scenario_content_hash: Optional[str] = None
+    agent_provenance: list[dict[str, Any]] = Field(default_factory=list)
+    learning_objectives: list[str] = Field(default_factory=list)
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -262,13 +285,38 @@ def _row_to_out(row: Any) -> SessionOut:
         competency=_json_object(raw_competency),
         created_at=created.isoformat() if hasattr(created, "isoformat") else (str(created) if created else None),
         updated_at=updated.isoformat() if hasattr(updated, "isoformat") else (str(updated) if updated else None),
+        scenario_version_id=(
+            str(row["scenario_version_id"])
+            if "scenario_version_id" in row.keys() and row["scenario_version_id"]
+            else None
+        ),
+        track_version_id=(
+            str(row["track_version_id"])
+            if "track_version_id" in row.keys() and row["track_version_id"]
+            else None
+        ),
+        learner_rationale=(
+            str(row["learner_rationale"])
+            if "learner_rationale" in row.keys() and row["learner_rationale"] is not None
+            else None
+        ),
+        learner_confidence=(
+            float(row["learner_confidence"])
+            if "learner_confidence" in row.keys() and row["learner_confidence"] is not None
+            else None
+        ),
     )
 
 
-async def _load_content(session: AsyncSession, slug: str) -> Scenario:
+async def _load_content(
+    session: AsyncSession,
+    slug: str,
+    *,
+    version_id: str | None = None,
+) -> Scenario:
     """Resolve scenario content, mapping an unknown slug to a 400 rather than a 500."""
     try:
-        return await load_scenario(slug, session)
+        return await load_scenario(slug, session, version_id=version_id)
     except ScenarioNotFound:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -280,7 +328,9 @@ async def _fetch_session(session: AsyncSession, session_id: uuid.UUID) -> Any | 
     result = await session.execute(
         text(
             """
-            SELECT id, org_id, scenario, learner_id, state, stage, risk, competency, created_at, updated_at
+            SELECT id, org_id, scenario, learner_id, state, stage, risk, competency,
+                   scenario_version_id, track_version_id, learner_rationale,
+                   learner_confidence, created_at, updated_at
             FROM scenario_sessions
             WHERE id = :id
             """
@@ -290,12 +340,105 @@ async def _fetch_session(session: AsyncSession, session_id: uuid.UUID) -> Any | 
     return result.mappings().first()
 
 
+async def _resolve_curriculum_pins(
+    session: AsyncSession,
+    scenario_slug: str,
+) -> tuple[str | None, str | None]:
+    """Pin the newest published scenario and its published track at enrollment time."""
+    row = (
+        await session.execute(
+            text(
+                """
+                SELECT sv.id AS scenario_version_id, tm.track_version_id
+                FROM scenario_versions sv
+                JOIN scenarios s ON s.id = sv.scenario_id
+                LEFT JOIN track_memberships tm ON tm.scenario_version_id = sv.id
+                LEFT JOIN track_versions tv
+                  ON tv.id = tm.track_version_id AND tv.status = 'published'
+                WHERE s.slug = :slug AND sv.status = 'published'
+                ORDER BY sv.version DESC, tv.version DESC NULLS LAST
+                LIMIT 1
+                """
+            ),
+            {"slug": scenario_slug},
+        )
+    ).mappings().first()
+    if row is None:
+        return None, None
+    return (
+        str(row["scenario_version_id"]),
+        str(row["track_version_id"]) if row["track_version_id"] else None,
+    )
+
+
+async def _persist_agent_turn(
+    session: AsyncSession,
+    *,
+    org_id: str,
+    session_id: str,
+    response: Any,
+) -> None:
+    """Append the validated response and explicit origin as immutable provenance."""
+    provenance = response.provenance
+    if provenance is None:
+        raise RuntimeError("validated agent response is missing provenance")
+    payload = response.model_dump(mode="json")
+    response_hash = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    await session.execute(
+        text(
+            """
+            INSERT INTO agent_turns (
+              org_id, session_id, sequence, provenance_type, provider, model,
+              fixture_version, response_hash, response
+            )
+            SELECT :org_id, CAST(:session_id AS uuid), COALESCE(MAX(sequence), 0) + 1,
+                   :provenance_type, :provider, :model, :fixture_version,
+                   :response_hash, CAST(:response AS jsonb)
+            FROM agent_turns
+            WHERE session_id = CAST(:session_id AS uuid)
+            """
+        ),
+        {
+            "org_id": org_id,
+            "session_id": session_id,
+            "provenance_type": provenance.type,
+            "provider": provenance.provider,
+            "model": provenance.model,
+            "fixture_version": provenance.fixture_version,
+            "response_hash": response_hash,
+            "response": json.dumps(payload),
+        },
+    )
+
+
+def _require_session_owner(row: Any, current_user: dict[str, Any]) -> None:
+    """Learner endpoints never permit one tenant member to act as another learner."""
+    if str(row["learner_id"]) != _learner_id(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to access this learning session",
+        )
+
+
 def _frameworks_list(value: Any) -> list[str]:
     if value is None:
         return []
     if isinstance(value, (list, tuple)):
         return [str(item) for item in value]
     return [str(value)]
+
+
+def _display_control_ref(value: str) -> str:
+    """Render canonical registry ids in the learner-facing reference format."""
+    ref = value.strip()
+    lowered = ref.lower()
+    if lowered.startswith("a."):
+        return f"A.{ref[2:]}"
+    if lowered.startswith("clause."):
+        return f"Clause {ref[7:]}"
+    return ref
 
 
 @router.get(
@@ -318,8 +461,9 @@ async def list_scenarios(
     result = await db.execute(
         text(
             """
-            SELECT slug, title, brief, track, frameworks, difficulty
+            SELECT slug, title, brief, track, frameworks, difficulty, to_jsonb(s) AS extra
             FROM scenarios
+            AS s
             WHERE active = true
             ORDER BY
               CASE difficulty
@@ -332,17 +476,31 @@ async def list_scenarios(
             """
         )
     )
-    return [
-        ScenarioSummary(
+    summaries: list[ScenarioSummary] = []
+    for row in result.mappings().all():
+        extra = _json_object(row["extra"])
+        objectives = extra.get("learning_objectives")
+        summaries.append(
+            ScenarioSummary(
             slug=str(row["slug"]),
             title=str(row["title"]),
             brief=str(row["brief"]),
             track=str(row["track"]),
             frameworks=_frameworks_list(row["frameworks"]),
             difficulty=str(row["difficulty"]),
+            source_skill_id=extra.get("source_skill_id"),
+            source_skill_version=extra.get("source_skill_version"),
+            source_review_state=extra.get("source_review_state"),
+            practice_area=extra.get("practice_area"),
+            estimated_minutes=extra.get("estimated_minutes"),
+            learning_objectives=(
+                [str(item) for item in objectives]
+                if isinstance(objectives, list)
+                else []
+            ),
         )
-        for row in result.mappings().all()
-    ]
+        )
+    return summaries
 
 
 @router.post("/sessions", response_model=SessionOut, summary="Create a learning scenario session")
@@ -355,7 +513,8 @@ async def create_session(
 ) -> SessionOut:
     effective = await bind_writable_org(db, current_user, _resolve_org(current_user, body.org_id))
     scenario = body.resolved_slug()
-    content = await _load_content(db, scenario)
+    scenario_version_id, track_version_id = await _resolve_curriculum_pins(db, scenario)
+    content = await _load_content(db, scenario, version_id=scenario_version_id)
     learner_id = str(current_user.get("sub") or current_user.get("email") or "anonymous")
     entry_stage = content.entry_stage.slug if content.entry_stage is not None else ENTRY_STAGE
 
@@ -377,18 +536,25 @@ async def create_session(
         "decisions": [],
         "last_harness": None,
         "scenario_id": scenario,
+        "scenario_version_id": scenario_version_id,
+        "scenario_content_hash": content.content_hash,
+        "track_version_id": track_version_id,
     }
     insert = await db.execute(
         text(
             """
             INSERT INTO scenario_sessions (
-              org_id, scenario, learner_id, state, stage, risk, framework, audit_type
+              org_id, scenario, learner_id, state, stage, risk, framework, audit_type,
+              scenario_version_id, track_version_id
             )
             VALUES (
               :org_id, :scenario, :learner_id, CAST(:state AS jsonb), :stage, NULL,
-              :framework, :audit_type
+              :framework, :audit_type, CAST(:scenario_version_id AS uuid),
+              CAST(:track_version_id AS uuid)
             )
-            RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency, created_at, updated_at
+            RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency,
+                      scenario_version_id, track_version_id, learner_rationale,
+                      learner_confidence, created_at, updated_at
             """
         ),
         {
@@ -399,6 +565,8 @@ async def create_session(
             "stage": entry_stage,
             "framework": (body.framework or "").strip() or None,
             "audit_type": (body.audit_type or "").strip() or None,
+            "scenario_version_id": scenario_version_id,
+            "track_version_id": track_version_id,
         },
     )
     row = insert.mappings().first()
@@ -417,6 +585,9 @@ async def create_session(
         content,
     )
     full_state = initial_state(opening=opening, scenario=content)
+    full_state["scenario_version_id"] = scenario_version_id
+    full_state["scenario_content_hash"] = content.content_hash
+    full_state["track_version_id"] = track_version_id
 
     updated = await db.execute(
         text(
@@ -426,14 +597,37 @@ async def create_session(
                 stage = :stage,
                 updated_at = NOW()
             WHERE id = :id
-            RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency, created_at, updated_at
+            RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency,
+                      scenario_version_id, track_version_id, learner_rationale,
+                      learner_confidence, created_at, updated_at
             """
         ),
         {"id": session_id, "state": json.dumps(full_state), "stage": entry_stage},
     )
     out_row = updated.mappings().first()
     assert out_row is not None
-
+    await _persist_agent_turn(
+        db,
+        org_id=effective,
+        session_id=session_id,
+        response=opening,
+    )
+    if track_version_id is not None:
+        await db.execute(
+            text(
+                """
+                INSERT INTO curriculum_enrollments (
+                  org_id, learner_id, track_version_id
+                ) VALUES (:org_id, :learner_id, CAST(:track_version_id AS uuid))
+                ON CONFLICT (org_id, learner_id, track_version_id) DO NOTHING
+                """
+            ),
+            {
+                "org_id": effective,
+                "learner_id": learner_id,
+                "track_version_id": track_version_id,
+            },
+        )
     await append_audit_log(
         db,
         event_type="learning.session.create.complete",
@@ -447,6 +641,9 @@ async def create_session(
             "org_id": effective,
             "stage": entry_stage,
             "harness_speaker": opening.speaker,
+            "scenario_version_id": scenario_version_id,
+            "track_version_id": track_version_id,
+            "agent_provenance": opening.provenance.type if opening.provenance else None,
         },
     )
     logger.info("learning_session_created", session_id=session_id, org_id=effective)
@@ -532,12 +729,27 @@ async def list_sessions(
     return summaries
 
 
-async def _active_scenario_count(db: AsyncSession) -> int:
-    """Denominator for track completion. 0 when the content tables are absent."""
+async def _track_scenario_count(db: AsyncSession, learner_id: str) -> int:
+    """Required membership count for the learner's pinned track, never a global catalog count."""
     try:
         total = (
             await db.execute(
-                text("SELECT count(*) FROM scenarios WHERE active")
+                text(
+                    """
+                    SELECT count(*)
+                    FROM track_memberships tm
+                    WHERE tm.required
+                      AND tm.track_version_id = (
+                        SELECT ss.track_version_id
+                        FROM scenario_sessions ss
+                        WHERE ss.learner_id = :learner_id
+                          AND ss.track_version_id IS NOT NULL
+                        ORDER BY ss.updated_at DESC
+                        LIMIT 1
+                      )
+                    """
+                ),
+                {"learner_id": learner_id},
             )
         ).scalar()
     except Exception:
@@ -554,10 +766,22 @@ def _build_learner_rollup(
 ) -> LearnerCompetency:
     """Fold one learner's sessions (oldest first) into a single competency claim."""
     dimensions = rollup_dimensions(rows)
+    current_track = next(
+        (
+            str(row["track_version_id"])
+            for row in reversed(rows)
+            if row.get("track_version_id") is not None
+        ),
+        None,
+    )
     completed = {
         str(r.get("scenario") or "")
         for r in rows
         if str(r.get("stage") or "") == TERMINAL_STAGE
+        and (
+            current_track is None
+            or str(r.get("track_version_id") or "") == current_track
+        )
     }
     completed.discard("")
     last_seen = max(
@@ -599,6 +823,7 @@ def _build_learner_rollup(
 _ROLLUP_SQL = text(
     """
     SELECT ss.learner_id, ss.scenario, ss.stage, ss.competency, ss.updated_at,
+           ss.track_version_id,
            u.email AS display_name
     FROM scenario_sessions ss
     LEFT JOIN users u ON u.id::text = ss.learner_id
@@ -631,7 +856,7 @@ async def get_my_competency(
         org_id=effective,
         learner_id=learner_id,
         rows=[dict(r) for r in rows],
-        scenario_total=await _active_scenario_count(db),
+        scenario_total=await _track_scenario_count(db, learner_id),
     )
 
 
@@ -665,13 +890,12 @@ async def get_team_competency(
     for row in rows:
         by_learner.setdefault(str(row["learner_id"]), []).append(dict(row))
 
-    scenario_total = await _active_scenario_count(db)
     rollups = [
         _build_learner_rollup(
             org_id=effective,
             learner_id=learner,
             rows=learner_rows,
-            scenario_total=scenario_total,
+            scenario_total=await _track_scenario_count(db, learner),
         )
         for learner, learner_rows in by_learner.items()
     ]
@@ -701,161 +925,8 @@ async def get_session(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this learning session",
         )
+    _require_session_owner(row, current_user)
     return _row_to_out(row)
-
-
-def _grade_confidence(competency: dict[str, Any], moved: dict[str, int]) -> float:
-    """
-    How much the platform trusts its own automated grade of this decision, 0–1.
-
-    Taken from the weakest dimension the decision moved, normalised to 0–1. The
-    reasoning: an authored rationale is an adequate explanation for a learner who
-    is broadly competent and slipped once, and an inadequate one for a learner who
-    has just collapsed a dimension — that second case is where a human should read
-    the transcript. Below CONFIDENCE_THRESHOLD the decision is routed for review,
-    which is the same convention core/assessment_llm.py applies to control
-    assessments.
-    """
-    affected = [dimension_score(competency, dim) for dim in moved] or [
-        dimension_score(competency, dim) for dim in DIMENSIONS
-    ]
-    return max(0.0, min(1.0, min(affected) / 100.0))
-
-
-async def _route_decision_for_review(
-    db: AsyncSession,
-    *,
-    org_id: str,
-    learner_id: str,
-    session_id: str,
-    content: Scenario,
-    stage: str,
-    choice_id: str,
-    result: Any,
-    actor: str,
-) -> None:
-    """
-    Send a wrong expert-difficulty decision to the Review Queue when confidence is low.
-
-    Restricted to expert difficulty on purpose. Foundation and practitioner
-    scenarios are where a learner is expected to be wrong — routing those would
-    bury the queue in noise and teach reviewers to ignore it. At expert difficulty
-    a wrong answer is a signal about the person, not about the material.
-
-    Non-fatal for the same reason as gap reconciliation: the graded session is the
-    record of record and is already committed.
-    """
-    if result.correct or content.difficulty != EXPERT_DIFFICULTY:
-        return
-
-    confidence = _grade_confidence(result.updated_competency, result.dimension_deltas)
-    if confidence >= CONFIDENCE_THRESHOLD:
-        return
-
-    controls = extract_controls(result.framework_rationale)
-    try:
-        item_id = await enqueue_learning_decision_review(
-            db,
-            org_id=org_id,
-            session_id=session_id,
-            learner_id=learner_id,
-            scenario_slug=content.slug,
-            scenario_title=content.title,
-            stage=stage,
-            choice_id=choice_id,
-            control_id=controls[0] if controls else content.slug,
-            confidence=confidence,
-            severity=_review_severity(confidence),
-            reference=result.framework_rationale or content.title,
-        )
-    except Exception as exc:
-        logger.warning(
-            "learning_decision_review_enqueue_failed",
-            session_id=session_id,
-            org_id=org_id,
-            error=str(exc),
-        )
-        return
-
-    await append_audit_log(
-        db,
-        event_type="learning.decision.review.enqueued",
-        entity_type="human_review_item",
-        entity_id=item_id,
-        org_id=org_id,
-        actor=actor,
-        payload={
-            "scenario": content.slug,
-            "stage": stage,
-            "choice": choice_id,
-            "confidence": confidence,
-            "learner_id": learner_id,
-            "session_id": session_id,
-        },
-    )
-
-
-def _review_severity(confidence: float) -> str:
-    """Mirrors core/gaps._severity: distance below the bar, not the raw number."""
-    if confidence < 0.35:
-        return "CRITICAL"
-    if confidence < 0.55:
-        return "HIGH"
-    return "MEDIUM"
-
-
-async def _reconcile_gaps(
-    db: AsyncSession,
-    *,
-    org_id: str,
-    learner_id: str,
-    session_id: str,
-    content: Scenario,
-    competency: dict[str, Any],
-    actor: str,
-) -> None:
-    """
-    Raise or settle the learner's control gaps for this scenario.
-
-    Deliberately non-fatal: a learner who has just finished a scenario must still
-    receive their result even if gap reconciliation fails. The gaps are derived
-    data and are rebuilt on the next completion, whereas the graded session is the
-    record of record and has already been committed above.
-    """
-    try:
-        outcome = await reconcile_gaps_for_session(
-            db,
-            org_id=org_id,
-            learner_id=learner_id,
-            session_id=session_id,
-            content=content,
-            competency=competency,
-        )
-    except Exception as exc:
-        logger.warning(
-            "competency_gap_reconcile_failed",
-            session_id=session_id,
-            org_id=org_id,
-            error=str(exc),
-        )
-        return
-
-    if not (outcome["opened"] or outcome["closed"]):
-        return
-
-    await append_audit_log(
-        db,
-        event_type="learning.gaps.reconcile",
-        entity_type="scenario_session",
-        entity_id=session_id,
-        org_id=org_id,
-        actor=actor,
-        payload={
-            "scenario": content.slug,
-            "opened": outcome["opened"],
-            "closed": outcome["closed"],
-        },
-    )
 
 
 def _build_debrief(row: Any, content: Scenario) -> DebriefOut:
@@ -878,6 +949,7 @@ def _build_debrief(row: Any, content: Scenario) -> DebriefOut:
     for index, entry in enumerate(decisions_raw, start=1):
         if not isinstance(entry, dict):
             continue
+        stage_slug = str(entry.get("stage") or stage_slug)
         chosen_id = str(entry.get("choice") or "")
         stage = content.stage(stage_slug)
         stage_choices = list(stage.choices) if stage is not None else []
@@ -894,7 +966,17 @@ def _build_debrief(row: Any, content: Scenario) -> DebriefOut:
         )
 
         reference_rationale = reference.framework_rationale if reference else None
-        controls = extract_controls(rationale, reference_rationale)
+        structured_controls = [
+            _display_control_ref(ref)
+            for ref in [
+                *(chosen.control_refs if chosen else ()),
+                *(reference.control_refs if reference else ()),
+            ]
+        ]
+        controls = list(dict.fromkeys(structured_controls)) or extract_controls(
+            rationale,
+            reference_rationale,
+        )
         for ref in controls:
             if ref not in controls_seen:
                 controls_seen.append(ref)
@@ -913,6 +995,13 @@ def _build_debrief(row: Any, content: Scenario) -> DebriefOut:
                 reference_rationale=reference_rationale,
                 controls=controls,
                 observations=observations,
+                decided_at=str(entry.get("at")) if entry.get("at") else None,
+                learner_rationale=(
+                    str(entry.get("rationale")) if entry.get("rationale") is not None else None
+                ),
+                learner_confidence=(
+                    float(entry["confidence"]) if entry.get("confidence") is not None else None
+                ),
             )
         )
 
@@ -935,6 +1024,11 @@ def _build_debrief(row: Any, content: Scenario) -> DebriefOut:
 
     created = row["created_at"]
     updated = row["updated_at"]
+    provenance = [
+        dict(message["provenance"])
+        for message in (state.get("messages") or [])
+        if isinstance(message, dict) and isinstance(message.get("provenance"), dict)
+    ]
     return DebriefOut(
         jurisdiction="internal",
         purpose_tags=["learning", "assessment"],
@@ -953,6 +1047,20 @@ def _build_debrief(row: Any, content: Scenario) -> DebriefOut:
         gap_dimensions=weak,
         correct_count=sum(1 for d in decisions if d.correct),
         decision_count=len(decisions),
+        source_skill_id=content.source_skill_id,
+        source_skill_version=content.source_skill_version,
+        source_skill_url=content.source_skill_url,
+        source_skill_hash=content.source_skill_hash,
+        source_skill_license=content.source_skill_license,
+        source_review_state=content.source_review_state,
+        scenario_version=content.version,
+        scenario_content_hash=(
+            str(state.get("scenario_content_hash"))
+            if state.get("scenario_content_hash")
+            else content.content_hash
+        ),
+        agent_provenance=provenance,
+        learning_objectives=list(content.learning_objectives),
         created_at=created.isoformat() if hasattr(created, "isoformat") else None,
         updated_at=updated.isoformat() if hasattr(updated, "isoformat") else None,
     )
@@ -976,7 +1084,14 @@ async def get_debrief(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this learning session",
         )
-    content = await _load_content(db, str(row["scenario"]))
+    _require_session_owner(row, current_user)
+    content = await _load_content(
+        db,
+        str(row["scenario"]),
+        version_id=(
+            str(row["scenario_version_id"]) if row["scenario_version_id"] else None
+        ),
+    )
     return _build_debrief(row, content)
 
 
@@ -1004,10 +1119,17 @@ async def decide(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this learning session",
         )
+    _require_session_owner(row, current_user)
 
     # The session's own scenario defines what is choosable; _VALID_CHOICES only
     # backstops content that carries no choices at all.
-    content = await _load_content(db, str(row["scenario"]))
+    content = await _load_content(
+        db,
+        str(row["scenario"]),
+        version_id=(
+            str(row["scenario_version_id"]) if row["scenario_version_id"] else None
+        ),
+    )
     stage_before = str(row["stage"])
 
     # A graded session is final. Without this, any choice from a later stage
@@ -1081,6 +1203,9 @@ async def decide(
     decisions = list(new_state.get("decisions") or [])
     if decisions:
         last = dict(decisions[-1])
+        last["stage"] = stage_before
+        last["rationale"] = body.rationale
+        last["confidence"] = body.confidence
         last["graded"] = {
             "correct": result.correct,
             "rationale": result.framework_rationale,
@@ -1097,9 +1222,13 @@ async def decide(
                 stage = :stage,
                 risk = :risk,
                 competency = CAST(:competency AS jsonb),
+                learner_rationale = :learner_rationale,
+                learner_confidence = :learner_confidence,
                 updated_at = NOW()
             WHERE id = :id
-            RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency, created_at, updated_at
+            RETURNING id, org_id, scenario, learner_id, state, stage, risk, competency,
+                      scenario_version_id, track_version_id, learner_rationale,
+                      learner_confidence, created_at, updated_at
             """
         ),
         {
@@ -1108,10 +1237,81 @@ async def decide(
             "stage": new_stage,
             "risk": new_risk,
             "competency": json.dumps(result.updated_competency),
+            "learner_rationale": body.rationale,
+            "learner_confidence": body.confidence,
         },
     )
     out_row = updated.mappings().first()
     assert out_row is not None
+    await _persist_agent_turn(
+        db,
+        org_id=effective,
+        session_id=str(session_id),
+        response=agent,
+    )
+
+    if new_stage == TERMINAL_STAGE and out_row["scenario_version_id"] is not None:
+        enrollment_id = None
+        if out_row["track_version_id"] is not None:
+            enrollment_id = (
+                await db.execute(
+                    text(
+                        """
+                        SELECT id FROM curriculum_enrollments
+                        WHERE org_id = :org_id AND learner_id = :learner_id
+                          AND track_version_id = :track_version_id
+                        """
+                    ),
+                    {
+                        "org_id": effective,
+                        "learner_id": str(out_row["learner_id"]),
+                        "track_version_id": out_row["track_version_id"],
+                    },
+                )
+            ).scalar_one_or_none()
+        await db.execute(
+            text(
+                """
+                INSERT INTO curriculum_completions (
+                  org_id, learner_id, enrollment_id, scenario_version_id, session_id
+                ) VALUES (
+                  :org_id, :learner_id, :enrollment_id, :scenario_version_id, :session_id
+                )
+                ON CONFLICT (session_id) DO NOTHING
+                """
+            ),
+            {
+                "org_id": effective,
+                "learner_id": str(out_row["learner_id"]),
+                "enrollment_id": enrollment_id,
+                "scenario_version_id": out_row["scenario_version_id"],
+                "session_id": out_row["id"],
+            },
+        )
+        if enrollment_id is not None:
+            await db.execute(
+                text(
+                    """
+                    UPDATE curriculum_enrollments ce
+                    SET status = 'completed', completed_at = NOW()
+                    WHERE ce.id = :enrollment_id
+                      AND NOT EXISTS (
+                        SELECT 1
+                        FROM track_memberships tm
+                        WHERE tm.track_version_id = ce.track_version_id
+                          AND tm.required
+                          AND NOT EXISTS (
+                            SELECT 1
+                            FROM curriculum_completions cc
+                            WHERE cc.org_id = ce.org_id
+                              AND cc.learner_id = ce.learner_id
+                              AND cc.scenario_version_id = tm.scenario_version_id
+                          )
+                      )
+                    """
+                ),
+                {"enrollment_id": enrollment_id},
+            )
 
     await append_audit_log(
         db,
@@ -1128,35 +1328,16 @@ async def decide(
             "org_id": effective,
             "harness_speaker": agent.speaker,
             "harness_stance": agent.stance,
+            "scenario_version_id": (
+                str(out_row["scenario_version_id"])
+                if out_row["scenario_version_id"] is not None
+                else None
+            ),
+            "learner_confidence": body.confidence,
+            "rationale_supplied": body.rationale is not None,
+            "agent_provenance": agent.provenance.type if agent.provenance else None,
         },
     )
-
-    # Per decision, not per session: the reviewer needs the specific stage and
-    # choice, which the final competency rollup no longer distinguishes.
-    await _route_decision_for_review(
-        db,
-        org_id=effective,
-        learner_id=str(out_row["learner_id"]),
-        session_id=str(session_id),
-        content=content,
-        stage=stage_before,
-        choice_id=choice,
-        result=result,
-        actor=actor,
-    )
-
-    # Terminal stage is the only point at which competency is final, so it is the
-    # only honest point to raise or settle control gaps from it.
-    if new_stage == TERMINAL_STAGE:
-        await _reconcile_gaps(
-            db,
-            org_id=effective,
-            learner_id=str(out_row["learner_id"]),
-            session_id=str(session_id),
-            content=content,
-            competency=result.updated_competency,
-            actor=actor,
-        )
 
     logger.info(
         "learning_session_decided",
