@@ -111,7 +111,13 @@ function DimensionCard({ dim }: { dim: DebriefDimension }) {
 
 function DecisionCard({ decision }: { decision: DebriefDecision }) {
   const ok = decision.correct;
-  const accent = ok ? "var(--green)" : "var(--red)";
+  const qualified = decision.risk_outcome === "qualified_alternative";
+  const accent = ok ? "var(--green)" : qualified ? "var(--amber)" : "var(--red)";
+  const outcomeLabel = ok
+    ? "✓ MATCHED REFERENCE"
+    : qualified
+      ? "△ QUALIFIED ALTERNATIVE"
+      : "✗ NEEDS REMEDIATION";
   return (
     <article
       style={{
@@ -136,7 +142,7 @@ function DecisionCard({ decision }: { decision: DebriefDecision }) {
           Decision {decision.sequence} · {stageLabel(decision.stage)}
         </span>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: accent }}>
-          {ok ? "✓ MATCHED REFERENCE" : "✗ MISSED"}
+          {outcomeLabel}
         </span>
       </div>
 

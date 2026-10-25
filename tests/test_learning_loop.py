@@ -664,7 +664,12 @@ async def test_debrief_is_tenant_scoped(client: TestClient) -> None:
         ),
         (
             "ransomware_group_response",
-            ["invoke_and_isolate", "image_then_restore", "board_brief_staged_notify"],
+                [
+                    "invoke_and_isolate",
+                    "image_then_restore",
+                    "board_brief_staged_notify",
+                    "synthesis_4_controlled",
+                ],
         ),
     ],
 )
@@ -754,3 +759,27 @@ async def test_expert_wrong_decision_stays_in_astra_learning_record(
 
     queue = client.get("/api/v1/assessments/review-queue", headers=headers)
     assert queue.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_locked_track_prerequisite_blocks_session_start() -> None:
+    from unittest.mock import AsyncMock, MagicMock
+
+    from fastapi import HTTPException
+
+    from api.learning import _assert_prerequisites_complete
+
+    result = MagicMock()
+    result.scalar_one.return_value = True
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=result)
+
+    with pytest.raises(HTTPException) as raised:
+        await _assert_prerequisites_complete(
+            session,
+            learner_id="learner-1",
+            track_version_id="00000000-0000-0000-0000-000000000001",
+        )
+
+    assert raised.value.status_code == 409
+    assert "prerequisites" in str(raised.value.detail).lower()

@@ -33,7 +33,7 @@ services:
       context: .
       target: runtime
       args:
-        ASTRA_VERSION: ${ASTRA_VERSION:-1.0.0}
+        ASTRA_VERSION: ${ASTRA_VERSION:-1.1.0}
     environment:
       PGHOST: postgres
       PGPORT: "5432"
@@ -51,7 +51,7 @@ services:
       context: .
       target: runtime
       args:
-        ASTRA_VERSION: ${ASTRA_VERSION:-1.0.0}
+        ASTRA_VERSION: ${ASTRA_VERSION:-1.1.0}
     environment: *api-environment
     depends_on:
       migrate:
@@ -72,7 +72,7 @@ services:
     build:
       context: ./frontend
       args:
-        ASTRA_VERSION: ${ASTRA_VERSION:-1.0.0}
+        ASTRA_VERSION: ${ASTRA_VERSION:-1.1.0}
     ports:
       - "${ASTRA_PORT:-8080}:8080"
     depends_on:

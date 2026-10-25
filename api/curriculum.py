@@ -10,7 +10,14 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
+from core.competency import rollup_dimensions
 from core.governance import SovereignModel
+from core.learning_recommendations import (
+    CompetencySignal,
+    LearningRecommendation,
+    RecommendationCandidate,
+    rank_practices,
+)
 from core.security import get_current_user
 from core.tenant import bind_scoped_org
 
@@ -27,6 +34,7 @@ class PublishedPractice(SovereignModel):
     difficulty: str
     scenario_slug: str | None
     content_hash: str
+    target_dimensions: list[str] = Field(default_factory=list)
     prerequisite_track_version_ids: list[str] = Field(default_factory=list)
     completed: bool = False
     locked: bool = False
@@ -49,6 +57,7 @@ class LearningPlan(SovereignModel):
     learner_id: str
     recommended_track_version_id: str | None
     recommended_practice_version_id: str | None
+    recommendation: LearningRecommendation | None = None
     tracks: list[PublishedTrack] = Field(default_factory=list)
     practices: list[PublishedPractice] = Field(default_factory=list)
 
@@ -59,7 +68,7 @@ def _learner(current_user: dict[str, Any]) -> str:
 
 async def _context(
     db: AsyncSession, current_user: dict[str, Any]
-) -> tuple[str, str, str | None, str | None]:
+) -> tuple[str, str, str | None, str | None, str | None, str, float | None]:
     org_id = str(current_user.get("org_id") or "")
     effective = await bind_scoped_org(db, current_user, org_id)
     learner_id = _learner(current_user)
@@ -67,9 +76,13 @@ async def _context(
         await db.execute(
             text(
                 """
-                SELECT dr.track_version_id::text, dr.recommended_practice_version_id::text
+                SELECT dr.track_version_id::text, dr.recommended_practice_version_id::text,
+                       recommended_pv.practice_id AS recommended_practice_id,
+                       dr.confidence, da.experience_level
                 FROM diagnostic_recommendations dr
                 JOIN diagnostic_attempts da ON da.id = dr.attempt_id
+                LEFT JOIN practice_versions recommended_pv
+                  ON recommended_pv.id = dr.recommended_practice_version_id
                 WHERE da.learner_id = :learner_id
                 ORDER BY dr.created_at DESC LIMIT 1
                 """
@@ -86,6 +99,13 @@ async def _context(
             if recommendation and recommendation["recommended_practice_version_id"]
             else None
         ),
+        (
+            str(recommendation["recommended_practice_id"])
+            if recommendation and recommendation["recommended_practice_id"]
+            else None
+        ),
+        str(recommendation["experience_level"]) if recommendation else "new",
+        float(recommendation["confidence"]) if recommendation else None,
     )
 
 
@@ -98,6 +118,7 @@ async def _practices(
                 """
                 SELECT pv.practice_id, pv.id::text AS practice_version_id, pv.version,
                        pv.title, pv.summary, pv.content_hash,
+                       COALESCE(pv.content->'target_dimensions', '[]'::jsonb) AS target_dimensions,
                        sv.frameworks, sv.difficulty, sv.slug AS scenario_slug,
                        ARRAY(
                          SELECT DISTINCT tp.prerequisite_track_version_id::text
@@ -130,6 +151,15 @@ async def _practices(
                   ORDER BY version DESC LIMIT 1
                 ) sv ON TRUE
                 WHERE pv.status = 'published'
+                  AND pv.id = (
+                    SELECT newest.id
+                    FROM practice_versions newest
+                    WHERE newest.practice_id = pv.practice_id
+                      AND newest.status = 'published'
+                    ORDER BY newest.published_at DESC NULLS LAST,
+                             newest.created_at DESC, newest.version DESC
+                    LIMIT 1
+                  )
                 ORDER BY pv.title, pv.version DESC
                 """
             ),
@@ -149,6 +179,9 @@ async def _practices(
             difficulty=str(row["difficulty"] or "foundation"),
             scenario_slug=str(row["scenario_slug"]) if row["scenario_slug"] else None,
             content_hash=str(row["content_hash"]),
+            target_dimensions=[
+                str(value) for value in (row["target_dimensions"] or [])
+            ],
             prerequisite_track_version_ids=[
                 str(value) for value in (row["prerequisites"] or [])
             ],
@@ -191,6 +224,15 @@ async def _tracks(
                        ) AS prerequisites_complete
                 FROM track_versions tv
                 WHERE tv.status = 'published'
+                  AND tv.id = (
+                    SELECT newest.id
+                    FROM track_versions newest
+                    WHERE newest.track_id = tv.track_id
+                      AND newest.status = 'published'
+                    ORDER BY newest.published_at DESC NULLS LAST,
+                             newest.created_at DESC, newest.version DESC
+                    LIMIT 1
+                  )
                 ORDER BY tv.title, tv.version DESC
                 """
             ),
@@ -220,7 +262,7 @@ async def list_published_practices(
     current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[PublishedPractice]:
-    _, learner_id, _, practice_id = await _context(db, current_user)
+    _, learner_id, _, practice_id, _, _, _ = await _context(db, current_user)
     return await _practices(db, learner_id, practice_id)
 
 
@@ -229,7 +271,7 @@ async def list_published_tracks(
     current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[PublishedTrack]:
-    _, learner_id, track_id, _ = await _context(db, current_user)
+    _, learner_id, track_id, _, _, _, _ = await _context(db, current_user)
     return await _tracks(db, learner_id, track_id)
 
 
@@ -238,13 +280,78 @@ async def get_learning_plan(
     current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> LearningPlan:
-    _, learner_id, track_id, practice_id = await _context(db, current_user)
+    (
+        _,
+        learner_id,
+        track_id,
+        practice_id,
+        diagnostic_practice_id,
+        experience_level,
+        diagnostic_confidence,
+    ) = await _context(db, current_user)
+    practices = await _practices(db, learner_id, practice_id)
+    session_rows = (
+        await db.execute(
+            text(
+                """
+                SELECT scenario, competency
+                FROM scenario_sessions
+                WHERE learner_id = :learner_id
+                ORDER BY updated_at, id
+                """
+            ),
+            {"learner_id": learner_id},
+        )
+    ).mappings().all()
+    signals = [
+        CompetencySignal(
+            jurisdiction="internal",
+            purpose_tags=["learning", "competency"],
+            dimension=item.dimension,
+            score=item.score,
+            proven=item.proven,
+        )
+        for item in rollup_dimensions([dict(row) for row in session_rows])
+    ]
+    fallback = {
+        "new": "foundation",
+        "developing": "practitioner",
+        "experienced": "expert",
+    }.get(experience_level, "foundation")
+    recommendation = rank_practices(
+        [
+            RecommendationCandidate(
+                jurisdiction="internal",
+                purpose_tags=["learning", "recommendation"],
+                practice_id=practice.practice_id,
+                practice_version_id=practice.practice_version_id,
+                title=practice.title,
+                difficulty=practice.difficulty,
+                target_dimensions=practice.target_dimensions,
+                locked=practice.locked,
+                completed=practice.completed,
+                diagnostic_match=practice.practice_id == diagnostic_practice_id,
+            )
+            for practice in practices
+        ],
+        signals,
+        fallback_difficulty=fallback,  # type: ignore[arg-type]
+        diagnostic_confidence=diagnostic_confidence,
+    )
+    selected_id = recommendation.recommended_practice_version_id
+    practices = [
+        practice.model_copy(
+            update={"recommended": practice.practice_version_id == selected_id}
+        )
+        for practice in practices
+    ]
     return LearningPlan(
         jurisdiction="internal",
         purpose_tags=["learning", "recommendation"],
         learner_id=learner_id,
         recommended_track_version_id=track_id,
-        recommended_practice_version_id=practice_id,
+        recommended_practice_version_id=selected_id,
+        recommendation=recommendation,
         tracks=await _tracks(db, learner_id, track_id),
-        practices=await _practices(db, learner_id, practice_id),
+        practices=practices,
     )

@@ -14,6 +14,9 @@ def test_practice_catalog_is_validated_and_inert() -> None:
     assert all(practice.review_state == "reviewed" for practice in practices)
     assert all(practice.reviewed_by for practice in practices)
     assert all(practice.reviewed_at.tzinfo is not None for practice in practices)
+    assert all(practice.quality_standard_version == "practice-quality-v1" for practice in practices)
+    assert all(practice.quality_score == 100 for practice in practices)
+    assert all(not practice.quality_findings for practice in practices)
 
     payload = [practice.model_dump() for practice in practices]
     assert all("content" not in practice for practice in payload)

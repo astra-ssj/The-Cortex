@@ -26,6 +26,9 @@ export interface PracticeCatalogEntry {
   license: string;
   author: string;
   review_state: PracticeReviewState;
+  quality_standard_version: string;
+  quality_score: number;
+  quality_findings: string[];
 }
 
 export function getPractices(): Promise<PracticeCatalogEntry[]> {

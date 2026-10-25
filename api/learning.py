@@ -145,6 +145,7 @@ class DebriefDecision(BaseModel):
     chosen_id: str
     chosen_label: str
     correct: bool
+    risk_outcome: Optional[str] = None
     consequence: str
     framework_rationale: str
     reference_id: Optional[str] = None
@@ -371,6 +372,46 @@ async def _resolve_curriculum_pins(
     )
 
 
+async def _assert_prerequisites_complete(
+    session: AsyncSession,
+    *,
+    learner_id: str,
+    track_version_id: str | None,
+) -> None:
+    """Refuse starts that the published learning plan marks as locked."""
+    if track_version_id is None:
+        return
+    blocked = (
+        await session.execute(
+            text(
+                """
+                SELECT EXISTS (
+                  SELECT 1
+                  FROM track_prerequisites tp
+                  WHERE tp.track_version_id = CAST(:track_version_id AS uuid)
+                    AND NOT EXISTS (
+                      SELECT 1
+                      FROM curriculum_enrollments ce
+                      WHERE ce.learner_id = :learner_id
+                        AND ce.track_version_id = tp.prerequisite_track_version_id
+                        AND ce.status = 'completed'
+                    )
+                )
+                """
+            ),
+            {
+                "track_version_id": track_version_id,
+                "learner_id": learner_id,
+            },
+        )
+    ).scalar_one()
+    if blocked:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Practice prerequisites are not yet complete",
+        )
+
+
 async def _persist_agent_turn(
     session: AsyncSession,
     *,
@@ -514,8 +555,13 @@ async def create_session(
     effective = await bind_writable_org(db, current_user, _resolve_org(current_user, body.org_id))
     scenario = body.resolved_slug()
     scenario_version_id, track_version_id = await _resolve_curriculum_pins(db, scenario)
-    content = await _load_content(db, scenario, version_id=scenario_version_id)
     learner_id = str(current_user.get("sub") or current_user.get("email") or "anonymous")
+    await _assert_prerequisites_complete(
+        db,
+        learner_id=learner_id,
+        track_version_id=track_version_id,
+    )
+    content = await _load_content(db, scenario, version_id=scenario_version_id)
     entry_stage = content.entry_stage.slug if content.entry_stage is not None else ENTRY_STAGE
 
     start_hash = await append_audit_log(
@@ -988,6 +1034,7 @@ def _build_debrief(row: Any, content: Scenario) -> DebriefOut:
                 chosen_id=chosen_id,
                 chosen_label=chosen.label if chosen else chosen_id,
                 correct=correct,
+                risk_outcome=chosen.risk_outcome if chosen else None,
                 consequence=(chosen.consequence if chosen else "") or "",
                 framework_rationale=rationale,
                 reference_id=reference.choice_id if reference else None,

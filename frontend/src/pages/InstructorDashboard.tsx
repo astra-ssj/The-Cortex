@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { instructionApi } from "../api/instruction";
+import { getPractices } from "../api/practices";
 import { Skeleton } from "../components/Skeleton";
 import { useOrgContext } from "../hooks/useOrgContext";
 import { useRole } from "../hooks/useRole";
@@ -36,6 +37,11 @@ export default function InstructorDashboard() {
     queryKey: ["instruction-progress", orgId],
     queryFn: () => instructionApi.progress(orgId),
     enabled: allowed,
+  });
+  const practices = useQuery({
+    queryKey: ["practice-catalog"],
+    queryFn: getPractices,
+    enabled: allowed && canManage,
   });
   const createCohort = useMutation({
     mutationFn: (cohortName: string) => instructionApi.createCohort(orgId, { name: cohortName }),
@@ -165,7 +171,14 @@ export default function InstructorDashboard() {
             {canManage && (
               <form onSubmit={submitAssignment} style={{ ...cards, marginBottom: 14 }}>
                 <input aria-label="Assignment title" value={assignmentTitle} onChange={(event) => setAssignmentTitle(event.target.value)} placeholder="Assignment title" maxLength={200} style={input} />
-                <input aria-label="Practice slug" value={practiceSlug} onChange={(event) => setPracticeSlug(event.target.value)} placeholder="Practice scenario slug" style={input} />
+                <select aria-label="Practice" value={practiceSlug} onChange={(event) => setPracticeSlug(event.target.value)} style={input}>
+                  <option value="">Select reviewed practice (optional)</option>
+                  {(practices.data ?? []).filter((practice) => practice.status === "available").map((practice) => (
+                    <option key={practice.id} value={practice.scenario_slug ?? ""}>
+                      {practice.title} · {practice.difficulty} · quality {practice.quality_score}/100
+                    </option>
+                  ))}
+                </select>
                 <select aria-label="Assignment cohort" value={cohortId} onChange={(event) => setCohortId(event.target.value)} style={input}>
                   <option value="">Select cohort (optional)</option>
                   {(cohorts.data ?? []).filter((cohort) => cohort.status === "active").map((cohort) => <option key={cohort.id} value={cohort.id}>{cohort.name}</option>)}

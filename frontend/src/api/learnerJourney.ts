@@ -71,6 +71,7 @@ export interface PublishedPractice {
   difficulty: string;
   scenario_slug: string | null;
   content_hash: string;
+  target_dimensions: string[];
   prerequisite_track_version_ids: string[];
   completed: boolean;
   locked: boolean;
@@ -93,6 +94,23 @@ export interface LearningPlan {
   learner_id: string;
   recommended_track_version_id: string | null;
   recommended_practice_version_id: string | null;
+  recommendation: {
+    algorithm_version: string;
+    recommended_practice_version_id: string | null;
+    recommended_difficulty: "foundation" | "practitioner" | "expert";
+    target_gap_dimensions: string[];
+    rationale: string;
+    confidence: number;
+    requires_human_review: boolean;
+    ranked: {
+      practice_id: string;
+      practice_version_id: string;
+      score: number;
+      reason_codes: string[];
+      target_gap_dimensions: string[];
+      recommended_difficulty: "foundation" | "practitioner" | "expert";
+    }[];
+  } | null;
   tracks: PublishedTrack[];
   practices: PublishedPractice[];
 }
