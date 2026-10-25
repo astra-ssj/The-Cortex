@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import uuid
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
@@ -14,7 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
 from api.limits import authenticated_rate_limit_key, limiter
+from core.agents.narration import audit_invoked_narration, briefing_facts, narrate
 from core.audit_fabric import append_audit_log
+from core.governance import SovereignModel
 from core.instruction import (
     Assignment,
     CoachingNote,
@@ -68,6 +71,22 @@ class AssignmentPatch(BaseModel):
 
 class AssignmentStatusInput(BaseModel):
     status: Literal["in_progress", "completed"]
+
+
+class BriefingInput(BaseModel):
+    cohort_id: str | None = None
+
+
+class CohortBriefing(SovereignModel):
+    cohort_id: str | None = None
+    narrative: str
+    cited_facts: list[str] = Field(default_factory=list)
+    confidence: float = Field(ge=0, le=1)
+    source: Literal["local_model", "deterministic"]
+    requires_human_review: bool
+    suggested_practice_id: str | None = None
+    provider: str
+    model: str
 
 
 class NoteInput(BaseModel):
@@ -716,6 +735,125 @@ async def get_progress(
 ) -> list[LearnerProgress]:
     effective = await bind_scoped_org(db, user, _org(user, org_id))
     return await assignment_progress(db, effective, cohort_id=cohort_id)
+
+
+@router.post("/briefing", response_model=CohortBriefing)
+@limiter.limit("10/minute", key_func=authenticated_rate_limit_key)
+async def create_briefing(
+    request: Request,
+    body: BriefingInput,
+    org_id: str | None = Query(None),
+    user: dict[str, Any] = Depends(require_permission(Permission.coach_learners)),
+    db: AsyncSession = Depends(get_db),
+) -> CohortBriefing:
+    """Draft a cohort briefing. The model cannot create an assignment."""
+    effective = await bind_writable_org(db, user, _org(user, org_id))
+    actor = _actor(user)
+    cohort_id = (body.cohort_id or "").strip() or None
+    if cohort_id is not None:
+        try:
+            uuid.UUID(cohort_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Cohort id must be a UUID") from exc
+        found = (
+            await db.execute(
+                text(
+                    """
+                    SELECT id FROM cohorts
+                    WHERE id = CAST(:id AS uuid) AND org_id = :org_id
+                    """
+                ),
+                {"id": cohort_id, "org_id": effective},
+            )
+        ).first()
+        if found is None:
+            raise HTTPException(status_code=404, detail="Cohort not found")
+    progress = await assignment_progress(db, effective, cohort_id=cohort_id)
+    if cohort_id is not None:
+        suggested_statement = text(
+            """
+            SELECT ap.scenario_slug
+            FROM assignment_practices ap
+            JOIN assignments a
+              ON a.org_id = ap.org_id AND a.id = ap.assignment_id
+            JOIN assignment_learners al
+              ON al.org_id = a.org_id AND al.assignment_id = a.id
+            WHERE a.org_id = :org_id
+              AND a.cohort_id = CAST(:cohort_id AS uuid)
+              AND al.status NOT IN ('completed', 'excused')
+            GROUP BY ap.scenario_slug
+            ORDER BY count(*) DESC, ap.scenario_slug
+            LIMIT 1
+            """
+        )
+        suggested_params: dict[str, Any] = {"org_id": effective, "cohort_id": cohort_id}
+    else:
+        suggested_statement = text(
+            """
+            SELECT ap.scenario_slug
+            FROM assignment_practices ap
+            JOIN assignments a
+              ON a.org_id = ap.org_id AND a.id = ap.assignment_id
+            JOIN assignment_learners al
+              ON al.org_id = a.org_id AND al.assignment_id = a.id
+            WHERE a.org_id = :org_id
+              AND al.status NOT IN ('completed', 'excused')
+            GROUP BY ap.scenario_slug
+            ORDER BY count(*) DESC, ap.scenario_slug
+            LIMIT 1
+            """
+        )
+        suggested_params = {"org_id": effective}
+    suggested = (await db.execute(suggested_statement, suggested_params)).scalar_one_or_none()
+    suggested_practice_id = str(suggested) if suggested else None
+    rows = [item.model_dump() for item in progress]
+    facts = briefing_facts(rows, suggested_practice_id)
+    stuck = ", ".join(facts["stuck_learners"]) or "none"
+    narration = await narrate(
+        kind="briefing",
+        facts=facts,
+        fallback=(
+            f"{facts['learner_count']} learners, {facts['overdue_count']} overdue, "
+            f"{facts['completed_count']} completed. Stuck: {stuck}. "
+            f"Suggested practice: {suggested_practice_id or 'none'}."
+        ),
+        required_practice_id=suggested_practice_id,
+    )
+    await _audit_pair(
+        db,
+        event="instruction.briefing",
+        entity="cohort",
+        entity_id=cohort_id,
+        org_id=effective,
+        actor=actor,
+        payload={
+            "source": narration.source,
+            "suggested_practice_id": suggested_practice_id,
+            "requires_human_review": narration.requires_human_review,
+        },
+    )
+    await audit_invoked_narration(
+        db,
+        kind="briefing",
+        entity_type="cohort",
+        entity_id=cohort_id,
+        org_id=effective,
+        actor=actor,
+        narration=narration,
+    )
+    return CohortBriefing(
+        jurisdiction="internal",
+        purpose_tags=["learning", "instruction", "narration"],
+        cohort_id=cohort_id,
+        narrative=narration.narrative,
+        cited_facts=narration.cited_facts,
+        confidence=narration.confidence,
+        source=narration.source,
+        requires_human_review=narration.requires_human_review,
+        suggested_practice_id=suggested_practice_id,
+        provider=narration.provider,
+        model=narration.model,
+    )
 
 
 @router.post("/learners/{learner_id}/notes", response_model=CoachingNote, status_code=201)

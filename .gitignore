@@ -51,3 +51,7 @@ htmlcov/
 frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/
+
+# Offline Gemma weights stay out of the application repository.
+models/gemma4/*.tar
+models/gemma4/*.sha256

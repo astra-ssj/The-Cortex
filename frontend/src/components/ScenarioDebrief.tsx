@@ -250,6 +250,14 @@ export function ScenarioDebrief({
         answer. Final scenario outcome:{" "}
         <strong style={{ color: "var(--text)" }}>{debrief.risk ?? "unknown"}</strong>.
       </p>
+      {debrief.coaching_narrative ? (
+        <p style={{ margin: "12px 0 0", fontSize: 13, color: "var(--text)", lineHeight: 1.55 }}>
+          <span style={{ ...eyebrow, display: "block", marginBottom: 6 }}>
+            {debrief.coaching_source === "local_model" ? "Local Gemma 4" : "Reviewed debrief"}
+          </span>
+          {debrief.coaching_narrative}
+        </p>
+      ) : null}
 
       {debrief.source_skill_id ? (
         <div

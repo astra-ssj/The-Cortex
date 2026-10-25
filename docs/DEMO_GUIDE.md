@@ -37,9 +37,10 @@
 
 ### Flow 4 — Progression (1 min)
 
-1. **My Progress** (`/progress`) — competency over sessions
-2. **Control Gaps** (`/findings`) — weak dimensions become findings
-3. **Evidence Vault** (`/evidence`) — hash-chained decision trail
+1. **Practice Library** — the recommended next practice and your earlier runs
+2. **My Progress** (`/progress`) — competency over sessions
+3. **Settings** — organisation profile, users, and account password
+4. **Instructor** — cohort counts and **Draft briefing** when you are signed in as an instructor
 
 **Talking point:** “Train produces gaps. Gaps drive remediation. Remediation produces evidence. One product, not four tabs.”
 
@@ -49,5 +50,5 @@
 |----------|--------|
 | How is this different? | Adversarial simulation graded against framework controls — not recall quizzes |
 | Who uses this? | Security leads, GRC practitioners, and teams building audit judgment |
-| What ships today? | Five ISO 27001:2022 scenarios, four competency dimensions, community edition |
+| What ships today? | 15 reviewed practices, four competency dimensions, organisation and account settings, practice history, unpublished scenario drafts, and optional local Gemma 4 |
 | When can we start? | Demo running today. Register or use `admin@astralabs.com` / `admin` |

@@ -4,6 +4,7 @@
 
 - Docker Engine 24+ with Compose v2.20+ (required by the source-development include shim)
 - 4 GB RAM and 10 GB free disk
+- About 8 GB more disk, and enough RAM to run a 12B model, if you enable local Gemma 4
 - Linux or macOS (Windows through WSL2)
 
 ## Connected install
@@ -34,6 +35,10 @@ docker compose -f compose.dev.yml up -d --build --wait
 
 The default provider is the deterministic local stub. No external model key is
 required.
+
+To add offline Gemma 4, put the checksummed `astra-gemma4-12b.tar` archive in
+`models/gemma4/` before `./scripts/install.sh`, or follow
+[OFFLINE.md](OFFLINE.md). The practice still completes if the model is absent.
 
 ## Uninstall
 

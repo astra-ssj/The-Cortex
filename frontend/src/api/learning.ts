@@ -203,6 +203,10 @@ export interface ScenarioDebriefData {
     fixture_version?: string | null;
   }[];
   learning_objectives?: string[];
+  coaching_narrative?: string;
+  coaching_source?: "local_model" | "deterministic";
+  coaching_confidence?: number;
+  coaching_requires_human_review?: boolean;
   created_at: string | null;
   updated_at: string | null;
 }

@@ -15,6 +15,7 @@ from core.competency import GAP_FLOOR, PROVEN_THRESHOLD
 from core.governance import SovereignModel
 
 Difficulty = Literal["foundation", "practitioner", "expert"]
+NarrativeSource = Literal["deterministic", "local_model"]
 ALGORITHM_VERSION = "adaptive-learning-v1"
 _DIFFICULTY_ORDER: dict[str, int] = {
     "foundation": 0,
@@ -63,6 +64,8 @@ class LearningRecommendation(SovereignModel):
     rationale: str
     confidence: float = Field(..., ge=0, le=1)
     requires_human_review: bool
+    narrative_source: NarrativeSource = "deterministic"
+    narrative_confidence: float = Field(default=1.0, ge=0, le=1)
     ranked: list[RankedPractice] = Field(default_factory=list)
 
     model_config = {"extra": "forbid", "frozen": True}

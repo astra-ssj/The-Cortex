@@ -4,8 +4,11 @@
 |-----|---------|
 | [STRUCTURE.md](STRUCTURE.md) | Repository layout map |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Runtime topology and service boundaries |
+| [INSTALL.md](INSTALL.md) | Connected, source, and optional Gemma install |
+| [OFFLINE.md](OFFLINE.md) | Air-gap install, personas, and local Gemma 4 |
+| [PRIVACY.md](PRIVACY.md) | Local data boundary and model providers |
 | [CORTEX_SETUP.md](CORTEX_SETUP.md) | Local API, Cursor, Shasta operators |
-| [LLM_PROVIDERS.md](LLM_PROVIDERS.md) | Multi-provider LLM chain |
+| [LLM_PROVIDERS.md](LLM_PROVIDERS.md) | Multi-provider LLM chain and local Gemma |
 | [RBAC.md](RBAC.md) | Roles and permissions |
 | [RELEASE_QA.md](RELEASE_QA.md) | Living release verification checklist |
 | [WORKFLOW_AUDIT_AND_FIXTURE_PHASES.md](WORKFLOW_AUDIT_AND_FIXTURE_PHASES.md) | Product workflow audit |

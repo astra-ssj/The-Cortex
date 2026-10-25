@@ -8,6 +8,9 @@ Release lines **v0.1.0–v0.7.x** below reflect repository tags and merge histor
 
 ### Added
 
+- **Practice library and learner workflows.** Fifteen reviewed practices, practice history with continue and review, organisation profile editing, account password change, and an unpublished customer scenario studio.
+- **Optional offline Gemma 4 12B.** A checksum-verified `astra-gemma4-12b.tar` loads into a local Ollama sidecar. Gemma can voice the stakeholder, draft an unpublished scenario, and explain a debrief, the next practice, and an instructor briefing. Scores, practice selection, and assignments stay deterministic. Confidence below 0.75 keeps the reviewed sentence.
+
 - **Pure Functional Compliance Grader (`grader.py`, `core/grader.py`):** Implemented 100% pure functional evaluation engine computing four normalized compliance competency dimensions (`control_mapping_score`, `evidence_score`, `escalation_score`, `remediation_score`) using Pydantic `GradingResult` with strict range bounds `[0.0, 1.0]`, defensive deep copying, prior failed escalation penalty analysis (-0.2 deduction), and zero side effects/external calls.
 - **High-Throughput Partitioned Event Ingestion (`POST /api/audit/decision`):** Implemented high-throughput asynchronous ingestion router in `api/audit_decision.py` returning HTTP 202 Accepted. Partitions events deterministically across 64 Redis Streams (`audit_stream:partition_{0..63}`) via MurmurHash3 (`mmh3.hash(tenant_id, signed=False) % 64`) with string serialization and strict decoupling from database transactions.
 - **Resilient Distributed Audit Worker (`core/audit_worker.py`):** Implemented asynchronous stream consumer with two-phase recovery (`XAUTOCLAIM` for zombie messages pending >60s and `XREADGROUP` normal fetch), in-memory SHA-256 cryptographic hash chaining (`prev_hash` -> `current_hash`), atomic multi-tenant PostgreSQL batch commits, and PgBouncer-compatible connection pooling (`statement_cache_size=0`).

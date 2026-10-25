@@ -163,6 +163,7 @@ function ReadyPractice({
   recommended,
   locked,
   recommendationRationale,
+  narrativeSource,
   targetGaps,
   requiresReview,
 }: {
@@ -171,6 +172,7 @@ function ReadyPractice({
   recommended: boolean;
   locked: boolean;
   recommendationRationale?: string;
+  narrativeSource?: "deterministic" | "local_model";
   targetGaps: string[];
   requiresReview: boolean;
 }) {
@@ -212,6 +214,7 @@ function ReadyPractice({
           {recommended && recommendationRationale ? (
             <p style={{ margin: "10px 0 0", color: "var(--text)", fontSize: 12, lineHeight: 1.5 }}>
               Why this practice: {recommendationRationale}
+              {narrativeSource === "local_model" ? " · Local Gemma 4" : ""}
             </p>
           ) : null}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
@@ -517,6 +520,9 @@ export default function PracticeLibrary() {
                     locked={planPractices.get(practice.id)?.locked ?? false}
                     recommendationRationale={
                       recommendedIds.has(practice.id) ? recommendation?.rationale : undefined
+                    }
+                    narrativeSource={
+                      recommendedIds.has(practice.id) ? recommendation?.narrative_source : undefined
                     }
                     targetGaps={
                       recommendedIds.has(practice.id)

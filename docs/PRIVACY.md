@@ -11,6 +11,10 @@ With the default settings:
 - no telemetry service is required
 - backups remain local unless an operator moves them
 
+`MODEL_PROVIDER=ollama` with `AGENT_MODEL=gemma4:12b` keeps stakeholder turns
+and training narration on the local Ollama process. That path does not require
+an external API key. The weights are a separate archive, verified before load.
+
 Adding an external provider key changes this boundary. Before enabling one,
 review the provider's retention, training, regional processing, and subprocessors,
 and apply your organization's purpose and jurisdiction controls.

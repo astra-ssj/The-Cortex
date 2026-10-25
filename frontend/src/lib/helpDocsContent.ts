@@ -37,7 +37,7 @@ const LEGACY_HELP_DOC_SECTIONS: HelpDocSection[] = [
           "Scenarios are graded against a reference answer, not multiple choice recall.",
           "Four competency dimensions update independently after each decision.",
           "Wrong answers cost different amounts — some reflect worse judgment than others.",
-          "The AI agent responds differently depending on what you decided.",
+          "The stakeholder voice is a reviewed persona unless an operator enables local Gemma 4. A Local Gemma 4 label means the reply was generated on this machine.",
         ],
       },
       {
@@ -88,7 +88,7 @@ const LEGACY_HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "The Audit Simulator",
         body:
-          "The Audit Simulator is your home screen. Choose a framework and an audit type, then click Start simulation. ISO 27001:2022 is the only selectable framework — GDPR and SOC 2 are in development and carry a Coming Soon badge. Audit type sets the framing of your briefing; it does not yet filter the scenario list. Start simulation opens the Learning Loop, which lists every active scenario, and both selections are recorded against any session you begin from there. You can also open /learning directly, in which case the session is left unframed.",
+          "Open the Practice Library to start one of the 15 reviewed practices. The ISO 27001:2022 track inside that library is five scenarios: access, supplier incident, change, asset classification, and ransomware response. The Audit Simulator can still frame a session before the Learning Loop. Settings holds the organisation profile, users, and your account password.",
         tips: [
           "Start simulation is training. The Run Assessment button in the top bar is a different thing — it runs the AI assessment engine over your framework library and streams its findings on /frameworks.",
           "Foundation scenarios are the right starting point if you are new to ISO 27001:2022.",
@@ -332,7 +332,7 @@ const LEGACY_HELP_DOC_SECTIONS: HelpDocSection[] = [
       {
         title: "What comes next",
         body:
-          "GDPR and SOC 2 are in development. Both appear in the Audit Simulator with a Coming Soon badge and are not yet selectable, and neither has scenario content in this release. Further tracks are under consideration but not committed. Track releases follow scenario content availability.",
+          "The Practice Library holds 15 reviewed practices across the published frameworks. The five ISO 27001:2022 scenarios remain the structured track described above. An instructor can draft a cohort briefing from current counts. With local Gemma 4 enabled, that briefing, the debrief, and the next-practice sentence can be explained on this machine. The score and the assigned practice still come from the product, not from the model.",
       },
     ],
   },

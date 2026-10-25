@@ -27,11 +27,31 @@ host cannot pull `postgres:16-alpine`.
 
 ## Offline persona status
 
-Versioned, deterministic, scenario-specific fixtures are present under
-`content/offline_personas/v1` and are contract-tested. They are intentionally
-isolated because the active learning harness currently has concurrent changes.
-Runtime harness integration is pending; until that narrow integration lands,
-the existing model stub behavior remains active.
+Versioned, deterministic personas live under `content/offline_personas/v1`.
+With `MODEL_PROVIDER=stub`, the learning harness uses those personas for
+stakeholder turns. Scores, risk outcomes, and the next practice stay in the
+deterministic grader and ranker.
+
+## Optional local Gemma 4
+
+Gemma 4 12B is the optional offline model. The weights are not in the API
+image. Place `astra-gemma4-12b.tar` and `astra-gemma4-12b.tar.sha256` in
+`models/gemma4/`, then run `./scripts/install.sh`. The installer verifies the
+digest, sets `MODEL_PROVIDER=ollama` and `AGENT_MODEL=gemma4:12b`, and loads
+the archive into the Ollama volume. A connected development machine can
+instead run:
+
+```bash
+AGENT_MODEL=gemma4:12b MODEL_PROVIDER=ollama docker compose --profile local-ai up -d --build --wait
+docker compose exec ollama ollama pull gemma4:12b
+```
+
+When that provider is selected, Gemma may speak as the stakeholder, draft an
+unpublished customer scenario, and explain a debrief, a next-practice reason,
+or an instructor briefing. It cannot change a score, choose a different
+practice, or create an assignment. Invalid JSON, a cited fact that was not
+supplied, or confidence below 0.75 keeps the reviewed sentence. The screen
+labels a live reply **Local Gemma 4**.
 
 ## Network containment
 

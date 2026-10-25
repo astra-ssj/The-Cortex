@@ -15,6 +15,11 @@ from core.competency import rollup_dimensions
 from core.governance import SovereignModel
 from core.rbac import Permission, require_permission
 from core.scenario_draft import draft_customer_scenario
+from core.agents.narration import (
+    audit_invoked_narration,
+    narrate,
+    recommendation_facts,
+)
 from core.learning_recommendations import (
     CompetencySignal,
     LearningRecommendation,
@@ -284,7 +289,7 @@ async def get_learning_plan(
     db: AsyncSession = Depends(get_db),
 ) -> LearningPlan:
     (
-        _,
+        org_id,
         learner_id,
         track_id,
         practice_id,
@@ -340,6 +345,37 @@ async def get_learning_plan(
         signals,
         fallback_difficulty=fallback,  # type: ignore[arg-type]
         diagnostic_confidence=diagnostic_confidence,
+    )
+    facts = recommendation_facts(recommendation)
+    practice_id = facts.get("practice_id")
+    narration = await narrate(
+        kind="recommendation",
+        facts=facts,
+        fallback=recommendation.rationale,
+        required_practice_id=practice_id if isinstance(practice_id, str) else None,
+    )
+    await audit_invoked_narration(
+        db,
+        kind="recommendation",
+        entity_type="learning_plan",
+        entity_id=learner_id,
+        org_id=org_id,
+        actor=learner_id,
+        narration=narration,
+    )
+    recommendation = recommendation.model_copy(
+        update={
+            "rationale": (
+                narration.narrative
+                if narration.source == "local_model"
+                else recommendation.rationale
+            ),
+            "narrative_source": narration.source,
+            "narrative_confidence": narration.confidence,
+            "requires_human_review": (
+                recommendation.requires_human_review or narration.requires_human_review
+            ),
+        }
     )
     selected_id = recommendation.recommended_practice_version_id
     practices = [

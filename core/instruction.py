@@ -107,32 +107,53 @@ async def assignment_progress(
     *,
     cohort_id: str | None = None,
 ) -> list[LearnerProgress]:
-    rows = (
-        await db.execute(
-            text(
-                """
-                SELECT al.learner_id, COALESCE(u.email, al.learner_id) AS display_name,
-                       count(DISTINCT al.id)::int AS assigned,
-                       count(DISTINCT al.id) FILTER (WHERE al.status = 'completed')::int AS completed,
-                       count(DISTINCT al.id) FILTER (
-                         WHERE a.status = 'published' AND a.due_at < NOW()
-                           AND al.status NOT IN ('completed', 'excused')
-                       )::int AS overdue,
-                       max(ss.updated_at) AS last_active_at
-                FROM assignment_learners al
-                JOIN assignments a ON a.org_id = al.org_id AND a.id = al.assignment_id
-                LEFT JOIN users u ON u.id::text = al.learner_id
-                LEFT JOIN scenario_sessions ss
-                  ON ss.org_id = al.org_id AND ss.learner_id = al.learner_id
-                WHERE al.org_id = :org_id
-                  AND (:cohort_id IS NULL OR a.cohort_id = CAST(:cohort_id AS uuid))
-                GROUP BY al.learner_id, u.email
-                ORDER BY overdue DESC, display_name
-                """
-            ),
-            {"org_id": org_id, "cohort_id": cohort_id},
+    # Two static statements: asyncpg cannot infer a NULL uuid bind parameter.
+    if cohort_id:
+        statement = text(
+            """
+            SELECT al.learner_id, COALESCE(u.email, al.learner_id) AS display_name,
+                   count(DISTINCT al.id)::int AS assigned,
+                   count(DISTINCT al.id) FILTER (WHERE al.status = 'completed')::int AS completed,
+                   count(DISTINCT al.id) FILTER (
+                     WHERE a.status = 'published' AND a.due_at < NOW()
+                       AND al.status NOT IN ('completed', 'excused')
+                   )::int AS overdue,
+                   max(ss.updated_at) AS last_active_at
+            FROM assignment_learners al
+            JOIN assignments a ON a.org_id = al.org_id AND a.id = al.assignment_id
+            LEFT JOIN users u ON u.id::text = al.learner_id
+            LEFT JOIN scenario_sessions ss
+              ON ss.org_id = al.org_id AND ss.learner_id = al.learner_id
+            WHERE al.org_id = :org_id
+              AND a.cohort_id = CAST(:cohort_id AS uuid)
+            GROUP BY al.learner_id, u.email
+            ORDER BY overdue DESC, display_name
+            """
         )
-    ).mappings().all()
+        params: dict[str, Any] = {"org_id": org_id, "cohort_id": cohort_id}
+    else:
+        statement = text(
+            """
+            SELECT al.learner_id, COALESCE(u.email, al.learner_id) AS display_name,
+                   count(DISTINCT al.id)::int AS assigned,
+                   count(DISTINCT al.id) FILTER (WHERE al.status = 'completed')::int AS completed,
+                   count(DISTINCT al.id) FILTER (
+                     WHERE a.status = 'published' AND a.due_at < NOW()
+                       AND al.status NOT IN ('completed', 'excused')
+                   )::int AS overdue,
+                   max(ss.updated_at) AS last_active_at
+            FROM assignment_learners al
+            JOIN assignments a ON a.org_id = al.org_id AND a.id = al.assignment_id
+            LEFT JOIN users u ON u.id::text = al.learner_id
+            LEFT JOIN scenario_sessions ss
+              ON ss.org_id = al.org_id AND ss.learner_id = al.learner_id
+            WHERE al.org_id = :org_id
+            GROUP BY al.learner_id, u.email
+            ORDER BY overdue DESC, display_name
+            """
+        )
+        params = {"org_id": org_id}
+    rows = (await db.execute(statement, params)).mappings().all()
     return [
         LearnerProgress(
             **governed(
