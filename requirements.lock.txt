@@ -25,9 +25,9 @@ bandit==1.9.4
     # via cortex (pyproject.toml)
 bcrypt==5.0.0
     # via passlib
-boto3==1.43.118
+boto3==1.43.119
     # via moto
-botocore==1.43.118
+botocore==1.43.119
     # via
     #   boto3
     #   moto
@@ -146,18 +146,18 @@ pygments==2.21.0
     #   rich
 pyjwt==2.15.1
     # via cortex (pyproject.toml)
-pypdf==6.21.2
+pypdf==6.21.3
     # via cortex (pyproject.toml)
 pytest==9.1.1
     # via
     #   cortex (pyproject.toml)
     #   pytest-asyncio
     #   pytest-cov
-pytest-asyncio==1.4.0
+pytest-asyncio==1.4.1
     # via cortex (pyproject.toml)
 pytest-cov==7.1.0
     # via cortex (pyproject.toml)
-python-dateutil==2.9.0.post0
+python-dateutil==3.0.0
     # via botocore
 python-docx==1.2.0
     # via cortex (pyproject.toml)
@@ -180,7 +180,7 @@ responses==0.26.3
     # via moto
 rich==15.0.0
     # via bandit
-ruff==0.17.2
+ruff==0.17.3
     # via cortex (pyproject.toml)
 s3transfer==0.19.3
     # via boto3
