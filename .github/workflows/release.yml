@@ -111,6 +111,6 @@ jobs:
           cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
 
       - name: Publish release assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: release/dist/${{ steps.version.outputs.value }}/*
