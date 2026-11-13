@@ -8,9 +8,9 @@ annotated-doc==0.0.5
     # via fastapi
 annotated-types==0.8.0
     # via pydantic
-anthropic==2.3.0
+anthropic==2.8.0
     # via cortex (pyproject.toml)
-anyio==4.15.1
+anyio==4.16.0
     # via
     #   anthropic
     #   httpx
@@ -25,9 +25,9 @@ bandit==1.9.4
     # via cortex (pyproject.toml)
 bcrypt==5.0.0
     # via passlib
-boto3==1.43.118
+boto3==1.43.127
     # via moto
-botocore==1.43.118
+botocore==1.43.127
     # via
     #   boto3
     #   moto
@@ -41,21 +41,21 @@ cffi==2.1.1
     # via cryptography
 charset-normalizer==3.5.2
     # via requests
-click==8.5.0
+click==8.5.1
     # via uvicorn
-coverage==7.17.0
+coverage==7.17.2
     # via pytest-cov
 cryptography==50.0.2
     # via
     #   cortex (pyproject.toml)
     #   moto
-deprecated==3.0.0
+deprecated==3.0.1
     # via limits
 docstring-parser==0.18.0
     # via anthropic
-fastapi==0.162.0
+fastapi==0.162.4
     # via cortex (pyproject.toml)
-filelock==4.2.4
+filelock==4.2.10
     # via cortex (pyproject.toml)
 future==1.0.0
     # via cortex (pyproject.toml)
@@ -85,7 +85,7 @@ idna==3.20
     #   requests
 iniconfig==2.3.1
     # via pytest
-jiter==0.18.0
+jiter==0.19.0
     # via anthropic
 jmespath==1.1.0
     # via
@@ -97,23 +97,23 @@ limits==5.8.0
     # via slowapi
 lxml==6.1.3
     # via python-docx
-markdown-it-py==4.2.0
+markdown-it-py==4.3.0
     # via rich
 markupsafe==3.0.4
     # via werkzeug
-marshmallow==4.3.1
+marshmallow==4.4.0
     # via cortex (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
 mmh3==5.3.1
     # via cortex (pyproject.toml)
-moto==5.2.4
+moto==5.2.5
     # via cortex (pyproject.toml)
-mypy==2.4.0
+mypy==2.4.1
     # via cortex (pyproject.toml)
-mypy-extensions==1.1.0
+mypy-extensions==1.2.0
     # via mypy
-opentelemetry-api==1.45.1
+opentelemetry-api==1.45.2
     # via
     #   anthropic
     #   fastapi
@@ -133,12 +133,12 @@ psycopg2-binary==2.9.13
     # via cortex (pyproject.toml)
 pycparser==3.12
     # via cffi
-pydantic==2.14.1
+pydantic==2.14.3
     # via
     #   anthropic
     #   cortex (pyproject.toml)
     #   fastapi
-pydantic-core==2.50.1
+pydantic-core==2.50.4
     # via pydantic
 pygments==2.21.0
     # via
@@ -146,24 +146,24 @@ pygments==2.21.0
     #   rich
 pyjwt==2.15.1
     # via cortex (pyproject.toml)
-pypdf==6.21.2
+pypdf==7.0.1
     # via cortex (pyproject.toml)
-pytest==9.1.1
+pytest==9.2.0
     # via
     #   cortex (pyproject.toml)
     #   pytest-asyncio
     #   pytest-cov
-pytest-asyncio==1.4.0
+pytest-asyncio==1.4.1.post1
     # via cortex (pyproject.toml)
 pytest-cov==7.1.0
     # via cortex (pyproject.toml)
-python-dateutil==2.9.0.post0
+python-dateutil==4.0.0
     # via botocore
 python-docx==1.2.0
     # via cortex (pyproject.toml)
 python-dotenv==1.2.4
     # via uvicorn
-python-multipart==0.0.32
+python-multipart==0.0.33
     # via cortex (pyproject.toml)
 pyyaml==6.0.3
     # via
@@ -180,7 +180,7 @@ responses==0.26.3
     # via moto
 rich==15.0.0
     # via bandit
-ruff==0.17.2
+ruff==0.17.4
     # via cortex (pyproject.toml)
 s3transfer==0.19.3
     # via boto3
@@ -190,7 +190,7 @@ slowapi==0.1.10
     # via cortex (pyproject.toml)
 sniffio==1.3.1
     # via anthropic
-sqlalchemy==2.1.6
+sqlalchemy==2.1.8
     # via cortex (pyproject.toml)
 starlette==1.10.0
     # via fastapi
@@ -218,7 +218,7 @@ typing-extensions==4.16.0
     #   sqlalchemy
     #   starlette
     #   typing-inspection
-typing-inspection==0.4.4
+typing-inspection==0.4.5
     # via
     #   fastapi
     #   pydantic
@@ -233,11 +233,11 @@ uvloop==0.23.0
     # via uvicorn
 watchfiles==1.3.0
     # via uvicorn
-websockets==17.3
+websockets==17.4
     # via uvicorn
 werkzeug==3.1.9
     # via moto
-wrapt==2.5.1
+wrapt==2.5.2
     # via deprecated
 xmltodict==1.0.4
     # via moto
